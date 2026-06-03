@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { navigateTo } from '#imports'
+import { navigateTo } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 
 const props = defineProps<{

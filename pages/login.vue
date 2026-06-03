@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { definePageMeta, navigateTo } from '#imports'
+import { navigateTo } from 'nuxt/app'
 definePageMeta({ middleware: 'guest' })
 
 const form = reactive({ login: '', password: '' })

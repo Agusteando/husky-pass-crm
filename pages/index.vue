@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { navigateTo } from '#imports'
+import { navigateTo } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 

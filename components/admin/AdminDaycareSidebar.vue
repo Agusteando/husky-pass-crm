@@ -45,7 +45,7 @@
         <NuxtLink
           v-for="sala in filteredSalas"
           :key="sala.id"
-          :to="`/admin/daycare/salas/${sala.id}`"
+          :to="`/admin/daycare/salas/${sala.id}/tareas`"
           :class="{ active: String(sala.id) === selectedSala }"
         >
           <span class="room-dot">{{ roomInitials(sala.sala) }}</span>
@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute } from '#imports'
+import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import type { SalaSummary } from '~/types/daycare'
 
@@ -127,7 +127,7 @@ function goToUnidad() {
 function goToSala() {
   actionError.value = ''
   if (!selectedSala.value) return
-  navigateTo(`/admin/daycare/salas/${selectedSala.value}`)
+  navigateTo(`/admin/daycare/salas/${selectedSala.value}/tareas`)
 }
 
 async function previewSala() {

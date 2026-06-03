@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { definePageMeta, useFetch, useRoute } from '#imports'
+import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath } from '~/utils/daycare'
 

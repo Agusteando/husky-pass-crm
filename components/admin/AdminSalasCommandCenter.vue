@@ -82,7 +82,8 @@
             </div>
           </div>
           <div class="focus-actions">
-            <NuxtLink class="btn btn-primary" :to="`/admin/daycare/salas/${selectedSala.id}`">Abrir workspace</NuxtLink>
+            <button class="btn btn-primary" type="button" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
+            <button class="btn btn-secondary" type="button" @click="goToSalaSection('tareas')">Gestionar tareas</button>
             <button class="btn btn-secondary" type="button" @click="previewSala(selectedSala.id)">Vista familiar</button>
           </div>
         </div>
@@ -107,22 +108,22 @@
         </div>
 
         <div class="module-launcher">
-          <NuxtLink :to="`/admin/daycare/salas/${selectedSala.id}/familias`">
+          <button type="button" @click="goToSalaSection('familias')">
             <strong>Familias</strong>
-            <span>Ver cuentas e impersonar.</span>
-          </NuxtLink>
-          <NuxtLink :to="`/admin/daycare/salas/${selectedSala.id}/tareas`">
+            <span>Ver cuentas y soporte.</span>
+          </button>
+          <button type="button" @click="goToSalaSection('tareas')">
             <strong>Tareas</strong>
             <span>Publicar o editar tareas.</span>
-          </NuxtLink>
-          <NuxtLink :to="`/admin/daycare/salas/${selectedSala.id}/avisos`">
+          </button>
+          <button type="button" @click="goToSalaSection('avisos')">
             <strong>Avisos</strong>
             <span>Comunicados familiares.</span>
-          </NuxtLink>
-          <NuxtLink :to="`/admin/daycare/salas/${selectedSala.id}/calendario`">
+          </button>
+          <button type="button" @click="goToSalaSection('calendario')">
             <strong>Calendario</strong>
             <span>Eventos próximos.</span>
-          </NuxtLink>
+          </button>
         </div>
       </article>
     </section>
@@ -131,7 +132,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute, useRouter } from '#imports'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import type { SalaSummary } from '~/types/daycare'
 
@@ -186,6 +187,14 @@ const totals = computed(() => filteredSalas.value.reduce((acc, sala) => {
 function syncUnidad() {
   selectedSalaId.value = null
   router.replace({ path: route.path, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
+}
+
+
+function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
+  actionError.value = ''
+  if (!selectedSala.value?.id) return
+  const query = create ? { create: '1' } : undefined
+  navigateTo({ path: `/admin/daycare/salas/${selectedSala.value.id}/${section}`, query })
 }
 
 async function previewSala(id: number) {
@@ -391,17 +400,20 @@ function roomInitials(value?: string | null) {
   margin-top: 16px;
 }
 
-.module-launcher a {
+.module-launcher button {
   background: linear-gradient(180deg, #ffffff, #fbfdf8);
   border: 1px solid var(--color-border);
   border-radius: 18px;
+  cursor: pointer;
   display: grid;
+  font: inherit;
   gap: 5px;
   min-height: 106px;
   padding: 14px;
+  text-align: left;
 }
 
-.module-launcher a:hover {
+.module-launcher button:hover {
   border-color: var(--color-brand-300);
   box-shadow: var(--shadow-soft);
 }

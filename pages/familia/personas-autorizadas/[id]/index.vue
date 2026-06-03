@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { definePageMeta, useFetch, useRoute } from '#imports'
+import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

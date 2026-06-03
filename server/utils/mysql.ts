@@ -1,5 +1,5 @@
-import { useRuntimeConfig } from '#imports'
-import mysql, { type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
+import { useRuntimeConfig } from 'nitropack/runtime'
+import { createPool, type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
 
 type LegacySqlValue = string | number | boolean | Date | null
 
@@ -8,7 +8,7 @@ let pool: Pool | null = null
 function getPool() {
   if (pool) return pool
   const config = useRuntimeConfig()
-  pool = mysql.createPool({
+  pool = createPool({
     host: config.mysql.host,
     port: Number(config.mysql.port),
     user: config.mysql.user,

@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { definePageMeta, navigateTo, useFetch, useRoute } from '#imports'
+import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'

@@ -122,7 +122,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { definePageMeta, navigateTo, useFetch } from '#imports'
+import { navigateTo, useFetch } from 'nuxt/app'
 import type { AppSessionUser } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'

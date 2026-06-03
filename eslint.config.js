@@ -30,7 +30,8 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        $fetch: 'readonly'
+        $fetch: 'readonly',
+        definePageMeta: 'readonly'
       }
     }
   },

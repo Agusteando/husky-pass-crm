@@ -1,1 +1,1 @@
-Completa recorridos reales de gestión daycare y acceso superadmin
+Corrige navegación de salas y estabiliza imports de Nuxt

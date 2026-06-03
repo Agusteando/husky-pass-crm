@@ -1,5 +1,5 @@
 import { createError, defineEventHandler, readBody, setCookie } from 'h3'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'

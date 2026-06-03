@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { definePageMeta, useFetch, useRoute } from '#imports'
+import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

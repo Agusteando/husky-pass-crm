@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { useFetch } from '#imports'
+import { useFetch } from 'nuxt/app'
 import type { DaycareResource } from '~/types/daycare'
 
 const props = defineProps<{

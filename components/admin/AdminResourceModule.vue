@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch, useRoute } from '#imports'
+import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { DaycareResource, Sala } from '~/types/daycare'
 import { formatDate, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
@@ -115,6 +115,7 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const salaId = Number(route.params.id)
 const editing = ref<Partial<DaycareResource> | null>(null)
 const selected = ref<DaycareResource | null>(null)
@@ -158,6 +159,13 @@ function startCreate() {
     starred: 0,
     hidden: 0
   }
+}
+
+if (route.query.create === '1') {
+  startCreate()
+  const nextQuery = { ...route.query }
+  delete nextQuery.create
+  router.replace({ path: route.path, query: nextQuery })
 }
 
 async function save(payload: Partial<DaycareResource>) {

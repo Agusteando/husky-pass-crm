@@ -1,5 +1,5 @@
 import { createError, setCookie, deleteCookie, getCookie } from 'h3'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import type { AppSessionUser, PublicSession } from '~/types/session'
