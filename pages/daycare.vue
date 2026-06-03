@@ -14,7 +14,7 @@
       </div>
     </section>
 
-    <section class="quick-actions" v-if="session?.user?.sala">
+    <section class="quick-actions">
       <a class="action-card bg-grad-orange" :href="config.public.richmondUrl" target="_blank" rel="noopener">
         <span>Recursos Richmond<br />para Estudiantes</span>
         <strong>Acceder</strong>
@@ -23,7 +23,7 @@
         <span>Plataforma PASE<br />Richmond</span>
         <strong>Entrar</strong>
       </a>
-      <NuxtLink class="action-card bg-grad-blue" to="/daycare/personas-autorizadas">
+      <NuxtLink v-if="canUsePersonasAutorizadas" class="action-card bg-grad-blue" to="/personas_autorizadas">
         <span>Personas<br />Autorizadas</span>
         <strong>QR</strong>
       </NuxtLink>
@@ -89,8 +89,9 @@
 import type { PublicSession } from '~/types/session'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, isPdfResource, legacyPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { hasFamilyScope } from '~/utils/sessionScopes'
 
-definePageMeta({ layout: 'family', middleware: 'family' })
+definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
 const config = useRuntimeConfig()
 const { data: session } = await useFetch<PublicSession>('/api/auth/me')
@@ -103,6 +104,7 @@ const { data: dashboard } = await useFetch<{
 
 const companyLabel = computed(() => session.value?.user?.campus || 'Colegio Casita')
 const campusLabel = computed(() => session.value?.user?.displayName || session.value?.user?.email || 'Bienvenido')
+const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 
 function resourceHref(resource?: string | null) {
   return isPdfResource(resource) ? legacyPdfViewerUrl(resource) : resource || ''

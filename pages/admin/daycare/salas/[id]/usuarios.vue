@@ -33,7 +33,10 @@
             <td>{{ account.username }}</td>
             <td>{{ account.email }}</td>
             <td><span class="badge">{{ account.role }}</span></td>
-            <td><button class="btn btn-secondary" type="button" @click="editing = { ...account }">Editar</button></td>
+            <td class="row-actions">
+              <button class="btn btn-secondary" type="button" @click="editing = { ...account }">Editar</button>
+              <button class="btn btn-primary" type="button" @click="impersonate(account.id)">Ver como familia</button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -69,6 +72,16 @@ async function save(payload: Partial<FamilyAccount>) {
     saving.value = false
   }
 }
+
+async function impersonate(userId?: number) {
+  if (!userId) return
+  const response = await $fetch<{ user: { productScopes?: string[] } }>('/api/auth/admin/impersonate', {
+    method: 'POST',
+    body: { userId }
+  })
+  const target = response.user.productScopes?.includes('daycare') ? '/daycare' : '/personas_autorizadas'
+  await navigateTo(target)
+}
 </script>
 
 <style scoped>
@@ -82,6 +95,12 @@ async function save(payload: Partial<FamilyAccount>) {
   gap: 20px;
   justify-content: space-between;
   padding: clamp(22px, 4vw, 34px);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 @media (max-width: 760px) {

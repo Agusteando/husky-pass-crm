@@ -1,27 +1,26 @@
 # husky-pass-crm
 
-Nueva implementación Nuxt de Husky Pass CRM sobre la base MySQL legacy existente.
+Implementación Nuxt de la Fase 1 de Husky Pass CRM sobre la base MySQL existente.
 
-El proyecto no copia archivos legacy. Reimplementa los flujos operativos detectados en AngularJS/PHP con una capa MySQL explícita, sin migraciones y sin cambios de esquema.
+El proyecto no copia archivos legacy. Reimplementa los flujos de guardería y autenticación necesarios con una capa MySQL explícita, sin migraciones y sin cambios de esquema.
 
-## Alcance de esta entrega
+## Alcance de Fase 1
 
-- Familias de guardería con login tradicional en `/login`.
-- Administradores internos con Google Login en `/admin/login`.
-- Panel familiar con tareas, avisos/comunicados, calendario mensual, valor del mes, Richmond, PASE y Personas Autorizadas.
-- Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario.
-- Bitácora diaria para usuarios internos autorizados.
-- Personas Autorizadas con cuatro espacios legacy: Persona 1, Persona 2, Persona 3 y Pase Express.
+- Login familiar tradicional en `/login`, con sesión de cuenta y alcances de producto resueltos desde MySQL.
+- Administradores internos de guardería con Google Login en `/admin/login`.
+- Panel familiar de guardería solo para cuentas con alcance de guardería: tareas, avisos/comunicados, calendario mensual, valor del mes, Richmond y PASE.
+- Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario, con selector de unidad/sala y vista controlada de cuenta familiar.
+- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`, únicamente para cuentas que lo tengan concedido por datos o permisos existentes en MySQL.
 - Rutas públicas compatibles para QR y printable: `/qrPA/[id]` y `/printable/[id]`.
-- Rutas de compatibilidad para enlaces legacy principales: `/ver/[tipo]`, `/personas_autorizadas`, `/sala/[id]`, `/sala/[id]/[tipo]`, `/dashboard` y `/daycare-app`.
+- Rutas de compatibilidad necesarias para enlaces legacy de guardería: `/ver/[tipo]`, `/sala/[id]`, `/sala/[id]/[tipo]` y `/daycare-app`.
 
 ## Tablas legacy usadas sin cambios
 
-El código consulta y escribe directamente en las tablas existentes: `users`, `rutas_rol`, `salas`, `recursos`, `valores_mensuales`, `personas_autorizadas`, `alumno_pa`, `matricula`, `credenciales` y `bitácoras`.
+El código consulta y escribe directamente en las tablas existentes: `users`, `rutas_rol`, `salas`, `recursos`, `valores_mensuales`, `personas_autorizadas`, `alumno_pa`, `matricula` y `credenciales`.
 
 No se crean migraciones, no se cambian tipos y no se normaliza el esquema.
 
-## Endpoints y comportamiento legacy preservados
+## Comportamiento legacy preservado
 
 - Recursos familiares: lógica equivalente a `fetch-usuario-final.php`.
 - Recursos admin por sala/tipo: lógica equivalente a `fetch-resource.php`.
@@ -46,14 +45,13 @@ npm run dev
 ## Rutas principales
 
 - `/login`: acceso familiar tradicional.
-- `/daycare`: dashboard de familias.
-- `/daycare/recursos/tareas`, `/daycare/recursos/circulares`, `/daycare/recursos/calendario`: vista familiar por tipo.
-- `/daycare/personas-autorizadas`: Personas Autorizadas.
+- `/daycare`: dashboard de familias con alcance de guardería.
+- `/ver/tareas`, `/ver/circulares`, `/ver/calendario`: vistas familiares por tipo.
+- `/personas_autorizadas`: Personas Autorizadas para cuentas con ese alcance.
 - `/qrPA/[id]`: vista pública de escaneo.
 - `/printable/[id]`: formato imprimible/compartible.
 - `/admin/login`: acceso interno con Google.
-- `/admin/daycare`: dashboard administrativo.
+- `/admin/daycare`: salas de guardería por unidad.
 - `/admin/daycare/salas/[id]`: gestión de una sala.
-- `/admin/daycare/salas/[id]/usuarios`: cuentas familiares de la sala.
+- `/admin/daycare/salas/[id]/usuarios`: cuentas familiares de la sala y entrada de vista familiar controlada.
 - `/admin/daycare/salas/[id]/tareas`, `/circulares`, `/calendario`: recursos por sala.
-- `/admin/daycare/bitacora`: bitácora interna.

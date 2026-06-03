@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { PublicSession } from '~/types/session'
+import { defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 
 const session = await $fetch<PublicSession>('/api/auth/me')
-if (session.user?.kind === 'admin') {
+if (session.user?.kind === 'admin' && hasDaycareAdminScope(session.user)) {
   await navigateTo('/admin/daycare')
 } else if (session.user?.kind === 'family') {
-  await navigateTo('/daycare')
+  await navigateTo(defaultFamilyRoute(session.user))
 } else {
   await navigateTo('/login')
 }

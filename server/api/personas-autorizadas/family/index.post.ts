@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { upsertAuthorizedPersona } from '~/server/data/mysqlDaycare'
-import { assertDaycareFamily } from '~/server/utils/authz'
+import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 
 const childSchema = z.object({
   id: z.number().int().positive().optional().nullable(),
@@ -30,7 +30,7 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
-  assertDaycareFamily(user)
+  assertPersonasAutorizadasFamily(user)
   const body = schema.parse(await readBody(event))
   return upsertAuthorizedPersona(user, body)
 })

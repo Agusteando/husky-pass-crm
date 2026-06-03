@@ -17,22 +17,37 @@
       @cancel="editing = null"
     />
 
-    <section class="publication-grid" v-if="data?.rows?.length">
-      <article v-for="item in data.rows" :key="item.id" class="publication-card">
-        <div class="publication-header">
-          <span>{{ item.date || 'Sin fecha' }}</span>
-        </div>
-        <div class="publication-body">
-          <h2>{{ item.title }}</h2>
-          <p>{{ stripHtml(item.description) || 'Sin descripción.' }}</p>
-        </div>
-        <div class="publication-actions">
-          <button class="btn btn-secondary" type="button" @click="editing = { ...item }">Editar</button>
-          <button class="btn btn-danger" type="button" @click="remove(item.id)">Ocultar</button>
-        </div>
-      </article>
-    </section>
-    <EmptyState v-else title="Sin publicaciones" description="No hay recursos vigentes para esta sección." />
+    <div class="card table-wrap">
+      <table class="table admin-table">
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Descripción</th>
+            <th>Fecha</th>
+            <th>Recurso</th>
+            <th>Autor</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in data?.rows" :key="item.id">
+            <td>{{ item.title }}</td>
+            <td>{{ stripHtml(item.description) || '—' }}</td>
+            <td>{{ item.date || '—' }}</td>
+            <td>
+              <a v-if="item.resource" :href="item.resource" target="_blank" rel="noopener">Abrir</a>
+              <span v-else>—</span>
+            </td>
+            <td>{{ item.autor || '—' }}</td>
+            <td class="row-actions">
+              <button class="btn btn-secondary" type="button" @click="editing = { ...item }">Editar</button>
+              <button class="btn btn-danger" type="button" @click="remove(item.id)">Ocultar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <EmptyState v-if="!data?.rows?.length" title="Sin publicaciones" description="No hay registros vigentes para esta sección." />
+    </div>
   </section>
 </template>
 
@@ -59,7 +74,7 @@ function startCreate() {
     type: resource.type,
     title: '',
     description: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: resource.type === 'cal' ? new Date().toISOString().slice(0, 10) : null,
     starred: 0
   }
 }
@@ -86,8 +101,7 @@ async function remove(id?: number) {
 </script>
 
 <style scoped>
-.section-header,
-.publication-actions {
+.section-header {
   align-items: end;
   background: #fff;
   border: 3px solid rgba(142, 193, 82, 0.15);
@@ -99,53 +113,20 @@ async function remove(id?: number) {
   padding: clamp(22px, 4vw, 34px);
 }
 
-.publication-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.admin-table td:nth-child(2) {
+  max-width: 360px;
 }
 
-.publication-card {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  box-shadow: var(--shadow-soft);
-  display: grid;
-  overflow: hidden;
-}
-
-.publication-header {
-  background: #eaf2e0;
-  color: var(--color-brand-700);
-  font-weight: 900;
-  padding: 12px 18px;
-}
-
-.publication-body {
-  padding: 22px;
-}
-
-.publication-actions {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  justify-content: flex-start;
-  padding: 18px 22px;
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 @media (max-width: 760px) {
-  .section-header,
-  .publication-grid {
-    grid-template-columns: 1fr;
-  }
-
   .section-header {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .publication-grid {
-    display: grid;
   }
 }
 </style>

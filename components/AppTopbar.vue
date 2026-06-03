@@ -14,7 +14,15 @@
           <strong>{{ session.user.displayName || session.user.email }}</strong>
           <small>{{ session.user.email }}</small>
         </div>
+        <button v-if="session.user.impersonation" class="btn btn-primary" type="button" @click="exitImpersonation">Volver a admin</button>
         <button class="btn btn-secondary" type="button" @click="logout">Salir</button>
+      </div>
+    </div>
+    <div v-if="session?.user?.impersonation" class="impersonation-bar">
+      <div class="page-shell impersonation-inner">
+        <strong>Vista familiar</strong>
+        <span>{{ session.user.displayName || session.user.email }}</span>
+        <button class="link-button" type="button" @click="exitImpersonation">Terminar vista</button>
       </div>
     </div>
   </header>
@@ -33,6 +41,11 @@ const initials = computed(() => {
   const source = props.session?.user?.displayName || props.session?.user?.email || 'HP'
   return source.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
 })
+
+async function exitImpersonation() {
+  await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
+  await navigateTo('/admin/daycare')
+}
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
@@ -111,6 +124,34 @@ async function logout() {
   color: var(--color-muted);
 }
 
+.impersonation-bar {
+  background: var(--color-brand-800);
+  color: #fff;
+}
+
+.impersonation-inner {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.impersonation-inner span {
+  opacity: 0.86;
+}
+
+.link-button {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  margin-left: auto;
+  padding: 0;
+  text-decoration: underline;
+}
+
 @media (max-width: 980px) {
   .topbar-inner {
     align-items: flex-start;
@@ -127,6 +168,18 @@ async function logout() {
   .profile {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .impersonation-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+  }
+
+  .link-button {
+    margin-left: 0;
   }
 }
 </style>

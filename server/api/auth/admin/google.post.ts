@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
+import { assertDaycareAdmin } from '~/server/utils/authz'
 
 const schema = z.object({
   credential: z.string().min(1)
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
 
   const sessionUser = legacyUser.toSession('admin')
   if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
+  assertDaycareAdmin(sessionUser)
 
   setAppSession(event, sessionUser)
   setCookie(event, 'user_segment', 'internal', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })

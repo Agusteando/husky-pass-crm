@@ -43,9 +43,9 @@ export async function getSalaById(user: AppSessionUser, salaId: number) {
 }
 
 export async function getFamilyDashboard(user: AppSessionUser) {
-  const unidad = user.unidades[0]
-  const sala = user.sala
-  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene unidad o sala asignada' })
+  const unidad = user.scopes.daycare?.unidad
+  const sala = user.scopes.daycare?.sala
+  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene alcance de guardería' })
 
   const [tareas, circulares, calendario, valor] = await Promise.all([
     legacyQuery<(DaycareResource & RowDataPacket)[]>(
@@ -80,9 +80,9 @@ export async function getFamilyDashboard(user: AppSessionUser) {
 }
 
 export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'news' | 'cal') {
-  const unidad = user.unidades[0]
-  const sala = user.sala
-  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene unidad o sala asignada' })
+  const unidad = user.scopes.daycare?.unidad
+  const sala = user.scopes.daycare?.sala
+  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene alcance de guardería' })
 
   if (type === 'cal') {
     return legacyQuery<(DaycareResource & RowDataPacket)[]>(
@@ -393,47 +393,4 @@ export async function getScanAuthorizedPersona(id: number) {
   )
   if (!rows.length) throw createError({ statusCode: 404, statusMessage: 'No se encontró el registro' })
   return rows[0]
-}
-
-export async function getCurrentBitacora(user: AppSessionUser, fecha: string) {
-  const uid = `${user.id}_${fecha.replaceAll('-', '_')}`
-  const bitacora = await legacyOne<RowDataPacket>(
-    `SELECT id, uid, user_id, fecha, logros, contenido, actividades
-     FROM \`bitácoras\`
-     WHERE user_id = ? AND DATE(fecha) = DATE(?)
-     LIMIT 1`,
-    [user.id, fecha]
-  )
-
-  return bitacora || {
-    uid,
-    user_id: user.id,
-    fecha,
-    logros: '',
-    contenido: '',
-    actividades: ''
-  }
-}
-
-export async function saveBitacora(user: AppSessionUser, payload: Record<string, unknown>) {
-  const fecha = String(payload.fecha || new Date().toISOString().slice(0, 10))
-  const uid = String(payload.uid || `${user.id}_${fecha.replaceAll('-', '_')}`)
-  const existing = await legacyOne<RowDataPacket>('SELECT id FROM `bitácoras` WHERE uid = ? LIMIT 1', [uid])
-
-  if (existing) {
-    await legacyWrite(
-      `UPDATE \`bitácoras\`
-       SET fecha = ?, user_id = ?, logros = ?, contenido = ?, actividades = ?
-       WHERE uid = ?`,
-      [fecha, user.id, String(payload.logros || ''), String(payload.contenido || ''), String(payload.actividades || ''), uid]
-    )
-    return { id: existing.id, uid }
-  }
-
-  const result = await legacyWrite(
-    `INSERT INTO \`bitácoras\` (uid, fecha, user_id, logros, contenido, actividades)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [uid, fecha, user.id, String(payload.logros || ''), String(payload.contenido || ''), String(payload.actividades || '')]
-  )
-  return { id: result.insertId, uid }
 }

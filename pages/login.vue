@@ -35,8 +35,8 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    await $fetch('/api/auth/login', { method: 'POST', body: form })
-    await navigateTo('/daycare')
+    const response = await $fetch<{ defaultPath?: string }>('/api/auth/login', { method: 'POST', body: form })
+    await navigateTo(response.defaultPath || '/')
   } catch (err: any) {
     error.value = err?.statusMessage || err?.data?.statusMessage || 'No fue posible iniciar sesión.'
   } finally {

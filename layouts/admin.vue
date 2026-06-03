@@ -1,6 +1,7 @@
 <template>
   <div>
     <AppTopbar :session="session" home-to="/admin/daycare" :items="items" />
+    <AdminScopeSwitcher :session="session" />
     <main class="page-shell layout-main">
       <slot />
     </main>
@@ -11,10 +12,7 @@
 import type { PublicSession } from '~/types/session'
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
-const items = [
-  { label: 'Guardería', to: '/admin/daycare' },
-  { label: 'Bitácora', to: '/admin/daycare/bitacora' }
-]
+const items = [{ label: 'Guardería', to: '/admin/daycare' }]
 </script>
 
 <style scoped>

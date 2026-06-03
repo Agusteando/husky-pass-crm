@@ -5,7 +5,7 @@
         <p class="eyebrow">Administración interna</p>
         <h1>Guardería</h1>
       </div>
-      <SalaPicker v-if="session?.user?.unidades?.length" v-model="selectedUnidad" :unidades="session.user.unidades" />
+      <p class="admin-header-note">{{ selectedUnidad }}</p>
     </div>
 
     <section class="grid grid-3" v-if="salas?.length">
@@ -28,10 +28,15 @@ import type { Sala } from '~/types/daycare'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
+const route = useRoute()
 const { data: session } = await useFetch<PublicSession>('/api/auth/me')
-const selectedUnidad = ref(session.value?.user?.unidades?.[0] || '')
+const selectedUnidad = computed(() => {
+  const requested = typeof route.query.unidad === 'string' ? route.query.unidad : ''
+  return requested || session.value?.user?.unidades?.[0] || ''
+})
 const { data: salas } = await useFetch<Sala[]>('/api/daycare/admin/salas', {
-  query: computed(() => ({ unidad: selectedUnidad.value }))
+  query: computed(() => ({ unidad: selectedUnidad.value })),
+  watch: [selectedUnidad]
 })
 </script>
 
@@ -44,8 +49,15 @@ const { data: salas } = await useFetch<Sala[]>('/api/daycare/admin/salas', {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 24px;
-  grid-template-columns: 1fr minmax(240px, 320px);
+  grid-template-columns: 1fr auto;
   padding: clamp(24px, 4vw, 40px);
+}
+
+.admin-header-note {
+  color: var(--color-brand-800);
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 0;
 }
 
 .sala-card {

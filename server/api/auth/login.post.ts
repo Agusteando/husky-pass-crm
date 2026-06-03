@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { findLegacyFamilyByLogin, validateLegacyPassword } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
+import { defaultFamilyRoute, hasFamilyScope } from '~/utils/sessionScopes'
 
 const schema = z.object({
   login: z.string().min(1),
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const body = schema.parse(await readBody(event))
   const legacyUser = await findLegacyFamilyByLogin(body.login.trim())
   if (!legacyUser) {
-    throw createError({ statusCode: 401, statusMessage: 'No encontramos una cuenta familiar de guardería con esos datos.' })
+    throw createError({ statusCode: 401, statusMessage: 'Usuario o contraseña incorrectos.' })
   }
 
   const valid = await validateLegacyPassword(body.password, legacyUser.raw)
@@ -20,12 +21,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const sessionUser = legacyUser.toSession('family')
-  if (!sessionUser.sala || sessionUser.unidades.length === 0) {
-    throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene sala o unidad de guardería asignada.' })
+  if (!sessionUser.productScopes.length) {
+    throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene un acceso familiar habilitado.' })
   }
 
   setAppSession(event, sessionUser)
-  setCookie(event, 'user_segment', 'daycare', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  setCookie(event, 'user_segment', hasFamilyScope(sessionUser, 'daycare') ? 'daycare' : 'premium', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'last_login_type', 'php', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
-  return { user: sessionUser, loggedin: true }
+  return { user: sessionUser, loggedin: true, defaultPath: defaultFamilyRoute(sessionUser) }
 })

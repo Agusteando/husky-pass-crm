@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AppTopbar :session="session" home-to="/daycare" :items="items" />
+    <AppTopbar :session="session" :home-to="homeTo" :items="items" />
     <main class="page-shell layout-main">
       <slot />
     </main>
@@ -9,15 +9,11 @@
 
 <script setup lang="ts">
 import type { PublicSession } from '~/types/session'
+import { defaultFamilyRoute, familyNavItems } from '~/utils/sessionScopes'
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-family-session' })
-const items = [
-  { label: 'Inicio', to: '/daycare' },
-  { label: 'Tareas', to: '/daycare/recursos/tareas' },
-  { label: 'Circulares', to: '/daycare/recursos/circulares' },
-  { label: 'Calendario', to: '/daycare/recursos/calendario' },
-  { label: 'Personas Autorizadas', to: '/daycare/personas-autorizadas' }
-]
+const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
+const items = computed(() => familyNavItems(session.value?.user))
 </script>
 
 <style scoped>
