@@ -13,6 +13,14 @@
           <span>Buscar</span>
           <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" />
         </label>
+        <label class="search-field">
+          <span>Estado</span>
+          <select v-model="visibilityFilter" class="select">
+            <option value="published">Publicadas</option>
+            <option value="hidden">Ocultas</option>
+            <option value="all">Todas</option>
+          </select>
+        </label>
         <button class="btn btn-primary" type="button" @click="startCreate">{{ actionLabel }}</button>
       </div>
     </header>
@@ -21,6 +29,7 @@
       v-if="editing"
       :resource="editing"
       :label="title"
+      :type="type"
       :saving="saving"
       @save="save"
       @cancel="editing = null"
@@ -45,7 +54,7 @@
             v-for="item in filteredRows"
             :key="item.id"
             class="resource-row"
-            :class="{ active: selected?.id === item.id }"
+            :class="{ active: selected?.id === item.id, hidden: isHidden(item) }"
             type="button"
             @click="selected = item"
           >
@@ -54,10 +63,13 @@
               <strong>{{ item.title || 'Sin título' }}</strong>
               <small>{{ stripHtml(item.description) || 'Sin descripción' }}</small>
             </span>
-            <span class="row-meta">{{ item.resource ? 'Archivo' : 'Sin archivo' }}</span>
+            <span class="row-status">
+              <strong :class="isHidden(item) ? 'status-hidden' : 'status-published'">{{ isHidden(item) ? 'Oculta' : 'Publicada' }}</strong>
+              <small>{{ item.resource ? 'Con recurso' : 'Sin recurso' }}</small>
+            </span>
           </button>
         </div>
-        <EmptyState v-else title="Sin publicaciones" description="No hay registros vigentes para esta búsqueda." />
+        <EmptyState v-else title="Sin publicaciones" description="No hay registros para esta búsqueda y estado." />
       </div>
 
       <aside class="card preview-card">
@@ -67,17 +79,20 @@
               <p class="eyebrow">Vista previa</p>
               <h2>{{ selected.title || 'Sin título' }}</h2>
             </div>
+            <span class="scope-pill" :class="{ muted: isHidden(selected) }">{{ isHidden(selected) ? 'Oculta' : 'Publicada' }}</span>
           </div>
           <p>{{ stripHtml(selected.description) || 'Sin descripción.' }}</p>
           <dl>
             <div><dt>Fecha</dt><dd>{{ formatDate(selected.date || selected.timestamp, '—') }}</dd></div>
             <div><dt>Autor</dt><dd>{{ selected.autor || '—' }}</dd></div>
+            <div><dt>Estado familiar</dt><dd>{{ isHidden(selected) ? 'No visible para familias' : 'Visible para familias' }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
             <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener">Abrir recurso</a>
             <button class="btn btn-secondary" type="button" @click="editing = { ...selected }">Editar</button>
-            <button class="btn btn-danger" type="button" @click="remove(selected.id)">Ocultar</button>
+            <button class="btn btn-secondary" type="button" @click="togglePublished(selected)">{{ isHidden(selected) ? 'Publicar' : 'Ocultar' }}</button>
+            <button class="btn btn-danger" type="button" @click="remove(selected.id)">Eliminar</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona un registro" description="El detalle aparecerá aquí." />
@@ -105,6 +120,7 @@ const editing = ref<Partial<DaycareResource> | null>(null)
 const selected = ref<DaycareResource | null>(null)
 const saving = ref(false)
 const search = ref('')
+const visibilityFilter = ref<'published' | 'hidden' | 'all'>('published')
 const actionError = ref('')
 
 const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
@@ -114,8 +130,12 @@ const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: Day
 const filteredRows = computed(() => {
   const needle = search.value.trim().toLowerCase()
   const rows = data.value?.rows || []
-  if (!needle) return rows
-  return rows.filter((item) => `${item.title || ''} ${stripHtml(item.description)} ${item.autor || ''}`.toLowerCase().includes(needle))
+  return rows.filter((item) => {
+    if (visibilityFilter.value === 'published' && isHidden(item)) return false
+    if (visibilityFilter.value === 'hidden' && !isHidden(item)) return false
+    if (!needle) return true
+    return `${item.title || ''} ${stripHtml(item.description)} ${item.autor || ''}`.toLowerCase().includes(needle)
+  })
 })
 
 watch(filteredRows, (rows) => {
@@ -135,7 +155,8 @@ function startCreate() {
     title: '',
     description: '',
     date: props.type === 'cal' ? new Date().toISOString().slice(0, 10) : null,
-    starred: 0
+    starred: 0,
+    hidden: 0
   }
 }
 
@@ -156,15 +177,34 @@ async function save(payload: Partial<DaycareResource>) {
   }
 }
 
+async function togglePublished(item: DaycareResource) {
+  if (!item.id) return
+  actionError.value = ''
+  try {
+    await $fetch(`/api/daycare/admin/resources/${item.id}`, {
+      method: 'PATCH',
+      body: { hidden: !isHidden(item) }
+    })
+    await refresh()
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible cambiar la visibilidad.'
+  }
+}
+
 async function remove(id?: number) {
-  if (!id || !confirm('¿Ocultar esta publicación?')) return
+  if (!id || !confirm('¿Eliminar definitivamente esta publicación?')) return
   actionError.value = ''
   try {
     await $fetch(`/api/daycare/admin/resources/${id}`, { method: 'DELETE' })
+    if (selected.value?.id === id) selected.value = null
     await refresh()
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible ocultar la publicación.'
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible eliminar la publicación.'
   }
+}
+
+function isHidden(resource: Pick<DaycareResource, 'hidden'>) {
+  return resource.hidden === true || resource.hidden === 1 || String(resource.hidden) === '1'
 }
 
 function resourceHref(resource?: string | null) {
@@ -193,7 +233,7 @@ function compactDate(value?: string | null) {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.7fr);
+  grid-template-columns: minmax(0, 1fr) minmax(430px, 0.9fr);
   padding: clamp(15px, 2vw, 22px);
 }
 
@@ -206,7 +246,7 @@ function compactDate(value?: string | null) {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr) auto;
 }
 
 .search-field {
@@ -255,6 +295,11 @@ function compactDate(value?: string | null) {
   white-space: nowrap;
 }
 
+.scope-pill.muted {
+  background: #eef0ed;
+  color: var(--color-muted);
+}
+
 .resource-list {
   display: grid;
   gap: 8px;
@@ -268,9 +313,13 @@ function compactDate(value?: string | null) {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
+  grid-template-columns: 74px minmax(0, 1fr) minmax(94px, auto);
   padding: 10px 12px;
   text-align: left;
+}
+
+.resource-row.hidden {
+  background: #f8f9f7;
 }
 
 .resource-row:hover,
@@ -286,10 +335,16 @@ function compactDate(value?: string | null) {
   text-transform: uppercase;
 }
 
-.row-main {
+.row-main,
+.row-status {
   display: grid;
   gap: 2px;
   min-width: 0;
+}
+
+.row-status {
+  justify-items: end;
+  text-align: right;
 }
 
 .row-main strong,
@@ -300,9 +355,24 @@ function compactDate(value?: string | null) {
 }
 
 .row-main small,
-.row-meta {
+.row-status small {
   color: var(--color-muted);
   font-size: 0.82rem;
+}
+
+.row-status strong {
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-published {
+  color: var(--color-brand-800);
+}
+
+.status-hidden {
+  color: var(--color-muted);
 }
 
 .preview-card {
@@ -364,7 +434,7 @@ dd {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .module-actions {
     grid-template-columns: 1fr;
   }
@@ -372,6 +442,11 @@ dd {
   .resource-row {
     align-items: start;
     grid-template-columns: 1fr;
+  }
+
+  .row-status {
+    justify-items: start;
+    text-align: left;
   }
 
   .row-main strong,

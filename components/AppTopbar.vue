@@ -49,8 +49,9 @@ const impersonationLabel = computed(() => {
 })
 
 async function exitImpersonation() {
+  const target = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare'
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
-  await navigateTo('/admin/daycare')
+  await navigateTo(target)
 }
 
 async function logout() {

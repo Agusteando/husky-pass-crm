@@ -29,6 +29,14 @@ function normalizeString(value: unknown) {
   return normalized || null
 }
 
+function isHiddenValue(value: unknown) {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  const normalized = String(value).trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'hidden'
+}
+
 export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
   assertUnidadAccess(user, unidad)
   const rows = await legacyQuery<(Sala & RowDataPacket)[]>('SELECT id, sala, unidad FROM salas WHERE unidad = ? ORDER BY id ASC', [unidad])
@@ -133,10 +141,10 @@ export async function getFamilyChildren(user: AppSessionUser) {
 export async function getAdminResources(user: AppSessionUser, salaId: number, type: 'hw' | 'news' | 'cal') {
   const sala = await getSalaById(user, salaId)
   const rows = await legacyQuery<(DaycareResource & RowDataPacket)[]>(
-    `SELECT id, starred, title, description, date, timestamp, resource, autor, unidad, sala, type
+    `SELECT id, starred, hidden, title, description, date, timestamp, resource, autor, unidad, sala, type
      FROM recursos
-     WHERE type = ? AND sala = ? AND unidad = ? AND hidden = 0
-     ORDER BY date DESC, id DESC`,
+     WHERE type = ? AND sala = ? AND unidad = ?
+     ORDER BY hidden ASC, date DESC, id DESC`,
     [type, salaId, sala.unidad]
   )
   return { sala, rows }
@@ -155,6 +163,7 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
     sala: String(sala.id),
     type: payload.type,
     starred: payload.starred ? 1 : 0,
+    hidden: isHiddenValue(payload.hidden) ? 1 : 0,
     timestamp: payload.timestamp || new Date().toISOString().slice(0, 19).replace('T', ' ')
   }
 
@@ -167,28 +176,39 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
 
     await legacyWrite(
       `UPDATE recursos
-       SET title = ?, description = ?, date = ?, resource = ?, autor = ?, starred = ?, timestamp = ?
+       SET title = ?, description = ?, date = ?, resource = ?, autor = ?, starred = ?, hidden = ?, timestamp = ?
        WHERE id = ? AND sala = ? AND unidad = ? AND type = ?`,
-      [data.title, data.description, data.date, data.resource, data.autor, data.starred, data.timestamp, data.id, data.sala, data.unidad, data.type]
+      [data.title, data.description, data.date, data.resource, data.autor, data.starred, data.hidden, data.timestamp, data.id, data.sala, data.unidad, data.type]
     )
     return { ...data, id: data.id }
   }
 
   const result = await legacyWrite(
     `INSERT INTO recursos (title, description, date, resource, autor, unidad, sala, type, starred, hidden, timestamp)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-    [data.title, data.description, data.date, data.resource, data.autor, data.unidad, data.sala, data.type, data.starred, data.timestamp]
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [data.title, data.description, data.date, data.resource, data.autor, data.unidad, data.sala, data.type, data.starred, data.hidden, data.timestamp]
   )
   return { ...data, id: result.insertId }
 }
 
-export async function hideAdminResource(user: AppSessionUser, id: number) {
-  const row = await legacyOne<RowDataPacket>('SELECT id, unidad, sala FROM recursos WHERE id = ? LIMIT 1', [id])
+async function assertAdminResourceAccess(user: AppSessionUser, id: number) {
+  const row = await legacyOne<RowDataPacket>('SELECT id, unidad, sala, type FROM recursos WHERE id = ? LIMIT 1', [id])
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Recurso no encontrado' })
   assertUnidadAccess(user, String(row.unidad))
   assertSalaAccess(user, String(row.sala))
-  await legacyWrite('UPDATE recursos SET hidden = 1 WHERE id = ?', [id])
-  return { ok: true }
+  return row
+}
+
+export async function setAdminResourceHidden(user: AppSessionUser, id: number, hidden: boolean) {
+  await assertAdminResourceAccess(user, id)
+  await legacyWrite('UPDATE recursos SET hidden = ? WHERE id = ?', [hidden ? 1 : 0, id])
+  return { ok: true, id, hidden: hidden ? 1 : 0 }
+}
+
+export async function deleteAdminResource(user: AppSessionUser, id: number) {
+  await assertAdminResourceAccess(user, id)
+  await legacyWrite('DELETE FROM recursos WHERE id = ?', [id])
+  return { ok: true, id }
 }
 
 export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {

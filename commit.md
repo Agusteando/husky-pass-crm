@@ -1,1 +1,1 @@
-Estabiliza alcances de producto, gestión daycare y tablero superadmin
+Completa recorridos reales de gestión daycare y acceso superadmin

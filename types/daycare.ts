@@ -7,6 +7,7 @@ export interface Sala {
 export interface DaycareResource {
   id?: number
   starred?: number | boolean | null
+  hidden?: number | boolean | string | null
   title: string
   description?: string | null
   date?: string | null

@@ -51,5 +51,5 @@ export default defineEventHandler(async (event) => {
   setCookie(event, 'ads_suppressed', 'true', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'last_login_type', 'google', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 
-  return { user: sessionUser, loggedin: true }
+  return { user: sessionUser, loggedin: true, defaultPath: sessionUser.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare' }
 })

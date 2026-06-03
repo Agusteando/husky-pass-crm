@@ -84,8 +84,8 @@ function renderGoogleButton() {
 async function handleCredential(response: { credential: string }) {
   error.value = ''
   try {
-    await $fetch('/api/auth/admin/google', { method: 'POST', body: { credential: response.credential } })
-    await navigateTo('/admin/daycare')
+    const result = await $fetch<{ defaultPath?: string }>('/api/auth/admin/google', { method: 'POST', body: { credential: response.credential } })
+    await navigateTo(result.defaultPath || '/admin/daycare')
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible iniciar sesión con Google.'
   }

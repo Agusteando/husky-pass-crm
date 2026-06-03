@@ -15,7 +15,8 @@ const schema = z.object({
   unidad: z.string().optional(),
   sala: z.union([z.string(), z.number()]),
   type: z.enum(['hw', 'news', 'cal']),
-  starred: z.union([z.boolean(), z.number()]).optional().nullable()
+  starred: z.union([z.boolean(), z.number()]).optional().nullable(),
+  hidden: z.union([z.boolean(), z.number(), z.string()]).optional().nullable()
 })
 
 export default defineEventHandler(async (event) => {

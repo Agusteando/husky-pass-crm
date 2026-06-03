@@ -17,7 +17,7 @@
       </label>
       <label class="label">
         Fecha
-        <input v-model="model.date" class="input" type="date" />
+        <input v-model="model.date" class="input" type="date" :required="type === 'cal'" />
       </label>
     </div>
     <label class="label">
@@ -26,24 +26,29 @@
     </label>
     <div class="grid grid-2">
       <label class="label">
-        Recurso o archivo publicado
-        <input v-model="model.resource" class="input" inputmode="url" />
+        Recurso publicado
+        <input v-model="model.resource" class="input" inputmode="url" placeholder="URL o ruta del archivo" />
       </label>
       <label class="label check-row">
         <input v-model="model.starred" type="checkbox" />
         Marcar como prioritario
+      </label>
+      <label class="label check-row">
+        <input v-model="published" type="checkbox" />
+        Publicar para familias
       </label>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 
 const props = defineProps<{
   resource: Partial<DaycareResource>
   label: string
+  type: 'hw' | 'news' | 'cal'
   saving?: boolean
 }>()
 
@@ -54,10 +59,21 @@ const emit = defineEmits<{
 
 const model = reactive<Partial<DaycareResource>>({ ...props.resource })
 
+const published = computed({
+  get: () => !isHidden(model.hidden),
+  set: (value: boolean) => {
+    model.hidden = value ? 0 : 1
+  }
+})
+
 watch(() => props.resource, (resource) => Object.assign(model, resource), { deep: true })
 
 function submit() {
-  emit('save', { ...model, starred: model.starred ? 1 : 0 })
+  emit('save', { ...model, starred: model.starred ? 1 : 0, hidden: published.value ? 0 : 1 })
+}
+
+function isHidden(value: unknown) {
+  return value === true || value === 1 || String(value) === '1'
 }
 </script>
 

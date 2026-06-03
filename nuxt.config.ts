@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   modules: ['@nuxtjs/google-fonts'],
   css: ['~/assets/css/main.css'],
   googleFonts: {
@@ -8,7 +8,9 @@ export default defineNuxtConfig({
       Inter: [400, 500, 600, 700, 800],
       Fredoka: [500, 600]
     },
-    display: 'swap'
+    display: 'swap',
+    download: false,
+    useStylesheet: true
   },
   runtimeConfig: {
     mysql: {

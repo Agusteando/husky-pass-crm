@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AppTopbar :session="session" home-to="/admin/daycare" :items="[]" />
+    <AppTopbar :session="session" :home-to="homeTo" :items="topbarItems" />
     <div class="page-shell workspace-shell">
       <AdminDaycareSidebar :session="session" />
       <main class="layout-main">
@@ -11,10 +11,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useFetch } from '#imports'
 import type { PublicSession } from '~/types/session'
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
+
+const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare')
+const topbarItems = computed(() => {
+  const items = [{ label: 'Daycare', to: '/admin/daycare' }]
+  if (session.value?.user?.isSuperAdmin) items.unshift({ label: 'Superadmin', to: '/admin/superadmin' })
+  return items
+})
 </script>
 
 <style scoped>
