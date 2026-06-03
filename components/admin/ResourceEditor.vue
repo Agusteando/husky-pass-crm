@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { reactive, watch } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 
 const props = defineProps<{

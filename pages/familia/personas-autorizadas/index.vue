@@ -75,6 +75,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { definePageMeta, useFetch } from '#app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

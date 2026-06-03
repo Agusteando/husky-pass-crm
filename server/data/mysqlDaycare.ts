@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
 import type {

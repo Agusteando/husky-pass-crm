@@ -15,6 +15,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 import { formatDate, isImageResource, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 

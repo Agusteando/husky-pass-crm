@@ -29,6 +29,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { navigateTo } from '#app'
 import type { PublicSession } from '~/types/session'
 
 const props = defineProps<{

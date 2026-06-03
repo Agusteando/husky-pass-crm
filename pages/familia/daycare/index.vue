@@ -70,6 +70,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { definePageMeta, useFetch, useRuntimeConfig } from '#app'
 import type { PublicSession } from '~/types/session'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, stripHtml } from '~/utils/daycare'

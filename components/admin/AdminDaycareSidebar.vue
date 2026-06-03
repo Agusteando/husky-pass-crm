@@ -60,6 +60,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { navigateTo, useFetch, useRoute } from '#app'
 import type { PublicSession } from '~/types/session'
 import type { SalaSummary } from '~/types/daycare'
 

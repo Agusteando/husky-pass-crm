@@ -1,3 +1,5 @@
+import { defineEventHandler, getRouterParam } from 'h3'
+import { requireSession } from '~/server/utils/session'
 import { getSalaById } from '~/server/data/mysqlDaycare'
 import { assertDaycareAdmin } from '~/server/utils/authz'
 

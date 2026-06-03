@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { navigateTo } from '#app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 

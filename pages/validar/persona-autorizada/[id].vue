@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { useFetch, useRoute } from '#app'
 import type { ScanAuthorizedPerson } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 

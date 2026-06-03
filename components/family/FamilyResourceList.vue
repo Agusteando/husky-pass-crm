@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { useFetch } from '#app'
 import type { DaycareResource } from '~/types/daycare'
 
 const props = defineProps<{

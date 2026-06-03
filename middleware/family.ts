@@ -1,3 +1,4 @@
+import { defineNuxtRouteMiddleware, navigateTo } from '#app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 

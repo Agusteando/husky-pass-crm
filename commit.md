@@ -1,1 +1,1 @@
-Estabiliza scopes familiares, autorización y experiencia responsive de Husky Pass
+fix: estabiliza importaciones Nuxt y corrige validación TypeScript del producto

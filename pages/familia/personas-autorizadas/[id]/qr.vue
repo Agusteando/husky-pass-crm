@@ -23,6 +23,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { definePageMeta, useFetch, useRoute } from '#app'
 import type { AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath } from '~/utils/daycare'
 

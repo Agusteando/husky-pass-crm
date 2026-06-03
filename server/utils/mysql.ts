@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from '#imports'
 import mysql, { type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
 
 type LegacySqlValue = string | number | boolean | Date | null

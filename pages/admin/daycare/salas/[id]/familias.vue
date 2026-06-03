@@ -85,6 +85,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { definePageMeta, navigateTo, useFetch, useRoute } from '#app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'

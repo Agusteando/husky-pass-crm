@@ -19,6 +19,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { definePageMeta, navigateTo, useRuntimeConfig } from '#app'
 definePageMeta({ middleware: 'guest' })
 
 const config = useRuntimeConfig()

@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
 import type { AppSessionUser } from '~/types/session'
 import { findLegacyUserById } from '~/server/data/mysqlAuth'

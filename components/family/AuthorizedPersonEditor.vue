@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, watch } from 'vue'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 
 const props = defineProps<{

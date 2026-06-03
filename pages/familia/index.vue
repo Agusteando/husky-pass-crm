@@ -26,6 +26,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { definePageMeta, navigateTo, useFetch } from '#app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, hasFamilyScope } from '~/utils/sessionScopes'
 

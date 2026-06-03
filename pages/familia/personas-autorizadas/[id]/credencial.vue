@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { definePageMeta, useFetch, useRoute } from '#app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

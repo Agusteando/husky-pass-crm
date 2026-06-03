@@ -11,6 +11,7 @@
 </template>
 
 <script setup lang="ts">
+import { useFetch } from '#app'
 import type { PublicSession } from '~/types/session'
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })

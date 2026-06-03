@@ -19,6 +19,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { navigateTo, useRoute } from '#app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 

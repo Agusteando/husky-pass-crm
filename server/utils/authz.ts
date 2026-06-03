@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
