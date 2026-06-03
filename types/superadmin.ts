@@ -1,5 +1,7 @@
 import type { FamilyProductScope } from './session'
 
+export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
+
 export interface SuperAdminUserSummary {
   id: number
   email: string | null
@@ -16,6 +18,7 @@ export interface SuperAdminUserSummary {
   routes: string[]
   productScopes: FamilyProductScope[]
   adminScopes: string[]
+  audience: 'daycareFamily' | 'schoolFamily' | 'multiProductFamily' | 'internal' | 'unknown'
   canImpersonate: boolean
 }
 
@@ -24,14 +27,17 @@ export interface SuperAdminDirectoryResponse {
   users: SuperAdminUserSummary[]
   metrics: {
     total: number
+    familyUsers: number
     daycareFamilies: number
-    personasAutorizadasFamilies: number
+    schoolFamilies: number
+    internalUsers: number
     daycareAdmins: number
     impersonable: number
   }
   filters: {
     plantel: string
     search: string
+    scope: SuperAdminDirectoryScope
     limit: number
   }
 }

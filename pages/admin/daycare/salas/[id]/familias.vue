@@ -36,7 +36,7 @@
             <p class="eyebrow">Cuentas</p>
             <h2>{{ filteredAccounts.length }} familias</h2>
           </div>
-          <button v-if="canImpersonateAccounts" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar de sala</button>
+          <button v-if="canPreviewSala" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar de sala</button>
         </div>
 
         <div v-if="filteredAccounts.length" class="family-list">
@@ -101,6 +101,7 @@ const saving = ref(false)
 const search = ref('')
 const actionError = ref('')
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
+const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }

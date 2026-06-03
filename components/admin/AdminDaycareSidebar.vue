@@ -79,7 +79,7 @@ const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.
 const selectedSala = ref(routeSalaId.value)
 const search = ref('')
 const actionError = ref('')
-const canPreviewAsFamily = computed(() => Boolean(props.session?.user?.isSuperAdmin))
+const canPreviewAsFamily = computed(() => Boolean(props.session?.user?.kind === 'admin'))
 
 watch(unidades, (value) => {
   if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]

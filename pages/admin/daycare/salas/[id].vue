@@ -111,7 +111,7 @@ const salaId = Number(route.params.id)
 const actionError = ref('')
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
 const { data: overview, pending, error } = await useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`)
-const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.isSuperAdmin))
+const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 
 const modules = computed(() => [
   { abbr: 'FA', title: 'Familias', description: 'Cuentas, soporte e impersonación.', to: `/admin/daycare/salas/${salaId}/familias` },

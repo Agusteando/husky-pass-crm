@@ -7,6 +7,7 @@ import { requireSession } from '~/server/utils/session'
 const schema = z.object({
   plantel: z.string().optional().default(''),
   search: z.string().optional().default(''),
+  scope: z.enum(['all', 'daycare', 'schoolFamilies', 'internal', 'impersonable']).optional().default('all'),
   limit: z.coerce.number().int().min(25).max(250).optional().default(120)
 })
 

@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
-import type { SuperAdminDirectoryResponse, SuperAdminUserSummary } from '~/types/superadmin'
+import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
@@ -219,9 +219,10 @@ function normalizeLegacyScope(value?: string | null) {
 }
 
 
-export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
+export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; scope?: SuperAdminDirectoryScope; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
   const plantel = normalizeLegacyScope(filters.plantel)
   const search = normalizeLegacyScope(filters.search)
+  const scope: SuperAdminDirectoryScope = filters.scope || 'all'
   const limit = Math.min(Math.max(Number(filters.limit || 120), 25), 250)
   const where: string[] = []
   const params: Array<string | number> = []
@@ -241,6 +242,31 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
     )`)
     const like = `%${search}%`
     params.push(like, like, like, like, like, like, like, like)
+  }
+
+  if (scope === 'daycare') {
+    where.push(`A.role LIKE '%HUSKY%' AND A.sala IS NOT NULL AND A.sala <> '' AND A.unidad IS NOT NULL AND A.unidad <> ''`)
+  }
+
+  if (scope === 'schoolFamilies') {
+    where.push(`(
+      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) OR
+      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) OR
+      EXISTS(SELECT 1 FROM rutas_rol RR WHERE RR.role = A.role AND RR.route REGEXP 'personas|persona|credencial|validar' LIMIT 1)
+    )`)
+  }
+
+  if (scope === 'impersonable') {
+    where.push(`(
+      (A.role LIKE '%HUSKY%' AND A.sala IS NOT NULL AND A.sala <> '' AND A.unidad IS NOT NULL AND A.unidad <> '') OR
+      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) OR
+      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) OR
+      EXISTS(SELECT 1 FROM rutas_rol RR WHERE RR.role = A.role AND RR.route REGEXP 'personas|persona|credencial|validar' LIMIT 1)
+    )`)
+  }
+
+  if (scope === 'internal') {
+    where.push(`A.role IS NOT NULL AND A.role <> ''`)
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
@@ -279,6 +305,9 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   )
 
   const users = rows.map(directoryRowToSummary)
+  const visibleUsers = scope === 'internal'
+    ? users.filter((user) => user.audience === 'internal' || user.adminScopes.length)
+    : users
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
     ...csvToList(row.unidad),
@@ -287,17 +316,20 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   return {
     planteles,
-    users,
+    users: visibleUsers,
     metrics: {
-      total: users.length,
-      daycareFamilies: users.filter((user) => user.productScopes.includes('daycare')).length,
-      personasAutorizadasFamilies: users.filter((user) => user.productScopes.includes('personasAutorizadas')).length,
-      daycareAdmins: users.filter((user) => user.adminScopes.includes('daycare')).length,
-      impersonable: users.filter((user) => user.canImpersonate).length
+      total: visibleUsers.length,
+      familyUsers: visibleUsers.filter((user) => user.productScopes.length > 0).length,
+      daycareFamilies: visibleUsers.filter((user) => user.productScopes.includes('daycare')).length,
+      schoolFamilies: visibleUsers.filter((user) => user.productScopes.includes('personasAutorizadas')).length,
+      internalUsers: visibleUsers.filter((user) => user.audience === 'internal' || user.adminScopes.length).length,
+      daycareAdmins: visibleUsers.filter((user) => user.adminScopes.includes('daycare')).length,
+      impersonable: visibleUsers.filter((user) => user.canImpersonate).length
     },
     filters: {
       plantel: plantel || '',
       search: search || '',
+      scope,
       limit
     }
   }
@@ -320,6 +352,12 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
   const adminScopes: string[] = []
   if ((hasDaycareRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
 
+  let audience: SuperAdminUserSummary['audience'] = 'unknown'
+  if (productScopes.length > 1) audience = 'multiProductFamily'
+  else if (productScopes.includes('daycare')) audience = 'daycareFamily'
+  else if (productScopes.includes('personasAutorizadas')) audience = 'schoolFamily'
+  else if (roles.length || routes.length) audience = 'internal'
+
   return {
     id: Number(row.id),
     email: normalizeLegacyScope(row.email),
@@ -336,6 +374,7 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
     routes,
     productScopes,
     adminScopes,
+    audience,
     canImpersonate: productScopes.length > 0
   }
 }
