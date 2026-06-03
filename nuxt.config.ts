@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     public: {
       appName: 'Husky Pass CRM',
       googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-      pasePlatformUrl: process.env.NUXT_PUBLIC_PASE_PLATFORM_URL || 'https://pase.proyeccion.com.br/dashboard?valid_auth=true&auth_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaXIuY2FzaXRhLm9jb3lvYWNhY0BjYXNpdGFpZWRpcy5lZHUubXgiLCJpYXQiOjE3MjUwNDE1MTF9.tDow_JCmHSY0N1OEirNEQMV4srccyPnMXtlMUEn4FfY',
+      pasePlatformUrl: process.env.NUXT_PUBLIC_PASE_PLATFORM_URL || '',
       richmondUrl: 'https://resources.richmondelt.com/student/droplets/'
     }
   },

@@ -27,6 +27,7 @@
     />
 
     <p v-if="error" class="alert">No fue posible cargar esta sección.</p>
+    <p v-if="actionError" class="alert">{{ actionError }}</p>
     <div v-else-if="pending" class="card loading-card">Cargando publicaciones…</div>
 
     <section v-else class="resource-desk">
@@ -87,7 +88,7 @@
 
 <script setup lang="ts">
 import type { DaycareResource, Sala } from '~/types/daycare'
-import { formatDate, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { formatDate, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -102,6 +103,7 @@ const editing = ref<Partial<DaycareResource> | null>(null)
 const selected = ref<DaycareResource | null>(null)
 const saving = ref(false)
 const search = ref('')
+const actionError = ref('')
 
 const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: props.type }
@@ -123,6 +125,7 @@ watch(filteredRows, (rows) => {
 }, { immediate: true })
 
 function startCreate() {
+  actionError.value = ''
   editing.value = {
     sala: String(salaId),
     unidad: data.value?.sala.unidad,
@@ -136,6 +139,7 @@ function startCreate() {
 
 async function save(payload: Partial<DaycareResource>) {
   saving.value = true
+  actionError.value = ''
   try {
     await $fetch('/api/daycare/admin/resources', {
       method: 'POST',
@@ -143,6 +147,8 @@ async function save(payload: Partial<DaycareResource>) {
     })
     editing.value = null
     await refresh()
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la publicación.'
   } finally {
     saving.value = false
   }
@@ -150,8 +156,13 @@ async function save(payload: Partial<DaycareResource>) {
 
 async function remove(id?: number) {
   if (!id || !confirm('¿Ocultar esta publicación?')) return
-  await $fetch(`/api/daycare/admin/resources/${id}`, { method: 'DELETE' })
-  await refresh()
+  actionError.value = ''
+  try {
+    await $fetch(`/api/daycare/admin/resources/${id}`, { method: 'DELETE' })
+    await refresh()
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible ocultar la publicación.'
+  }
 }
 
 function resourceHref(resource?: string | null) {
@@ -159,9 +170,8 @@ function resourceHref(resource?: string | null) {
 }
 
 function compactDate(value?: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
+  const date = parseLegacyDate(value)
+  if (!date) return '—'
   return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(date)
 }
 </script>

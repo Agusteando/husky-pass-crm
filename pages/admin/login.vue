@@ -65,7 +65,9 @@ function renderGoogleButton() {
     auto_select: false,
     cancel_on_tap_outside: false
   })
-  window.google.accounts.id.renderButton(document.getElementById('google-signin'), {
+  const target = document.getElementById('google-signin')
+  const buttonWidth = Math.max(220, Math.min(360, target?.clientWidth || 320))
+  window.google.accounts.id.renderButton(target, {
     type: 'standard',
     theme: 'outline',
     size: 'large',
@@ -73,7 +75,7 @@ function renderGoogleButton() {
     shape: 'pill',
     locale: 'es-419',
     logo_alignment: 'center',
-    width: 360
+    width: buttonWidth
   })
 }
 
@@ -83,7 +85,7 @@ async function handleCredential(response: { credential: string }) {
     await $fetch('/api/auth/admin/google', { method: 'POST', body: { credential: response.credential } })
     await navigateTo('/admin/daycare')
   } catch (err: any) {
-    error.value = err?.statusMessage || err?.data?.statusMessage || 'No fue posible iniciar sesión con Google.'
+    error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible iniciar sesión con Google.'
   }
 }
 </script>
@@ -91,6 +93,11 @@ async function handleCredential(response: { credential: string }) {
 <style scoped>
 .google-box {
   min-height: 48px;
+  width: 100%;
+}
+
+.google-box :deep(iframe) {
+  max-width: 100%;
 }
 
 .muted-copy {

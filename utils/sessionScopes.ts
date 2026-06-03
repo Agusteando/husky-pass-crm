@@ -2,7 +2,17 @@ import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 
 export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: FamilyProductScope) {
   if (!user || user.kind !== 'family') return false
-  return user.productScopes?.includes(scope) || Boolean(user.scopes?.[scope])
+
+  if (scope === 'daycare') {
+    const daycare = user.scopes?.daycare
+    return Boolean(daycare?.unidad && daycare?.sala)
+  }
+
+  if (scope === 'personasAutorizadas') {
+    return Boolean(user.scopes?.personasAutorizadas)
+  }
+
+  return false
 }
 
 export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {

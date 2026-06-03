@@ -1,6 +1,11 @@
 <template>
   <main class="validate-shell">
-    <section v-if="data" class="card validate-card">
+    <section v-if="pending" class="card validate-card empty-public">
+      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <h1>Validando registro…</h1>
+    </section>
+
+    <section v-else-if="data" class="card validate-card">
       <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
       <span class="status">Autorizado</span>
       <div class="person-row">
@@ -8,7 +13,7 @@
         <div v-else class="fallback-photo">PA</div>
         <div>
           <p class="eyebrow">Persona autorizada</p>
-          <h1>{{ data.fullnameP }}</h1>
+          <h1>{{ data.fullnameP || 'Persona autorizada' }}</h1>
           <p>{{ data.parentesco || 'Parentesco no especificado' }}</p>
         </div>
       </div>
@@ -19,10 +24,11 @@
         <small>Matrícula: {{ data.matricula || '—' }}</small>
       </div>
     </section>
+
     <section v-else class="card validate-card empty-public">
       <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
       <h1>Registro no encontrado</h1>
-      <p>No fue posible encontrar esta persona autorizada.</p>
+      <p>{{ loadError ? 'No fue posible validar esta persona autorizada.' : 'No fue posible encontrar esta persona autorizada.' }}</p>
     </section>
   </main>
 </template>
@@ -32,7 +38,7 @@ import type { ScanAuthorizedPerson } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 const route = useRoute()
-const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
+const { data, pending, error: loadError } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
   query: { id: route.params.id }
 })
 </script>
@@ -102,6 +108,11 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
 
 .empty-public {
   text-align: center;
+}
+
+.empty-public h1,
+.empty-public p {
+  margin-bottom: 0;
 }
 
 @media (max-width: 620px) {

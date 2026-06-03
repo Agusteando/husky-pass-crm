@@ -121,8 +121,13 @@ async function save(payload: Partial<AuthorizedPerson>) {
 
 async function remove(id: number | null | undefined) {
   if (!id || !confirm('¿Eliminar este registro de Personas Autorizadas?')) return
-  await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
-  await refresh()
+  error.value = ''
+  try {
+    await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
+    await refresh()
+  } catch (err: any) {
+    error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible eliminar el registro.'
+  }
 }
 </script>
 

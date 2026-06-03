@@ -27,13 +27,19 @@
 
 <script setup lang="ts">
 import type { PublicSession } from '~/types/session'
-import { hasFamilyScope } from '~/utils/sessionScopes'
+import { defaultFamilyRoute, hasFamilyScope } from '~/utils/sessionScopes'
 
 definePageMeta({ layout: 'family', middleware: 'family' })
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me')
 const canDaycare = computed(() => hasFamilyScope(session.value?.user, 'daycare'))
 const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
+const scopeCount = computed(() => Number(canDaycare.value) + Number(canPa.value))
+
+if (scopeCount.value <= 1) {
+  const target = defaultFamilyRoute(session.value?.user)
+  if (target !== '/familia') await navigateTo(target)
+}
 </script>
 
 <style scoped>

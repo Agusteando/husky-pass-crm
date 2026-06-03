@@ -1,6 +1,18 @@
 <template>
-  <main class="credential-shell" v-if="data">
-    <section class="credential-card">
+  <main class="credential-shell">
+    <section v-if="pending" class="credential-card status-card">
+      <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <h1>Cargando credencial…</h1>
+    </section>
+
+    <section v-else-if="loadError || !data" class="credential-card status-card">
+      <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <h1>Credencial no disponible</h1>
+      <p>No encontramos esta persona autorizada dentro de tu cuenta.</p>
+      <NuxtLink class="btn btn-secondary no-print" to="/familia/personas-autorizadas">Volver</NuxtLink>
+    </section>
+
+    <section v-else class="credential-card">
       <header>
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
         <div>
@@ -33,7 +45,7 @@ import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUr
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 const route = useRoute()
-const { data } = await useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id } })
+const { data, pending, error: loadError } = await useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id } })
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
 const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl.value)}`)
@@ -58,6 +70,20 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
   gap: 18px;
   padding: clamp(18px, 4vw, 28px);
   width: min(100%, 680px);
+}
+
+.status-card {
+  justify-items: center;
+  text-align: center;
+}
+
+.status-card img {
+  max-width: 180px;
+}
+
+.status-card h1,
+.status-card p {
+  margin-bottom: 0;
 }
 
 header {

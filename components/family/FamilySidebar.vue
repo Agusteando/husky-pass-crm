@@ -23,11 +23,28 @@ import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 
 const props = defineProps<{ session?: PublicSession | null }>()
+const route = useRoute()
 const items = computed(() => familyNavItems(props.session?.user))
 const homeTo = computed(() => defaultFamilyRoute(props.session?.user))
-const contextLabel = computed(() => hasFamilyScope(props.session?.user, 'daycare') ? 'Guardería' : 'Familia')
+const activeProduct = computed(() => {
+  if (route.path.startsWith('/familia/personas-autorizadas')) return 'personasAutorizadas'
+  if (route.path.startsWith('/familia/daycare')) return 'daycare'
+  if (hasFamilyScope(props.session?.user, 'daycare') && !hasFamilyScope(props.session?.user, 'personasAutorizadas')) return 'daycare'
+  if (hasFamilyScope(props.session?.user, 'personasAutorizadas') && !hasFamilyScope(props.session?.user, 'daycare')) return 'personasAutorizadas'
+  return 'chooser'
+})
+const contextLabel = computed(() => {
+  if (activeProduct.value === 'daycare') return 'Guardería'
+  if (activeProduct.value === 'personasAutorizadas') return 'Personas Autorizadas'
+  return 'Familia'
+})
 const primaryName = computed(() => props.session?.user?.displayName || props.session?.user?.username || props.session?.user?.email || 'Husky Pass')
-const secondaryName = computed(() => props.session?.user?.scopes.daycare?.sala ? `Sala ${props.session.user.scopes.daycare.sala}` : props.session?.user?.email || '')
+const secondaryName = computed(() => {
+  const user = props.session?.user
+  if (!user) return ''
+  if (activeProduct.value === 'daycare') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' · ')
+  return user.email || ''
+})
 
 async function exitPreview() {
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })

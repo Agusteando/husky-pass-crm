@@ -1,1 +1,1 @@
-Rediseña arquitectura y experiencia del workspace administrativo daycare
+Estabiliza scopes familiares, autorización y experiencia responsive de Husky Pass

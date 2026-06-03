@@ -26,18 +26,18 @@ export default defineEventHandler(async (event) => {
   const legacyUser = await findLegacyUserByEmail(email)
   let sessionUser
 
+  if (!legacyUser) {
+    throw createError({ statusCode: 401, statusMessage: 'No hay ninguna cuenta interna creada con ese correo.' })
+  }
+
+  if (payload?.name && payload.name !== legacyUser.raw.displayName) {
+    await updateLegacyDisplayName(Number(legacyUser.raw.id), payload.name)
+    legacyUser.raw.displayName = payload.name
+  }
+
   if (isConfiguredSuperAdminEmail(email)) {
     sessionUser = await createSuperAdminSession({ email, displayName: payload?.name, picture: payload?.picture }, legacyUser)
   } else {
-    if (!legacyUser) {
-      throw createError({ statusCode: 401, statusMessage: 'No hay ninguna cuenta creada con ese usuario.' })
-    }
-
-    if (payload?.name && payload.name !== legacyUser.raw.displayName) {
-      await updateLegacyDisplayName(Number(legacyUser.raw.id), payload.name)
-      legacyUser.raw.displayName = payload.name
-    }
-
     sessionUser = legacyUser.toSession('admin')
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }

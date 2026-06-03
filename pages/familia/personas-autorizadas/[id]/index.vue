@@ -20,7 +20,8 @@
         <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/qr`">Ver QR</NuxtLink>
         <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/credencial`">Credencial</NuxtLink>
         <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/imprimir`">Imprimir</NuxtLink>
-        <button class="btn btn-secondary" type="button" @click="shareCredential">Compartir PDF</button>
+        <button class="btn btn-secondary" type="button" @click="shareValidation">Compartir validación</button>
+        <p v-if="shareMessage" class="muted share-message">{{ shareMessage }}</p>
       </article>
     </section>
     <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
@@ -29,7 +30,7 @@
 
 <script setup lang="ts">
 import type { AuthorizedPerson } from '~/types/daycare'
-import { appAbsoluteUrl, authorizedPersonCredentialPath, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
@@ -37,28 +38,23 @@ const route = useRoute()
 const { data } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
+const shareMessage = ref('')
 
-async function shareCredential() {
+async function shareValidation() {
   if (!person.value?.id) return
-  const url = appAbsoluteUrl(authorizedPersonCredentialPath(person.value.id))
+
+  const url = appAbsoluteUrl(authorizedPersonValidationPath(person.value.id))
+  const title = fullName.value ? `Validación de ${fullName.value}` : 'Validación de Persona Autorizada'
+  shareMessage.value = ''
+
   try {
-    const response = await fetch('https://bot.casitaapps.com/renderFromUrl', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { url, filename: 'PersonaAutorizada.pdf' } })
-    })
-    const blob = await response.blob()
-    const file = new File([blob], 'PersonaAutorizada.pdf', { type: 'application/pdf' })
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ title: 'Persona Autorizada', url: appAbsoluteUrl(authorizedPersonValidationPath(person.value.id)), files: [file] })
+    if (navigator.share) {
+      await navigator.share({ title, text: 'Código de validación de Persona Autorizada.', url })
       return
     }
-    const downloadUrl = URL.createObjectURL(file)
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = 'PersonaAutorizada.pdf'
-    a.click()
-    URL.revokeObjectURL(downloadUrl)
+
+    await navigator.clipboard.writeText(url)
+    shareMessage.value = 'Liga de validación copiada.'
   } catch {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -105,6 +101,11 @@ async function shareCredential() {
 
 .actions-card .btn {
   justify-content: center;
+}
+
+.share-message {
+  font-size: 0.88rem;
+  text-align: center;
 }
 
 @media (max-width: 760px) {

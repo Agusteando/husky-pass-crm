@@ -90,28 +90,25 @@ export async function getAllDaycareUnidades() {
   return rows.map((row) => String(row.unidad || '').trim()).filter(Boolean)
 }
 
-export async function createSuperAdminSession(input: { email: string; displayName?: string | null; picture?: string | null }, legacyUser?: ReturnType<typeof hydrateUserRows>) {
+export async function createSuperAdminSession(input: { email: string; displayName?: string | null; picture?: string | null }, legacyUser: NonNullable<ReturnType<typeof hydrateUserRows>>) {
   const unidades = await getAllDaycareUnidades()
-  const fromLegacy = legacyUser?.toSession('admin')
-  const routes = mergeRoutePermissions(fromLegacy?.routes || [], [
-    { route: '/admin/daycare', icono: 'home' },
-    { route: '/admin/daycare/salas', icono: 'group' }
-  ])
+  const fromLegacy = legacyUser.toSession('admin')
+  const routes = fromLegacy.routes
 
   const session: AppSessionUser = {
-    id: fromLegacy?.id || -1001,
+    id: fromLegacy.id,
     kind: 'admin',
     isSuperAdmin: true,
     email: normalizeEmail(input.email),
-    username: fromLegacy?.username || normalizeEmail(input.email),
-    displayName: input.displayName || fromLegacy?.displayName || 'Desarrollo Tecnológico',
-    picture: input.picture || fromLegacy?.picture || null,
-    campus: fromLegacy?.campus || null,
-    empresa: fromLegacy?.empresa || null,
-    sala: fromLegacy?.sala || null,
-    roles: Array.from(new Set([...(fromLegacy?.roles || []), 'ROLE_HUSKY_SUPER_ADMIN'])),
-    unidades: unidades.length ? unidades : fromLegacy?.unidades || [],
-    plantel: fromLegacy?.plantel || [],
+    username: fromLegacy.username,
+    displayName: input.displayName || fromLegacy.displayName,
+    picture: input.picture || fromLegacy.picture,
+    campus: fromLegacy.campus,
+    empresa: fromLegacy.empresa,
+    sala: fromLegacy.sala,
+    roles: fromLegacy.roles,
+    unidades: unidades.length ? unidades : fromLegacy.unidades,
+    plantel: fromLegacy.plantel,
     routes,
     productScopes: [],
     scopes: {},
@@ -181,9 +178,7 @@ function resolveFamilyProductScopes(
 
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route.route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
-  const matchesLegacyPersonasSidebarRule = !sala && !hasDaycareRole
-
-  if (hasPersonasRoute || hasPersonasData || matchesLegacyPersonasSidebarRule) {
+  if (hasPersonasRoute || hasPersonasData) {
     scopes.personasAutorizadas = {
       product: 'personasAutorizadas',
       legacyRoute: routes.find((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route.route))?.route || null
@@ -196,13 +191,4 @@ function resolveFamilyProductScopes(
 function normalizeLegacyScope(value?: string | null) {
   const normalized = String(value || '').trim()
   return normalized || null
-}
-
-function mergeRoutePermissions(current: LegacyRoutePermission[], extras: LegacyRoutePermission[]) {
-  const seen = new Set<string>()
-  return [...current, ...extras].filter((route) => {
-    if (!route.route || seen.has(route.route)) return false
-    seen.add(route.route)
-    return true
-  })
 }

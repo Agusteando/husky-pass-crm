@@ -23,6 +23,7 @@
         </select>
       </label>
       <button class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala" @click="previewSala">Vista familiar</button>
+      <p v-if="actionError" class="rail-alert">{{ actionError }}</p>
     </section>
 
     <nav class="primary-nav" aria-label="Navegación daycare admin">
@@ -74,6 +75,7 @@ const routeSalaId = computed(() => {
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
 const selectedSala = ref(routeSalaId.value)
 const search = ref('')
+const actionError = ref('')
 
 watch(unidades, (value) => {
   if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]
@@ -114,19 +116,26 @@ watch(salas, (value) => {
 }, { immediate: true })
 
 function goToUnidad() {
+  actionError.value = ''
   selectedSala.value = ''
   navigateTo({ path: '/admin/daycare/salas', query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
 }
 
 function goToSala() {
+  actionError.value = ''
   if (!selectedSala.value) return
   navigateTo(`/admin/daycare/salas/${selectedSala.value}`)
 }
 
 async function previewSala() {
   if (!selectedSala.value) return
-  await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value } })
-  await navigateTo('/familia/daycare')
+  actionError.value = ''
+  try {
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value } })
+    await navigateTo('/familia/daycare')
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  }
 }
 
 function roomInitials(value?: string | null) {
@@ -186,6 +195,17 @@ function roomInitials(value?: string | null) {
 
 .preview-btn {
   width: 100%;
+}
+
+.rail-alert {
+  background: #fff3f0;
+  border: 1px solid #ffd2ca;
+  border-radius: 12px;
+  color: #8d2d25;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  margin: 0;
+  padding: 8px 10px;
 }
 
 .primary-nav {

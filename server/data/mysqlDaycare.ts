@@ -68,10 +68,10 @@ export async function getFamilyDashboard(user: AppSessionUser) {
         CONCAT('<p>', title, '</p>', '</br><p class="truncar">', description, '</p>') AS html,
         resource, starred, autor, unidad, sala, type, timestamp
        FROM recursos
-       WHERE type = 'cal' AND unidad = ? AND DATE(date) >= CURDATE() AND hidden = '0'
-       GROUP BY date, title, description, timestamp
+       WHERE type = 'cal' AND unidad = ? AND sala = ? AND DATE(date) >= CURDATE() AND hidden = '0'
+       GROUP BY date, title, description, timestamp, sala
        ORDER BY date`,
-      [unidad]
+      [unidad, sala]
     ),
     legacyQuery<RowDataPacket[]>(`SELECT valor FROM valores_mensuales WHERE mes_en = MONTHNAME(CURDATE())`)
   ])
@@ -90,10 +90,10 @@ export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'new
         CONCAT('<p>', title, '</p>', '</br><p class="truncar">', description, '</p>') AS html,
         resource, starred, autor, unidad, sala, type, timestamp
        FROM recursos
-       WHERE type = 'cal' AND unidad = ? AND DATE(date) >= CURDATE() AND hidden = '0'
-       GROUP BY date, title, description, timestamp
+       WHERE type = 'cal' AND unidad = ? AND sala = ? AND DATE(date) >= CURDATE() AND hidden = '0'
+       GROUP BY date, title, description, timestamp, sala
        ORDER BY date`,
-      [unidad]
+      [unidad, sala]
     )
   }
 
@@ -157,6 +157,12 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
   }
 
   if (data.id) {
+    const existing = await legacyOne<RowDataPacket>('SELECT id, unidad, sala, type FROM recursos WHERE id = ? LIMIT 1', [data.id])
+    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Recurso no encontrado' })
+    if (String(existing.unidad) !== data.unidad || String(existing.sala) !== data.sala || String(existing.type) !== data.type) {
+      throw createError({ statusCode: 403, statusMessage: 'Recurso fuera del alcance de esta sala' })
+    }
+
     await legacyWrite(
       `UPDATE recursos
        SET title = ?, description = ?, date = ?, resource = ?, autor = ?, starred = ?
@@ -200,6 +206,18 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
   const role = payload.role && payload.role.includes('HUSKY') ? payload.role : 'ROLE_HUSKY_USER'
 
   if (payload.id) {
+    const existing = await legacyOne<RowDataPacket>('SELECT id, role, unidad, sala FROM users WHERE id = ? LIMIT 1', [payload.id])
+    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Cuenta familiar no encontrada' })
+
+    const existingRole = String(existing.role || '').toUpperCase()
+    const existingUnidades = String(existing.unidad || '').split(',').map((item) => item.trim()).filter(Boolean)
+    const sameSala = String(existing.sala || '') === String(sala.id)
+    const sameUnidad = existingUnidades.includes(sala.unidad)
+
+    if (!existingRole.includes('HUSKY') || !sameSala || !sameUnidad) {
+      throw createError({ statusCode: 403, statusMessage: 'Cuenta familiar fuera del alcance de esta sala' })
+    }
+
     await legacyWrite(
       `UPDATE users
        SET nombre_nino = ?, username = ?, email = ?, plaintext = ?, role = ?, unidad = ?, sala = ?
@@ -348,7 +366,7 @@ export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) 
   return { ok: true }
 }
 
-export async function getCredentialAuthorizedPersona(id: number) {
+export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: number) {
   const row = await legacyOne<(PrintableAuthorizedPerson & RowDataPacket)>(
     `SELECT A.*, IFNULL(MAX(B.nivelEdu), 'preescolar') AS nivelEdu
      FROM personas_autorizadas A
@@ -358,6 +376,7 @@ export async function getCredentialAuthorizedPersona(id: number) {
     [id]
   )
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+  assertFamilyOwner(user, row.user_id)
   return row
 }
 

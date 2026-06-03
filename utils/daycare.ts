@@ -1,26 +1,22 @@
-export type DaycareResourceRoute = 'tareas' | 'avisos' | 'calendario'
-export type DaycareResourceType = 'hw' | 'news' | 'cal'
+export function parseLegacyDate(value?: string | Date | null) {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
 
-export const daycareResourceMap: Record<DaycareResourceRoute, DaycareResourceType> = {
-  tareas: 'hw',
-  avisos: 'news',
-  calendario: 'cal'
-}
+  const source = String(value).trim()
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(source)
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly
+    return new Date(Number(year), Number(month) - 1, Number(day))
+  }
 
-export const daycareResourceLabels: Record<DaycareResourceRoute, string> = {
-  tareas: 'Tareas',
-  avisos: 'Avisos',
-  calendario: 'Calendario'
-}
-
-export function isDaycareResourceRoute(value: string): value is DaycareResourceRoute {
-  return value === 'tareas' || value === 'avisos' || value === 'calendario'
+  const normalized = source.includes(' ') ? source.replace(' ', 'T') : source
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 export function formatDate(value?: string | Date | null, fallback = 'Sin fecha') {
-  if (!value) return fallback
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime()) || date.getFullYear() < 2000) return fallback
+  const date = parseLegacyDate(value)
+  if (!date || date.getFullYear() < 2000) return fallback
   return new Intl.DateTimeFormat('es-MX', {
     day: '2-digit',
     month: 'long',
@@ -29,9 +25,8 @@ export function formatDate(value?: string | Date | null, fallback = 'Sin fecha')
 }
 
 export function formatCalendarDay(value?: string | Date | null) {
-  if (!value) return { day: '—', weekday: '', month: '' }
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return { day: '—', weekday: '', month: '' }
+  const date = parseLegacyDate(value)
+  if (!date) return { day: '—', weekday: '', month: '' }
   return {
     day: new Intl.DateTimeFormat('es-MX', { day: '2-digit' }).format(date),
     weekday: new Intl.DateTimeFormat('es-MX', { weekday: 'long' }).format(date),

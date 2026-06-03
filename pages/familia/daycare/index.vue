@@ -11,7 +11,7 @@
 
     <section class="quick-row">
       <a class="quick-card amber" :href="config.public.richmondUrl" target="_blank" rel="noopener"><span>Richmond</span><strong>Acceder</strong></a>
-      <a class="quick-card gray" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener"><span>PASE</span><strong>Entrar</strong></a>
+      <a v-if="config.public.pasePlatformUrl" class="quick-card gray" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener"><span>PASE</span><strong>Entrar</strong></a>
       <NuxtLink v-if="canUsePersonasAutorizadas" class="quick-card blue" to="/familia/personas-autorizadas"><span>Personas Autorizadas</span><strong>Ver</strong></NuxtLink>
     </section>
 
@@ -124,7 +124,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 .quick-row {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .quick-card {

@@ -3,7 +3,7 @@
     brand-to="/login"
     eyebrow="Acceso familiar"
     title="Husky Pass"
-    description="Bienvenido de vuelta."
+    description="Ingresa para acceder a los productos familiares habilitados en tu cuenta."
   >
     <form class="stack" @submit.prevent="submit">
       <div>
@@ -38,7 +38,7 @@ async function submit() {
     const response = await $fetch<{ defaultPath?: string }>('/api/auth/login', { method: 'POST', body: form })
     await navigateTo(response.defaultPath || '/')
   } catch (err: any) {
-    error.value = err?.statusMessage || err?.data?.statusMessage || 'No fue posible iniciar sesión.'
+    error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible iniciar sesión.'
   } finally {
     loading.value = false
   }

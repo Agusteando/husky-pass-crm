@@ -40,6 +40,7 @@
     </section>
 
     <p v-if="error" class="alert">No fue posible cargar las salas de esta unidad.</p>
+    <p v-if="actionError" class="alert">{{ actionError }}</p>
     <div v-else-if="pending" class="card loading-card">Cargando salas…</div>
 
     <section v-else class="command-layout">
@@ -140,6 +141,7 @@ const unidades = computed(() => session.value?.user?.unidades || [])
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
 const search = ref('')
 const selectedSalaId = ref<number | null>(null)
+const actionError = ref('')
 
 watch(unidades, (value) => {
   if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]
@@ -185,8 +187,13 @@ function syncUnidad() {
 }
 
 async function previewSala(id: number) {
-  await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
-  await navigateTo('/familia/daycare')
+  actionError.value = ''
+  try {
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
+    await navigateTo('/familia/daycare')
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  }
 }
 
 function roomInitials(value?: string | null) {

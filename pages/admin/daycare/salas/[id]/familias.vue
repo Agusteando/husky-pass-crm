@@ -26,6 +26,7 @@
     />
 
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
+    <p v-if="actionError" class="alert">{{ actionError }}</p>
     <div v-else-if="pending" class="card loading-card">Cargando familias…</div>
 
     <section v-else class="family-desk">
@@ -96,6 +97,7 @@ const editing = ref<Partial<FamilyAccount> | null>(null)
 const selected = ref<FamilyAccount | null>(null)
 const saving = ref(false)
 const search = ref('')
+const actionError = ref('')
 const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }
 })
@@ -116,15 +118,19 @@ watch(filteredAccounts, (rows) => {
 }, { immediate: true })
 
 function startCreate() {
+  actionError.value = ''
   editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: 'ROLE_HUSKY_USER', username: '', email: '' }
 }
 
 async function save(payload: Partial<FamilyAccount>) {
   saving.value = true
+  actionError.value = ''
   try {
     await $fetch('/api/daycare/admin/family-accounts', { method: 'POST', body: { ...payload, sala: String(salaId) } })
     editing.value = null
     await refresh()
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la cuenta familiar.'
   } finally {
     saving.value = false
   }
@@ -132,16 +138,26 @@ async function save(payload: Partial<FamilyAccount>) {
 
 async function impersonate(userId?: number) {
   if (!userId) return
-  const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
-    method: 'POST',
-    body: { userId }
-  })
-  await navigateTo(defaultFamilyRoute(response.user))
+  actionError.value = ''
+  try {
+    const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
+      method: 'POST',
+      body: { userId }
+    })
+    await navigateTo(defaultFamilyRoute(response.user))
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  }
 }
 
 async function previewSala() {
-  await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
-  await navigateTo('/familia/daycare')
+  actionError.value = ''
+  try {
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    await navigateTo('/familia/daycare')
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  }
 }
 
 function initials(value?: string | null) {
