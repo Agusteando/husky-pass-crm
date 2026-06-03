@@ -84,7 +84,7 @@
           <div class="focus-actions">
             <button class="btn btn-primary" type="button" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
             <button class="btn btn-secondary" type="button" @click="goToSalaSection('tareas')">Gestionar tareas</button>
-            <button class="btn btn-secondary" type="button" @click="previewSala(selectedSala.id)">Vista familiar</button>
+            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" @click="previewSala(selectedSala.id)">Vista familiar</button>
           </div>
         </div>
 
@@ -145,6 +145,7 @@ const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.
 const search = ref('')
 const selectedSalaId = ref<number | null>(null)
 const actionError = ref('')
+const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 
 watch(unidades, (value) => {
   if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]

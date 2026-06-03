@@ -17,9 +17,9 @@ import type { PublicSession } from '~/types/session'
 
 const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
 
-const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare')
+const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
 const topbarItems = computed(() => {
-  const items = [{ label: 'Daycare', to: '/admin/daycare' }]
+  const items = [{ label: 'Daycare', to: '/admin/daycare/salas' }]
   if (session.value?.user?.isSuperAdmin) items.unshift({ label: 'Superadmin', to: '/admin/superadmin' })
   return items
 })

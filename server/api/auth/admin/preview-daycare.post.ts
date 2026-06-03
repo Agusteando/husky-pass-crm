@@ -2,7 +2,7 @@ import { createError, defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
 import type { AppSessionUser } from '~/types/session'
 import { getSalaById } from '~/server/data/mysqlDaycare'
-import { assertDaycareAdmin } from '~/server/utils/authz'
+import { assertDaycareAdmin, isSuperAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 
@@ -12,6 +12,9 @@ export default defineEventHandler(async (event) => {
   const admin = getAppSession(event).user
   if (!admin) throw createError({ statusCode: 401, statusMessage: 'Sesión no válida' })
   assertDaycareAdmin(admin)
+  if (!isSuperAdmin(admin)) {
+    throw createError({ statusCode: 403, statusMessage: 'La vista familiar de soporte está reservada para superadmin.' })
+  }
 
   const body = schema.parse(await readBody(event))
   const sala = await getSalaById(admin, body.sala)

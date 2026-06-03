@@ -3,6 +3,7 @@
     <AdminModuleTabs :sala-id="salaId" />
 
     <p v-if="error" class="alert">No fue posible cargar el workspace de la sala.</p>
+    <p v-if="actionError" class="alert">{{ actionError }}</p>
     <div v-else-if="pending" class="card loading-card">Cargando sala…</div>
 
     <template v-else-if="overview">
@@ -16,7 +17,7 @@
           </div>
         </div>
         <div class="hero-actions">
-          <button class="btn btn-secondary" type="button" @click="previewSala">Vista familiar</button>
+          <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar</button>
           <NuxtLink class="btn btn-primary" :to="`/admin/daycare/salas/${salaId}/familias`">Gestionar familias</NuxtLink>
         </div>
       </header>
@@ -97,16 +98,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { SalaOverview } from '~/types/daycare'
+import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
 const salaId = Number(route.params.id)
+const actionError = ref('')
+const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
 const { data: overview, pending, error } = await useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`)
+const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 
 const modules = computed(() => [
   { abbr: 'FA', title: 'Familias', description: 'Cuentas, soporte e impersonación.', to: `/admin/daycare/salas/${salaId}/familias` },
@@ -116,8 +121,13 @@ const modules = computed(() => [
 ])
 
 async function previewSala() {
-  await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
-  await navigateTo('/familia/daycare')
+  actionError.value = ''
+  try {
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    await navigateTo('/familia/daycare')
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  }
 }
 
 function roomInitials(value?: string | null) {

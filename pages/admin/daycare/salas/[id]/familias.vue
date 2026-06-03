@@ -36,7 +36,7 @@
             <p class="eyebrow">Cuentas</p>
             <h2>{{ filteredAccounts.length }} familias</h2>
           </div>
-          <button class="btn btn-secondary" type="button" @click="previewSala">Vista familiar de sala</button>
+          <button v-if="canImpersonateAccounts" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar de sala</button>
         </div>
 
         <div v-if="filteredAccounts.length" class="family-list">

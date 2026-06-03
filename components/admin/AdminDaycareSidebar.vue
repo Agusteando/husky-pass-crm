@@ -22,7 +22,7 @@
           <option v-for="sala in salas || []" :key="sala.id" :value="String(sala.id)">{{ sala.sala }}</option>
         </select>
       </label>
-      <button class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala" @click="previewSala">Vista familiar</button>
+      <button v-if="canPreviewAsFamily" class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala" @click="previewSala">Vista familiar</button>
       <p v-if="actionError" class="rail-alert">{{ actionError }}</p>
     </section>
 
@@ -45,7 +45,7 @@
         <NuxtLink
           v-for="sala in filteredSalas"
           :key="sala.id"
-          :to="`/admin/daycare/salas/${sala.id}/tareas`"
+          :to="`/admin/daycare/salas/${sala.id}`"
           :class="{ active: String(sala.id) === selectedSala }"
         >
           <span class="room-dot">{{ roomInitials(sala.sala) }}</span>
@@ -79,6 +79,7 @@ const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.
 const selectedSala = ref(routeSalaId.value)
 const search = ref('')
 const actionError = ref('')
+const canPreviewAsFamily = computed(() => Boolean(props.session?.user?.isSuperAdmin))
 
 watch(unidades, (value) => {
   if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]
@@ -127,7 +128,7 @@ function goToUnidad() {
 function goToSala() {
   actionError.value = ''
   if (!selectedSala.value) return
-  navigateTo(`/admin/daycare/salas/${selectedSala.value}/tareas`)
+  navigateTo(`/admin/daycare/salas/${selectedSala.value}`)
 }
 
 async function previewSala() {
