@@ -6,7 +6,7 @@
         <h1>Usuarios y accesos</h1>
         <p>Consulta usuarios por plantel, revisa sus alcances de producto y abre una vista familiar para soporte.</p>
       </div>
-      <button class="btn btn-secondary" type="button" @click="refresh">Actualizar</button>
+      <button class="btn btn-secondary" type="button" @click="refreshDirectory">Actualizar</button>
     </header>
 
     <section class="filters-card card">
@@ -145,6 +145,11 @@ const { data: directory, pending, error: loadError, refresh } = await useFetch<S
   query,
   watch: [query]
 })
+
+async function refreshDirectory() {
+  actionError.value = ''
+  await refresh()
+}
 
 function displayName(user: SuperAdminUserSummary) {
   return user.displayName || user.nombre_nino || user.username || user.email || `Usuario ${user.id}`
