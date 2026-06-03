@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
+import type { SuperAdminDirectoryResponse, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
@@ -26,6 +27,30 @@ interface LegacyUserRow extends RowDataPacket {
 
 interface UnidadRow extends RowDataPacket {
   unidad: string | null
+}
+
+interface DirectoryUserRow extends RowDataPacket {
+  id: number
+  email: string | null
+  username: string | null
+  picture: string | null
+  role: string | null
+  displayName: string | null
+  plantel: string | null
+  campus: string | null
+  empresa: string | null
+  unidad: string | null
+  sala: string | null
+  nombre_nino: string | null
+  routes: string | null
+  has_alumno_pa: number | boolean | null
+  has_personas_autorizadas: number | boolean | null
+}
+
+interface DirectoryPlantelRow extends RowDataPacket {
+  plantel: string | null
+  unidad: string | null
+  campus: string | null
 }
 
 const baseUserSql = `
@@ -191,4 +216,126 @@ function resolveFamilyProductScopes(
 function normalizeLegacyScope(value?: string | null) {
   const normalized = String(value || '').trim()
   return normalized || null
+}
+
+
+export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
+  const plantel = normalizeLegacyScope(filters.plantel)
+  const search = normalizeLegacyScope(filters.search)
+  const limit = Math.min(Math.max(Number(filters.limit || 120), 25), 250)
+  const where: string[] = []
+  const params: Array<string | number> = []
+
+  if (plantel) {
+    where.push(`(
+      FIND_IN_SET(?, A.plantel) OR FIND_IN_SET(?, A.unidad) OR
+      A.plantel = ? OR A.unidad = ? OR A.campus = ? OR A.empresa = ?
+    )`)
+    params.push(plantel, plantel, plantel, plantel, plantel, plantel)
+  }
+
+  if (search) {
+    where.push(`(
+      A.email LIKE ? OR A.username LIKE ? OR A.displayName LIKE ? OR A.nombre_nino LIKE ? OR
+      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.plantel LIKE ?
+    )`)
+    const like = `%${search}%`
+    params.push(like, like, like, like, like, like, like, like)
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
+  const rows = await legacyQuery<DirectoryUserRow[]>(
+    `SELECT
+      A.id,
+      A.email,
+      A.username,
+      A.picture,
+      A.role,
+      A.displayName,
+      A.plantel,
+      A.campus,
+      A.empresa,
+      A.unidad,
+      A.sala,
+      A.nombre_nino,
+      GROUP_CONCAT(DISTINCT B.route ORDER BY B.route SEPARATOR '||') AS routes,
+      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) AS has_alumno_pa,
+      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) AS has_personas_autorizadas
+     FROM users AS A
+     LEFT JOIN rutas_rol AS B ON (A.role = B.role)
+     ${whereSql}
+     GROUP BY A.id
+     ORDER BY COALESCE(NULLIF(A.plantel, ''), NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
+     LIMIT ?`,
+    [...params, limit]
+  )
+
+  const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
+    `SELECT plantel, unidad, campus
+     FROM users
+     WHERE plantel IS NOT NULL OR unidad IS NOT NULL OR campus IS NOT NULL
+     ORDER BY plantel ASC, unidad ASC, campus ASC
+     LIMIT 5000`
+  )
+
+  const users = rows.map(directoryRowToSummary)
+  const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
+    ...csvToList(row.plantel),
+    ...csvToList(row.unidad),
+    normalizeLegacyScope(row.campus)
+  ]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es'))
+
+  return {
+    planteles,
+    users,
+    metrics: {
+      total: users.length,
+      daycareFamilies: users.filter((user) => user.productScopes.includes('daycare')).length,
+      personasAutorizadasFamilies: users.filter((user) => user.productScopes.includes('personasAutorizadas')).length,
+      daycareAdmins: users.filter((user) => user.adminScopes.includes('daycare')).length,
+      impersonable: users.filter((user) => user.canImpersonate).length
+    },
+    filters: {
+      plantel: plantel || '',
+      search: search || '',
+      limit
+    }
+  }
+}
+
+function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
+  const roles = csvToList(row.role)
+  const unidad = csvToList(row.unidad)
+  const plantel = csvToList(row.plantel)
+  const routes = String(row.routes || '').split('||').map((route) => route.trim()).filter(Boolean)
+  const hasDaycareRole = roles.some((role) => role.toUpperCase().includes('HUSKY'))
+  const hasDaycareAdminRoute = routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route))
+  const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
+  const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
+  const productScopes: FamilyProductScope[] = []
+
+  if (hasDaycareRole && unidad.length && normalizeLegacyScope(row.sala)) productScopes.push('daycare')
+  if (hasPersonasRoute || hasPersonasData) productScopes.push('personasAutorizadas')
+
+  const adminScopes: string[] = []
+  if ((hasDaycareRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
+
+  return {
+    id: Number(row.id),
+    email: normalizeLegacyScope(row.email),
+    username: normalizeLegacyScope(row.username),
+    displayName: normalizeLegacyScope(row.displayName),
+    picture: normalizeLegacyScope(row.picture),
+    role: normalizeLegacyScope(row.role),
+    plantel,
+    campus: normalizeLegacyScope(row.campus),
+    empresa: normalizeLegacyScope(row.empresa),
+    unidad,
+    sala: normalizeLegacyScope(row.sala),
+    nombre_nino: normalizeLegacyScope(row.nombre_nino),
+    routes,
+    productScopes,
+    adminScopes,
+    canImpersonate: productScopes.length > 0
+  }
 }

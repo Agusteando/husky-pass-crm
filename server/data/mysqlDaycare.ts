@@ -154,7 +154,8 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
     unidad: sala.unidad,
     sala: String(sala.id),
     type: payload.type,
-    starred: payload.starred ? 1 : 0
+    starred: payload.starred ? 1 : 0,
+    timestamp: payload.timestamp || new Date().toISOString().slice(0, 19).replace('T', ' ')
   }
 
   if (data.id) {
@@ -166,17 +167,17 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
 
     await legacyWrite(
       `UPDATE recursos
-       SET title = ?, description = ?, date = ?, resource = ?, autor = ?, starred = ?
+       SET title = ?, description = ?, date = ?, resource = ?, autor = ?, starred = ?, timestamp = ?
        WHERE id = ? AND sala = ? AND unidad = ? AND type = ?`,
-      [data.title, data.description, data.date, data.resource, data.autor, data.starred, data.id, data.sala, data.unidad, data.type]
+      [data.title, data.description, data.date, data.resource, data.autor, data.starred, data.timestamp, data.id, data.sala, data.unidad, data.type]
     )
     return { ...data, id: data.id }
   }
 
   const result = await legacyWrite(
-    `INSERT INTO recursos (title, description, date, resource, autor, unidad, sala, type, starred, hidden)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-    [data.title, data.description, data.date, data.resource, data.autor, data.unidad, data.sala, data.type, data.starred]
+    `INSERT INTO recursos (title, description, date, resource, autor, unidad, sala, type, starred, hidden, timestamp)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+    [data.title, data.description, data.date, data.resource, data.autor, data.unidad, data.sala, data.type, data.starred, data.timestamp]
   )
   return { ...data, id: result.insertId }
 }

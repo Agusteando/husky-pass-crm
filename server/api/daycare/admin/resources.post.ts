@@ -9,6 +9,7 @@ const schema = z.object({
   title: z.string().min(1),
   description: z.string().optional().nullable(),
   date: z.string().optional().nullable(),
+  timestamp: z.string().optional().nullable(),
   resource: z.string().optional().nullable(),
   autor: z.string().optional().nullable(),
   unidad: z.string().optional(),

@@ -6,7 +6,7 @@
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>Familias</h1>
-        <p>Administra cuentas daycare, revisa acceso familiar e impersona para soporte.</p>
+        <p>Administra cuentas daycare y revisa el acceso familiar de esta sala.</p>
       </div>
       <div class="family-actions">
         <label class="search-field">
@@ -74,7 +74,7 @@
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
-            <button class="btn btn-primary" type="button" @click="impersonate(selected.id)">Impersonar</button>
+            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" @click="impersonate(selected.id)">Impersonar</button>
             <button class="btn btn-secondary" type="button" @click="editing = { ...selected }">Editar</button>
           </div>
         </template>
@@ -88,7 +88,7 @@
 import { computed, ref, watch } from 'vue'
 import { definePageMeta, navigateTo, useFetch, useRoute } from '#imports'
 import type { FamilyAccount, Sala } from '~/types/daycare'
-import type { AppSessionUser } from '~/types/session'
+import type { AppSessionUser, PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -100,6 +100,8 @@ const selected = ref<FamilyAccount | null>(null)
 const saving = ref(false)
 const search = ref('')
 const actionError = ref('')
+const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
+const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }
 })

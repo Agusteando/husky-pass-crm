@@ -63,3 +63,7 @@ Canonical admin routes:
 Relevant existing tables include `users`, `rutas_rol`, `salas`, `recursos`, `valores_mensuales`, `personas_autorizadas`, `alumno_pa`, `matricula`, and `credenciales`.
 
 No Prisma, migrations, schema rewrites, fake mappings, or hardcoded fallback roles are used.
+
+## Auditoría de producto
+
+Este paquete incluye `product-audit.md` con el mapa de roles, recorridos y decisiones aplicadas durante la estabilización de capacidades.

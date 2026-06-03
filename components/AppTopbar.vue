@@ -20,7 +20,7 @@
     </div>
     <div v-if="session?.user?.impersonation" class="impersonation-bar">
       <div class="page-shell impersonation-inner">
-        <strong>Vista familiar activa</strong>
+        <strong>{{ impersonationLabel }}</strong>
         <span>{{ session.user.displayName || session.user.email }}</span>
         <button class="link-button" type="button" @click="exitImpersonation">Terminar vista</button>
       </div>
@@ -42,6 +42,10 @@ const props = defineProps<{
 const initials = computed(() => {
   const source = props.session?.user?.displayName || props.session?.user?.email || 'HP'
   return source.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
+})
+
+const impersonationLabel = computed(() => {
+  return props.session?.user?.impersonation?.mode === 'account' ? 'Impersonación activa' : 'Vista familiar de sala activa'
 })
 
 async function exitImpersonation() {

@@ -1,1 +1,1 @@
-fix: estabiliza importaciones Nuxt y corrige validación TypeScript del producto
+Estabiliza alcances de producto, gestión daycare y tablero superadmin

@@ -1,25 +1,18 @@
 import { createError, defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
-import type { AppSessionUser } from '~/types/session'
 import { findLegacyUserById } from '~/server/data/mysqlAuth'
-import { assertDaycareAdmin, isSuperAdmin } from '~/server/utils/authz'
+import { isSuperAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 
 const schema = z.object({ userId: z.coerce.number().int().positive() })
 
-function assertImpersonationScope(admin: AppSessionUser, family: AppSessionUser) {
-  if (isSuperAdmin(admin)) return
-  const daycare = family.scopes.daycare
-  if (daycare?.unidad && admin.unidades.includes(daycare.unidad)) return
-
-  throw createError({ statusCode: 403, statusMessage: 'Cuenta familiar fuera del alcance administrativo' })
-}
-
 export default defineEventHandler(async (event) => {
   const current = getAppSession(event).user
   if (!current) throw createError({ statusCode: 401, statusMessage: 'Sesión no válida' })
-  assertDaycareAdmin(current)
+  if (!isSuperAdmin(current)) {
+    throw createError({ statusCode: 403, statusMessage: 'La impersonación de cuentas está reservada para superadmin' })
+  }
 
   const body = schema.parse(await readBody(event))
   const legacyUser = await findLegacyUserById(body.userId)
@@ -29,7 +22,6 @@ export default defineEventHandler(async (event) => {
   if (!familyUser.productScopes.length) {
     throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene acceso familiar habilitado' })
   }
-  assertImpersonationScope(current, familyUser)
 
   familyUser.impersonation = {
     startedAt: Date.now(),

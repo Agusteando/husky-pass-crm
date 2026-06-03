@@ -27,6 +27,7 @@
     </section>
 
     <nav class="primary-nav" aria-label="Navegación daycare admin">
+      <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active">Superadmin</NuxtLink>
       <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active">Salas</NuxtLink>
       <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/familias`" active-class="active">Familias</NuxtLink>
       <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/tareas`" active-class="active">Tareas</NuxtLink>
