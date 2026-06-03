@@ -1,1 +1,1 @@
-Corrige consulta de superadmin y mantiene vista familiar para admins
+Corrige navegación de salas, retorno de vista familiar y acciones de superadmin

@@ -123,7 +123,7 @@ const modules = computed(() => [
 async function previewSala() {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId, returnTo: route.fullPath } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

@@ -147,7 +147,7 @@ async function impersonate(userId?: number) {
   try {
     const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
       method: 'POST',
-      body: { userId }
+      body: { userId, returnTo: route.fullPath }
     })
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
@@ -158,7 +158,7 @@ async function impersonate(userId?: number) {
 async function previewSala() {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId, returnTo: route.fullPath } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

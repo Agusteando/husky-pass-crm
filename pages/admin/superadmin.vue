@@ -16,7 +16,7 @@
         class="scope-tab"
         :class="{ active: selectedScope === option.value }"
         type="button"
-        @click="selectedScope = option.value"
+        @click="selectScope(option.value)"
       >
         <strong>{{ option.label }}</strong>
         <span>{{ option.description }}</span>
@@ -128,9 +128,9 @@
                   <div class="row-actions">
                     <button class="btn btn-secondary compact" type="button" @click="selectedUser = user">Detalle</button>
                     <NuxtLink
-                      v-if="user.productScopes.includes('daycare') && user.sala"
+                      v-if="daycareSalaPath(user)"
                       class="btn btn-secondary compact"
-                      :to="`/admin/daycare/salas/${user.sala}/familias`"
+                      :to="daycareSalaPath(user) || '/admin/daycare/salas'"
                     >
                       Ver sala
                     </NuxtLink>
@@ -173,13 +173,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch } from 'nuxt/app'
+import { computed, nextTick, ref, watch } from 'vue'
+import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
+
+const route = useRoute()
 
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; description: string }> = [
   { value: 'all', label: 'Todos', description: 'Directorio completo' },
@@ -208,7 +210,7 @@ const activeScopeLabel = computed(() => scopeOptions.find((option) => option.val
 
 const { data: directory, pending, error: loadError, refresh } = await useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
   query,
-  watch: [query]
+  watch: [selectedPlantel, search, selectedScope, limit]
 })
 
 watch(directory, (value) => {
@@ -223,6 +225,14 @@ watch(directory, (value) => {
 
 async function refreshDirectory() {
   actionError.value = ''
+  await refresh()
+}
+
+async function selectScope(scope: SuperAdminDirectoryScope) {
+  selectedScope.value = scope
+  selectedUser.value = null
+  actionError.value = ''
+  await nextTick()
   await refresh()
 }
 
@@ -245,6 +255,12 @@ function productScopeLabel(scope: FamilyProductScope) {
   return scope
 }
 
+function daycareSalaPath(user: SuperAdminUserSummary) {
+  if (!user.productScopes.includes('daycare') || !user.sala) return ''
+  const sala = String(user.sala).trim()
+  return /^\d+$/.test(sala) ? `/admin/daycare/salas/${sala}/familias` : ''
+}
+
 function audienceLabel(user: SuperAdminUserSummary) {
   if (user.audience === 'multiProductFamily') return 'Familia multiproducto'
   if (user.audience === 'daycareFamily') return 'Familia daycare'
@@ -260,7 +276,7 @@ async function impersonate(user: SuperAdminUserSummary) {
   try {
     const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
       method: 'POST',
-      body: { userId: user.id }
+      body: { userId: user.id, returnTo: route.fullPath }
     })
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {

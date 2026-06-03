@@ -135,7 +135,7 @@ async function previewSala() {
   if (!selectedSala.value) return
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value, returnTo: route.fullPath } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

@@ -59,7 +59,7 @@
             class="sala-pick"
             :class="{ active: sala.id === selectedSalaId }"
             type="button"
-            @click="selectedSalaId = sala.id"
+            @click="openSala(sala.id)"
           >
             <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
             <span class="pick-copy">
@@ -190,6 +190,11 @@ function syncUnidad() {
   router.replace({ path: route.path, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
 }
 
+function openSala(id: number) {
+  actionError.value = ''
+  selectedSalaId.value = id
+  navigateTo(`/admin/daycare/salas/${id}`)
+}
 
 function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
   actionError.value = ''
@@ -201,7 +206,7 @@ function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario
 async function previewSala(id: number) {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id, returnTo: route.fullPath } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
