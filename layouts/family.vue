@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useFetch } from '#app'
+import { useFetch } from '#imports'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 

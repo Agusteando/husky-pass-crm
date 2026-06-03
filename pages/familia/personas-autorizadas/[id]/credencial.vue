@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { definePageMeta, useFetch, useRoute } from '#app'
+import { definePageMeta, useFetch, useRoute } from '#imports'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

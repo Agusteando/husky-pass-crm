@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { definePageMeta, navigateTo, useFetch, useRoute } from '#app'
+import { definePageMeta, navigateTo, useFetch, useRoute } from '#imports'
 import type { SalaOverview } from '~/types/daycare'
 import { formatDate } from '~/utils/daycare'
 

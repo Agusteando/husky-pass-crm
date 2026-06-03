@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { definePageMeta, navigateTo } from '#app'
+import { definePageMeta, navigateTo } from '#imports'
 definePageMeta({ middleware: 'guest' })
 
 const form = reactive({ login: '', password: '' })

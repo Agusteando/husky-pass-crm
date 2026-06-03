@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch, useRoute } from '#app'
+import { useFetch, useRoute } from '#imports'
 import type { DaycareResource, Sala } from '~/types/daycare'
 import { formatDate, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 

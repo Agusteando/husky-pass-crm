@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { definePageMeta, useFetch, useRoute } from '#app'
+import { definePageMeta, useFetch, useRoute } from '#imports'
 import type { AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 

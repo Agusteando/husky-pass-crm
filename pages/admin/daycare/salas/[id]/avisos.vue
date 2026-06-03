@@ -8,6 +8,6 @@
 </template>
 
 <script setup lang="ts">
-import { definePageMeta } from '#app'
+import { definePageMeta } from '#imports'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 </script>
