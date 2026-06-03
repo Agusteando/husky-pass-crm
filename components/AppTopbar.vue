@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { clearNuxtData, navigateTo } from 'nuxt/app'
+import { navigateTo } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 
 const props = defineProps<{
@@ -49,10 +49,9 @@ const impersonationLabel = computed(() => {
 })
 
 async function exitImpersonation() {
-  const fallback = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
-  const response = await $fetch<{ redirectTo?: string }>('/api/auth/impersonation/exit', { method: 'POST' })
-  clearNuxtData()
-  await navigateTo(response.redirectTo || fallback)
+  const target = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
+  await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
+  await navigateTo(target)
 }
 
 async function logout() {

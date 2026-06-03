@@ -124,7 +124,7 @@ const search = ref('')
 const visibilityFilter = ref<'published' | 'hidden' | 'all'>('published')
 const actionError = ref('')
 
-const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
+const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: props.type }
 })
 

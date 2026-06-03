@@ -59,7 +59,7 @@
             class="sala-pick"
             :class="{ active: sala.id === selectedSalaId }"
             type="button"
-            @click="openSala(sala.id)"
+            @click="selectedSalaId = sala.id"
           >
             <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
             <span class="pick-copy">
@@ -138,7 +138,7 @@ import type { SalaSummary } from '~/types/daycare'
 
 const route = useRoute()
 const router = useRouter()
-const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-salas-command-session' })
+const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-salas-command-session' })
 
 const unidades = computed(() => session.value?.user?.unidades || [])
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
@@ -155,7 +155,7 @@ watch(() => route.query.unidad, (value) => {
   if (typeof value === 'string' && value && value !== selectedUnidad.value) selectedUnidad.value = value
 })
 
-const { data: salas, pending, error } = await useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
+const { data: salas, pending, error } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
   watch: [selectedUnidad]
 })
@@ -190,11 +190,6 @@ function syncUnidad() {
   router.replace({ path: route.path, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
 }
 
-function openSala(id: number) {
-  actionError.value = ''
-  selectedSalaId.value = id
-  navigateTo(`/admin/daycare/salas/${id}`)
-}
 
 function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
   actionError.value = ''
@@ -206,7 +201,7 @@ function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario
 async function previewSala(id: number) {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id, returnTo: route.fullPath } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

@@ -64,7 +64,6 @@ export interface AppSessionUser {
     startedAt: number
     mode?: 'account' | 'daycarePreview'
     admin: AdminImpersonationOrigin
-    returnTo?: string | null
   }
   anonymous: false
   loggedin: true

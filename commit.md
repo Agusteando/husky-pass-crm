@@ -1,1 +1,1 @@
-Corrige navegación de salas, retorno de vista familiar y acciones de superadmin
+Corrige errores de typecheck, navegación y retorno de vistas familiares

@@ -16,7 +16,7 @@ import { useFetch } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 
-const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-family-session' })
+const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-family-session' })
 const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 </script>
 

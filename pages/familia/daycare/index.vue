@@ -80,8 +80,8 @@ import { hasFamilyScope } from '~/utils/sessionScopes'
 definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
 const config = useRuntimeConfig()
-const { data: session } = await useFetch<PublicSession>('/api/auth/me')
-const { data: dashboard, pending, error } = await useFetch<{
+const { data: session } = useFetch<PublicSession>('/api/auth/me')
+const { data: dashboard, pending, error } = useFetch<{
   tareas: DaycareResource[]
   circulares: DaycareResource[]
   calendario: DaycareResource[]

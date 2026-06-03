@@ -28,7 +28,7 @@ const props = defineProps<{
   description: string
 }>()
 
-const { data: items, pending, error } = await useFetch<DaycareResource[]>('/api/daycare/family/resources', {
+const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycare/family/resources', {
   query: { type: props.type }
 })
 </script>

@@ -37,7 +37,7 @@ import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUr
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
-const { data } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
+const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const shareMessage = ref('')

@@ -224,7 +224,6 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   const search = normalizeLegacyScope(filters.search)
   const scope: SuperAdminDirectoryScope = filters.scope || 'all'
   const limit = Math.min(Math.max(Number(filters.limit || 120), 25), 250)
-  const queryLimit = scope === 'all' ? limit : 250
   const where: string[] = []
   const params: Array<string | number> = []
 
@@ -272,7 +271,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
      ${whereSql}
      GROUP BY A.id
      ORDER BY COALESCE(NULLIF(A.plantel, ''), NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
-     LIMIT ${queryLimit}`,
+     LIMIT ${limit}`,
     params
   )
 
@@ -285,7 +284,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   )
 
   const users = rows.map(directoryRowToSummary)
-  const visibleUsers = filterDirectoryUsersByScope(users, scope).slice(0, limit)
+  const visibleUsers = filterDirectoryUsersByScope(users, scope)
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
     ...csvToList(row.unidad),

@@ -100,10 +100,10 @@ const selected = ref<FamilyAccount | null>(null)
 const saving = ref(false)
 const search = ref('')
 const actionError = ref('')
-const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
+const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
 const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
-const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
+const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }
 })
 
@@ -147,7 +147,7 @@ async function impersonate(userId?: number) {
   try {
     const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
       method: 'POST',
-      body: { userId, returnTo: route.fullPath }
+      body: { userId }
     })
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
@@ -158,7 +158,7 @@ async function impersonate(userId?: number) {
 async function previewSala() {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId, returnTo: route.fullPath } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

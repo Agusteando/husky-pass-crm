@@ -4,7 +4,18 @@ import { z } from 'zod'
 import { upsertFamilyAccount } from '~/server/data/mysqlDaycare'
 import { assertDaycareAdmin } from '~/server/utils/authz'
 
-const schema = z.object({
+type FamilyAccountBody = {
+  id?: number
+  nombre_nino?: string | null
+  username: string
+  email: string
+  plaintext?: string | null
+  role?: string | null
+  unidad?: string
+  sala: string | number
+}
+
+const schema: z.ZodType<FamilyAccountBody> = z.object({
   id: z.number().int().positive().optional(),
   nombre_nino: z.string().optional().nullable(),
   username: z.string().min(1),

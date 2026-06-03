@@ -82,7 +82,7 @@ import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
-const { data, refresh, pending, error: loadError } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
+const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
 const saving = ref(false)
 const error = ref('')

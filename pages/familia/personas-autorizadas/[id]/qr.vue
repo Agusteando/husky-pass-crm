@@ -30,7 +30,7 @@ import { appAbsoluteUrl, authorizedPersonValidationPath } from '~/utils/daycare'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 const route = useRoute()
-const { data } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
+const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))

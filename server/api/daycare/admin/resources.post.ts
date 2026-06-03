@@ -4,7 +4,22 @@ import { z } from 'zod'
 import { upsertAdminResource } from '~/server/data/mysqlDaycare'
 import { assertDaycareAdmin } from '~/server/utils/authz'
 
-const schema = z.object({
+type AdminResourceBody = {
+  id?: number
+  title: string
+  description?: string | null
+  date?: string | null
+  timestamp?: string | null
+  resource?: string | null
+  autor?: string | null
+  unidad?: string
+  sala: string | number
+  type: 'hw' | 'news' | 'cal'
+  starred?: number | boolean | null
+  hidden?: number | boolean | string | null
+}
+
+const schema: z.ZodType<AdminResourceBody> = z.object({
   id: z.number().int().positive().optional(),
   title: z.string().min(1),
   description: z.string().optional().nullable(),

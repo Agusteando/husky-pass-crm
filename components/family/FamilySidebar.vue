@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { clearNuxtData, navigateTo, useRoute } from 'nuxt/app'
+import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 
@@ -49,10 +49,9 @@ const secondaryName = computed(() => {
 })
 
 async function exitPreview() {
-  const fallback = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
-  const response = await $fetch<{ redirectTo?: string }>('/api/auth/impersonation/exit', { method: 'POST' })
-  clearNuxtData()
-  await navigateTo(response.redirectTo || fallback)
+  const target = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
+  await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
+  await navigateTo(target)
 }
 </script>
 

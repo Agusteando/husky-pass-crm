@@ -39,7 +39,7 @@ import type { ScanAuthorizedPerson } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 const route = useRoute()
-const { data, pending, error: loadError } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
+const { data, pending, error: loadError } = useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
   query: { id: route.params.id }
 })
 </script>

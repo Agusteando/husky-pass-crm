@@ -5,7 +5,7 @@ import { isSuperAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 
-const schema = z.object({ userId: z.coerce.number().int().positive(), returnTo: z.string().optional() })
+const schema = z.object({ userId: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
   const current = getAppSession(event).user
@@ -15,7 +15,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = schema.parse(await readBody(event))
-  const returnTo = safeAdminReturnTo(body.returnTo, '/admin/superadmin')
   const legacyUser = await findLegacyUserById(body.userId)
   if (!legacyUser) throw createError({ statusCode: 404, statusMessage: 'Cuenta familiar no encontrada' })
 
@@ -27,8 +26,7 @@ export default defineEventHandler(async (event) => {
   familyUser.impersonation = {
     startedAt: Date.now(),
     mode: 'account',
-    admin: adminOrigin(current),
-    returnTo
+    admin: adminOrigin(current)
   }
 
   setAppSession(event, familyUser)
@@ -36,12 +34,3 @@ export default defineEventHandler(async (event) => {
 
   return { user: familyUser, loggedin: true }
 })
-
-
-function safeAdminReturnTo(value: string | undefined, fallback: string) {
-  if (!value) return fallback
-  if (!value.startsWith('/admin/')) return fallback
-  if (value.startsWith('/admin/login')) return fallback
-  if (/^\/admin\/daycare(\/|$)/.test(value) || /^\/admin\/superadmin(\?|$|\/)/.test(value)) return value
-  return fallback
-}

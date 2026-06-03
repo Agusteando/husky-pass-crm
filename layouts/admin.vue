@@ -15,7 +15,7 @@ import { computed } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 
-const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
+const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
 
 const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
 const topbarItems = computed(() => {

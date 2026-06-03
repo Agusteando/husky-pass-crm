@@ -109,8 +109,8 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const route = useRoute()
 const salaId = Number(route.params.id)
 const actionError = ref('')
-const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
-const { data: overview, pending, error } = await useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`)
+const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
+const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`)
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 
 const modules = computed(() => [
@@ -123,7 +123,7 @@ const modules = computed(() => [
 async function previewSala() {
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId, returnTo: route.fullPath } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

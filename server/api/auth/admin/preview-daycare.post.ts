@@ -6,7 +6,7 @@ import { assertDaycareAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 
-const schema = z.object({ sala: z.coerce.number().int().positive(), returnTo: z.string().optional() })
+const schema = z.object({ sala: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
   const admin = getAppSession(event).user
@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
   assertDaycareAdmin(admin)
   const body = schema.parse(await readBody(event))
   const sala = await getSalaById(admin, body.sala)
-  const returnTo = safeAdminReturnTo(body.returnTo, `/admin/daycare/salas/${sala.id}`)
   const familyPreview: AppSessionUser = {
     id: admin.id,
     kind: 'family',
@@ -40,8 +39,7 @@ export default defineEventHandler(async (event) => {
     impersonation: {
       startedAt: Date.now(),
       mode: 'daycarePreview',
-      admin: adminOrigin(admin),
-      returnTo
+      admin: adminOrigin(admin)
     },
     anonymous: false,
     loggedin: true
@@ -52,12 +50,3 @@ export default defineEventHandler(async (event) => {
 
   return { user: familyPreview, loggedin: true }
 })
-
-
-function safeAdminReturnTo(value: string | undefined, fallback: string) {
-  if (!value) return fallback
-  if (!value.startsWith('/admin/')) return fallback
-  if (value.startsWith('/admin/login')) return fallback
-  if (/^\/admin\/daycare(\/|$)/.test(value) || /^\/admin\/superadmin(\?|$|\/)/.test(value)) return value
-  return fallback
-}

@@ -93,7 +93,7 @@ watch(() => route.params.id, () => {
   selectedSala.value = routeSalaId.value
 })
 
-const { data: salas } = await useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
+const { data: salas } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
   watch: [selectedUnidad]
 })
@@ -135,7 +135,7 @@ async function previewSala() {
   if (!selectedSala.value) return
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value, returnTo: route.fullPath } })
+    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value } })
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
