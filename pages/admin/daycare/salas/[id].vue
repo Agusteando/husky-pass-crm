@@ -1,16 +1,18 @@
 <template>
   <section class="stack">
-    <div class="hero-panel">
+    <div class="sala-header">
       <p class="eyebrow">{{ sala?.unidad }}</p>
       <h1>{{ sala?.sala || 'Sala' }}</h1>
-      <p>Panel operativo de guardería para esta sala. Cada módulo mantiene los filtros legacy por unidad, sala y tipo de recurso.</p>
     </div>
 
-    <section class="grid grid-2">
-      <NuxtLink v-for="item in modules" :key="item.to" class="module-card card" :to="item.to">
-        <span class="badge">{{ item.badge }}</span>
-        <h2>{{ item.title }}</h2>
-        <p>{{ item.description }}</p>
+    <section class="module-grid">
+      <NuxtLink v-for="item in modules" :key="item.to" class="module-card" :to="item.to">
+        <div class="module-body">
+          <h2>{{ item.title }}</h2>
+          <h3>{{ item.subtitle }}</h3>
+          <p>{{ item.description }}</p>
+        </div>
+        <div class="module-footer">{{ item.action }}</div>
       </NuxtLink>
     </section>
   </section>
@@ -26,15 +28,80 @@ const salaId = Number(route.params.id)
 const { data: sala } = await useFetch<Sala>(`/api/daycare/admin/salas/${salaId}`)
 
 const modules = computed(() => [
-  { title: 'Familias', badge: 'users', description: 'Cuentas familiares daycare: identidad, usuario, contraseña temporal, unidad y sala.', to: `/admin/daycare/salas/${salaId}/usuarios` },
-  { title: 'Tareas', badge: 'hw', description: 'Publicaciones para seguimiento en casa.', to: `/admin/daycare/salas/${salaId}/tareas` },
-  { title: 'Circulares', badge: 'news', description: 'Comunicados y avisos visibles para familias.', to: `/admin/daycare/salas/${salaId}/circulares` },
-  { title: 'Calendario', badge: 'cal', description: 'Eventos vigentes de la sala.', to: `/admin/daycare/salas/${salaId}/calendario` }
+  { title: 'USUARIOS', subtitle: 'Gestiona a tus usuarios aquí', description: `Usuarios para ${sala.value?.sala || 'esta sala'}`, action: 'Nuevo', to: `/admin/daycare/salas/${salaId}/usuarios` },
+  { title: 'TAREAS', subtitle: 'Publica tareas', description: `Tareas para la sala de ${sala.value?.sala || ''}`, action: 'Añadir', to: `/admin/daycare/salas/${salaId}/tareas` },
+  { title: 'AVISOS', subtitle: 'Añade avisos', description: `Circulares y avisos de ${sala.value?.sala || ''}`, action: 'Nuevo', to: `/admin/daycare/salas/${salaId}/circulares` },
+  { title: 'CALENDARIO', subtitle: 'Añade eventos', description: `Eventos de calendario de ${sala.value?.sala || ''}`, action: 'Nuevo', to: `/admin/daycare/salas/${salaId}/calendario` }
 ])
 </script>
 
 <style scoped>
+.sala-header {
+  background: #fff;
+  border: 5px solid rgba(142, 193, 82, 0.2);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  padding: clamp(24px, 4vw, 40px);
+  text-align: center;
+}
+
+.module-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .module-card {
-  min-height: 210px;
+  background: #fff;
+  border: 5px solid rgba(142, 193, 82, 0.2);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.module-card:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-4px);
+}
+
+.module-body {
+  display: grid;
+  gap: 10px;
+  min-height: 190px;
+  padding: 30px;
+  place-items: center;
+  text-align: center;
+}
+
+.module-body h2 {
+  color: #585858;
+  font-family: Fredoka, Inter, sans-serif;
+  font-size: 1.9rem;
+  margin-bottom: 0;
+}
+
+.module-body h3,
+.module-body p {
+  color: #585858;
+  margin-bottom: 0;
+}
+
+.module-footer {
+  align-items: center;
+  background: var(--color-brand-700);
+  color: #fff;
+  display: flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px;
+}
+
+@media (max-width: 760px) {
+  .module-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

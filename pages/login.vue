@@ -2,13 +2,12 @@
   <LoginPanel
     brand-to="/login"
     eyebrow="Acceso familiar"
-    title="Información de guardería para familias."
-    description="Ingresa con el usuario y contraseña tradicionales de Husky Pass Daycare. Este acceso conserva el comportamiento tradicional de Husky Pass: tareas, circulares, calendario y Personas Autorizadas cuando la cuenta familiar tiene acceso."
+    title="Husky Pass"
+    description="Bienvenido de vuelta."
   >
     <form class="stack" @submit.prevent="submit">
       <div>
-        <p class="eyebrow">/login</p>
-        <h2>Entrar como familia</h2>
+        <h2>Acceso familiar</h2>
       </div>
       <label class="label">
         Usuario o correo
@@ -20,7 +19,7 @@
       </label>
       <p v-if="error" class="alert">{{ error }}</p>
       <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Validando…' : 'Ingresar' }}</button>
-      <NuxtLink class="btn btn-secondary" to="/admin/login">Soy parte del equipo interno</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/login">Acceso interno</NuxtLink>
     </form>
   </LoginPanel>
 </template>

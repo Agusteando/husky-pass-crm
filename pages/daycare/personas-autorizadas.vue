@@ -1,13 +1,12 @@
 <template>
-  <section class="stack">
-    <div class="hero-panel pa-hero">
+  <section class="pa-page">
+    <section class="pa-banner">
       <div>
         <p class="eyebrow">Personas Autorizadas</p>
-        <h1>Accesos y QR para recoger alumnos.</h1>
-        <p>Este módulo conserva la lógica legacy de cuatro espacios: tres personas autorizadas y un Pase Express. Las rutas públicas de QR y printable se mantienen bajo `/qrPA/{id}` y `/printable/{id}`.</p>
+        <h1>Control de accesos</h1>
       </div>
       <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-    </div>
+    </section>
 
     <AuthorizedPersonEditor
       v-if="editing"
@@ -18,19 +17,18 @@
       @cancel="editing = null"
     />
 
-    <section class="grid grid-4">
-      <article v-for="person in people" :key="person.indice" class="pa-card card">
-        <span class="badge">{{ authorizedPersonLabel(person.indice) }}</span>
+    <section class="pa-stripe">
+      <article v-for="person in people" :key="person.indice" class="pa-card">
         <div class="portrait" :class="{ empty: !person.id }">
           <img v-if="person.foto" :src="normalizeVirtualAssetUrl(person.foto)" alt="Fotografía de persona autorizada" />
           <span v-else>{{ person.id ? initials(person) : '+' }}</span>
         </div>
-        <div>
+        <div class="pa-card-footer">
+          <strong>{{ authorizedPersonLabel(person.indice) }}</strong>
+        </div>
+        <div class="pa-info">
           <h2>{{ fullName(person) || 'Disponible' }}</h2>
           <p>{{ person.parenP || (person.id ? 'Parentesco pendiente' : 'Agregar registro') }}</p>
-        </div>
-        <div v-if="person.id" class="qr-box">
-          <a :href="qrPaUrl(person.id)" target="_blank" rel="noopener">{{ qrPaUrl(person.id) }}</a>
         </div>
         <div class="actions">
           <button class="btn btn-primary" type="button" @click="edit(person)">{{ person.id ? 'Ver / editar' : 'Agregar' }}</button>
@@ -43,7 +41,7 @@
     <section class="card stack">
       <div>
         <p class="eyebrow">Alumnos</p>
-        <h2>Alumnos vinculados a la cuenta</h2>
+        <h2>Alumnos vinculados</h2>
       </div>
       <div class="table-wrap" v-if="children.length">
         <table class="table">
@@ -65,7 +63,7 @@
           </tbody>
         </table>
       </div>
-      <EmptyState v-else title="Sin alumnos vinculados" description="Puedes capturarlos al agregar o editar una persona autorizada." />
+      <EmptyState v-else title="Sin alumnos vinculados" description="Puedes agregarlos al capturar una persona autorizada." />
     </section>
 
     <p v-if="error" class="alert">{{ error }}</p>
@@ -138,7 +136,7 @@ async function share(person: AuthorizedPerson) {
 
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({
-        title: 'Persona Autorizada para recoger alumnos',
+        title: 'Persona Autorizada',
         url: qrPaUrl(person.id),
         files: [file]
       })
@@ -158,74 +156,95 @@ async function share(person: AuthorizedPerson) {
 </script>
 
 <style scoped>
-.pa-hero {
-  align-items: center;
+.pa-page {
   display: grid;
-  gap: 24px;
-  grid-template-columns: 1fr minmax(180px, 280px);
+  gap: 28px;
 }
 
-.pa-hero img {
+.pa-banner {
+  align-items: center;
+  background: #fff;
+  border: 3px solid rgba(142, 193, 82, 0.15);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr minmax(160px, 260px);
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.pa-banner img {
   width: 100%;
 }
 
-.grid-4 {
+.pa-stripe {
+  display: grid;
+  gap: 18px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .pa-card {
+  background: #f4f4f4;
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 16px;
-  min-height: 420px;
+  overflow: hidden;
 }
 
 .portrait {
-  aspect-ratio: 1 / 1;
-  border-radius: 28px;
-  overflow: hidden;
+  aspect-ratio: 1.2 / 1;
+  background: #c4c4c4;
   display: grid;
-  place-items: center;
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
   font-size: 3rem;
   font-weight: 900;
+  place-items: center;
 }
 
 .portrait.empty {
-  border: 2px dashed var(--color-brand-200);
+  color: #585858;
 }
 
 .portrait img {
-  width: 100%;
   height: 100%;
   object-fit: cover;
+  width: 100%;
 }
 
-.qr-box {
-  background: #f8faf5;
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  font-size: 0.82rem;
-  padding: 12px;
-  word-break: break-word;
+.pa-card-footer {
+  align-items: center;
+  background: #236188;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px;
+}
+
+.pa-info {
+  padding: 18px;
+  text-align: center;
+}
+
+.pa-info h2 {
+  font-size: 1.25rem;
 }
 
 .actions {
-  align-self: end;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  padding: 0 18px 18px;
 }
 
 @media (max-width: 1120px) {
-  .grid-4 {
+  .pa-stripe {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .grid-4,
-  .pa-hero {
+  .pa-banner,
+  .pa-stripe {
     grid-template-columns: 1fr;
   }
 }

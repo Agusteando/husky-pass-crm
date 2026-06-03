@@ -2,19 +2,18 @@
   <LoginPanel
     brand-to="/admin/login"
     eyebrow="Acceso interno"
-    title="Administración de guardería con Google."
-    description="El equipo interno entra por esta ruta separada. El alcance se toma de la base MySQL existente: rol, unidad, sala y rutas permitidas."
+    title="Administración Husky Pass"
+    description="Ingresa con tu cuenta institucional."
   >
     <div class="stack">
       <div>
-        <p class="eyebrow">/admin/login</p>
-        <h2>Entrar como administrador</h2>
-        <p>Usa tu cuenta institucional @casitaiedis.edu.mx.</p>
+        <h2>Acceso administrativo</h2>
+        <p class="muted-copy">Usa tu cuenta @casitaiedis.edu.mx.</p>
       </div>
       <div id="google-signin" class="google-box" />
       <p v-if="!clientId" class="alert">GOOGLE_CLIENT_ID no está configurado.</p>
       <p v-if="error" class="alert">{{ error }}</p>
-      <NuxtLink class="btn btn-secondary" to="/login">Ir al acceso familiar</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/login">Acceso familiar</NuxtLink>
     </div>
   </LoginPanel>
 </template>
@@ -92,5 +91,9 @@ async function handleCredential(response: { credential: string }) {
 <style scoped>
 .google-box {
   min-height: 48px;
+}
+
+.muted-copy {
+  margin-bottom: 0;
 }
 </style>

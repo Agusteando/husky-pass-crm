@@ -1,10 +1,9 @@
 <template>
   <section class="stack">
-    <div class="hero-panel section-header">
+    <div class="section-header">
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad }}</p>
         <h1>{{ resource.label }} · {{ data?.sala?.sala }}</h1>
-        <p>Publicaciones guardadas en `recursos`, filtradas por tipo, sala y unidad legacy.</p>
       </div>
       <button class="btn btn-primary" type="button" @click="startCreate">Nueva publicación</button>
     </div>
@@ -18,14 +17,16 @@
       @cancel="editing = null"
     />
 
-    <section class="grid grid-2" v-if="data?.rows?.length">
-      <article v-for="item in data.rows" :key="item.id" class="card stack">
-        <div>
-          <span class="badge">{{ item.date || 'Sin fecha' }}</span>
+    <section class="publication-grid" v-if="data?.rows?.length">
+      <article v-for="item in data.rows" :key="item.id" class="publication-card">
+        <div class="publication-header">
+          <span>{{ item.date || 'Sin fecha' }}</span>
+        </div>
+        <div class="publication-body">
           <h2>{{ item.title }}</h2>
           <p>{{ stripHtml(item.description) || 'Sin descripción.' }}</p>
         </div>
-        <div class="actions">
+        <div class="publication-actions">
           <button class="btn btn-secondary" type="button" @click="editing = { ...item }">Editar</button>
           <button class="btn btn-danger" type="button" @click="remove(item.id)">Ocultar</button>
         </div>
@@ -86,14 +87,65 @@ async function remove(id?: number) {
 
 <style scoped>
 .section-header,
-.actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
+.publication-actions {
   align-items: end;
+  background: #fff;
+  border: 3px solid rgba(142, 193, 82, 0.15);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: clamp(22px, 4vw, 34px);
 }
 
-.actions {
+.publication-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.publication-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  overflow: hidden;
+}
+
+.publication-header {
+  background: #eaf2e0;
+  color: var(--color-brand-700);
+  font-weight: 900;
+  padding: 12px 18px;
+}
+
+.publication-body {
+  padding: 22px;
+}
+
+.publication-actions {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   justify-content: flex-start;
+  padding: 18px 22px;
+}
+
+@media (max-width: 760px) {
+  .section-header,
+  .publication-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .publication-grid {
+    display: grid;
+  }
 }
 </style>

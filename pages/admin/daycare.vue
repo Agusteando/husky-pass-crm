@@ -1,22 +1,24 @@
 <template>
   <section class="stack">
-    <div class="hero-panel admin-hero">
+    <div class="admin-header">
       <div>
         <p class="eyebrow">Administración interna</p>
         <h1>Guardería</h1>
-        <p>Gestiona salas, familias y publicaciones con el alcance de rol, unidad y sala definido en la base actual.</p>
       </div>
       <SalaPicker v-if="session?.user?.unidades?.length" v-model="selectedUnidad" :unidades="session.user.unidades" />
     </div>
 
     <section class="grid grid-3" v-if="salas?.length">
       <NuxtLink v-for="sala in salas" :key="sala.id" class="sala-card card" :to="`/admin/daycare/salas/${sala.id}`">
-        <span class="badge">{{ sala.unidad }}</span>
-        <h2>{{ sala.sala }}</h2>
-        <p>Usuarios, tareas, circulares y calendario.</p>
+        <div class="card-header">{{ sala.unidad }}</div>
+        <div class="card-body">
+          <h2>{{ sala.sala }}</h2>
+          <p>Usuarios, tareas, avisos y calendario.</p>
+        </div>
+        <div class="card-footer">Abrir sala</div>
       </NuxtLink>
     </section>
-    <EmptyState v-else title="Sin salas disponibles" description="No encontramos salas para la unidad seleccionada o tu usuario no tiene alcance." />
+    <EmptyState v-else title="Sin salas disponibles" description="No encontramos salas para la unidad seleccionada." />
   </section>
 </template>
 
@@ -34,24 +36,56 @@ const { data: salas } = await useFetch<Sala[]>('/api/daycare/admin/salas', {
 </script>
 
 <style scoped>
-.admin-hero {
-  display: grid;
-  grid-template-columns: 1fr minmax(240px, 320px);
-  gap: 24px;
+.admin-header {
   align-items: end;
+  background: #fff;
+  border: 3px solid rgba(142, 193, 82, 0.15);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr minmax(240px, 320px);
+  padding: clamp(24px, 4vw, 40px);
 }
 
 .sala-card {
-  min-height: 190px;
-  transition: transform 0.2s ease;
+  overflow: hidden;
+  padding: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sala-card:hover {
-  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-4px);
+}
+
+.card-header,
+.card-footer {
+  align-items: center;
+  background: var(--color-brand-700);
+  color: #fff;
+  display: flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px;
+}
+
+.card-body {
+  display: grid;
+  min-height: 160px;
+  padding: 24px;
+  place-items: center;
+  text-align: center;
+}
+
+.card-body h2 {
+  color: #585858;
+  font-family: Fredoka, Inter, sans-serif;
 }
 
 @media (max-width: 820px) {
-  .admin-hero {
+  .admin-header {
     grid-template-columns: 1fr;
   }
 }

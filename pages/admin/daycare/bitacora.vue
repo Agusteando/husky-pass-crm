@@ -4,7 +4,6 @@
       <div>
         <p class="eyebrow">Bitácora interna</p>
         <h1>Registro diario</h1>
-        <p>Bitácora operativa para usuarios internos autorizados. Se conserva la tabla legacy `bitácoras`.</p>
       </div>
       <label class="label date-field">
         Fecha

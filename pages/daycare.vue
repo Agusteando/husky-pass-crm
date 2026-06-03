@@ -1,90 +1,85 @@
 <template>
-  <section class="stack">
-    <div class="hero-panel family-hero">
-      <div>
-        <p class="eyebrow">Husky Pass Daycare</p>
-        <h1>Hola, {{ session?.user?.displayName || session?.user?.email }}</h1>
-        <p>Este espacio conserva el tablero familiar legacy: tareas, avisos y comunicados, calendario mensual, recursos Richmond, PASE y Personas Autorizadas.</p>
-      </div>
-      <div class="value-card">
+  <section class="family-dashboard">
+    <section class="banner-grid">
+      <div class="banner-tile banner-guarderia">
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-        <span class="eyebrow">Valor del mes</span>
-        <strong>{{ dashboard?.valor?.[0]?.valor || 'Por confirmar' }}</strong>
+        <div>
+          <span>Guardería</span>
+          <strong>{{ session?.user?.sala || 'Husky Pass' }}</strong>
+        </div>
       </div>
-    </div>
+      <div class="banner-tile banner-school">
+        <span>{{ companyLabel }}</span>
+        <strong>{{ campusLabel }}</strong>
+      </div>
+    </section>
 
-    <section class="grid grid-4 action-grid">
-      <NuxtLink class="action-card amber" to="/daycare/recursos/tareas">
-        <span>Tareas</span>
-        <strong>{{ dashboard?.tareas?.length || 0 }}</strong>
-      </NuxtLink>
-      <NuxtLink class="action-card green" to="/daycare/recursos/circulares">
-        <span>Avisos y comunicados</span>
-        <strong>{{ dashboard?.circulares?.length || 0 }}</strong>
-      </NuxtLink>
-      <NuxtLink class="action-card pale" to="/daycare/recursos/calendario">
-        <span>Calendario mensual</span>
-        <strong>{{ dashboard?.calendario?.length || 0 }}</strong>
-      </NuxtLink>
-      <NuxtLink class="action-card blue" to="/daycare/personas-autorizadas">
-        <span>Personas Autorizadas</span>
+    <section class="quick-actions" v-if="session?.user?.sala">
+      <a class="action-card bg-grad-orange" :href="config.public.richmondUrl" target="_blank" rel="noopener">
+        <span>Recursos Richmond<br />para Estudiantes</span>
+        <strong>Acceder</strong>
+      </a>
+      <a class="action-card bg-grad-gray" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener">
+        <span>Plataforma PASE<br />Richmond</span>
+        <strong>Entrar</strong>
+      </a>
+      <NuxtLink class="action-card bg-grad-blue" to="/daycare/personas-autorizadas">
+        <span>Personas<br />Autorizadas</span>
         <strong>QR</strong>
       </NuxtLink>
     </section>
 
-    <section class="grid grid-2">
-      <a class="external-card card" :href="config.public.richmondUrl" target="_blank" rel="noopener">
-        <span class="badge">Richmond</span>
-        <h2>Recursos para estudiantes</h2>
-        <p>Mantiene el enlace externo legacy usado por el dashboard familiar.</p>
-      </a>
-      <a class="external-card card" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener">
-        <span class="badge">PASE Richmond</span>
-        <h2>Plataforma PASE</h2>
-        <p>Conserva el endpoint externo configurado para la integración PASE.</p>
-      </a>
-    </section>
-
-    <section class="card stack calendar-panel">
-      <div>
-        <p class="eyebrow">Próximos eventos</p>
+    <section class="panel-inst calendar-panel">
+      <header class="section-title">
         <h2>Calendario Mensual</h2>
-      </div>
-      <div class="calendar-strip" v-if="dashboard?.calendario?.length">
-        <article v-for="item in dashboard.calendario" :key="`cal-${item.id || item.title}-${item.date}`" class="calendar-card">
-          <div class="calendar-date">
-            <strong>{{ formatCalendarDay(item.date).day }}</strong>
-            <span>{{ formatCalendarDay(item.date).weekday }}</span>
-            <span>{{ formatCalendarDay(item.date).month }}</span>
+      </header>
+      <div class="scrolling-wrapper" v-if="dashboard?.calendario?.length">
+        <article v-for="item in dashboard.calendario" :key="`cal-${item.id || item.title}-${item.date}`" class="cal-card">
+          <div class="cal-header">
+            <div class="cal-num">{{ formatCalendarDay(item.date).day }}</div>
+            <div class="cal-meta">
+              <span>{{ formatCalendarDay(item.date).weekday }}</span>
+              <span>{{ formatCalendarDay(item.date).month }}</span>
+            </div>
           </div>
-          <h3>{{ item.title }}</h3>
-          <p>{{ stripHtml(item.description || item.html) }}</p>
-          <a v-if="item.resource" class="btn btn-secondary" :href="resourceHref(item.resource)" target="_blank" rel="noopener">Ver detalles</a>
+          <div class="cal-body">
+            <h3>{{ item.title || 'Evento' }}</h3>
+            <p>{{ stripHtml(item.description || item.html) }}</p>
+          </div>
+          <a v-if="item.resource" class="cal-action" :href="resourceHref(item.resource)" target="_blank" rel="noopener">Ver detalles</a>
         </article>
       </div>
-      <EmptyState v-else title="No hay eventos próximos" description="Cuando la sala publique calendario, aparecerá aquí." />
+      <EmptyState v-else title="No hay eventos próximos" description="Cuando haya eventos publicados, aparecerán aquí." />
     </section>
 
-    <section class="grid grid-2">
-      <div class="card stack">
-        <div>
-          <p class="eyebrow">Comunicados</p>
-          <h2>Avisos y comunicados</h2>
+    <section class="content-grid">
+      <section class="panel-inst notices-panel">
+        <header class="section-title centered">
+          <h2>Avisos y Comunicados</h2>
+        </header>
+        <div class="notice-list" v-if="dashboard?.circulares?.length">
+          <ResourceCard v-for="item in dashboard.circulares" :key="`news-${item.id || item.title}`" :resource="item" variant="notice" />
         </div>
-        <ResourceCard v-for="item in dashboard?.circulares?.slice(0, 4)" :key="`news-${item.id || item.title}`" :resource="item" />
-        <EmptyState v-if="!dashboard?.circulares?.length" title="No hay circulares" description="La sala aún no ha publicado comunicados." />
-      </div>
-      <div class="card stack">
-        <div>
-          <p class="eyebrow">Tarea del día</p>
-          <h2>Seguimiento en casa</h2>
+        <EmptyState v-else title="No hay avisos nuevos" description="Por ahora no hay comunicados publicados." />
+      </section>
+
+      <section class="panel-inst homework-panel">
+        <header class="section-title">
+          <h2>Tarea del Día</h2>
+        </header>
+        <ResourceCard v-if="dashboard?.tareas?.[0]" :resource="dashboard.tareas[0]" variant="homework" />
+        <EmptyState v-else title="Sin tareas publicadas" description="Cuando haya tarea disponible, aparecerá aquí." />
+
+        <div class="valor-mes-container" v-if="dashboard?.valor?.length">
+          <div>
+            <span>Valor del Mes</span>
+            <strong>{{ dashboard.valor[0].valor }}</strong>
+          </div>
         </div>
-        <ResourceCard v-if="dashboard?.tareas?.[0]" :resource="dashboard.tareas[0]" />
-        <EmptyState v-else title="Sin tareas publicadas" description="Las tareas aparecerán en cuanto el equipo de guardería las publique." />
-      </div>
+      </section>
     </section>
 
-    <section class="slogan-card">
+    <section class="slogan-footer">
       “COMPARTIENDO CONTIGO LA FORMACIÓN INTEGRAL DE TUS HIJOS”
     </section>
   </section>
@@ -106,63 +101,103 @@ const { data: dashboard } = await useFetch<{
   valor: Array<{ valor: string }>
 }>('/api/daycare/family/dashboard')
 
+const companyLabel = computed(() => session.value?.user?.campus || 'Colegio Casita')
+const campusLabel = computed(() => session.value?.user?.displayName || session.value?.user?.email || 'Bienvenido')
+
 function resourceHref(resource?: string | null) {
   return isPdfResource(resource) ? legacyPdfViewerUrl(resource) : resource || ''
 }
 </script>
 
 <style scoped>
-.family-hero {
+.family-dashboard {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 320px);
-  gap: 24px;
-  align-items: end;
+  gap: 36px;
 }
 
-.value-card {
-  background: #fff;
-  border: 2px dashed var(--color-amber);
-  border-radius: 28px;
+.banner-grid {
   display: grid;
-  gap: 12px;
-  padding: 24px;
+  gap: 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.value-card img {
-  width: 150px;
+.banner-tile {
+  align-items: center;
+  aspect-ratio: 21 / 9;
+  border-radius: 25px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  gap: 22px;
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 34px);
 }
 
-.value-card strong {
+.banner-tile img {
+  max-width: min(48%, 260px);
+}
+
+.banner-tile span {
+  color: rgba(255, 255, 255, 0.86);
+  display: block;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.banner-tile strong {
+  color: #fff;
   display: block;
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 2rem;
-  line-height: 1.1;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
   margin-top: 8px;
 }
 
-.grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.banner-guarderia {
+  background: linear-gradient(135deg, #606060, #2b2b2b);
+}
+
+.banner-school {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 40%),
+    linear-gradient(135deg, #8ec152, #578b26);
+  justify-content: center;
+  text-align: center;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .action-card {
-  border-radius: 28px;
-  min-height: 170px;
-  padding: 24px;
+  align-items: center;
+  border: 0;
+  border-radius: 25px;
+  box-shadow: var(--shadow-card);
   color: #fff;
   display: flex;
-  align-items: end;
   justify-content: space-between;
-  box-shadow: var(--shadow-card);
+  min-height: 160px;
   overflow: hidden;
+  padding: 24px 28px;
   position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.action-card:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
 }
 
 .action-card::before {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 70%);
   content: '';
+  inset: -50%;
+  opacity: 0.8;
   position: absolute;
-  inset: -40%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 64%);
-  pointer-events: none;
 }
 
 .action-card span,
@@ -171,83 +206,190 @@ function resourceHref(resource?: string | null) {
 }
 
 .action-card span {
-  font-weight: 900;
-  font-size: 1.22rem;
-  max-width: 160px;
+  font-family: Fredoka, Inter, sans-serif;
+  font-size: 1.45rem;
+  line-height: 1.08;
 }
 
 .action-card strong {
-  font-size: 2.6rem;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  color: #4d4d4d;
+  font-size: 0.9rem;
+  padding: 8px 14px;
 }
 
-.amber { background: linear-gradient(135deg, #ffca7a, #ffad2e); }
-.green { background: linear-gradient(135deg, #8ec152, #578b26); }
-.pale { background: linear-gradient(135deg, #789667, #466035); }
-.blue { background: linear-gradient(135deg, #236188, #153d57); }
+.bg-grad-orange { background: linear-gradient(135deg, #ffca7a 0%, #ffb545 100%); }
+.bg-grad-gray { background: linear-gradient(135deg, #b8b8b8 0%, #838282 100%); }
+.bg-grad-blue { background: linear-gradient(135deg, #236188 0%, #153d57 100%); }
 
-.external-card {
-  min-height: 190px;
+.panel-inst {
+  background: #fff;
+  border: 3px solid rgba(142, 193, 82, 0.15);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 32px);
 }
 
-.calendar-strip {
-  display: flex;
-  gap: 18px;
-  overflow-x: auto;
-  padding: 4px 4px 18px;
-}
-
-.calendar-card {
-  background: #f8faf5;
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  display: grid;
-  flex: 0 0 280px;
-  gap: 12px;
-  padding: 18px;
-}
-
-.calendar-date {
-  align-items: center;
-  border-bottom: 2px dashed var(--color-border);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0 12px;
-  padding-bottom: 12px;
-}
-
-.calendar-date strong {
+.section-title h2 {
   color: var(--color-brand-700);
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 2.4rem;
-  grid-row: span 2;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  letter-spacing: -0.02em;
+  margin-bottom: 22px;
 }
 
-.calendar-date span {
-  color: var(--color-muted);
+.section-title.centered h2 {
+  color: #585858;
+  text-align: center;
+}
+
+.scrolling-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding: 10px 5px 25px;
+  scroll-behavior: smooth;
+}
+
+.cal-card {
+  background: #f8f9fa;
+  border: none;
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex: 0 0 260px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cal-header {
+  align-items: center;
+  background: #fff;
+  border-bottom: 2px dashed #eee;
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+}
+
+.cal-num {
+  color: var(--color-brand-700);
+  font-family: Fredoka, Inter, sans-serif;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.cal-meta {
+  color: #8b9485;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
   font-weight: 800;
   text-transform: capitalize;
 }
 
-.slogan-card {
-  background: #f9fcf5;
-  border: 1px solid var(--color-border);
-  border-radius: 28px;
-  color: var(--color-brand-700);
+.cal-body {
+  flex: 1;
+  padding: 15px;
+}
+
+.cal-body h3 {
+  color: #585858;
+  margin-bottom: 8px;
+}
+
+.cal-body p {
+  color: #666;
+  display: -webkit-box;
+  font-size: 0.95rem;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  margin: 0;
+  min-height: 4.2em;
+  overflow: hidden;
+}
+
+.cal-action {
+  background: var(--color-brand-700);
+  color: #fff;
+  display: block;
   font-family: Fredoka, Inter, sans-serif;
-  padding: 28px;
+  padding: 12px;
   text-align: center;
 }
 
-@media (max-width: 1100px) {
-  .grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.content-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.notice-list {
+  display: grid;
+  gap: 20px;
+}
+
+.homework-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.valor-mes-container {
+  align-items: center;
+  background: #fff;
+  border: 3px dashed var(--color-amber);
+  border-radius: 25px;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.valor-mes-container span {
+  color: var(--color-muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.valor-mes-container strong {
+  color: #585858;
+  font-family: Fredoka, Inter, sans-serif;
+  font-size: 1.5rem;
+}
+
+.slogan-footer {
+  background: #f9fcf5;
+  border-radius: 25px;
+  color: var(--color-brand-700);
+  font-family: Fredoka, Inter, sans-serif;
+  font-size: 1.1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (max-width: 1040px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 820px) {
-  .family-hero,
-  .grid-4 {
+@media (max-width: 860px) {
+  .banner-grid,
+  .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .banner-tile {
+    aspect-ratio: auto;
+    min-height: 160px;
   }
 }
 </style>

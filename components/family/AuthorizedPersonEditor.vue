@@ -3,7 +3,6 @@
     <div>
       <p class="eyebrow">{{ model.id ? 'Actualizar registro' : 'Nuevo registro' }}</p>
       <h2>{{ label }}</h2>
-      <p>Captura los mismos datos legacy de Personas Autorizadas. El QR público conserva la ruta `https://admin.casitaiedis.edu.mx/qrPA/{id}`.</p>
     </div>
 
     <div class="grid grid-2">
@@ -28,7 +27,7 @@
         <input v-model="model.fechaP" class="input" type="date" />
       </label>
       <label class="label">
-        Foto / URL de archivo legacy
+        Foto / URL de archivo
         <input v-model="model.foto" class="input" placeholder="https://admin.casitaiedis.edu.mx/virtual/..." />
       </label>
     </div>

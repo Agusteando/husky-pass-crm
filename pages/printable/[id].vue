@@ -21,7 +21,7 @@
 
       <footer>
         <strong>{{ levelLabel }}</strong>
-        <span>Ruta legacy conservada: /qrPA/{{ data.id }}</span>
+        <span>{{ qrUrl }}</span>
       </footer>
     </section>
   </main>
