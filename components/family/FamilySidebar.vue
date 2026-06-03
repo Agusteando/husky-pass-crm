@@ -1,6 +1,8 @@
 <template>
   <aside v-if="session?.user?.kind === 'family'" class="side-panel" aria-label="Navegación familiar">
-    <BrandMark :to="homeTo" />
+    <div class="mobile-hidden">
+      <BrandMark :to="homeTo" />
+    </div>
 
     <div class="family-context">
       <span>{{ contextLabel }}</span>
@@ -39,30 +41,30 @@ async function exitImpersonation() {
 <style scoped>
 .side-panel {
   align-self: start;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--color-border);
-  border-radius: 30px;
+  border-radius: 26px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 22px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px;
   position: sticky;
-  top: 104px;
+  top: calc(var(--topbar-height) + 14px);
 }
 
 .family-context {
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 22px;
+  border-radius: 18px;
   display: grid;
-  gap: 4px;
-  padding: 16px;
+  gap: 3px;
+  padding: 13px;
 }
 
 .family-context span {
   color: var(--color-brand-700);
-  font-size: 0.78rem;
-  font-weight: 900;
+  font-size: 0.73rem;
+  font-weight: 850;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -70,6 +72,8 @@ async function exitImpersonation() {
 .family-context strong {
   color: var(--color-ink);
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .family-context small {
@@ -79,15 +83,15 @@ async function exitImpersonation() {
 
 .family-nav {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .family-nav a {
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 15px;
   color: var(--color-muted);
-  font-weight: 900;
-  padding: 12px 14px;
+  font-weight: 850;
+  padding: 10px 12px;
 }
 
 .family-nav a:hover,
@@ -99,7 +103,28 @@ async function exitImpersonation() {
 
 @media (max-width: 980px) {
   .side-panel {
+    gap: 12px;
     position: static;
+  }
+
+  .mobile-hidden {
+    display: none;
+  }
+
+  .family-context {
+    padding: 11px 12px;
+  }
+
+  .family-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .family-nav a {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 }
 </style>

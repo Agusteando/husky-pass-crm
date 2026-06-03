@@ -1,11 +1,14 @@
 <template>
   <section class="stack">
-    <div class="section-header">
+    <div class="screen-head">
       <div>
-        <p class="eyebrow">{{ data?.sala?.unidad }}</p>
-        <h1>{{ resource.label }} · {{ data?.sala?.sala }}</h1>
+        <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }}</p>
+        <h1>{{ resource.label }} · {{ data?.sala?.sala || 'Sala' }}</h1>
+        <p>{{ resourceDescription }}</p>
       </div>
-      <button class="btn btn-primary" type="button" @click="startCreate">Nueva publicación</button>
+      <div class="head-actions">
+        <button class="btn btn-primary" type="button" @click="startCreate">Nueva publicación</button>
+      </div>
     </div>
 
     <ResourceEditor
@@ -17,8 +20,10 @@
       @cancel="editing = null"
     />
 
-    <div class="card table-wrap">
-      <table class="table admin-table">
+    <p v-if="error" class="alert">No fue posible cargar las publicaciones.</p>
+    <div v-else-if="pending" class="card loading-card">Cargando publicaciones…</div>
+    <div v-else class="card table-wrap responsive-card-wrap">
+      <table v-if="data?.rows?.length" class="table responsive-table admin-table">
         <thead>
           <tr>
             <th>Título</th>
@@ -30,23 +35,23 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in data?.rows" :key="item.id">
-            <td>{{ item.title }}</td>
-            <td>{{ stripHtml(item.description) || '—' }}</td>
-            <td>{{ item.date || '—' }}</td>
-            <td>
+          <tr v-for="item in data.rows" :key="item.id">
+            <td data-label="Título">{{ item.title }}</td>
+            <td data-label="Descripción">{{ stripHtml(item.description) || '—' }}</td>
+            <td data-label="Fecha">{{ item.date || '—' }}</td>
+            <td data-label="Recurso">
               <a v-if="item.resource" :href="item.resource" target="_blank" rel="noopener">Abrir</a>
               <span v-else>—</span>
             </td>
-            <td>{{ item.autor || '—' }}</td>
-            <td class="row-actions">
+            <td data-label="Autor">{{ item.autor || '—' }}</td>
+            <td data-label="Acción" class="row-actions">
               <button class="btn btn-secondary" type="button" @click="editing = { ...item }">Editar</button>
               <button class="btn btn-danger" type="button" @click="remove(item.id)">Ocultar</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <EmptyState v-if="!data?.rows?.length" title="Sin publicaciones" description="No hay registros vigentes para esta sección." />
+      <EmptyState v-else title="Sin publicaciones" description="No hay registros vigentes para esta sección." />
     </div>
   </section>
 </template>
@@ -63,8 +68,14 @@ const resource = useDaycareResource(String(route.params.tipo))
 const editing = ref<Partial<DaycareResource> | null>(null)
 const saving = ref(false)
 
-const { data, refresh } = await useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
+const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: resource.type }
+})
+
+const resourceDescription = computed(() => {
+  if (resource.type === 'hw') return 'Publicaciones de tarea que aparecerán a las familias de la sala.'
+  if (resource.type === 'news') return 'Avisos y comunicados visibles para las familias de la sala.'
+  return 'Eventos del calendario mensual visibles desde la experiencia familiar.'
 })
 
 function startCreate() {
@@ -101,18 +112,6 @@ async function remove(id?: number) {
 </script>
 
 <style scoped>
-.section-header {
-  align-items: end;
-  background: #fff;
-  border: 3px solid rgba(142, 193, 82, 0.15);
-  border-radius: 30px;
-  box-shadow: var(--shadow-soft);
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  padding: clamp(22px, 4vw, 34px);
-}
-
 .admin-table td:nth-child(2) {
   max-width: 360px;
 }
@@ -120,13 +119,16 @@ async function remove(id?: number) {
 .row-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
-@media (max-width: 760px) {
-  .section-header {
-    align-items: flex-start;
-    flex-direction: column;
+.loading-card {
+  color: var(--color-muted);
+}
+
+@media (max-width: 560px) {
+  .row-actions .btn {
+    width: 100%;
   }
 }
 </style>

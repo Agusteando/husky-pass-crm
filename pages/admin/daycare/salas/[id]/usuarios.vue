@@ -1,11 +1,14 @@
 <template>
   <section class="stack">
-    <div class="section-header">
+    <div class="screen-head">
       <div>
-        <p class="eyebrow">{{ data?.sala?.unidad }}</p>
-        <h1>Familias · {{ data?.sala?.sala }}</h1>
+        <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }}</p>
+        <h1>Familias · {{ data?.sala?.sala || 'Sala' }}</h1>
+        <p>Cuentas familiares con acceso de guardería para esta sala.</p>
       </div>
-      <button class="btn btn-primary" type="button" @click="startCreate">Nueva cuenta</button>
+      <div class="head-actions">
+        <button class="btn btn-primary" type="button" @click="startCreate">Nueva cuenta</button>
+      </div>
     </div>
 
     <FamilyAccountEditor
@@ -16,8 +19,10 @@
       @cancel="editing = null"
     />
 
-    <div class="card table-wrap">
-      <table class="table">
+    <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
+    <div v-else-if="pending" class="card loading-card">Cargando cuentas…</div>
+    <div v-else class="card table-wrap responsive-card-wrap">
+      <table v-if="data?.rows?.length" class="table responsive-table">
         <thead>
           <tr>
             <th>Niño/a</th>
@@ -28,19 +33,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="account in data?.rows" :key="account.id">
-            <td>{{ account.nombre_nino || '—' }}</td>
-            <td>{{ account.username }}</td>
-            <td>{{ account.email }}</td>
-            <td><span class="badge">{{ account.role }}</span></td>
-            <td class="row-actions">
+          <tr v-for="account in data.rows" :key="account.id">
+            <td data-label="Niño/a">{{ account.nombre_nino || '—' }}</td>
+            <td data-label="Usuario">{{ account.username }}</td>
+            <td data-label="Correo">{{ account.email }}</td>
+            <td data-label="Rol"><span class="badge">{{ account.role }}</span></td>
+            <td data-label="Acción" class="row-actions">
               <button class="btn btn-secondary" type="button" @click="editing = { ...account }">Editar</button>
               <button class="btn btn-primary" type="button" @click="impersonate(account.id)">Ver como familia</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <EmptyState v-if="!data?.rows?.length" title="Sin cuentas" description="Esta sala aún no tiene cuentas familiares registradas." />
+      <EmptyState v-else title="Sin cuentas" description="Esta sala aún no tiene cuentas familiares registradas." />
     </div>
   </section>
 </template>
@@ -54,7 +59,7 @@ const route = useRoute()
 const salaId = Number(route.params.id)
 const editing = ref<Partial<FamilyAccount> | null>(null)
 const saving = ref(false)
-const { data, refresh } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
+const { data, refresh, pending, error } = await useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }
 })
 
@@ -85,28 +90,19 @@ async function impersonate(userId?: number) {
 </script>
 
 <style scoped>
-.section-header {
-  align-items: end;
-  background: #fff;
-  border: 3px solid rgba(142, 193, 82, 0.15);
-  border-radius: 30px;
-  box-shadow: var(--shadow-soft);
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  padding: clamp(22px, 4vw, 34px);
-}
-
 .row-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
-@media (max-width: 760px) {
-  .section-header {
-    align-items: flex-start;
-    flex-direction: column;
+.loading-card {
+  color: var(--color-muted);
+}
+
+@media (max-width: 560px) {
+  .row-actions .btn {
+    width: 100%;
   }
 }
 </style>

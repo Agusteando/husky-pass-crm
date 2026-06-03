@@ -12,10 +12,10 @@
       </select>
     </label>
 
-    <section class="side-section">
+    <section class="side-section salas-section">
       <div class="side-section-title">
         <span>Salas</span>
-        <NuxtLink to="/admin/daycare">Ver todas</NuxtLink>
+        <NuxtLink :to="{ path: '/admin/daycare', query: selectedUnidad ? { unidad: selectedUnidad } : {} }">Ver todas</NuxtLink>
       </div>
 
       <nav class="sala-list" aria-label="Salas por unidad">
@@ -63,6 +63,10 @@ const selectedUnidad = ref(
 )
 const selectedSala = ref(routeSalaId.value)
 
+watch(() => props.session?.user?.unidades, (unidades) => {
+  if (!selectedUnidad.value && unidades?.length) selectedUnidad.value = unidades[0]
+}, { immediate: true })
+
 const { data: salas } = await useFetch<Sala[]>('/api/daycare/admin/salas', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
   watch: [selectedUnidad]
@@ -90,9 +94,7 @@ watch(() => route.params.id, (id) => {
 
 function syncUnidadRoute() {
   selectedSala.value = ''
-  if (route.path === '/admin/daycare') {
-    navigateTo({ path: '/admin/daycare', query: { unidad: selectedUnidad.value } })
-  }
+  navigateTo({ path: '/admin/daycare', query: { unidad: selectedUnidad.value } })
 }
 
 async function previewSala() {
@@ -108,29 +110,31 @@ async function previewSala() {
 <style scoped>
 .side-panel {
   align-self: start;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--color-border);
-  border-radius: 30px;
+  border-radius: 26px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 22px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px;
   position: sticky;
-  top: 104px;
+  top: calc(var(--topbar-height) + 14px);
 }
 
 .side-brand {
-  display: grid;
-  gap: 12px;
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .compact-label {
-  gap: 9px;
+  gap: 7px;
 }
 
 .side-section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .side-section-title {
@@ -142,8 +146,8 @@ async function previewSala() {
 .side-section-title span,
 .side-section-title a {
   color: var(--color-muted);
-  font-size: 0.78rem;
-  font-weight: 900;
+  font-size: 0.73rem;
+  font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -155,17 +159,23 @@ async function previewSala() {
 .sala-list,
 .module-links {
   display: grid;
-  gap: 8px;
+  gap: 7px;
+}
+
+.sala-list {
+  max-height: calc(100vh - 390px);
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .sala-list a,
 .module-links a {
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 15px;
   color: var(--color-muted);
   display: grid;
   gap: 2px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .sala-list a:hover,
@@ -179,11 +189,11 @@ async function previewSala() {
 
 .sala-list span,
 .module-links a {
-  font-weight: 900;
+  font-weight: 850;
 }
 
 .sala-list small {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
 }
 
 .preview-btn {
@@ -192,7 +202,36 @@ async function previewSala() {
 
 @media (max-width: 980px) {
   .side-panel {
+    gap: 12px;
     position: static;
+  }
+
+  .side-brand {
+    display: none;
+  }
+
+  .salas-section {
+    min-width: 0;
+  }
+
+  .sala-list,
+  .module-links {
+    display: flex;
+    gap: 8px;
+    max-height: none;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .sala-list a,
+  .module-links a {
+    min-width: 138px;
+    white-space: nowrap;
+  }
+
+  .module-links .preview-btn {
+    min-width: 148px;
+    width: auto;
   }
 }
 </style>

@@ -10,17 +10,17 @@
       <div class="profile" v-if="session?.user">
         <img v-if="session.user.picture" :src="session.user.picture" alt="" />
         <span v-else class="avatar">{{ initials }}</span>
-        <div>
+        <div class="profile-copy">
           <strong>{{ session.user.displayName || session.user.email }}</strong>
           <small>{{ session.user.email }}</small>
         </div>
-        <button v-if="session.user.impersonation" class="btn btn-primary" type="button" @click="exitImpersonation">Volver a admin</button>
-        <button class="btn btn-secondary" type="button" @click="logout">Salir</button>
+        <button v-if="session.user.impersonation" class="btn btn-primary compact-action" type="button" @click="exitImpersonation">Volver</button>
+        <button class="btn btn-secondary compact-action" type="button" @click="logout">Salir</button>
       </div>
     </div>
     <div v-if="session?.user?.impersonation" class="impersonation-bar">
       <div class="page-shell impersonation-inner">
-        <strong>Vista familiar</strong>
+        <strong>Vista familiar activa</strong>
         <span>{{ session.user.displayName || session.user.email }}</span>
         <button class="link-button" type="button" @click="exitImpersonation">Terminar vista</button>
       </div>
@@ -59,16 +59,16 @@ async function logout() {
   top: 0;
   z-index: 20;
   backdrop-filter: blur(18px);
-  background: rgba(247, 249, 243, 0.84);
-  border-bottom: 1px solid rgba(223, 232, 215, 0.74);
+  background: rgba(247, 249, 243, 0.88);
+  border-bottom: 1px solid rgba(223, 232, 215, 0.78);
 }
 
 .topbar-inner {
-  min-height: 82px;
+  min-height: var(--topbar-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
 }
 
 .topbar-nav {
@@ -80,8 +80,8 @@ async function logout() {
 .topbar-nav a {
   border-radius: 999px;
   color: var(--color-muted);
-  font-weight: 800;
-  padding: 10px 14px;
+  font-weight: 850;
+  padding: 8px 12px;
 }
 
 .topbar-nav a.active,
@@ -92,15 +92,17 @@ async function logout() {
 
 .profile {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
+  min-width: 0;
 }
 
 .profile img,
 .avatar {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  flex: 0 0 auto;
 }
 
 .avatar {
@@ -109,19 +111,34 @@ async function logout() {
   background: var(--color-brand-200);
   color: var(--color-brand-900);
   font-weight: 900;
+  font-size: 0.82rem;
+}
+
+.profile-copy {
+  min-width: 0;
 }
 
 .profile strong,
 .profile small {
   display: block;
-  max-width: 180px;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.profile strong {
+  font-size: 0.9rem;
+}
+
 .profile small {
   color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.compact-action {
+  min-height: 34px;
+  padding-inline: 12px;
 }
 
 .impersonation-bar {
@@ -132,8 +149,9 @@ async function logout() {
 .impersonation-inner {
   align-items: center;
   display: flex;
-  gap: 12px;
-  min-height: 42px;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 0.9rem;
 }
 
 .impersonation-inner span {
@@ -146,36 +164,40 @@ async function logout() {
   color: #fff;
   cursor: pointer;
   font: inherit;
-  font-weight: 900;
+  font-weight: 850;
   margin-left: auto;
   padding: 0;
   text-decoration: underline;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 760px) {
   .topbar-inner {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 14px 0;
+    min-height: var(--topbar-height);
+  }
+
+  .profile {
+    margin-left: auto;
+  }
+
+  .profile-copy {
+    display: none;
   }
 
   .topbar-nav {
+    order: 3;
     overflow-x: auto;
     width: 100%;
     padding-bottom: 4px;
   }
 
-  .profile {
-    width: 100%;
-    justify-content: space-between;
+  .compact-action {
+    min-height: 32px;
+    width: auto;
   }
 
   .impersonation-inner {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-    padding-bottom: 10px;
-    padding-top: 10px;
+    flex-wrap: wrap;
+    padding: 8px 0;
   }
 
   .link-button {

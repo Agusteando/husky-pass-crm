@@ -1,8 +1,14 @@
 <template>
-  <form class="card stack" @submit.prevent="submit">
-    <div>
-      <p class="eyebrow">{{ model.id ? 'Actualizar registro' : 'Nuevo registro' }}</p>
-      <h2>{{ label }}</h2>
+  <form class="card editor-form" @submit.prevent="submit">
+    <div class="editor-head">
+      <div>
+        <p class="eyebrow">{{ model.id ? 'Actualizar registro' : 'Nuevo registro' }}</p>
+        <h2>{{ label }}</h2>
+      </div>
+      <div class="actions top-actions">
+        <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
+        <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
+      </div>
     </div>
 
     <div class="grid grid-2">
@@ -20,7 +26,7 @@
       </label>
       <label class="label">
         Parentesco
-        <input v-model="model.parenP" class="input" placeholder="Abuela, tío, tutor…" required />
+        <input v-model="model.parenP" class="input" required />
       </label>
       <label class="label">
         Fecha
@@ -28,14 +34,17 @@
       </label>
       <label class="label">
         Foto / URL de archivo
-        <input v-model="model.foto" class="input" placeholder="https://admin.casitaiedis.edu.mx/virtual/..." />
+        <input v-model="model.foto" class="input" inputmode="url" />
       </label>
     </div>
 
     <section class="child-section">
-      <div>
-        <p class="eyebrow">Alumnos vinculados</p>
-        <h3>Datos de alumno</h3>
+      <div class="child-head">
+        <div>
+          <p class="eyebrow">Alumnos vinculados</p>
+          <h3>Datos de alumno</h3>
+        </div>
+        <button class="btn btn-secondary" type="button" @click="addChild">Agregar alumno</button>
       </div>
       <div v-for="(child, index) in children" :key="child.id || index" class="child-card">
         <div class="grid grid-2">
@@ -53,7 +62,7 @@
           </label>
           <label class="label">
             Nivel educativo
-            <input v-model="child.nivelEdu" class="input" placeholder="guardería, preescolar, primaria…" />
+            <input v-model="child.nivelEdu" class="input" />
           </label>
           <label class="label">
             Grado
@@ -73,13 +82,7 @@
           </label>
         </div>
       </div>
-      <button class="btn btn-secondary" type="button" @click="addChild">Agregar alumno</button>
     </section>
-
-    <div class="actions">
-      <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-      <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
-    </div>
   </form>
 </template>
 
@@ -118,23 +121,58 @@ function submit() {
 </script>
 
 <style scoped>
+.editor-form {
+  display: grid;
+  gap: 16px;
+}
+
+.editor-head,
+.child-head {
+  align-items: end;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.editor-head h2,
+.child-head h3 {
+  margin-bottom: 0;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .child-section {
   border-top: 1px solid var(--color-border);
   display: grid;
-  gap: 16px;
-  padding-top: 20px;
+  gap: 14px;
+  padding-top: 16px;
 }
 
 .child-card {
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 22px;
-  padding: 18px;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+@media (max-width: 720px) {
+  .editor-head,
+  .child-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+  }
+
+  .top-actions .btn,
+  .child-head .btn {
+    flex: 1 1 140px;
+  }
 }
 </style>

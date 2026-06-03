@@ -12,7 +12,7 @@
 
       <div class="print-body">
         <img v-if="data.foto" class="person-photo" :src="normalizeVirtualAssetUrl(data.foto)" alt="Fotografía" />
-        <div v-else class="person-photo placeholder">PA</div>
+        <div v-else class="person-photo empty-photo">PA</div>
         <div class="qr-box">
           <img :src="qrImage" alt="Código QR" />
           <small>{{ qrUrl }}</small>
@@ -47,29 +47,29 @@ const levelLabel = computed(() => data.value?.nivelEdu || 'preescolar')
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 28px;
+  padding: 18px;
   background: #f2f4ef;
 }
 
 .print-card {
   background: #fff;
   border: 1px solid #dfe8d7;
-  border-radius: 32px;
+  border-radius: 28px;
   box-shadow: var(--shadow-card);
   color: var(--color-ink);
   display: grid;
-  gap: 24px;
-  padding: 30px;
-  width: min(100%, 720px);
+  gap: 18px;
+  padding: clamp(18px, 4vw, 28px);
+  width: min(100%, 680px);
 }
 
 header {
   align-items: center;
   border-bottom: 1px solid var(--color-border);
   display: grid;
-  gap: 20px;
-  grid-template-columns: 210px 1fr;
-  padding-bottom: 22px;
+  gap: 18px;
+  grid-template-columns: 170px 1fr;
+  padding-bottom: 18px;
 }
 
 header img {
@@ -80,36 +80,40 @@ header p {
   color: var(--color-brand-700);
   font-weight: 900;
   letter-spacing: 0.12em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
+}
+
+header h1 {
+  margin-bottom: 6px;
 }
 
 .print-body {
   align-items: center;
   display: grid;
-  gap: 28px;
-  grid-template-columns: 1fr 220px;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 210px;
 }
 
 .person-photo {
   aspect-ratio: 4 / 5;
-  border-radius: 28px;
+  border-radius: 24px;
   object-fit: cover;
   width: 100%;
 }
 
-.placeholder {
+.empty-photo {
   background: var(--color-brand-100);
   display: grid;
   place-items: center;
   color: var(--color-brand-800);
-  font-size: 4rem;
+  font-size: 3.4rem;
   font-weight: 900;
 }
 
 .qr-box {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   justify-items: center;
   text-align: center;
   word-break: break-word;
@@ -123,12 +127,18 @@ header p {
 footer {
   align-items: center;
   background: var(--color-brand-100);
-  border-radius: 20px;
+  border-radius: 18px;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
-  padding: 16px;
+  padding: 14px;
+}
+
+footer span {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  word-break: break-word;
 }
 
 @media print {
@@ -144,10 +154,14 @@ footer {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 680px) {
   header,
   .print-body {
     grid-template-columns: 1fr;
+  }
+
+  header img {
+    max-width: 170px;
   }
 }
 </style>

@@ -1,8 +1,14 @@
 <template>
-  <form class="card stack" @submit.prevent="submit">
-    <div>
-      <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>
-      <h2>{{ label }}</h2>
+  <form class="card editor-form" @submit.prevent="submit">
+    <div class="editor-head">
+      <div>
+        <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>
+        <h2>{{ label }}</h2>
+      </div>
+      <div class="actions top-actions">
+        <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
+        <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
+      </div>
     </div>
     <div class="grid grid-2">
       <label class="label">
@@ -21,16 +27,12 @@
     <div class="grid grid-2">
       <label class="label">
         Recurso o archivo publicado
-        <input v-model="model.resource" class="input" placeholder="https://..." />
+        <input v-model="model.resource" class="input" inputmode="url" />
       </label>
       <label class="label check-row">
         <input v-model="model.starred" type="checkbox" />
         Marcar como prioritario
       </label>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-      <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
     </div>
   </form>
 </template>
@@ -59,16 +61,47 @@ function submit() {
 </script>
 
 <style scoped>
+.editor-form {
+  display: grid;
+  gap: 16px;
+}
+
+.editor-head {
+  align-items: end;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.editor-head h2 {
+  margin-bottom: 0;
+}
+
 .actions,
 .check-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .check-row {
   align-self: end;
   flex-direction: row;
-  padding: 14px 0;
+  padding: 12px 0;
+}
+
+@media (max-width: 720px) {
+  .editor-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+  }
+
+  .top-actions .btn {
+    flex: 1 1 140px;
+  }
 }
 </style>

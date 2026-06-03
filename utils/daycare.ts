@@ -55,7 +55,7 @@ export function legacyPdfViewerUrl(resource?: string | null) {
   if (!resource) return ''
   const fileName = resource.split('/').pop()?.split('#')[0]?.split('?')[0]
   if (!fileName) return resource
-  return `/pdfjs/web/viewer.html?file=${encodeURIComponent(`/virtual/${fileName}`)}`
+  return `https://admin.casitaiedis.edu.mx/pdfjs/web/viewer.html?file=${encodeURIComponent(`/virtual/${fileName}`)}`
 }
 
 export function normalizeVirtualAssetUrl(url?: string | null) {

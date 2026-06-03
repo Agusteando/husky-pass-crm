@@ -34,21 +34,21 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
 <style scoped>
 .resource-card {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .variant-default {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 22px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
-  padding: 18px;
+  padding: 16px;
 }
 
 .variant-notice {
-  border-left: 3px solid #e0e0e0;
-  padding-left: 20px;
-  transition: border-color 0.2s ease;
+  border-left: 3px solid #dce4d4;
+  padding-left: 16px;
+  transition: border-color 0.18s ease;
 }
 
 .variant-notice:hover {
@@ -63,7 +63,7 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: space-between;
 }
 
@@ -72,14 +72,14 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
   border-radius: 20px;
   color: var(--color-brand-700);
   display: inline-flex;
-  font-size: 0.85rem;
-  font-weight: 800;
-  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 5px 12px;
 }
 
 .starred {
   color: #d88b00;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -87,26 +87,33 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
 
 h3 {
   color: #585858;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   margin-bottom: 0;
 }
 
 p {
   color: #606060;
+  font-size: 0.95rem;
   margin-bottom: 0;
 }
 
 img {
-  border-radius: 15px;
+  border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: block;
-  margin-top: 4px;
-  max-height: 360px;
+  margin-top: 2px;
+  max-height: 280px;
   object-fit: cover;
   width: 100%;
 }
 
 .resource-button {
   justify-self: start;
+}
+
+@media (max-width: 560px) {
+  .resource-button {
+    justify-self: stretch;
+  }
 }
 </style>

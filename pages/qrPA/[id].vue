@@ -19,7 +19,7 @@
         <small>Matrícula: {{ data.matricula || '—' }}</small>
       </div>
     </section>
-    <section v-else class="card public-card">
+    <section v-else class="card public-card empty-public">
       <img class="public-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
       <h1>Registro no encontrado</h1>
       <p>No fue posible encontrar esta persona autorizada.</p>
@@ -42,17 +42,17 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 28px;
+  padding: 18px;
 }
 
 .public-card {
-  width: min(100%, 760px);
+  width: min(100%, 720px);
 }
 
 .public-logo {
-  width: min(220px, 70vw);
+  width: min(176px, 62vw);
   display: block;
-  margin: 0 auto 24px;
+  margin: 0 auto 16px;
 }
 
 .status {
@@ -61,14 +61,14 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
   color: #fff;
   display: inline-flex;
   font-weight: 900;
-  margin-bottom: 24px;
-  padding: 8px 14px;
+  margin-bottom: 18px;
+  padding: 7px 12px;
 }
 
 .person-row {
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 22px;
+  grid-template-columns: 150px 1fr;
+  gap: 18px;
   align-items: center;
 }
 
@@ -77,7 +77,7 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
   aspect-ratio: 1 / 1;
   width: 100%;
   object-fit: cover;
-  border-radius: 28px;
+  border-radius: 24px;
   background: var(--color-brand-100);
 }
 
@@ -85,20 +85,33 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
   display: grid;
   place-items: center;
   color: var(--color-brand-800);
-  font-size: 3rem;
+  font-size: 2.8rem;
   font-weight: 900;
 }
 
 .student-box {
   background: var(--color-brand-100);
-  border-radius: 24px;
-  margin-top: 24px;
-  padding: 22px;
+  border-radius: 20px;
+  margin-top: 18px;
+  padding: 18px;
 }
 
-@media (max-width: 680px) {
+.student-box h2 {
+  margin-bottom: 6px;
+}
+
+.empty-public {
+  text-align: center;
+}
+
+@media (max-width: 620px) {
   .person-row {
     grid-template-columns: 1fr;
+  }
+
+  .person-row img,
+  .fallback-photo {
+    max-width: 220px;
   }
 }
 </style>

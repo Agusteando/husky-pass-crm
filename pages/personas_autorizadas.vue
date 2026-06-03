@@ -4,67 +4,73 @@
       <div>
         <p class="eyebrow">Personas Autorizadas</p>
         <h1>Control de accesos</h1>
+        <p>Administra las personas que pueden recoger a tus hijos.</p>
       </div>
       <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
     </section>
 
-    <AuthorizedPersonEditor
-      v-if="editing"
-      :person="editing"
-      :label="authorizedPersonLabel(Number(editing.indice || 1))"
-      :saving="saving"
-      @save="save"
-      @cancel="editing = null"
-    />
+    <p v-if="loadError" class="alert">No fue posible cargar Personas Autorizadas.</p>
+    <div v-else-if="pending" class="card loading-card">Cargando registros…</div>
 
-    <section class="pa-stripe">
-      <article v-for="person in people" :key="person.indice" class="pa-card">
-        <div class="portrait" :class="{ empty: !person.id }">
-          <img v-if="person.foto" :src="normalizeVirtualAssetUrl(person.foto)" alt="Fotografía de persona autorizada" />
-          <span v-else>{{ person.id ? initials(person) : '+' }}</span>
-        </div>
-        <div class="pa-card-footer">
-          <strong>{{ authorizedPersonLabel(person.indice) }}</strong>
-        </div>
-        <div class="pa-info">
-          <h2>{{ fullName(person) || 'Disponible' }}</h2>
-          <p>{{ person.parenP || (person.id ? 'Parentesco pendiente' : 'Agregar registro') }}</p>
-        </div>
-        <div class="actions">
-          <button class="btn btn-primary" type="button" @click="edit(person)">{{ person.id ? 'Ver / editar' : 'Agregar' }}</button>
-          <button v-if="person.id" class="btn btn-secondary" type="button" @click="share(person)">PDF / compartir</button>
-          <button v-if="person.id" class="btn btn-danger" type="button" @click="remove(person.id)">Eliminar</button>
-        </div>
-      </article>
-    </section>
+    <template v-else>
+      <section class="pa-stripe">
+        <article v-for="person in people" :key="person.indice" class="pa-card">
+          <button class="portrait" :class="{ empty: !person.id }" type="button" @click="edit(person)">
+            <img v-if="person.foto" :src="normalizeVirtualAssetUrl(person.foto)" alt="Fotografía de persona autorizada" />
+            <span v-else>{{ person.id ? initials(person) : '+' }}</span>
+          </button>
+          <div class="pa-card-footer">
+            <strong>{{ authorizedPersonLabel(person.indice) }}</strong>
+          </div>
+          <div class="pa-info">
+            <h2>{{ fullName(person) || 'Disponible' }}</h2>
+            <p>{{ person.parenP || (person.id ? 'Parentesco pendiente' : 'Agregar registro') }}</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="button" @click="edit(person)">{{ person.id ? 'Editar' : 'Agregar' }}</button>
+            <button v-if="person.id" class="btn btn-secondary" type="button" @click="share(person)">PDF</button>
+            <button v-if="person.id" class="btn btn-danger" type="button" @click="remove(person.id)">Eliminar</button>
+          </div>
+        </article>
+      </section>
 
-    <section class="card stack">
-      <div>
-        <p class="eyebrow">Alumnos</p>
-        <h2>Alumnos vinculados</h2>
-      </div>
-      <div class="table-wrap" v-if="children.length">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Alumno</th>
-              <th>Nivel</th>
-              <th>Grado / grupo</th>
-              <th>Campus</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="child in children" :key="child.id || `${child.nombreA}-${child.grupo}`">
-              <td>{{ [child.nombreA, child.paternoA, child.maternoA].filter(Boolean).join(' ') || '—' }}</td>
-              <td>{{ child.nivelEdu || '—' }}</td>
-              <td>{{ [child.grado, child.grupo].filter(Boolean).join(' / ') || '—' }}</td>
-              <td>{{ child.campus || '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <EmptyState v-else title="Sin alumnos vinculados" description="Puedes agregarlos al capturar una persona autorizada." />
-    </section>
+      <AuthorizedPersonEditor
+        v-if="editing"
+        :person="editing"
+        :label="authorizedPersonLabel(Number(editing.indice || 1))"
+        :saving="saving"
+        @save="save"
+        @cancel="editing = null"
+      />
+
+      <section class="card stack children-card">
+        <div>
+          <p class="eyebrow">Alumnos</p>
+          <h2>Alumnos vinculados</h2>
+        </div>
+        <div class="table-wrap responsive-card-wrap" v-if="children.length">
+          <table class="table responsive-table">
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Nivel</th>
+                <th>Grado / grupo</th>
+                <th>Campus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="child in children" :key="child.id || `${child.nombreA}-${child.grupo}`">
+                <td data-label="Alumno">{{ [child.nombreA, child.paternoA, child.maternoA].filter(Boolean).join(' ') || '—' }}</td>
+                <td data-label="Nivel">{{ child.nivelEdu || '—' }}</td>
+                <td data-label="Grado / grupo">{{ [child.grado, child.grupo].filter(Boolean).join(' / ') || '—' }}</td>
+                <td data-label="Campus">{{ child.campus || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <EmptyState v-else title="Sin alumnos vinculados" description="Puedes agregarlos al capturar una persona autorizada." />
+      </section>
+    </template>
 
     <p v-if="error" class="alert">{{ error }}</p>
   </section>
@@ -76,7 +82,7 @@ import { authorizedPersonLabel, normalizeVirtualAssetUrl, printablePaUrl, qrPaUr
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
-const { data, refresh } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
+const { data, refresh, pending, error: loadError } = await useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
 const saving = ref(false)
 const error = ref('')
@@ -158,33 +164,41 @@ async function share(person: AuthorizedPerson) {
 <style scoped>
 .pa-page {
   display: grid;
-  gap: 28px;
+  gap: 16px;
 }
 
 .pa-banner {
   align-items: center;
-  background: #fff;
-  border: 3px solid rgba(142, 193, 82, 0.15);
-  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(35, 97, 136, 0.12), transparent 44%),
+    #fff;
+  border: 1px solid rgba(223, 232, 215, 0.96);
+  border-radius: 24px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 24px;
-  grid-template-columns: 1fr minmax(160px, 260px);
-  padding: clamp(24px, 4vw, 40px);
+  gap: 18px;
+  grid-template-columns: 1fr minmax(120px, 180px);
+  padding: clamp(16px, 2.8vw, 24px);
 }
 
 .pa-banner img {
   width: 100%;
 }
 
+.pa-banner h1,
+.pa-banner p {
+  margin-bottom: 0;
+}
+
 .pa-stripe {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .pa-card {
-  background: #f4f4f4;
+  background: #fff;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
@@ -192,11 +206,14 @@ async function share(person: AuthorizedPerson) {
 }
 
 .portrait {
-  aspect-ratio: 1.2 / 1;
-  background: #c4c4c4;
+  aspect-ratio: 1.18 / 1;
+  background: #f0f1ef;
+  border: 0;
+  cursor: pointer;
   display: grid;
-  font-size: 3rem;
+  font-size: 2.55rem;
   font-weight: 900;
+  padding: 0;
   place-items: center;
 }
 
@@ -212,28 +229,47 @@ async function share(person: AuthorizedPerson) {
 
 .pa-card-footer {
   align-items: center;
-  background: #236188;
+  background: var(--color-blue);
   color: #fff;
   display: flex;
+  font-size: 0.92rem;
   justify-content: center;
-  min-height: 46px;
-  padding: 10px;
+  min-height: 38px;
+  padding: 8px;
 }
 
 .pa-info {
-  padding: 18px;
+  display: grid;
+  gap: 4px;
+  min-height: 78px;
+  padding: 14px;
   text-align: center;
 }
 
 .pa-info h2 {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
+  margin-bottom: 0;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 0 18px 18px;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.actions .btn {
+  flex: 1 1 auto;
+  min-height: 36px;
+  padding-inline: 12px;
+}
+
+.children-card h2 {
+  margin-bottom: 0;
+}
+
+.loading-card {
+  color: var(--color-muted);
 }
 
 @media (max-width: 1120px) {
@@ -243,7 +279,16 @@ async function share(person: AuthorizedPerson) {
 }
 
 @media (max-width: 760px) {
-  .pa-banner,
+  .pa-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .pa-banner img {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 540px) {
   .pa-stripe {
     grid-template-columns: 1fr;
   }

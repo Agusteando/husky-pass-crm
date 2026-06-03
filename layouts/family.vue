@@ -21,9 +21,9 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 <style scoped>
 .legacy-shell {
   display: grid;
-  gap: 24px;
-  grid-template-columns: 280px minmax(0, 1fr);
-  padding: 28px 0 64px;
+  gap: 18px;
+  grid-template-columns: 268px minmax(0, 1fr);
+  padding: 18px 0 44px;
 }
 
 .layout-main {
@@ -33,7 +33,7 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 @media (max-width: 980px) {
   .legacy-shell {
     grid-template-columns: 1fr;
-    padding-top: 18px;
+    padding-top: 12px;
   }
 }
 </style>

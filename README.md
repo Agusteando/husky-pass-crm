@@ -2,7 +2,7 @@
 
 Implementación Nuxt de la Fase 1 de Husky Pass CRM sobre la base MySQL existente.
 
-El proyecto no copia archivos legacy. Reimplementa los flujos de guardería y autenticación necesarios con una capa MySQL explícita, sin migraciones y sin cambios de esquema.
+El proyecto no copia archivos legacy. Reimplementa los flujos de guardería, acceso familiar y Personas Autorizadas necesarios con una capa MySQL explícita, sin migraciones y sin cambios de esquema.
 
 ## Alcance de Fase 1
 
@@ -10,9 +10,15 @@ El proyecto no copia archivos legacy. Reimplementa los flujos de guardería y au
 - Administradores internos de guardería con Google Login en `/admin/login`.
 - Panel familiar de guardería solo para cuentas con alcance de guardería: tareas, avisos/comunicados, calendario mensual, valor del mes, Richmond y PASE.
 - Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario, con selector de unidad/sala, vista familiar por sala y vista controlada de cuenta familiar.
-- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`, derivado de datos/permisos existentes y de la regla legacy que expone PA a cuentas familiares sin sala de guardería.
+- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`.
 - Rutas públicas compatibles para QR y printable: `/qrPA/[id]` y `/printable/[id]`.
 - Rutas de compatibilidad necesarias para enlaces legacy de guardería: `/ver/[tipo]`, `/sala/[id]`, `/sala/[id]/[tipo]` y `/daycare-app`.
+
+## Producto y experiencia
+
+La UI mantiene la composición reconocible del legacy: shell con barra superior, navegación lateral por sala/unidad, tarjetas de módulos, calendario horizontal, avisos/tareas y tarjetas de Personas Autorizadas. La ejecución se reorganizó con componentes enfocados, estilos consolidados, tokens visuales, tablas responsivas y densidad ajustada para que el contenido principal aparezca en el primer viewport.
+
+La navegación móvil no comprime el layout de escritorio: los menús de sala, módulos y familia pasan a navegación horizontal táctil; las tablas se convierten en tarjetas; formularios, acciones y estados vacíos quedan legibles sin depender de scroll inicial excesivo.
 
 ## Super admin interno
 
@@ -32,7 +38,7 @@ No se crean migraciones, no se cambian tipos y no se normaliza el esquema.
 - Salas por unidad: lógica equivalente a `fetch-salas.php`.
 - Personas Autorizadas: lógica equivalente a `fetch-padre-husky.php`.
 - QR printable y scan: lógica equivalente a `fetch-pa-printable.php` y `fetch-pa-scan.php`.
-- PDF viewer: conserva el patrón `/pdfjs/web/viewer.html?file=/virtual/<archivo.pdf>`.
+- PDF viewer: conserva el patrón legacy en `https://admin.casitaiedis.edu.mx/pdfjs/web/viewer.html?file=/virtual/<archivo.pdf>`.
 - PDF Personas Autorizadas: conserva `https://bot.casitaapps.com/renderFromUrl`.
 - QR público: conserva `https://admin.casitaiedis.edu.mx/qrPA/{id}`.
 - Printable público: conserva `https://admin.casitaiedis.edu.mx/printable/{id}`.

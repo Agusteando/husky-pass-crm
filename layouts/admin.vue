@@ -19,9 +19,9 @@ const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: '
 <style scoped>
 .legacy-shell {
   display: grid;
-  gap: 24px;
-  grid-template-columns: 300px minmax(0, 1fr);
-  padding: 28px 0 64px;
+  gap: 18px;
+  grid-template-columns: 286px minmax(0, 1fr);
+  padding: 18px 0 44px;
 }
 
 .layout-main {
@@ -31,7 +31,7 @@ const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: '
 @media (max-width: 980px) {
   .legacy-shell {
     grid-template-columns: 1fr;
-    padding-top: 18px;
+    padding-top: 12px;
   }
 }
 </style>

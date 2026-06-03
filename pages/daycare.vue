@@ -1,87 +1,91 @@
 <template>
   <section class="family-dashboard">
-    <section class="banner-grid">
+    <section class="dashboard-top">
       <div class="banner-tile banner-guarderia">
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
         <div>
           <span>Guardería</span>
-          <strong>{{ session?.user?.sala || 'Husky Pass' }}</strong>
+          <strong>{{ session?.user?.sala || session?.user?.scopes.daycare?.sala || 'Husky Pass' }}</strong>
         </div>
       </div>
-      <div class="banner-tile banner-school">
-        <span>{{ companyLabel }}</span>
-        <strong>{{ campusLabel }}</strong>
+      <div class="quick-actions">
+        <a class="action-card bg-grad-orange" :href="config.public.richmondUrl" target="_blank" rel="noopener">
+          <span>Richmond</span>
+          <strong>Acceder</strong>
+        </a>
+        <a class="action-card bg-grad-gray" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener">
+          <span>PASE</span>
+          <strong>Entrar</strong>
+        </a>
+        <NuxtLink v-if="canUsePersonasAutorizadas" class="action-card bg-grad-blue" to="/personas_autorizadas">
+          <span>Personas Autorizadas</span>
+          <strong>QR</strong>
+        </NuxtLink>
       </div>
     </section>
 
-    <section class="quick-actions">
-      <a class="action-card bg-grad-orange" :href="config.public.richmondUrl" target="_blank" rel="noopener">
-        <span>Recursos Richmond<br />para Estudiantes</span>
-        <strong>Acceder</strong>
-      </a>
-      <a class="action-card bg-grad-gray" :href="config.public.pasePlatformUrl" target="_blank" rel="noopener">
-        <span>Plataforma PASE<br />Richmond</span>
-        <strong>Entrar</strong>
-      </a>
-      <NuxtLink v-if="canUsePersonasAutorizadas" class="action-card bg-grad-blue" to="/personas_autorizadas">
-        <span>Personas<br />Autorizadas</span>
-        <strong>QR</strong>
-      </NuxtLink>
-    </section>
+    <p v-if="error" class="alert">No fue posible cargar la información de guardería.</p>
+    <div v-else-if="pending" class="card loading-card">Cargando publicaciones…</div>
 
-    <section class="panel-inst calendar-panel">
-      <header class="section-title">
-        <h2>Calendario Mensual</h2>
-      </header>
-      <div class="scrolling-wrapper" v-if="dashboard?.calendario?.length">
-        <article v-for="item in dashboard.calendario" :key="`cal-${item.id || item.title}-${item.date}`" class="cal-card">
-          <div class="cal-header">
-            <div class="cal-num">{{ formatCalendarDay(item.date).day }}</div>
-            <div class="cal-meta">
-              <span>{{ formatCalendarDay(item.date).weekday }}</span>
-              <span>{{ formatCalendarDay(item.date).month }}</span>
-            </div>
+    <template v-else>
+      <section class="panel-inst calendar-panel">
+        <header class="section-title compact-title">
+          <div>
+            <p class="eyebrow">{{ companyLabel }}</p>
+            <h2>Calendario Mensual</h2>
           </div>
-          <div class="cal-body">
-            <h3>{{ item.title || 'Evento' }}</h3>
-            <p>{{ stripHtml(item.description || item.html) }}</p>
-          </div>
-          <a v-if="item.resource" class="cal-action" :href="resourceHref(item.resource)" target="_blank" rel="noopener">Ver detalles</a>
-        </article>
-      </div>
-      <EmptyState v-else title="No hay eventos próximos" description="Cuando haya eventos publicados, aparecerán aquí." />
-    </section>
-
-    <section class="content-grid">
-      <section class="panel-inst notices-panel">
-        <header class="section-title centered">
-          <h2>Avisos y Comunicados</h2>
+          <NuxtLink class="btn btn-secondary" to="/ver/calendario">Ver calendario</NuxtLink>
         </header>
-        <div class="notice-list" v-if="dashboard?.circulares?.length">
-          <ResourceCard v-for="item in dashboard.circulares" :key="`news-${item.id || item.title}`" :resource="item" variant="notice" />
+        <div class="scrolling-wrapper" v-if="dashboard?.calendario?.length">
+          <article v-for="item in dashboard.calendario" :key="`cal-${item.id || item.title}-${item.date}`" class="cal-card">
+            <div class="cal-header">
+              <div class="cal-num">{{ formatCalendarDay(item.date).day }}</div>
+              <div class="cal-meta">
+                <span>{{ formatCalendarDay(item.date).weekday }}</span>
+                <span>{{ formatCalendarDay(item.date).month }}</span>
+              </div>
+            </div>
+            <div class="cal-body">
+              <h3>{{ item.title || 'Evento' }}</h3>
+              <p>{{ stripHtml(item.description || item.html) }}</p>
+            </div>
+            <a v-if="item.resource" class="cal-action" :href="resourceHref(item.resource)" target="_blank" rel="noopener">Ver detalles</a>
+          </article>
         </div>
-        <EmptyState v-else title="No hay avisos nuevos" description="Por ahora no hay comunicados publicados." />
+        <EmptyState v-else title="No hay eventos próximos" description="Cuando haya eventos publicados, aparecerán aquí." />
       </section>
 
-      <section class="panel-inst homework-panel">
-        <header class="section-title">
-          <h2>Tarea del Día</h2>
-        </header>
-        <ResourceCard v-if="dashboard?.tareas?.[0]" :resource="dashboard.tareas[0]" variant="homework" />
-        <EmptyState v-else title="Sin tareas publicadas" description="Cuando haya tarea disponible, aparecerá aquí." />
+      <section class="content-grid">
+        <section class="panel-inst notices-panel">
+          <header class="section-title compact-title">
+            <h2>Avisos y Comunicados</h2>
+            <NuxtLink class="btn btn-secondary" to="/ver/circulares">Ver avisos</NuxtLink>
+          </header>
+          <div class="notice-list" v-if="dashboard?.circulares?.length">
+            <ResourceCard v-for="item in dashboard.circulares.slice(0, 3)" :key="`news-${item.id || item.title}`" :resource="item" variant="notice" />
+          </div>
+          <EmptyState v-else title="No hay avisos nuevos" description="Por ahora no hay comunicados publicados." />
+        </section>
 
-        <div class="valor-mes-container" v-if="dashboard?.valor?.length">
-          <div>
+        <section class="panel-inst homework-panel">
+          <header class="section-title compact-title">
+            <h2>Tarea del Día</h2>
+            <NuxtLink class="btn btn-secondary" to="/ver/tareas">Ver tareas</NuxtLink>
+          </header>
+          <ResourceCard v-if="dashboard?.tareas?.[0]" :resource="dashboard.tareas[0]" variant="homework" />
+          <EmptyState v-else title="Sin tareas publicadas" description="Cuando haya tarea disponible, aparecerá aquí." />
+
+          <div class="valor-mes-container" v-if="dashboard?.valor?.length">
             <span>Valor del Mes</span>
             <strong>{{ dashboard.valor[0].valor }}</strong>
           </div>
-        </div>
+        </section>
       </section>
-    </section>
 
-    <section class="slogan-footer">
-      “COMPARTIENDO CONTIGO LA FORMACIÓN INTEGRAL DE TUS HIJOS”
-    </section>
+      <section class="slogan-footer">
+        “COMPARTIENDO CONTIGO LA FORMACIÓN INTEGRAL DE TUS HIJOS”
+      </section>
+    </template>
   </section>
 </template>
 
@@ -95,15 +99,14 @@ definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
 const config = useRuntimeConfig()
 const { data: session } = await useFetch<PublicSession>('/api/auth/me')
-const { data: dashboard } = await useFetch<{
+const { data: dashboard, pending, error } = await useFetch<{
   tareas: DaycareResource[]
   circulares: DaycareResource[]
   calendario: DaycareResource[]
   valor: Array<{ valor: string }>
 }>('/api/daycare/family/dashboard')
 
-const companyLabel = computed(() => session.value?.user?.campus || 'Colegio Casita')
-const campusLabel = computed(() => session.value?.user?.displayName || session.value?.user?.email || 'Bienvenido')
+const companyLabel = computed(() => session.value?.user?.campus || session.value?.user?.empresa || 'Colegio Casita')
 const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 
 function resourceHref(resource?: string | null) {
@@ -114,28 +117,28 @@ function resourceHref(resource?: string | null) {
 <style scoped>
 .family-dashboard {
   display: grid;
-  gap: 36px;
+  gap: 16px;
 }
 
-.banner-grid {
+.dashboard-top {
   display: grid;
-  gap: 22px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(330px, 0.85fr);
 }
 
 .banner-tile {
   align-items: center;
-  aspect-ratio: 21 / 9;
-  border-radius: 25px;
+  border-radius: 24px;
   box-shadow: var(--shadow-soft);
   display: flex;
-  gap: 22px;
+  gap: clamp(14px, 3vw, 24px);
+  min-height: 154px;
   overflow: hidden;
-  padding: clamp(20px, 4vw, 34px);
+  padding: clamp(18px, 3vw, 28px);
 }
 
 .banner-tile img {
-  max-width: min(48%, 260px);
+  max-width: min(42%, 220px);
 }
 
 .banner-tile span {
@@ -150,55 +153,48 @@ function resourceHref(resource?: string | null) {
   color: #fff;
   display: block;
   font-family: Fredoka, Inter, sans-serif;
-  font-size: clamp(1.6rem, 4vw, 3rem);
+  font-size: clamp(1.45rem, 3.4vw, 2.6rem);
   letter-spacing: -0.04em;
   line-height: 1;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .banner-guarderia {
-  background: linear-gradient(135deg, #606060, #2b2b2b);
-}
-
-.banner-school {
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 40%),
-    linear-gradient(135deg, #8ec152, #578b26);
-  justify-content: center;
-  text-align: center;
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, #666, #292929);
 }
 
 .quick-actions {
   display: grid;
-  gap: 22px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .action-card {
   align-items: center;
   border: 0;
-  border-radius: 25px;
-  box-shadow: var(--shadow-card);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
   color: #fff;
   display: flex;
   justify-content: space-between;
-  min-height: 160px;
+  min-height: 44px;
   overflow: hidden;
-  padding: 24px 28px;
+  padding: 12px 16px;
   position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .action-card:hover {
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
 }
 
 .action-card::before {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
   content: '';
-  inset: -50%;
-  opacity: 0.8;
+  inset: -60%;
   position: absolute;
 }
 
@@ -209,16 +205,16 @@ function resourceHref(resource?: string | null) {
 
 .action-card span {
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 1.45rem;
+  font-size: 1.05rem;
   line-height: 1.08;
 }
 
 .action-card strong {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 999px;
   color: #4d4d4d;
-  font-size: 0.9rem;
-  padding: 8px 14px;
+  font-size: 0.78rem;
+  padding: 6px 10px;
 }
 
 .bg-grad-orange { background: linear-gradient(135deg, #ffca7a 0%, #ffb545 100%); }
@@ -227,41 +223,44 @@ function resourceHref(resource?: string | null) {
 
 .panel-inst {
   background: #fff;
-  border: 3px solid rgba(142, 193, 82, 0.15);
-  border-radius: 30px;
+  border: 1px solid rgba(223, 232, 215, 0.96);
+  border-radius: 24px;
   box-shadow: var(--shadow-soft);
   overflow: hidden;
-  padding: clamp(22px, 4vw, 32px);
+  padding: clamp(16px, 2.4vw, 22px);
+}
+
+.compact-title {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
 .section-title h2 {
   color: var(--color-brand-700);
   font-family: Fredoka, Inter, sans-serif;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
   letter-spacing: -0.02em;
-  margin-bottom: 22px;
-}
-
-.section-title.centered h2 {
-  color: #585858;
-  text-align: center;
+  margin-bottom: 0;
 }
 
 .scrolling-wrapper {
   display: flex;
-  gap: 1.5rem;
+  gap: 12px;
   overflow-x: auto;
-  padding: 10px 5px 25px;
+  padding: 4px 2px 8px;
   scroll-behavior: smooth;
 }
 
 .cal-card {
   background: #f8f9fa;
-  border: none;
-  border-radius: 25px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(223, 232, 215, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
   display: flex;
-  flex: 0 0 260px;
+  flex: 0 0 238px;
   flex-direction: column;
   overflow: hidden;
 }
@@ -269,16 +268,16 @@ function resourceHref(resource?: string | null) {
 .cal-header {
   align-items: center;
   background: #fff;
-  border-bottom: 2px dashed #eee;
+  border-bottom: 1px dashed #e4e7e0;
   display: flex;
-  gap: 15px;
-  padding: 15px;
+  gap: 12px;
+  padding: 12px;
 }
 
 .cal-num {
   color: var(--color-brand-700);
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 2.2rem;
+  font-size: 2rem;
   line-height: 1;
 }
 
@@ -286,30 +285,30 @@ function resourceHref(resource?: string | null) {
   color: #8b9485;
   display: flex;
   flex-direction: column;
-  font-size: 0.85rem;
-  font-weight: 800;
+  font-size: 0.8rem;
+  font-weight: 850;
   text-transform: capitalize;
 }
 
 .cal-body {
   flex: 1;
-  padding: 15px;
+  padding: 12px;
 }
 
 .cal-body h3 {
   color: #585858;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cal-body p {
   color: #666;
   display: -webkit-box;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   margin: 0;
-  min-height: 4.2em;
+  min-height: 3.9em;
   overflow: hidden;
 }
 
@@ -318,80 +317,111 @@ function resourceHref(resource?: string | null) {
   color: #fff;
   display: block;
   font-family: Fredoka, Inter, sans-serif;
-  padding: 12px;
+  padding: 10px;
   text-align: center;
 }
 
 .content-grid {
   display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
 }
 
 .notice-list {
   display: grid;
-  gap: 20px;
+  gap: 14px;
 }
 
 .homework-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 
 .valor-mes-container {
   align-items: center;
   background: #fff;
-  border: 3px dashed var(--color-amber);
-  border-radius: 25px;
+  border: 2px dashed var(--color-amber);
+  border-radius: 20px;
   display: flex;
-  justify-content: center;
+  gap: 12px;
+  justify-content: space-between;
   margin-top: auto;
-  padding: 1.5rem;
-  text-align: center;
+  padding: 14px 16px;
 }
 
 .valor-mes-container span {
   color: var(--color-muted);
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  margin-bottom: 6px;
   text-transform: uppercase;
 }
 
 .valor-mes-container strong {
   color: #585858;
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .slogan-footer {
   background: #f9fcf5;
-  border-radius: 25px;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
   color: var(--color-brand-700);
   font-family: Fredoka, Inter, sans-serif;
-  font-size: 1.1rem;
-  padding: 2rem;
+  font-size: 0.98rem;
+  padding: 18px;
   text-align: center;
 }
 
-@media (max-width: 1040px) {
-  .quick-actions {
-    grid-template-columns: 1fr;
-  }
+.loading-card {
+  color: var(--color-muted);
 }
 
-@media (max-width: 860px) {
-  .banner-grid,
+@media (max-width: 1080px) {
+  .dashboard-top,
   .content-grid {
     grid-template-columns: 1fr;
   }
 
+  .quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
   .banner-tile {
-    aspect-ratio: auto;
-    min-height: 160px;
+    align-items: flex-start;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .banner-tile img {
+    max-width: 164px;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .compact-title .btn {
+    width: 100%;
+  }
+
+  .cal-card {
+    flex-basis: 82vw;
+  }
+
+  .valor-mes-container {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

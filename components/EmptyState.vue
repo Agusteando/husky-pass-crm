@@ -16,10 +16,10 @@ defineProps<{
 <style scoped>
 .empty {
   text-align: center;
-  padding: 36px 24px;
+  padding: 22px 18px;
 }
 
 .empty h3 {
-  margin: 16px 0 8px;
+  margin: 12px 0 6px;
 }
 </style>
