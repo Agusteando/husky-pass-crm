@@ -1,6 +1,6 @@
 <template>
-  <main class="print-shell" v-if="data">
-    <section class="print-card">
+  <main class="credential-shell" v-if="data">
+    <section class="credential-card">
       <header>
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
         <div>
@@ -10,18 +10,18 @@
         </div>
       </header>
 
-      <div class="print-body">
+      <div class="credential-body">
         <img v-if="data.foto" class="person-photo" :src="normalizeVirtualAssetUrl(data.foto)" alt="Fotografía" />
         <div v-else class="person-photo empty-photo">PA</div>
         <div class="qr-box">
           <img :src="qrImage" alt="Código QR" />
-          <small>{{ qrUrl }}</small>
+          <small>{{ validationUrl }}</small>
         </div>
       </div>
 
       <footer>
-        <strong>{{ levelLabel }}</strong>
-        <span>{{ qrUrl }}</span>
+        <strong>{{ data.nivelEdu || 'Husky Pass' }}</strong>
+        <NuxtLink class="btn btn-secondary no-print" :to="`/familia/personas-autorizadas/${route.params.id}/imprimir`">Imprimir</NuxtLink>
       </footer>
     </section>
   </main>
@@ -29,29 +29,26 @@
 
 <script setup lang="ts">
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
-import { normalizeVirtualAssetUrl, qrPaUrl } from '~/utils/daycare'
+import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 const route = useRoute()
-const { data } = await useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/printable', {
-  query: { id: route.params.id }
-})
-
+const { data } = await useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id } })
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const qrUrl = computed(() => qrPaUrl(data.value?.id))
-const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl.value)}`)
-const levelLabel = computed(() => data.value?.nivelEdu || 'preescolar')
+const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
+const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl.value)}`)
 </script>
 
 <style scoped>
-.print-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 18px;
+.credential-shell {
   background: #f2f4ef;
+  display: grid;
+  min-height: 100vh;
+  padding: 18px;
+  place-items: center;
 }
 
-.print-card {
+.credential-card {
   background: #fff;
   border: 1px solid #dfe8d7;
   border-radius: 28px;
@@ -88,7 +85,7 @@ header h1 {
   margin-bottom: 6px;
 }
 
-.print-body {
+.credential-body {
   align-items: center;
   display: grid;
   gap: 22px;
@@ -104,11 +101,11 @@ header h1 {
 
 .empty-photo {
   background: var(--color-brand-100);
-  display: grid;
-  place-items: center;
   color: var(--color-brand-800);
+  display: grid;
   font-size: 3.4rem;
   font-weight: 900;
+  place-items: center;
 }
 
 .qr-box {
@@ -120,8 +117,8 @@ header h1 {
 }
 
 .qr-box img {
-  width: 180px;
   height: 180px;
+  width: 180px;
 }
 
 footer {
@@ -135,28 +132,26 @@ footer {
   padding: 14px;
 }
 
-footer span {
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  word-break: break-word;
-}
-
 @media print {
-  .print-shell {
+  .credential-shell {
     background: #fff;
     padding: 0;
   }
 
-  .print-card {
-    box-shadow: none;
+  .credential-card {
     border-radius: 0;
+    box-shadow: none;
     width: 100%;
+  }
+
+  .no-print {
+    display: none;
   }
 }
 
 @media (max-width: 680px) {
   header,
-  .print-body {
+  .credential-body {
     grid-template-columns: 1fr;
   }
 

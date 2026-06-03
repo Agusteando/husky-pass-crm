@@ -95,8 +95,7 @@ export async function createSuperAdminSession(input: { email: string; displayNam
   const fromLegacy = legacyUser?.toSession('admin')
   const routes = mergeRoutePermissions(fromLegacy?.routes || [], [
     { route: '/admin/daycare', icono: 'home' },
-    { route: '/sala', icono: 'group' },
-    { route: '/daycare-app', icono: 'pets' }
+    { route: '/admin/daycare/salas', icono: 'group' }
   ])
 
   const session: AppSessionUser = {
@@ -180,14 +179,14 @@ function resolveFamilyProductScopes(
     scopes.daycare = { product: 'daycare', sala, unidad }
   }
 
-  const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|qrPA|printable/i.test(route.route))
+  const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route.route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
   const matchesLegacyPersonasSidebarRule = !sala && !hasDaycareRole
 
   if (hasPersonasRoute || hasPersonasData || matchesLegacyPersonasSidebarRule) {
     scopes.personasAutorizadas = {
       product: 'personasAutorizadas',
-      legacyRoute: routes.find((route) => /personas[_/-]?autorizadas|qrPA|printable/i.test(route.route))?.route || null
+      legacyRoute: routes.find((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route.route))?.route || null
     }
   }
 

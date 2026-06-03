@@ -1,0 +1,12 @@
+<template>
+  <AdminResourceModule
+    type="news"
+    title="Avisos"
+    description="Comunicados y circulares visibles para las familias de la sala."
+    action-label="Nuevo aviso"
+  />
+</template>
+
+<script setup lang="ts">
+definePageMeta({ layout: 'admin', middleware: 'admin' })
+</script>

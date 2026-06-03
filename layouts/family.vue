@@ -1,7 +1,7 @@
 <template>
   <div>
     <AppTopbar :session="session" :home-to="homeTo" :items="[]" />
-    <div class="page-shell legacy-shell">
+    <div class="page-shell workspace-shell">
       <FamilySidebar :session="session" />
       <main class="layout-main">
         <slot />
@@ -19,7 +19,7 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 </script>
 
 <style scoped>
-.legacy-shell {
+.workspace-shell {
   display: grid;
   gap: 18px;
   grid-template-columns: 268px minmax(0, 1fr);
@@ -31,7 +31,7 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 }
 
 @media (max-width: 980px) {
-  .legacy-shell {
+  .workspace-shell {
     grid-template-columns: 1fr;
     padding-top: 12px;
   }

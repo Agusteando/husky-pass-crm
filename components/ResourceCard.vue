@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import type { DaycareResource } from '~/types/daycare'
-import { formatDate, isImageResource, isPdfResource, legacyPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { formatDate, isImageResource, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
 const props = defineProps<{
   resource: DaycareResource
@@ -24,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const resourceHref = computed(() => {
-  return isPdfResource(props.resource.resource) ? legacyPdfViewerUrl(props.resource.resource) : props.resource.resource || ''
+  return isPdfResource(props.resource.resource) ? publishedPdfViewerUrl(props.resource.resource) : props.resource.resource || ''
 })
 
 const variantClass = computed(() => props.variant ? `variant-${props.variant}` : 'variant-default')

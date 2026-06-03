@@ -1,7 +1,7 @@
 <template>
   <div>
     <AppTopbar :session="session" home-to="/admin/daycare" :items="[]" />
-    <div class="page-shell legacy-shell">
+    <div class="page-shell workspace-shell">
       <AdminDaycareSidebar :session="session" />
       <main class="layout-main">
         <slot />
@@ -17,11 +17,11 @@ const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: '
 </script>
 
 <style scoped>
-.legacy-shell {
+.workspace-shell {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 286px minmax(0, 1fr);
-  padding: 18px 0 44px;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 306px) minmax(0, 1fr);
+  padding: 14px 0 42px;
 }
 
 .layout-main {
@@ -29,7 +29,7 @@ const { data: session } = await useFetch<PublicSession>('/api/auth/me', { key: '
 }
 
 @media (max-width: 980px) {
-  .legacy-shell {
+  .workspace-shell {
     grid-template-columns: 1fr;
     padding-top: 12px;
   }

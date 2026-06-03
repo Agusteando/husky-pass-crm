@@ -74,3 +74,23 @@ export interface ScanAuthorizedPerson {
   plantel: string | null
   nivelEduA: string | null
 }
+
+export interface SalaMetrics {
+  familias: number
+  tareas: number
+  avisos: number
+  calendario: number
+  totalRecursos: number
+  lastResourceAt?: string | null
+}
+
+export interface SalaSummary extends Sala {
+  metrics: SalaMetrics
+}
+
+export interface SalaOverview {
+  sala: Sala
+  metrics: SalaMetrics
+  latestResources: DaycareResource[]
+  latestFamilies: FamilyAccount[]
+}

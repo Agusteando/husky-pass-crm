@@ -223,7 +223,7 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
       `SELECT *
        FROM (SELECT 1 AS indice) AS indice
        LEFT JOIN (
-         SELECT id, CONCAT('https://admin.casitaiedis.edu.mx/qrPA/', id) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
+         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
          FROM personas_autorizadas
          WHERE user_id = ? AND indice = '1'
        ) AS personas_autorizadas ON true
@@ -231,7 +231,7 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
        SELECT *
        FROM (SELECT 2 AS indice) AS indice
        LEFT JOIN (
-         SELECT id, CONCAT('https://admin.casitaiedis.edu.mx/qrPA/', id) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
+         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
          FROM personas_autorizadas
          WHERE user_id = ? AND indice = '2'
        ) AS personas_autorizadas ON true
@@ -239,7 +239,7 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
        SELECT *
        FROM (SELECT 3 AS indice) AS indice
        LEFT JOIN (
-         SELECT id, CONCAT('https://admin.casitaiedis.edu.mx/qrPA/', id) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
+         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
          FROM personas_autorizadas
          WHERE user_id = ? AND indice = '3'
        ) AS personas_autorizadas ON true
@@ -247,7 +247,7 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
        SELECT *
        FROM (SELECT 4 AS indice) AS indice
        LEFT JOIN (
-         SELECT id, CONCAT('https://admin.casitaiedis.edu.mx/qrPA/', id) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
+         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
          FROM personas_autorizadas
          WHERE user_id = ? AND indice = '4'
        ) AS personas_autorizadas ON true`,
@@ -337,7 +337,7 @@ export async function upsertAuthorizedPersona(user: AppSessionUser, payload: Aut
     [indice, values.paternoP, values.maternoP, values.nombreP, values.parenP, values.foto, values.compressed_foto, values.fechaP, user.id]
   )
 
-  return { ...payload, id: result.insertId, indice, user_id: user.id, qr: `https://admin.casitaiedis.edu.mx/qrPA/${result.insertId}` }
+  return { ...payload, id: result.insertId, indice, user_id: user.id, qr: String(result.insertId) }
 }
 
 export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) {
@@ -348,7 +348,7 @@ export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) 
   return { ok: true }
 }
 
-export async function getPrintableAuthorizedPersona(id: number) {
+export async function getCredentialAuthorizedPersona(id: number) {
   const row = await legacyOne<(PrintableAuthorizedPerson & RowDataPacket)>(
     `SELECT A.*, IFNULL(MAX(B.nivelEdu), 'preescolar') AS nivelEdu
      FROM personas_autorizadas A
@@ -393,4 +393,68 @@ export async function getScanAuthorizedPersona(id: number) {
   )
   if (!rows.length) throw createError({ statusCode: 404, statusMessage: 'No se encontró el registro' })
   return rows[0]
+}
+
+async function getSalaMetrics(sala: Sala) {
+  const [familyRow, resourceRow] = await Promise.all([
+    legacyOne<RowDataPacket>(
+      `SELECT COUNT(*) AS familias
+       FROM users
+       WHERE FIND_IN_SET(?, unidad) AND role LIKE '%HUSKY%' AND sala = ?`,
+      [sala.unidad, sala.id]
+    ),
+    legacyOne<RowDataPacket>(
+      `SELECT
+        SUM(CASE WHEN type = 'hw' THEN 1 ELSE 0 END) AS tareas,
+        SUM(CASE WHEN type = 'news' THEN 1 ELSE 0 END) AS avisos,
+        SUM(CASE WHEN type = 'cal' THEN 1 ELSE 0 END) AS calendario,
+        COUNT(*) AS totalRecursos,
+        MAX(COALESCE(timestamp, date)) AS lastResourceAt
+       FROM recursos
+       WHERE sala = ? AND unidad = ? AND hidden = 0`,
+      [sala.id, sala.unidad]
+    )
+  ])
+
+  return {
+    familias: Number(familyRow?.familias || 0),
+    tareas: Number(resourceRow?.tareas || 0),
+    avisos: Number(resourceRow?.avisos || 0),
+    calendario: Number(resourceRow?.calendario || 0),
+    totalRecursos: Number(resourceRow?.totalRecursos || 0),
+    lastResourceAt: resourceRow?.lastResourceAt ? String(resourceRow.lastResourceAt) : null
+  }
+}
+
+export async function getSalasOverviewForUnidad(user: AppSessionUser, unidad: string) {
+  const salas = await getSalasForUnidad(user, unidad)
+  return Promise.all(salas.map(async (sala) => ({
+    ...sala,
+    metrics: await getSalaMetrics(sala)
+  })))
+}
+
+export async function getSalaOperationalOverview(user: AppSessionUser, salaId: number) {
+  const sala = await getSalaById(user, salaId)
+  const [metrics, latestResources, latestFamilies] = await Promise.all([
+    getSalaMetrics(sala),
+    legacyQuery<(DaycareResource & RowDataPacket)[]>(
+      `SELECT id, starred, title, description, date, timestamp, resource, autor, unidad, sala, type
+       FROM recursos
+       WHERE sala = ? AND unidad = ? AND hidden = 0
+       ORDER BY id DESC
+       LIMIT 6`,
+      [sala.id, sala.unidad]
+    ),
+    legacyQuery<(FamilyAccount & RowDataPacket)[]>(
+      `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala
+       FROM users
+       WHERE FIND_IN_SET(?, unidad) AND role LIKE '%HUSKY%' AND sala = ?
+       ORDER BY id DESC
+       LIMIT 5`,
+      [sala.unidad, sala.id]
+    )
+  ])
+
+  return { sala, metrics, latestResources, latestFamilies }
 }

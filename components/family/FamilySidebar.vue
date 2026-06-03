@@ -1,24 +1,20 @@
 <template>
-  <aside v-if="session?.user?.kind === 'family'" class="side-panel" aria-label="Navegación familiar">
-    <div class="mobile-hidden">
+  <aside v-if="session?.user" class="family-panel" aria-label="Husky Pass familiar">
+    <div class="family-brand mobile-hidden">
       <BrandMark :to="homeTo" />
     </div>
 
-    <div class="family-context">
+    <section class="family-context">
       <span>{{ contextLabel }}</span>
-      <strong>{{ session.user.displayName || session.user.email }}</strong>
-      <small v-if="daycareSala">Sala {{ daycareSala }}</small>
-    </div>
+      <strong>{{ primaryName }}</strong>
+      <small>{{ secondaryName }}</small>
+    </section>
 
-    <nav class="family-nav">
-      <NuxtLink v-for="item in items" :key="item.to" :to="item.to">
-        {{ item.label }}
-      </NuxtLink>
+    <nav class="family-nav" aria-label="Navegación familiar">
+      <NuxtLink v-for="item in items" :key="item.to" :to="item.to">{{ item.label }}</NuxtLink>
     </nav>
 
-    <button v-if="session.user.impersonation" class="btn btn-primary" type="button" @click="exitImpersonation">
-      Volver a admin
-    </button>
+    <button v-if="session.user.impersonation" class="btn btn-primary exit-preview" type="button" @click="exitPreview">Volver a admin</button>
   </aside>
 </template>
 
@@ -29,43 +25,44 @@ import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sess
 const props = defineProps<{ session?: PublicSession | null }>()
 const items = computed(() => familyNavItems(props.session?.user))
 const homeTo = computed(() => defaultFamilyRoute(props.session?.user))
-const daycareSala = computed(() => props.session?.user?.scopes.daycare?.sala || '')
 const contextLabel = computed(() => hasFamilyScope(props.session?.user, 'daycare') ? 'Guardería' : 'Familia')
+const primaryName = computed(() => props.session?.user?.displayName || props.session?.user?.username || props.session?.user?.email || 'Husky Pass')
+const secondaryName = computed(() => props.session?.user?.scopes.daycare?.sala ? `Sala ${props.session.user.scopes.daycare.sala}` : props.session?.user?.email || '')
 
-async function exitImpersonation() {
+async function exitPreview() {
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
   await navigateTo('/admin/daycare')
 }
 </script>
 
 <style scoped>
-.side-panel {
+.family-panel {
   align-self: start;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--color-border);
-  border-radius: 26px;
+  border-radius: 24px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 14px;
+  padding: 14px;
   position: sticky;
-  top: calc(var(--topbar-height) + 14px);
+  top: calc(var(--topbar-height) + 12px);
 }
 
 .family-context {
-  background: var(--color-brand-100);
+  background: linear-gradient(180deg, #fbfdf8, #f2f8ea);
   border: 1px solid var(--color-brand-200);
   border-radius: 18px;
   display: grid;
   gap: 3px;
-  padding: 13px;
+  padding: 12px;
 }
 
 .family-context span {
   color: var(--color-brand-700);
-  font-size: 0.73rem;
-  font-weight: 850;
-  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -78,7 +75,7 @@ async function exitImpersonation() {
 
 .family-context small {
   color: var(--color-muted);
-  font-weight: 800;
+  font-weight: 760;
 }
 
 .family-nav {
@@ -88,10 +85,10 @@ async function exitImpersonation() {
 
 .family-nav a {
   border: 1px solid transparent;
-  border-radius: 15px;
+  border-radius: 14px;
   color: var(--color-muted);
   font-weight: 850;
-  padding: 10px 12px;
+  padding: 9px 11px;
 }
 
 .family-nav a:hover,
@@ -101,18 +98,18 @@ async function exitImpersonation() {
   color: var(--color-brand-800);
 }
 
+.exit-preview {
+  width: 100%;
+}
+
 @media (max-width: 980px) {
-  .side-panel {
+  .family-panel {
     gap: 12px;
     position: static;
   }
 
   .mobile-hidden {
     display: none;
-  }
-
-  .family-context {
-    padding: 11px 12px;
   }
 
   .family-nav {

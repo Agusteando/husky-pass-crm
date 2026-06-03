@@ -1,67 +1,65 @@
-# husky-pass-crm
+# Husky Pass CRM
 
-Implementación Nuxt de la Fase 1 de Husky Pass CRM sobre la base MySQL existente.
+Phase 1 Nuxt rebuild for Husky Pass daycare administration, daycare family access, and Personas Autorizadas family access. The project uses the existing MySQL database as the source of truth and does not introduce schema changes or migrations.
 
-El proyecto no copia archivos legacy. Reimplementa los flujos de guardería, acceso familiar y Personas Autorizadas necesarios con una capa MySQL explícita, sin migraciones y sin cambios de esquema.
+## Scope
 
-## Alcance de Fase 1
+Included:
 
-- Login familiar tradicional en `/login`, con sesión de cuenta y alcances de producto resueltos desde MySQL.
-- Administradores internos de guardería con Google Login en `/admin/login`.
-- Panel familiar de guardería solo para cuentas con alcance de guardería: tareas, avisos/comunicados, calendario mensual, valor del mes, Richmond y PASE.
-- Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario, con selector de unidad/sala, vista familiar por sala y vista controlada de cuenta familiar.
-- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`.
-- Rutas públicas compatibles para QR y printable: `/qrPA/[id]` y `/printable/[id]`.
-- Rutas de compatibilidad necesarias para enlaces legacy de guardería: `/ver/[tipo]`, `/sala/[id]`, `/sala/[id]/[tipo]` y `/daycare-app`.
+- Internal daycare administrators through `/admin/login` with Google auth.
+- Daycare admin workspace under `/admin/daycare` and `/admin/daycare/salas`.
+- Daycare family access through `/login` and `/familia/daycare`.
+- Personas Autorizadas family access through `/login` and `/familia/personas-autorizadas`.
+- New-platform PA QR, credential, print, and validation screens.
+- Super admin handling for `desarrollo.tecnologico@casitaiedis.edu.mx` after verified Google login.
 
-## Producto y experiencia
+Out of scope:
 
-La UI mantiene la composición reconocible del legacy: shell con barra superior, navegación lateral por sala/unidad, tarjetas de módulos, calendario horizontal, avisos/tareas y tarjetas de Personas Autorizadas. La ejecución se reorganizó con componentes enfocados, estilos consolidados, tokens visuales, tablas responsivas y densidad ajustada para que el contenido principal aparezca en el primer viewport.
+- Bitácora, CRM, matrícula, informes, tickets, SIAG, formación, talleres, marketing, and unrelated legacy modules.
 
-La navegación móvil no comprime el layout de escritorio: los menús de sala, módulos y familia pasan a navegación horizontal táctil; las tablas se convierten en tarjetas; formularios, acciones y estados vacíos quedan legibles sin depender de scroll inicial excesivo.
+## Admin daycare architecture
 
-## Super admin interno
+The admin experience is a workspace, not a set of legacy compatibility screens.
 
-El correo institucional `desarrollo.tecnologico@casitaiedis.edu.mx` tiene acceso super admin únicamente después de validación Google en `/admin/login`. Este acceso no crea ni modifica filas legacy; usa las unidades/salas reales existentes en MySQL y permite cambiar alcance, previsualizar la experiencia familiar de una sala e impersonar cuentas familiares autorizadas para revisión operativa.
+Primary model:
 
-## Tablas legacy usadas sin cambios
+1. Select unidad.
+2. Select sala.
+3. Manage familias, tareas, avisos, and calendario.
+4. Preview or impersonate the family experience when needed.
 
-El código consulta y escribe directamente en las tablas existentes: `users`, `rutas_rol`, `salas`, `recursos`, `valores_mensuales`, `personas_autorizadas`, `alumno_pa`, `matricula` y `credenciales`.
+Canonical admin routes:
 
-No se crean migraciones, no se cambian tipos y no se normaliza el esquema.
+- `/admin/daycare`: daycare command center.
+- `/admin/daycare/salas`: unidad/sala command center.
+- `/admin/daycare/salas/[id]`: sala workspace summary.
+- `/admin/daycare/salas/[id]/familias`: family accounts and impersonation.
+- `/admin/daycare/salas/[id]/tareas`: homework publications.
+- `/admin/daycare/salas/[id]/avisos`: notices and communications.
+- `/admin/daycare/salas/[id]/calendario`: calendar publications.
 
-## Comportamiento legacy preservado
+## Family routes
 
-- Recursos familiares: lógica equivalente a `fetch-usuario-final.php`.
-- Recursos admin por sala/tipo: lógica equivalente a `fetch-resource.php`.
-- Cuentas familiares por sala: lógica equivalente a `fetch-usuarios.php`.
-- Salas por unidad: lógica equivalente a `fetch-salas.php`.
-- Personas Autorizadas: lógica equivalente a `fetch-padre-husky.php`.
-- QR printable y scan: lógica equivalente a `fetch-pa-printable.php` y `fetch-pa-scan.php`.
-- PDF viewer: conserva el patrón legacy en `https://admin.casitaiedis.edu.mx/pdfjs/web/viewer.html?file=/virtual/<archivo.pdf>`.
-- PDF Personas Autorizadas: conserva `https://bot.casitaapps.com/renderFromUrl`.
-- QR público: conserva `https://admin.casitaiedis.edu.mx/qrPA/{id}`.
-- Printable público: conserva `https://admin.casitaiedis.edu.mx/printable/{id}`.
+- `/familia`: product chooser when a parent has more than one product scope.
+- `/familia/daycare`: daycare family dashboard.
+- `/familia/daycare/tareas`: daycare homework.
+- `/familia/daycare/avisos`: daycare notices.
+- `/familia/daycare/calendario`: daycare calendar.
+- `/familia/personas-autorizadas`: Personas Autorizadas panel.
+- `/familia/personas-autorizadas/[id]`: authorized person detail.
+- `/familia/personas-autorizadas/[id]/qr`: QR screen.
+- `/familia/personas-autorizadas/[id]/credencial`: credential preview.
+- `/familia/personas-autorizadas/[id]/imprimir`: print view.
+- `/validar/persona-autorizada/[id]`: scan/validation view.
 
-## Configuración
+## Auth model
 
-Copia `.env.example` a `.env` y configura credenciales MySQL, `SESSION_SECRET` y `GOOGLE_CLIENT_ID`.
+`/login` is shared parent/family login. It creates a normalized family session and resolves product scopes from existing MySQL data. `sala` is daycare-specific and must not block Personas Autorizadas users.
 
-```bash
-npm install
-npm run dev
-```
+`/admin/login` is internal Google login. Admin daycare access remains separate from family login.
 
-## Rutas principales
+## Database
 
-- `/login`: acceso familiar tradicional.
-- `/daycare`: dashboard de familias con alcance de guardería.
-- `/ver/tareas`, `/ver/circulares`, `/ver/calendario`: vistas familiares por tipo.
-- `/personas_autorizadas`: Personas Autorizadas para cuentas con ese alcance.
-- `/qrPA/[id]`: vista pública de escaneo.
-- `/printable/[id]`: formato imprimible/compartible.
-- `/admin/login`: acceso interno con Google.
-- `/admin/daycare`: salas de guardería por unidad.
-- `/admin/daycare/salas/[id]`: gestión de una sala.
-- `/admin/daycare/salas/[id]/usuarios`: cuentas familiares de la sala y entrada de vista familiar controlada.
-- `/admin/daycare/salas/[id]/tareas`, `/circulares`, `/calendario`: recursos por sala.
+Relevant existing tables include `users`, `rutas_rol`, `salas`, `recursos`, `valores_mensuales`, `personas_autorizadas`, `alumno_pa`, `matricula`, and `credenciales`.
+
+No Prisma, migrations, schema rewrites, fake mappings, or hardcoded fallback roles are used.

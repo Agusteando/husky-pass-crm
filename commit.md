@@ -1,1 +1,1 @@
-Pulir experiencia visual y validar recorridos de Fase 1
+Rediseña arquitectura y experiencia del workspace administrativo daycare

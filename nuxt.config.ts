@@ -34,7 +34,7 @@ export default defineNuxtConfig({
       title: 'Husky Pass CRM',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Husky Pass CRM: guardería y Personas Autorizadas' }
+        { name: 'description', content: 'Husky Pass CRM para guardería y Personas Autorizadas' }
       ]
     }
   },

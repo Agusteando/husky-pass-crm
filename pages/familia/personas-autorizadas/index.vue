@@ -1,10 +1,10 @@
 <template>
-  <section class="pa-page">
+  <section class="pa-page stack">
     <section class="pa-banner">
       <div>
         <p class="eyebrow">Personas Autorizadas</p>
         <h1>Control de accesos</h1>
-        <p>Administra las personas que pueden recoger a tus hijos.</p>
+        <p>Gestiona las personas autorizadas, sus QR y credenciales.</p>
       </div>
       <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
     </section>
@@ -13,22 +13,20 @@
     <div v-else-if="pending" class="card loading-card">Cargando registros…</div>
 
     <template v-else>
-      <section class="pa-stripe">
+      <section class="pa-grid">
         <article v-for="person in people" :key="person.indice" class="pa-card">
           <button class="portrait" :class="{ empty: !person.id }" type="button" @click="edit(person)">
             <img v-if="person.foto" :src="normalizeVirtualAssetUrl(person.foto)" alt="Fotografía de persona autorizada" />
             <span v-else>{{ person.id ? initials(person) : '+' }}</span>
           </button>
-          <div class="pa-card-footer">
-            <strong>{{ authorizedPersonLabel(person.indice) }}</strong>
-          </div>
           <div class="pa-info">
+            <span>{{ authorizedPersonLabel(person.indice) }}</span>
             <h2>{{ fullName(person) || 'Disponible' }}</h2>
             <p>{{ person.parenP || (person.id ? 'Parentesco pendiente' : 'Agregar registro') }}</p>
           </div>
           <div class="actions">
             <button class="btn btn-primary" type="button" @click="edit(person)">{{ person.id ? 'Editar' : 'Agregar' }}</button>
-            <button v-if="person.id" class="btn btn-secondary" type="button" @click="share(person)">PDF</button>
+            <NuxtLink v-if="person.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}`">Ver</NuxtLink>
             <button v-if="person.id" class="btn btn-danger" type="button" @click="remove(person.id)">Eliminar</button>
           </div>
         </article>
@@ -78,7 +76,7 @@
 
 <script setup lang="ts">
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
-import { authorizedPersonLabel, normalizeVirtualAssetUrl, printablePaUrl, qrPaUrl } from '~/utils/daycare'
+import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
@@ -126,58 +124,22 @@ async function remove(id: number | null | undefined) {
   await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
   await refresh()
 }
-
-async function share(person: AuthorizedPerson) {
-  if (!person.id) return
-  const printableUrl = printablePaUrl(person.id)
-
-  try {
-    const response = await fetch('https://bot.casitaapps.com/renderFromUrl', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { url: printableUrl, filename: 'PersonaAutorizada.pdf' } })
-    })
-    const blob = await response.blob()
-    const file = new File([blob], 'PersonaAutorizada.pdf', { type: 'application/pdf' })
-
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({
-        title: 'Persona Autorizada',
-        url: qrPaUrl(person.id),
-        files: [file]
-      })
-      return
-    }
-
-    const downloadUrl = URL.createObjectURL(file)
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = 'PersonaAutorizada.pdf'
-    a.click()
-    URL.revokeObjectURL(downloadUrl)
-  } catch {
-    window.open(printableUrl, '_blank', 'noopener,noreferrer')
-  }
-}
 </script>
 
 <style scoped>
 .pa-page {
-  display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .pa-banner {
   align-items: center;
-  background:
-    radial-gradient(circle at top right, rgba(35, 97, 136, 0.12), transparent 44%),
-    #fff;
-  border: 1px solid rgba(223, 232, 215, 0.96);
+  background: radial-gradient(circle at top right, rgba(35, 97, 136, 0.12), transparent 44%), #fff;
+  border: 1px solid var(--color-border);
   border-radius: 24px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 18px;
-  grid-template-columns: 1fr minmax(120px, 180px);
+  grid-template-columns: 1fr minmax(120px, 170px);
   padding: clamp(16px, 2.8vw, 24px);
 }
 
@@ -190,9 +152,9 @@ async function share(person: AuthorizedPerson) {
   margin-bottom: 0;
 }
 
-.pa-stripe {
+.pa-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -211,7 +173,7 @@ async function share(person: AuthorizedPerson) {
   border: 0;
   cursor: pointer;
   display: grid;
-  font-size: 2.55rem;
+  font-size: 2.5rem;
   font-weight: 900;
   padding: 0;
   place-items: center;
@@ -227,27 +189,24 @@ async function share(person: AuthorizedPerson) {
   width: 100%;
 }
 
-.pa-card-footer {
-  align-items: center;
-  background: var(--color-blue);
-  color: #fff;
-  display: flex;
-  font-size: 0.92rem;
-  justify-content: center;
-  min-height: 38px;
-  padding: 8px;
-}
-
 .pa-info {
   display: grid;
   gap: 4px;
-  min-height: 78px;
-  padding: 14px;
+  min-height: 96px;
+  padding: 13px;
   text-align: center;
 }
 
+.pa-info span {
+  color: var(--color-blue);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .pa-info h2 {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   margin-bottom: 0;
 }
 
@@ -255,13 +214,13 @@ async function share(person: AuthorizedPerson) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 14px 14px;
+  padding: 0 13px 13px;
 }
 
 .actions .btn {
   flex: 1 1 auto;
   min-height: 36px;
-  padding-inline: 12px;
+  padding-inline: 11px;
 }
 
 .children-card h2 {
@@ -273,7 +232,7 @@ async function share(person: AuthorizedPerson) {
 }
 
 @media (max-width: 1120px) {
-  .pa-stripe {
+  .pa-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -289,7 +248,7 @@ async function share(person: AuthorizedPerson) {
 }
 
 @media (max-width: 540px) {
-  .pa-stripe {
+  .pa-grid {
     grid-template-columns: 1fr;
   }
 }

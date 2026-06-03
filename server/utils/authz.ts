@@ -28,7 +28,7 @@ export function assertDaycareAdmin(user: AppSessionUser) {
 
   if (isSuperAdmin(user)) return
 
-  const hasDaycarePermission = hasRoleLike(user, 'HUSKY') || user.routes.some((route) => /daycare-app|guarder[ií]a|husky|sala/i.test(route.route))
+  const hasDaycarePermission = hasRoleLike(user, 'HUSKY') || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
   if (!hasDaycarePermission || user.unidades.length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'El usuario no tiene alcance de guardería' })
   }

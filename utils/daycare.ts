@@ -1,20 +1,20 @@
-export type DaycareResourceRoute = 'tareas' | 'circulares' | 'calendario'
+export type DaycareResourceRoute = 'tareas' | 'avisos' | 'calendario'
 export type DaycareResourceType = 'hw' | 'news' | 'cal'
 
 export const daycareResourceMap: Record<DaycareResourceRoute, DaycareResourceType> = {
   tareas: 'hw',
-  circulares: 'news',
+  avisos: 'news',
   calendario: 'cal'
 }
 
 export const daycareResourceLabels: Record<DaycareResourceRoute, string> = {
   tareas: 'Tareas',
-  circulares: 'Circulares',
+  avisos: 'Avisos',
   calendario: 'Calendario'
 }
 
 export function isDaycareResourceRoute(value: string): value is DaycareResourceRoute {
-  return value === 'tareas' || value === 'circulares' || value === 'calendario'
+  return value === 'tareas' || value === 'avisos' || value === 'calendario'
 }
 
 export function formatDate(value?: string | Date | null, fallback = 'Sin fecha') {
@@ -51,7 +51,7 @@ export function stripHtml(value?: string | null) {
   return (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export function legacyPdfViewerUrl(resource?: string | null) {
+export function publishedPdfViewerUrl(resource?: string | null) {
   if (!resource) return ''
   const fileName = resource.split('/').pop()?.split('#')[0]?.split('?')[0]
   if (!fileName) return resource
@@ -67,10 +67,23 @@ export function authorizedPersonLabel(indice: number) {
   return indice === 4 ? 'Pase Express' : `Persona ${indice}`
 }
 
-export function qrPaUrl(id?: number | string | null) {
-  return id ? `https://admin.casitaiedis.edu.mx/qrPA/${id}` : ''
+export function appAbsoluteUrl(path: string) {
+  if (typeof window === 'undefined') return path
+  return `${window.location.origin}${path}`
 }
 
-export function printablePaUrl(id?: number | string | null) {
-  return id ? `https://admin.casitaiedis.edu.mx/printable/${id}` : ''
+export function authorizedPersonValidationPath(id?: number | string | null) {
+  return id ? `/validar/persona-autorizada/${id}` : ''
+}
+
+export function authorizedPersonQrPath(id?: number | string | null) {
+  return id ? `/familia/personas-autorizadas/${id}/qr` : ''
+}
+
+export function authorizedPersonCredentialPath(id?: number | string | null) {
+  return id ? `/familia/personas-autorizadas/${id}/credencial` : ''
+}
+
+export function authorizedPersonPrintPath(id?: number | string | null) {
+  return id ? `/familia/personas-autorizadas/${id}/imprimir` : ''
 }

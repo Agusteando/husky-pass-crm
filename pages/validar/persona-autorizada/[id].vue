@@ -1,8 +1,8 @@
 <template>
-  <main class="public-pass-shell">
-    <section class="public-card card" v-if="data">
-      <img class="public-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-      <div class="status">Escaneo de persona autorizada</div>
+  <main class="validate-shell">
+    <section v-if="data" class="card validate-card">
+      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <span class="status">Autorizado</span>
       <div class="person-row">
         <img v-if="data.fotoP" :src="normalizeVirtualAssetUrl(data.fotoP)" alt="Persona autorizada" />
         <div v-else class="fallback-photo">PA</div>
@@ -19,8 +19,8 @@
         <small>Matrícula: {{ data.matricula || '—' }}</small>
       </div>
     </section>
-    <section v-else class="card public-card empty-public">
-      <img class="public-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+    <section v-else class="card validate-card empty-public">
+      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
       <h1>Registro no encontrado</h1>
       <p>No fue posible encontrar esta persona autorizada.</p>
     </section>
@@ -38,21 +38,21 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
 </script>
 
 <style scoped>
-.public-pass-shell {
+.validate-shell {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 18px;
 }
 
-.public-card {
+.validate-card {
   width: min(100%, 720px);
 }
 
-.public-logo {
-  width: min(176px, 62vw);
+.logo {
   display: block;
   margin: 0 auto 16px;
+  width: min(176px, 62vw);
 }
 
 .status {
@@ -66,27 +66,27 @@ const { data } = await useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas
 }
 
 .person-row {
-  display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 18px;
   align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 150px 1fr;
 }
 
 .person-row img,
 .fallback-photo {
   aspect-ratio: 1 / 1;
-  width: 100%;
-  object-fit: cover;
-  border-radius: 24px;
   background: var(--color-brand-100);
+  border-radius: 24px;
+  object-fit: cover;
+  width: 100%;
 }
 
 .fallback-photo {
-  display: grid;
-  place-items: center;
   color: var(--color-brand-800);
+  display: grid;
   font-size: 2.8rem;
   font-weight: 900;
+  place-items: center;
 }
 
 .student-box {

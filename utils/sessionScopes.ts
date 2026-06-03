@@ -8,13 +8,16 @@ export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: F
 export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
   if (!user || user.kind !== 'admin') return false
   if (user.isSuperAdmin) return true
-  const hasPermission = user.roles.some((role) => role.toUpperCase().includes('HUSKY')) || user.routes.some((route) => /daycare-app|guarder[ií]a|husky|sala/i.test(route.route))
+  const hasPermission = user.roles.some((role) => role.toUpperCase().includes('HUSKY')) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
   return hasPermission && user.unidades.length > 0
 }
 
 export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
-  if (hasFamilyScope(user, 'daycare')) return '/daycare'
-  if (hasFamilyScope(user, 'personasAutorizadas')) return '/personas_autorizadas'
+  const daycare = hasFamilyScope(user, 'daycare')
+  const personas = hasFamilyScope(user, 'personasAutorizadas')
+  if (daycare && personas) return '/familia'
+  if (daycare) return '/familia/daycare'
+  if (personas) return '/familia/personas-autorizadas'
   return '/login'
 }
 
@@ -23,15 +26,15 @@ export function familyNavItems(user: AppSessionUser | null | undefined) {
 
   if (hasFamilyScope(user, 'daycare')) {
     items.push(
-      { label: 'Inicio', to: '/daycare' },
-      { label: 'Tareas', to: '/ver/tareas' },
-      { label: 'Circulares', to: '/ver/circulares' },
-      { label: 'Calendario', to: '/ver/calendario' }
+      { label: 'Guardería', to: '/familia/daycare' },
+      { label: 'Tareas', to: '/familia/daycare/tareas' },
+      { label: 'Avisos', to: '/familia/daycare/avisos' },
+      { label: 'Calendario', to: '/familia/daycare/calendario' }
     )
   }
 
   if (hasFamilyScope(user, 'personasAutorizadas')) {
-    items.push({ label: 'Personas Autorizadas', to: '/personas_autorizadas' })
+    items.push({ label: 'Personas Autorizadas', to: '/familia/personas-autorizadas' })
   }
 
   return items
