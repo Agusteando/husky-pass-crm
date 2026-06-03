@@ -9,10 +9,14 @@ El proyecto no copia archivos legacy. Reimplementa los flujos de guardería y au
 - Login familiar tradicional en `/login`, con sesión de cuenta y alcances de producto resueltos desde MySQL.
 - Administradores internos de guardería con Google Login en `/admin/login`.
 - Panel familiar de guardería solo para cuentas con alcance de guardería: tareas, avisos/comunicados, calendario mensual, valor del mes, Richmond y PASE.
-- Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario, con selector de unidad/sala y vista controlada de cuenta familiar.
-- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`, únicamente para cuentas que lo tengan concedido por datos o permisos existentes en MySQL.
+- Panel administrativo de guardería para salas, cuentas familiares, tareas, circulares y calendario, con selector de unidad/sala, vista familiar por sala y vista controlada de cuenta familiar.
+- Personas Autorizadas como alcance familiar independiente de guardería, sin requerir `sala`, derivado de datos/permisos existentes y de la regla legacy que expone PA a cuentas familiares sin sala de guardería.
 - Rutas públicas compatibles para QR y printable: `/qrPA/[id]` y `/printable/[id]`.
 - Rutas de compatibilidad necesarias para enlaces legacy de guardería: `/ver/[tipo]`, `/sala/[id]`, `/sala/[id]/[tipo]` y `/daycare-app`.
+
+## Super admin interno
+
+El correo institucional `desarrollo.tecnologico@casitaiedis.edu.mx` tiene acceso super admin únicamente después de validación Google en `/admin/login`. Este acceso no crea ni modifica filas legacy; usa las unidades/salas reales existentes en MySQL y permite cambiar alcance, previsualizar la experiencia familiar de una sala e impersonar cuentas familiares autorizadas para revisión operativa.
 
 ## Tablas legacy usadas sin cambios
 

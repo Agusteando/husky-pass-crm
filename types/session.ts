@@ -23,6 +23,7 @@ export interface FamilyProductScopes {
 }
 
 export interface AdminImpersonationOrigin {
+  isSuperAdmin?: boolean
   id: number
   email: string
   username?: string | null
@@ -43,6 +44,7 @@ export interface AdminImpersonationOrigin {
 }
 
 export interface AppSessionUser {
+  isSuperAdmin?: boolean
   id: number
   kind: SessionKind
   email: string
@@ -60,6 +62,7 @@ export interface AppSessionUser {
   scopes: FamilyProductScopes
   impersonation?: {
     startedAt: number
+    mode?: 'account' | 'daycarePreview'
     admin: AdminImpersonationOrigin
   }
   anonymous: false

@@ -1,1 +1,1 @@
-Ajusta acceso interno de guardería con selector de unidad/sala e impersonación familiar controlada
+Implementa Fase 1 con alcance estricto de guardería, separación de Personas Autorizadas y acceso super admin controlado

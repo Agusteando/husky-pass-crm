@@ -1,8 +1,11 @@
 <template>
   <section class="stack">
     <div class="sala-header">
-      <p class="eyebrow">{{ sala?.unidad }}</p>
-      <h1>{{ sala?.sala || 'Sala' }}</h1>
+      <div>
+        <p class="eyebrow">{{ sala?.unidad }}</p>
+        <h1>{{ sala?.sala || 'Sala' }}</h1>
+      </div>
+      <button class="btn btn-primary" type="button" @click="previewSala">Vista familiar</button>
     </div>
 
     <section class="module-grid">
@@ -27,6 +30,11 @@ const route = useRoute()
 const salaId = Number(route.params.id)
 const { data: sala } = await useFetch<Sala>(`/api/daycare/admin/salas/${salaId}`)
 
+async function previewSala() {
+  await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+  await navigateTo('/daycare')
+}
+
 const modules = computed(() => [
   { title: 'USUARIOS', subtitle: 'Gestiona a tus usuarios aquí', description: `Usuarios para ${sala.value?.sala || 'esta sala'}`, action: 'Nuevo', to: `/admin/daycare/salas/${salaId}/usuarios` },
   { title: 'TAREAS', subtitle: 'Publica tareas', description: `Tareas para la sala de ${sala.value?.sala || ''}`, action: 'Añadir', to: `/admin/daycare/salas/${salaId}/tareas` },
@@ -37,12 +45,23 @@ const modules = computed(() => [
 
 <style scoped>
 .sala-header {
+  align-items: center;
   background: #fff;
   border: 5px solid rgba(142, 193, 82, 0.2);
   border-radius: 30px;
   box-shadow: var(--shadow-soft);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
   padding: clamp(24px, 4vw, 40px);
-  text-align: center;
+}
+
+.sala-header div {
+  text-align: left;
+}
+
+.sala-header h1 {
+  margin-bottom: 0;
 }
 
 .module-grid {
@@ -100,6 +119,11 @@ const modules = computed(() => [
 }
 
 @media (max-width: 760px) {
+  .sala-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .module-grid {
     grid-template-columns: 1fr;
   }

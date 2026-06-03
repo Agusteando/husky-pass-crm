@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
+import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 interface LegacyUserRow extends RowDataPacket {
   id: number
@@ -21,6 +22,10 @@ interface LegacyUserRow extends RowDataPacket {
   sala: string | null
   has_alumno_pa: number | boolean | null
   has_personas_autorizadas: number | boolean | null
+}
+
+interface UnidadRow extends RowDataPacket {
+  unidad: string | null
 }
 
 const baseUserSql = `
@@ -75,6 +80,49 @@ export async function updateLegacyDisplayName(userId: number, displayName: strin
   await legacyWrite('UPDATE users SET displayName = ? WHERE id = ?', [displayName, userId])
 }
 
+export async function getAllDaycareUnidades() {
+  const rows = await legacyQuery<UnidadRow[]>(
+    `SELECT DISTINCT unidad
+     FROM salas
+     WHERE unidad IS NOT NULL AND unidad <> ''
+     ORDER BY unidad ASC`
+  )
+  return rows.map((row) => String(row.unidad || '').trim()).filter(Boolean)
+}
+
+export async function createSuperAdminSession(input: { email: string; displayName?: string | null; picture?: string | null }, legacyUser?: ReturnType<typeof hydrateUserRows>) {
+  const unidades = await getAllDaycareUnidades()
+  const fromLegacy = legacyUser?.toSession('admin')
+  const routes = mergeRoutePermissions(fromLegacy?.routes || [], [
+    { route: '/admin/daycare', icono: 'home' },
+    { route: '/sala', icono: 'group' },
+    { route: '/daycare-app', icono: 'pets' }
+  ])
+
+  const session: AppSessionUser = {
+    id: fromLegacy?.id || -1001,
+    kind: 'admin',
+    isSuperAdmin: true,
+    email: normalizeEmail(input.email),
+    username: fromLegacy?.username || normalizeEmail(input.email),
+    displayName: input.displayName || fromLegacy?.displayName || 'Desarrollo Tecnológico',
+    picture: input.picture || fromLegacy?.picture || null,
+    campus: fromLegacy?.campus || null,
+    empresa: fromLegacy?.empresa || null,
+    sala: fromLegacy?.sala || null,
+    roles: Array.from(new Set([...(fromLegacy?.roles || []), 'ROLE_HUSKY_SUPER_ADMIN'])),
+    unidades: unidades.length ? unidades : fromLegacy?.unidades || [],
+    plantel: fromLegacy?.plantel || [],
+    routes,
+    productScopes: [],
+    scopes: {},
+    anonymous: false,
+    loggedin: true
+  }
+
+  return session
+}
+
 function hydrateUserRows(rows: LegacyUserRow[]) {
   const first = rows[0]
   if (!first) return null
@@ -91,11 +139,13 @@ function hydrateUserRows(rows: LegacyUserRow[]) {
       const plantel = csvToList(first.plantel)
       const familyScopes = kind === 'family' ? resolveFamilyProductScopes(first, routes, roles, unidades) : {}
       const productScopes = Object.keys(familyScopes) as FamilyProductScope[]
+      const email = normalizeEmail(first.email)
 
       return {
         id: Number(first.id),
         kind,
-        email: first.email || '',
+        isSuperAdmin: kind === 'admin' && isConfiguredSuperAdminEmail(email),
+        email,
         username: first.username,
         displayName: first.displayName,
         picture: first.picture,
@@ -132,9 +182,9 @@ function resolveFamilyProductScopes(
 
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|qrPA|printable/i.test(route.route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
-  const matchesLegacyPersonasParentRule = !sala && !hasDaycareRole
+  const matchesLegacyPersonasSidebarRule = !sala && !hasDaycareRole
 
-  if (hasPersonasRoute || hasPersonasData || matchesLegacyPersonasParentRule) {
+  if (hasPersonasRoute || hasPersonasData || matchesLegacyPersonasSidebarRule) {
     scopes.personasAutorizadas = {
       product: 'personasAutorizadas',
       legacyRoute: routes.find((route) => /personas[_/-]?autorizadas|qrPA|printable/i.test(route.route))?.route || null
@@ -147,4 +197,13 @@ function resolveFamilyProductScopes(
 function normalizeLegacyScope(value?: string | null) {
   const normalized = String(value || '').trim()
   return normalized || null
+}
+
+function mergeRoutePermissions(current: LegacyRoutePermission[], extras: LegacyRoutePermission[]) {
+  const seen = new Set<string>()
+  return [...current, ...extras].filter((route) => {
+    if (!route.route || seen.has(route.route)) return false
+    seen.add(route.route)
+    return true
+  })
 }

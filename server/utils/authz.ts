@@ -4,6 +4,10 @@ export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProduct
   return user.kind === 'family' && (user.productScopes?.includes(scope) || Boolean(user.scopes?.[scope]))
 }
 
+export function isSuperAdmin(user: AppSessionUser | null | undefined) {
+  return Boolean(user?.kind === 'admin' && user.isSuperAdmin)
+}
+
 export function assertDaycareFamily(user: AppSessionUser) {
   const scope = user.scopes?.daycare
   if (!hasFamilyProductScope(user, 'daycare') || !scope?.sala || !scope?.unidad) {
@@ -22,6 +26,8 @@ export function assertDaycareAdmin(user: AppSessionUser) {
     throw createError({ statusCode: 403, statusMessage: 'Acceso administrativo no autorizado' })
   }
 
+  if (isSuperAdmin(user)) return
+
   const hasDaycarePermission = hasRoleLike(user, 'HUSKY') || user.routes.some((route) => /daycare-app|guarder[ií]a|husky|sala/i.test(route.route))
   if (!hasDaycarePermission || user.unidades.length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'El usuario no tiene alcance de guardería' })
@@ -29,6 +35,7 @@ export function assertDaycareAdmin(user: AppSessionUser) {
 }
 
 export function assertUnidadAccess(user: AppSessionUser, unidad: string) {
+  if (isSuperAdmin(user)) return
   if (!user.unidades.includes(unidad)) {
     throw createError({ statusCode: 403, statusMessage: 'Unidad fuera del alcance del usuario' })
   }

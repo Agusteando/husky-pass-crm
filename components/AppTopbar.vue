@@ -2,7 +2,7 @@
   <header class="topbar">
     <div class="page-shell topbar-inner">
       <BrandMark :to="homeTo" />
-      <nav class="topbar-nav" aria-label="Navegación principal">
+      <nav v-if="items.length" class="topbar-nav" aria-label="Navegación principal">
         <NuxtLink v-for="item in items" :key="item.to" :to="item.to" active-class="active">
           {{ item.label }}
         </NuxtLink>

@@ -7,6 +7,7 @@ export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: F
 
 export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
   if (!user || user.kind !== 'admin') return false
+  if (user.isSuperAdmin) return true
   const hasPermission = user.roles.some((role) => role.toUpperCase().includes('HUSKY')) || user.routes.some((route) => /daycare-app|guarder[ií]a|husky|sala/i.test(route.route))
   return hasPermission && user.unidades.length > 0
 }

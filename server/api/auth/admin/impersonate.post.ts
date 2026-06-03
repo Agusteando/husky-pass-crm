@@ -1,38 +1,18 @@
 import { z } from 'zod'
-import type { AdminImpersonationOrigin, AppSessionUser } from '~/types/session'
+import type { AppSessionUser } from '~/types/session'
 import { findLegacyUserById } from '~/server/data/mysqlAuth'
-import { assertDaycareAdmin } from '~/server/utils/authz'
+import { assertDaycareAdmin, isSuperAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
+import { adminOrigin } from '~/server/utils/impersonation'
 
 const schema = z.object({ userId: z.coerce.number().int().positive() })
 
 function assertImpersonationScope(admin: AppSessionUser, family: AppSessionUser) {
+  if (isSuperAdmin(admin)) return
   const daycare = family.scopes.daycare
   if (daycare?.unidad && admin.unidades.includes(daycare.unidad)) return
 
   throw createError({ statusCode: 403, statusMessage: 'Cuenta familiar fuera del alcance administrativo' })
-}
-
-function adminOrigin(user: AppSessionUser): AdminImpersonationOrigin {
-  return {
-    id: user.id,
-    kind: 'admin',
-    email: user.email,
-    username: user.username,
-    displayName: user.displayName,
-    picture: user.picture,
-    campus: user.campus,
-    empresa: user.empresa,
-    sala: user.sala,
-    roles: user.roles,
-    unidades: user.unidades,
-    plantel: user.plantel,
-    routes: user.routes,
-    productScopes: [],
-    scopes: {},
-    anonymous: false,
-    loggedin: true
-  }
 }
 
 export default defineEventHandler(async (event) => {
@@ -52,6 +32,7 @@ export default defineEventHandler(async (event) => {
 
   familyUser.impersonation = {
     startedAt: Date.now(),
+    mode: 'account',
     admin: adminOrigin(current)
   }
 

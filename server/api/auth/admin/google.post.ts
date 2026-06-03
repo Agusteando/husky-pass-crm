@@ -1,12 +1,11 @@
 import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
-import { findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
+import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
 import { assertDaycareAdmin } from '~/server/utils/authz'
+import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
-const schema = z.object({
-  credential: z.string().min(1)
-})
+const schema = z.object({ credential: z.string().min(1) })
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -18,24 +17,31 @@ export default defineEventHandler(async (event) => {
   const client = new OAuth2Client(config.googleClientId)
   const ticket = await client.verifyIdToken({ idToken: body.credential, audience: config.googleClientId })
   const payload = ticket.getPayload()
-  const email = payload?.email || ''
+  const email = normalizeEmail(payload?.email)
 
   if (!email.endsWith('@casitaiedis.edu.mx')) {
     throw createError({ statusCode: 403, statusMessage: 'El correo no pertenece a la institución.' })
   }
 
   const legacyUser = await findLegacyUserByEmail(email)
-  if (!legacyUser) {
-    throw createError({ statusCode: 401, statusMessage: 'No hay ninguna cuenta creada con ese usuario.' })
+  let sessionUser
+
+  if (isConfiguredSuperAdminEmail(email)) {
+    sessionUser = await createSuperAdminSession({ email, displayName: payload?.name, picture: payload?.picture }, legacyUser)
+  } else {
+    if (!legacyUser) {
+      throw createError({ statusCode: 401, statusMessage: 'No hay ninguna cuenta creada con ese usuario.' })
+    }
+
+    if (payload?.name && payload.name !== legacyUser.raw.displayName) {
+      await updateLegacyDisplayName(Number(legacyUser.raw.id), payload.name)
+      legacyUser.raw.displayName = payload.name
+    }
+
+    sessionUser = legacyUser.toSession('admin')
+    if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  if (payload?.name && payload.name !== legacyUser.raw.displayName) {
-    await updateLegacyDisplayName(Number(legacyUser.raw.id), payload.name)
-    legacyUser.raw.displayName = payload.name
-  }
-
-  const sessionUser = legacyUser.toSession('admin')
-  if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   assertDaycareAdmin(sessionUser)
 
   setAppSession(event, sessionUser)
