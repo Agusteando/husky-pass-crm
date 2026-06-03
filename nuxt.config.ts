@@ -22,19 +22,19 @@ export default defineNuxtConfig({
     sessionSecret: process.env.SESSION_SECRET || 'change-me-before-production',
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     public: {
-      appName: 'Husky Pass Daycare',
+      appName: 'Husky Pass CRM',
       googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-      pasePlatformUrl: process.env.NUXT_PUBLIC_PASE_PLATFORM_URL || '',
+      pasePlatformUrl: process.env.NUXT_PUBLIC_PASE_PLATFORM_URL || 'https://pase.proyeccion.com.br/dashboard?valid_auth=true&auth_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaXIuY2FzaXRhLm9jb3lvYWNhY0BjYXNpdGFpZWRpcy5lZHUubXgiLCJpYXQiOjE3MjUwNDE1MTF9.tDow_JCmHSY0N1OEirNEQMV4srccyPnMXtlMUEn4FfY',
       richmondUrl: 'https://resources.richmondelt.com/student/droplets/'
     }
   },
   app: {
     head: {
       htmlAttrs: { lang: 'es' },
-      title: 'Husky Pass Daycare',
+      title: 'Husky Pass CRM',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Husky Pass CRM fase guardería' }
+        { name: 'description', content: 'Husky Pass CRM: guardería y Personas Autorizadas' }
       ]
     }
   },

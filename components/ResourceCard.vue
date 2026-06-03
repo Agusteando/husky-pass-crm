@@ -1,14 +1,14 @@
 <template>
   <article class="resource-card">
     <div class="resource-meta">
-      <span class="badge">{{ formatDate(resource.date) }}</span>
+      <span class="badge">{{ formatDate(resource.date || resource.timestamp) }}</span>
       <span v-if="resource.starred" class="starred">Prioritario</span>
     </div>
     <h3>{{ resource.title || 'Sin título' }}</h3>
-    <p>{{ stripHtml(resource.description) || 'Sin descripción disponible.' }}</p>
+    <p>{{ stripHtml(resource.description || resource.html) || 'Sin descripción disponible.' }}</p>
     <img v-if="isImageResource(resource.resource)" :src="resource.resource || ''" alt="Recurso publicado" />
-    <a v-if="resource.resource" class="btn btn-secondary" :href="resource.resource" target="_blank" rel="noopener">
-      {{ isPdfResource(resource.resource) ? 'Abrir PDF' : 'Abrir recurso' }}
+    <a v-if="resource.resource" class="btn btn-secondary" :href="resourceHref" target="_blank" rel="noopener">
+      {{ isPdfResource(resource.resource) ? 'Abrir documento PDF' : 'Abrir recurso' }}
     </a>
     <small v-if="resource.autor" class="muted">Publicado por {{ resource.autor }}</small>
   </article>
@@ -16,9 +16,13 @@
 
 <script setup lang="ts">
 import type { DaycareResource } from '~/types/daycare'
-import { formatDate, isImageResource, isPdfResource, stripHtml } from '~/utils/daycare'
+import { formatDate, isImageResource, isPdfResource, legacyPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
-defineProps<{ resource: DaycareResource }>()
+const props = defineProps<{ resource: DaycareResource }>()
+
+const resourceHref = computed(() => {
+  return isPdfResource(props.resource.resource) ? legacyPdfViewerUrl(props.resource.resource) : props.resource.resource || ''
+})
 </script>
 
 <style scoped>

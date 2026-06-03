@@ -3,7 +3,7 @@
     brand-to="/login"
     eyebrow="Acceso familiar"
     title="Información de guardería para familias."
-    description="Ingresa con el usuario y contraseña tradicionales de Husky Pass Daycare. Este acceso es exclusivo para familias de guardería y no incluye Personas Autorizadas."
+    description="Ingresa con el usuario y contraseña tradicionales de Husky Pass Daycare. Este acceso conserva el comportamiento tradicional de Husky Pass: tareas, circulares, calendario y Personas Autorizadas cuando la cuenta familiar tiene acceso."
   >
     <form class="stack" @submit.prevent="submit">
       <div>

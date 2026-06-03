@@ -1,9 +1,9 @@
 <template>
-  <NuxtLink :to="to" class="brand-mark" aria-label="Husky Pass Daycare">
-    <span class="brand-symbol">HP</span>
-    <span>
+  <NuxtLink :to="to" class="brand-mark" aria-label="Husky Pass">
+    <img class="brand-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+    <span class="brand-copy">
       <strong>Husky Pass</strong>
-      <small>Daycare</small>
+      <small>CRM</small>
     </span>
   </NuxtLink>
 </template>
@@ -20,15 +20,15 @@ defineProps<{ to?: string }>()
   font-weight: 800;
 }
 
-.brand-symbol {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--color-brand-700), var(--color-amber));
-  color: white;
-  box-shadow: 0 12px 28px rgba(87, 139, 38, 0.2);
+.brand-logo {
+  width: clamp(118px, 18vw, 180px);
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-copy {
+  display: none;
 }
 
 strong,
@@ -42,5 +42,11 @@ small {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  .brand-logo {
+    width: 132px;
+  }
 }
 </style>

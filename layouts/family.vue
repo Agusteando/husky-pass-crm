@@ -15,7 +15,8 @@ const items = [
   { label: 'Inicio', to: '/daycare' },
   { label: 'Tareas', to: '/daycare/recursos/tareas' },
   { label: 'Circulares', to: '/daycare/recursos/circulares' },
-  { label: 'Calendario', to: '/daycare/recursos/calendario' }
+  { label: 'Calendario', to: '/daycare/recursos/calendario' },
+  { label: 'Personas Autorizadas', to: '/daycare/personas-autorizadas' }
 ]
 </script>
 
