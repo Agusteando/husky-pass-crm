@@ -1,1 +1,1 @@
-Permite vista familiar a admins y amplía superadmin para monitorear usuarios por producto
+Corrige consulta de superadmin y mantiene vista familiar para admins

@@ -244,30 +244,9 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
     params.push(like, like, like, like, like, like, like, like)
   }
 
-  if (scope === 'daycare') {
-    where.push(`A.role LIKE '%HUSKY%' AND A.sala IS NOT NULL AND A.sala <> '' AND A.unidad IS NOT NULL AND A.unidad <> ''`)
-  }
-
-  if (scope === 'schoolFamilies') {
-    where.push(`(
-      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) OR
-      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) OR
-      EXISTS(SELECT 1 FROM rutas_rol RR WHERE RR.role = A.role AND RR.route REGEXP 'personas|persona|credencial|validar' LIMIT 1)
-    )`)
-  }
-
-  if (scope === 'impersonable') {
-    where.push(`(
-      (A.role LIKE '%HUSKY%' AND A.sala IS NOT NULL AND A.sala <> '' AND A.unidad IS NOT NULL AND A.unidad <> '') OR
-      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) OR
-      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) OR
-      EXISTS(SELECT 1 FROM rutas_rol RR WHERE RR.role = A.role AND RR.route REGEXP 'personas|persona|credencial|validar' LIMIT 1)
-    )`)
-  }
-
-  if (scope === 'internal') {
-    where.push(`A.role IS NOT NULL AND A.role <> ''`)
-  }
+  // Keep product-scope filtering in application code. Some deployed MySQL/MariaDB
+  // versions reject the more complex correlated scope predicates when executed as
+  // prepared statements, which breaks the superadmin directory at runtime.
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const rows = await legacyQuery<DirectoryUserRow[]>(
@@ -292,8 +271,8 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
      ${whereSql}
      GROUP BY A.id
      ORDER BY COALESCE(NULLIF(A.plantel, ''), NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
-     LIMIT ?`,
-    [...params, limit]
+     LIMIT ${limit}`,
+    params
   )
 
   const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
@@ -305,9 +284,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   )
 
   const users = rows.map(directoryRowToSummary)
-  const visibleUsers = scope === 'internal'
-    ? users.filter((user) => user.audience === 'internal' || user.adminScopes.length)
-    : users
+  const visibleUsers = filterDirectoryUsersByScope(users, scope)
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
     ...csvToList(row.unidad),
@@ -333,6 +310,15 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       limit
     }
   }
+}
+
+
+function filterDirectoryUsersByScope(users: SuperAdminUserSummary[], scope: SuperAdminDirectoryScope) {
+  if (scope === 'daycare') return users.filter((user) => user.productScopes.includes('daycare'))
+  if (scope === 'schoolFamilies') return users.filter((user) => user.productScopes.includes('personasAutorizadas'))
+  if (scope === 'internal') return users.filter((user) => user.audience === 'internal' || user.adminScopes.length)
+  if (scope === 'impersonable') return users.filter((user) => user.canImpersonate)
+  return users
 }
 
 function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
