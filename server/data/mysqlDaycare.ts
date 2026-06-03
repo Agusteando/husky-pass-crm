@@ -103,7 +103,7 @@ export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'new
      FROM recursos
      WHERE type = ? AND sala = ? AND unidad = ? AND hidden = 0
      ${groupClause}
-     ORDER BY ${type === 'cal' ? 'date' : 'id'} DESC, id DESC`,
+     ORDER BY id DESC`,
     [type, sala, unidad]
   )
 }
