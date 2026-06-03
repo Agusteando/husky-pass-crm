@@ -4,6 +4,9 @@ import type { DaycareResource, FamilyAccount, Sala } from '~/types/daycare'
 import { assertSalaAccess, assertUnidadAccess } from '~/server/utils/authz'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 
+type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
+type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
+
 export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
   assertUnidadAccess(user, unidad)
   const rows = await legacyQuery<(Sala & RowDataPacket)[]>('SELECT id, sala, unidad FROM salas WHERE unidad = ? ORDER BY id ASC', [unidad])
@@ -94,7 +97,7 @@ export async function getAdminResources(user: AppSessionUser, salaId: number, ty
   return { sala, rows }
 }
 
-export async function upsertAdminResource(user: AppSessionUser, payload: DaycareResource) {
+export async function upsertAdminResource(user: AppSessionUser, payload: AdminResourcePayload) {
   const sala = await getSalaById(user, Number(payload.sala))
   const data = {
     id: payload.id,
@@ -148,7 +151,7 @@ export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {
   return { sala, rows }
 }
 
-export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccount) {
+export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload) {
   const sala = await getSalaById(user, Number(payload.sala))
   const role = payload.role && payload.role.includes('HUSKY') ? payload.role : 'ROLE_HUSKY_USER'
 

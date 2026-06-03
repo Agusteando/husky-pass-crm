@@ -1,5 +1,7 @@
 import mysql, { type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
 
+type LegacySqlValue = string | number | boolean | Date | null
+
 let pool: Pool | null = null
 
 function getPool() {
@@ -20,17 +22,17 @@ function getPool() {
   return pool
 }
 
-export async function legacyQuery<T extends RowDataPacket[] = RowDataPacket[]>(sql: string, params: unknown[] = []) {
+export async function legacyQuery<T extends RowDataPacket[] = RowDataPacket[]>(sql: string, params: LegacySqlValue[] = []) {
   const [rows] = await getPool().execute<T>(sql, params)
   return rows
 }
 
-export async function legacyOne<T extends RowDataPacket = RowDataPacket>(sql: string, params: unknown[] = []) {
+export async function legacyOne<T extends RowDataPacket = RowDataPacket>(sql: string, params: LegacySqlValue[] = []) {
   const rows = await legacyQuery<T[]>(sql, params)
   return rows[0] as T | undefined
 }
 
-export async function legacyWrite(sql: string, params: unknown[] = []) {
+export async function legacyWrite(sql: string, params: LegacySqlValue[] = []) {
   const [result] = await getPool().execute<ResultSetHeader>(sql, params)
   return result
 }
