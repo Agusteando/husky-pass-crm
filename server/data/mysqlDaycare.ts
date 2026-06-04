@@ -126,8 +126,17 @@ export async function getFamilyChildren(user: AppSessionUser) {
       IFNULL(matricula.nombres, B.nombreA) AS nombreA,
       IFNULL(matricula.grupo, B.grupo) AS grupo,
       IFNULL(matricula.grado, B.grado) AS grado,
-      B.nivelEdu,
-      B.campus,
+      IFNULL(matricula.nivel, B.nivelEdu) AS nivelEdu,
+      IFNULL(users.campus, B.campus) AS campus,
+      IFNULL(matricula.foto, B.foto) AS foto,
+      users.username AS matricula,
+      CASE
+        WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
+        WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
+        WHEN LEFT(users.username, 2) = 'DM' THEN 'CM'
+        WHEN users.plantel IS NOT NULL AND users.plantel <> '' THEN users.plantel
+        ELSE LEFT(users.username, 2)
+      END AS plantel,
       B.fechaA,
       B.user_id
     FROM alumno_pa B
@@ -258,50 +267,32 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
 }
 
 export async function getAuthorizedPersonas(user: AppSessionUser) {
-  const [people, children] = await Promise.all([
+  const [peopleRows, children] = await Promise.all([
     legacyQuery<(AuthorizedPerson & RowDataPacket)[]>(
-      `SELECT *
-       FROM (SELECT 1 AS indice) AS indice
-       LEFT JOIN (
-         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
-         FROM personas_autorizadas
-         WHERE user_id = ? AND indice = '1'
-       ) AS personas_autorizadas ON true
-       UNION ALL
-       SELECT *
-       FROM (SELECT 2 AS indice) AS indice
-       LEFT JOIN (
-         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
-         FROM personas_autorizadas
-         WHERE user_id = ? AND indice = '2'
-       ) AS personas_autorizadas ON true
-       UNION ALL
-       SELECT *
-       FROM (SELECT 3 AS indice) AS indice
-       LEFT JOIN (
-         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
-         FROM personas_autorizadas
-         WHERE user_id = ? AND indice = '3'
-       ) AS personas_autorizadas ON true
-       UNION ALL
-       SELECT *
-       FROM (SELECT 4 AS indice) AS indice
-       LEFT JOIN (
-         SELECT id, CAST(id AS CHAR) qr, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
-         FROM personas_autorizadas
-         WHERE user_id = ? AND indice = '4'
-       ) AS personas_autorizadas ON true`,
-      [user.id, user.id, user.id, user.id]
+      `SELECT id, CAST(id AS CHAR) qr, indice, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
+       FROM personas_autorizadas
+       WHERE user_id = ? AND indice BETWEEN 1 AND 4
+       ORDER BY indice ASC, id ASC`,
+      [user.id]
     ),
     getFamilyChildren(user)
   ])
 
-  return people.map((person, index) => ({
-    ...person,
-    indice: Number(person.indice || index + 1),
-    id: person.id ? Number(person.id) : null,
-    children
-  }))
+  const bySlot = new Map<number, AuthorizedPerson & RowDataPacket>()
+  for (const person of peopleRows) {
+    const indice = Number(person.indice)
+    if (indice >= 1 && indice <= 4 && !bySlot.has(indice)) bySlot.set(indice, person)
+  }
+
+  return [1, 2, 3, 4].map((indice) => {
+    const person = bySlot.get(indice)
+    return {
+      ...(person || {}),
+      indice,
+      id: person?.id ? Number(person.id) : null,
+      children
+    }
+  })
 }
 
 async function saveAuthorizedChildren(user: AppSessionUser, children?: AuthorizedChild[]) {
@@ -339,6 +330,11 @@ async function saveAuthorizedChildren(user: AppSessionUser, children?: Authorize
   }
 }
 
+export async function upsertAuthorizedChildren(user: AppSessionUser, children: AuthorizedChild[]) {
+  await saveAuthorizedChildren(user, children)
+  return getFamilyChildren(user)
+}
+
 export async function upsertAuthorizedPersona(user: AppSessionUser, payload: AuthorizedPersonPayload) {
   const indice = Number(payload.indice || 1)
   if (indice < 1 || indice > 4) {
@@ -357,18 +353,22 @@ export async function upsertAuthorizedPersona(user: AppSessionUser, payload: Aut
     fechaP: normalizeString(payload.fechaP)
   }
 
-  if (payload.id) {
-    const existing = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [payload.id])
-    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+  const existing = payload.id
+    ? await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [payload.id])
+    : await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE user_id = ? AND indice = ? ORDER BY id ASC LIMIT 1', [user.id, indice])
+
+  if (payload.id && !existing) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+
+  if (existing) {
     assertFamilyOwner(user, existing.user_id as number)
 
     await legacyWrite(
       `UPDATE personas_autorizadas
        SET indice = ?, paternoP = ?, maternoP = ?, nombreP = ?, parenP = ?, foto = ?, compressed_foto = ?, fechaP = ?, user_id = ?
        WHERE id = ? AND user_id = ?`,
-      [indice, values.paternoP, values.maternoP, values.nombreP, values.parenP, values.foto, values.compressed_foto, values.fechaP, user.id, payload.id, user.id]
+      [indice, values.paternoP, values.maternoP, values.nombreP, values.parenP, values.foto, values.compressed_foto, values.fechaP, user.id, existing.id, user.id]
     )
-    return { ...payload, indice, user_id: user.id }
+    return { ...payload, id: Number(existing.id), indice, user_id: user.id, qr: String(existing.id) }
   }
 
   const result = await legacyWrite(
@@ -390,15 +390,34 @@ export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) 
 
 export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: number) {
   const row = await legacyOne<(PrintableAuthorizedPerson & RowDataPacket)>(
-    `SELECT A.*, IFNULL(MAX(B.nivelEdu), 'preescolar') AS nivelEdu
+    `SELECT
+       A.*,
+       IFNULL(MAX(IFNULL(m.nivel, B.nivelEdu)), 'preescolar') AS nivelEdu,
+       MAX(u.username) AS matricula,
+       MAX(CASE
+         WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
+         WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
+         WHEN LEFT(u.username, 2) = 'DM' THEN 'CM'
+         WHEN u.plantel IS NOT NULL AND u.plantel <> '' THEN u.plantel
+         ELSE LEFT(u.username, 2)
+       END) AS plantel,
+       MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
+       MAX(IFNULL(c.foto, IFNULL(m.foto, B.foto))) AS fotoA,
+       MAX(IFNULL(m.grado, B.grado)) AS gradoA,
+       MAX(IFNULL(m.grupo, B.grupo)) AS grupoA
      FROM personas_autorizadas A
+     LEFT JOIN users u ON u.id = A.user_id
      LEFT JOIN alumno_pa B ON A.user_id = B.user_id
+     LEFT JOIN matricula m ON u.username = m.matricula
+     LEFT JOIN credenciales c ON u.username = c.matricula
      WHERE A.id = ?
      GROUP BY A.id`,
     [id]
   )
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
   assertFamilyOwner(user, row.user_id)
+  row.children = await getFamilyChildren(user)
+  row.child = row.children?.[0] || null
   return row
 }
 

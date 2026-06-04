@@ -4,6 +4,7 @@ import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRou
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
+import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 
 interface LegacyUserRow extends RowDataPacket {
   id: number
@@ -82,7 +83,7 @@ const baseUserSql = `
     EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) AS has_alumno_pa,
     EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) AS has_personas_autorizadas
   FROM users AS A
-  LEFT JOIN rutas_rol AS B ON (A.role = B.role)
+  LEFT JOIN rutas_rol AS B ON (FIND_IN_SET(B.role, REPLACE(COALESCE(A.role, ''), ' ', '')) > 0)
 `
 
 export async function findLegacyUserByEmail(email: string) {
@@ -204,7 +205,7 @@ function resolveFamilyProductScopes(
   const scopes: FamilyProductScopes = {}
   const sala = normalizeLegacyScope(row.sala)
   const unidad = unidades[0]
-  const hasDaycareRole = roles.some((role) => role.toUpperCase().includes('HUSKY'))
+  const hasDaycareRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
 
   if (hasDaycareRole && sala && unidad) {
     scopes.daycare = { product: 'daycare', sala, unidad }
@@ -374,20 +375,35 @@ async function loadAlumnoPaUserIds(userIds: number[]) {
 function directoryScopePredicate(scope: SuperAdminDirectoryScope) {
   if (scope === 'daycare') {
     return `(
-      A.role LIKE '%HUSKY%' AND
+      FIND_IN_SET('${DAYCARE_FAMILY_ROLE}', REPLACE(COALESCE(A.role, ''), ' ', '')) > 0 AND
       A.sala IS NOT NULL AND TRIM(CAST(A.sala AS CHAR)) <> '' AND
       A.unidad IS NOT NULL AND TRIM(CAST(A.unidad AS CHAR)) <> ''
+    )`
+  }
+
+  if (scope === 'schoolFamilies') {
+    return `(
+      A.id IN (SELECT DISTINCT user_id FROM personas_autorizadas WHERE user_id IS NOT NULL) OR
+      A.id IN (SELECT DISTINCT user_id FROM alumno_pa WHERE user_id IS NOT NULL)
+    )`
+  }
+
+  if (scope === 'impersonable') {
+    return `(
+      (
+        FIND_IN_SET('${DAYCARE_FAMILY_ROLE}', REPLACE(COALESCE(A.role, ''), ' ', '')) > 0 AND
+        A.sala IS NOT NULL AND TRIM(CAST(A.sala AS CHAR)) <> '' AND
+        A.unidad IS NOT NULL AND TRIM(CAST(A.unidad AS CHAR)) <> ''
+      ) OR
+      A.id IN (SELECT DISTINCT user_id FROM personas_autorizadas WHERE user_id IS NOT NULL) OR
+      A.id IN (SELECT DISTINCT user_id FROM alumno_pa WHERE user_id IS NOT NULL)
     )`
   }
 
   if (scope === 'internal') {
     return `(
       A.role IS NOT NULL AND TRIM(CAST(A.role AS CHAR)) <> '' AND
-      NOT (
-        A.role LIKE '%HUSKY%' AND
-        A.sala IS NOT NULL AND TRIM(CAST(A.sala AS CHAR)) <> '' AND
-        A.unidad IS NOT NULL AND TRIM(CAST(A.unidad AS CHAR)) <> ''
-      )
+      A.role <> '${DAYCARE_FAMILY_ROLE}'
     )`
   }
 
@@ -408,23 +424,24 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
   const unidad = csvToList(row.unidad)
   const plantel = csvToList(row.plantel)
   const routes = String(row.routes || '').split('||').map((route) => route.trim()).filter(Boolean)
-  const hasDaycareRole = roles.some((role) => role.toUpperCase().includes('HUSKY'))
+  const hasDaycareFamilyRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
+  const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
   const hasDaycareAdminRoute = routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route))
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
   const productScopes: FamilyProductScope[] = []
 
-  if (hasDaycareRole && unidad.length && normalizeLegacyScope(row.sala)) productScopes.push('daycare')
+  if (hasDaycareFamilyRole && unidad.length && normalizeLegacyScope(row.sala)) productScopes.push('daycare')
   if (hasPersonasRoute || hasPersonasData) productScopes.push('personasAutorizadas')
 
   const adminScopes: string[] = []
-  if ((hasDaycareRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
+  if ((hasDaycareInternalRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
 
   let audience: SuperAdminUserSummary['audience'] = 'unknown'
   if (productScopes.length > 1) audience = 'multiProductFamily'
   else if (productScopes.includes('daycare')) audience = 'daycareFamily'
   else if (productScopes.includes('personasAutorizadas')) audience = 'schoolFamily'
-  else if (roles.length || routes.length) audience = 'internal'
+  else if (adminScopes.length || roles.some((role) => !hasRoleToken([role], DAYCARE_FAMILY_ROLE)) || routes.length) audience = 'internal'
 
   return {
     id: Number(row.id),

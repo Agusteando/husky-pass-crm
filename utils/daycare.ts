@@ -48,6 +48,7 @@ export function stripHtml(value?: string | null) {
 
 export function publishedPdfViewerUrl(resource?: string | null) {
   if (!resource) return ''
+  if (resource.startsWith('/uploads/')) return resource
   const fileName = resource.split('/').pop()?.split('#')[0]?.split('?')[0]
   if (!fileName) return resource
   return `https://admin.casitaiedis.edu.mx/pdfjs/web/viewer.html?file=${encodeURIComponent(`/virtual/${fileName}`)}`
@@ -81,6 +82,10 @@ export function authorizedPersonCredentialPath(id?: number | string | null) {
 
 export function authorizedPersonPrintPath(id?: number | string | null) {
   return id ? `/familia/personas-autorizadas/${id}/imprimir` : ''
+}
+
+export function authorizedPersonMarbetePath(id?: number | string | null) {
+  return id ? `/familia/personas-autorizadas/${id}/marbete` : ''
 }
 
 export function isHiddenResource(value: unknown) {

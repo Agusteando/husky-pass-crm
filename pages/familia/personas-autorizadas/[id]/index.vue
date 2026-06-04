@@ -1,29 +1,48 @@
 <template>
-  <section class="stack">
-    <div class="workspace-head compact-head">
+  <section class="pa-detail stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
+    <header class="detail-head">
       <div>
         <p class="eyebrow">Persona autorizada</p>
         <h1>{{ fullName || 'Registro' }}</h1>
-        <p>{{ person?.parenP || 'Consulta QR, credencial y datos principales.' }}</p>
+        <p>{{ subtitle }}</p>
       </div>
       <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
-    </div>
+    </header>
 
-    <section v-if="person" class="detail-grid">
-      <article class="card person-card">
-        <img v-if="person.foto" :src="normalizeVirtualAssetUrl(person.foto)" alt="Fotografía" />
-        <div v-else class="photo-fallback">PA</div>
-        <h2>{{ fullName }}</h2>
-        <p>{{ person.parenP || 'Parentesco no especificado' }}</p>
+    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar este registro.</p>
+    <div v-else-if="pending" class="card loading-card" data-product-loading data-state="loading">Cargando registro...</div>
+
+    <section v-else-if="person" class="detail-grid" data-product-panel="authorized-person-detail" data-state="content">
+      <article class="identity-card">
+        <div class="photo">
+          <img v-if="photoUrl" :src="photoUrl" alt="Fotografia" />
+          <span v-else>{{ initials }}</span>
+        </div>
+        <div>
+          <p class="eyebrow">{{ authorizedPersonLabel(person.indice) }}</p>
+          <h2>{{ fullName }}</h2>
+          <p>{{ person.parenP || 'Parentesco no especificado' }}</p>
+        </div>
       </article>
-      <article class="card actions-card">
-        <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/qr`">Ver QR</NuxtLink>
-        <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/credencial`">Credencial</NuxtLink>
-        <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/imprimir`">Imprimir</NuxtLink>
-        <button class="btn btn-secondary" type="button" @click="shareValidation">Compartir validación</button>
-        <p v-if="shareMessage" class="muted share-message">{{ shareMessage }}</p>
+
+      <article class="actions-card">
+        <div class="readiness">
+          <span class="ok">Registro guardado</span>
+          <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? studentLine : 'Alumno pendiente' }}</span>
+          <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? 'Marbete listo para descargar' : 'Completa alumno para marbete' }}</span>
+        </div>
+
+        <div class="action-grid">
+          <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-marbete">Previsualizar marbete</NuxtLink>
+          <a class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar marbete</a>
+          <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/qr`" data-diagnostic-link="ver-qr">Ver QR</NuxtLink>
+          <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validacion</button>
+        </div>
+
+        <p v-if="shareMessage" class="notice">{{ shareMessage }}</p>
       </article>
     </section>
+
     <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
   </section>
 </template>
@@ -31,32 +50,45 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedPerson } from '~/types/daycare'
-import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import { appAbsoluteUrl, authorizedPersonLabel, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
-const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
+const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { timeout: 15000 })
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
+const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
+const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel, nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus }))
+const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
+const initials = computed(() => (fullName.value || 'PA').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
+const photoUrl = computed(() => normalizeVirtualAssetUrl(person.value?.compressed_foto || person.value?.foto || ''))
+const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta QR, marbete y validacion.'))
+const studentLine = computed(() => {
+  const child = primaryChild.value
+  if (!child) return ''
+  return [child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ')
+})
 const shareMessage = ref('')
 
 async function shareValidation() {
   if (!person.value?.id) return
 
   const url = appAbsoluteUrl(authorizedPersonValidationPath(person.value.id))
-  const title = fullName.value ? `Validación de ${fullName.value}` : 'Validación de Persona Autorizada'
+  const title = fullName.value ? `Validacion de ${fullName.value}` : 'Validacion de Persona Autorizada'
   shareMessage.value = ''
 
   try {
     if (navigator.share) {
-      await navigator.share({ title, text: 'Código de validación de Persona Autorizada.', url })
+      await navigator.share({ title, text: 'Codigo de validacion de Persona Autorizada.', url })
+      shareMessage.value = 'Validacion compartida.'
       return
     }
 
     await navigator.clipboard.writeText(url)
-    shareMessage.value = 'Liga de validación copiada.'
+    shareMessage.value = 'Liga de validacion copiada.'
   } catch {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -64,54 +96,120 @@ async function shareValidation() {
 </script>
 
 <style scoped>
+.pa-detail {
+  --pa-primary: #618b2f;
+  --pa-contrast: #fff;
+  --pa-soft: rgba(97, 139, 47, 0.12);
+  --pa-border: rgba(97, 139, 47, 0.28);
+  --pa-gray: #50535a;
+  --pa-muted: #86888c;
+}
+
+.detail-head,
+.identity-card,
+.actions-card {
+  background: #fff;
+  border: 1px solid var(--pa-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.detail-head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: clamp(14px, 2.4vw, 20px);
+}
+
+.detail-head h1 {
+  color: var(--pa-gray);
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  margin-bottom: 6px;
+}
+
 .detail-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
 }
 
-.person-card,
+.identity-card,
 .actions-card {
   display: grid;
   gap: 12px;
+  padding: 14px;
 }
 
-.person-card img,
-.photo-fallback {
-  aspect-ratio: 1 / 1;
-  border-radius: 22px;
+.photo {
+  aspect-ratio: 4 / 5;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 18px;
+  color: var(--pa-primary);
+  display: grid;
+  font-size: 2.8rem;
+  font-weight: 950;
+  overflow: hidden;
+  place-items: center;
+}
+
+.photo img {
+  height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
-.photo-fallback {
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
+.identity-card h2 {
+  color: var(--pa-gray);
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+
+.readiness,
+.action-grid {
   display: grid;
-  font-size: 3rem;
-  font-weight: 900;
-  place-items: center;
+  gap: 8px;
 }
 
-.person-card h2 {
-  margin-bottom: 0;
+.readiness span {
+  background: #f5f5f4;
+  border: 1px solid #e8e8e4;
+  border-radius: 999px;
+  color: var(--pa-muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+  padding: 8px 10px;
 }
 
-.actions-card {
-  align-content: start;
+.readiness span.ok {
+  background: var(--pa-soft);
+  border-color: var(--pa-border);
+  color: var(--pa-gray);
 }
 
-.actions-card .btn {
-  justify-content: center;
+.action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.share-message {
-  font-size: 0.88rem;
-  text-align: center;
+.notice {
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 14px;
+  color: var(--pa-gray);
+  font-weight: 850;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.loading-card {
+  color: var(--color-muted);
 }
 
 @media (max-width: 760px) {
-  .detail-grid {
+  .detail-head,
+  .detail-grid,
+  .action-grid {
     grid-template-columns: 1fr;
   }
 }

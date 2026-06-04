@@ -4,9 +4,12 @@
       <div>
         <p class="eyebrow">Superadmin</p>
         <h1>Gestión de usuarios y productos</h1>
-        <p>Monitorea cuentas internas, familias de daycare y familias preescolar-secundaria desde un solo directorio real.</p>
+        <p>Monitorea cuentas internas, familias de guardería y familias de Personas Autorizadas desde un solo directorio real.</p>
       </div>
-      <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando…' : 'Actualizar' }}</button>
+      <div class="head-actions">
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Readiness PA</NuxtLink>
+        <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
+      </div>
     </header>
 
     <section class="scope-tabs" aria-label="Alcance de usuarios">
@@ -57,11 +60,11 @@
         <strong>{{ directory.metrics.familyUsers }}</strong>
       </article>
       <article>
-        <span>Daycare</span>
+        <span>Guardería</span>
         <strong>{{ directory.metrics.daycareFamilies }}</strong>
       </article>
       <article>
-        <span>Preescolar-secundaria</span>
+        <span>Personas Autorizadas</span>
         <strong>{{ directory.metrics.schoolFamilies }}</strong>
       </article>
       <article>
@@ -129,7 +132,7 @@
                 <td data-label="Alcances">
                   <div class="pills">
                     <span v-for="scope in user.productScopes" :key="scope" class="scope-pill">{{ productScopeLabel(scope) }}</span>
-                    <span v-if="user.adminScopes.includes('daycare')" class="scope-pill muted-pill">Daycare interno</span>
+                    <span v-if="user.adminScopes.includes('daycare')" class="scope-pill muted-pill">Guardería interna</span>
                     <span v-if="!user.productScopes.length && !user.adminScopes.length" class="muted">Sin alcance detectado</span>
                   </div>
                 </td>
@@ -207,8 +210,8 @@ const router = useRouter()
 
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; description: string }> = [
   { value: 'all', label: 'Todos', description: 'Directorio completo' },
-  { value: 'daycare', label: 'Daycare', description: 'Familias de guardería' },
-  { value: 'schoolFamilies', label: 'Preescolar-secundaria', description: 'Familias escolares' },
+  { value: 'daycare', label: 'Guardería', description: 'Familias de guardería' },
+  { value: 'schoolFamilies', label: 'Personas Autorizadas', description: 'Familias escolares' },
   { value: 'internal', label: 'Internos', description: 'Roles administrativos' },
   { value: 'impersonable', label: 'Soporte', description: 'Cuentas familiares' }
 ]
@@ -354,7 +357,17 @@ function syncQuery(selectedId: number | null = selectedUser.value?.id || null) {
   if (search.value.trim()) nextQuery.buscar = search.value.trim()
   if (limit.value !== 120) nextQuery.limite = String(limit.value)
   if (selectedId) nextQuery.usuario = String(selectedId)
-  router.replace({ path: route.path, query: nextQuery })
+  replaceQueryIfChanged(nextQuery)
+}
+
+function replaceQueryIfChanged(query: Record<string, string>) {
+  if (!import.meta.client) return
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
+  const changed = Array.from(keys).some((key) => {
+    const current = Array.isArray(route.query[key]) ? route.query[key]?.[0] : route.query[key]
+    return String(current || '') !== String(query[key] || '')
+  })
+  if (changed) router.replace({ path: route.path, query })
 }
 
 function displayName(user: SuperAdminUserSummary) {
@@ -371,15 +384,15 @@ function labelList(values: string[], fallback: string) {
 }
 
 function productScopeLabel(scope: FamilyProductScope) {
-  if (scope === 'daycare') return 'Daycare familia'
-  if (scope === 'personasAutorizadas') return 'Familia preescolar-secundaria'
+  if (scope === 'daycare') return 'Familia guardería'
+  if (scope === 'personasAutorizadas') return 'Personas Autorizadas'
   return scope
 }
 
 function audienceLabel(user: SuperAdminUserSummary) {
   if (user.audience === 'multiProductFamily') return 'Familia multiproducto'
-  if (user.audience === 'daycareFamily') return 'Familia daycare'
-  if (user.audience === 'schoolFamily') return 'Familia escolar'
+  if (user.audience === 'daycareFamily') return 'Familia guardería'
+  if (user.audience === 'schoolFamily') return 'Personas Autorizadas'
   if (user.audience === 'internal') return 'Interno'
   return 'Sin clasificar'
 }
@@ -442,6 +455,12 @@ function normalizeLimit(value: unknown) {
 
 .superadmin-head {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .scope-tabs {

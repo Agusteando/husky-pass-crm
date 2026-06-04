@@ -7,9 +7,6 @@
         <slot />
       </main>
     </div>
-    <ClientOnly>
-      <AdminProductDiagnosticsModal v-if="diagnosticsActive" :session="session" />
-    </ClientOnly>
   </div>
 </template>
 
@@ -25,12 +22,17 @@ const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/supera
 const topbarItems = computed(() => {
   const firstUnidad = session.value?.user?.unidades?.[0] || ''
   const daycareTo = firstUnidad ? `/admin/daycare/salas?unidad=${encodeURIComponent(firstUnidad)}` : '/admin/daycare/salas'
-  const items = [{ label: 'Daycare', to: daycareTo }]
-  if (session.value?.user?.isSuperAdmin) items.unshift({ label: 'Superadmin', to: '/admin/superadmin' })
+  const items = [{ label: 'Guardería', to: daycareTo }]
+  if (session.value?.user?.isSuperAdmin) {
+    items.unshift(
+      { label: 'Superadmin', to: '/admin/superadmin' },
+      { label: 'Personas Autorizadas', to: '/admin/superadmin/personas-autorizadas' },
+      { label: 'Marbetes', to: '/admin/superadmin/marbetes' }
+    )
+  }
   return items
 })
 const isDaycareWorkspace = computed(() => route.path.startsWith('/admin/daycare'))
-const diagnosticsActive = computed(() => session.value?.user?.kind === 'admin')
 </script>
 
 <style scoped>

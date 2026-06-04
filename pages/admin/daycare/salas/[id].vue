@@ -1,5 +1,6 @@
 <template>
-  <section class="sala-workspace stack" data-product-area="daycare" data-product-screen="sala-resumen">
+  <NuxtPage v-if="!isSalaSummary" />
+  <section v-else class="sala-workspace stack" data-product-area="daycare" data-product-screen="sala-resumen">
     <AdminModuleTabs :sala-id="salaId" />
 
     <p v-if="error" class="alert">No fue posible cargar el workspace de la sala.</p>
@@ -81,7 +82,7 @@
         <div class="panel-head">
           <div>
             <p class="eyebrow">Familias recientes</p>
-            <h2>Accesos daycare</h2>
+            <h2>Accesos de guardería</h2>
           </div>
           <NuxtLink class="btn btn-secondary" :to="`/admin/daycare/salas/${salaId}/familias`" data-diagnostic-link="ver-familias">Ver todas</NuxtLink>
         </div>
@@ -109,6 +110,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const route = useRoute()
 const salaId = Number(route.params.id)
 const actionError = ref('')
+const isSalaSummary = computed(() => route.path.replace(/\/$/, '') === `/admin/daycare/salas/${salaId}`)
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
 const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`, { timeout: 15000 })
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))

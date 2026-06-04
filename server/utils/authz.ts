@@ -1,5 +1,6 @@
 import { createError } from 'h3'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
+import { DAYCARE_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
   if (user.kind !== 'family') return false
@@ -39,7 +40,7 @@ export function assertDaycareAdmin(user: AppSessionUser) {
 
   if (isSuperAdmin(user)) return
 
-  const hasDaycarePermission = hasRoleLike(user, 'HUSKY') || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
+  const hasDaycarePermission = hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
   if (!hasDaycarePermission || user.unidades.length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'El usuario no tiene alcance de guardería' })
   }
@@ -58,8 +59,4 @@ export function assertSalaAccess(user: AppSessionUser, sala: string | number) {
   if (scopeSala && String(scopeSala) !== String(sala)) {
     throw createError({ statusCode: 403, statusMessage: 'Sala fuera del alcance del usuario' })
   }
-}
-
-function hasRoleLike(user: AppSessionUser, token: string) {
-  return user.roles.some((role) => role.toUpperCase().includes(token.toUpperCase()))
 }

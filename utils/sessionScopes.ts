@@ -1,5 +1,12 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 
+export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
+export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
+
+export function hasRoleToken(roles: string[] | null | undefined, role: string) {
+  return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
+}
+
 export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: FamilyProductScope) {
   if (!user || user.kind !== 'family') return false
 
@@ -18,7 +25,7 @@ export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: F
 export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
   if (!user || user.kind !== 'admin') return false
   if (user.isSuperAdmin) return true
-  const hasPermission = user.roles.some((role) => role.toUpperCase().includes('HUSKY')) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
+  const hasPermission = hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
   return hasPermission && user.unidades.length > 0
 }
 

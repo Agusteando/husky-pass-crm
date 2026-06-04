@@ -38,6 +38,9 @@
       :resource="editing"
       :label="title"
       :type="type"
+      :sala-id="salaId"
+      :sala-name="data?.sala?.sala"
+      :unidad="data?.sala?.unidad"
       :saving="saving"
       @save="save"
       @cancel="closeEditor"
@@ -116,8 +119,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
+import ResourceEditor from '~/components/admin/ResourceEditor.vue'
 import type { DaycareResource, Sala } from '~/types/daycare'
-import { formatDate, isHiddenResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { daycareResourceSection, formatDate, isHiddenResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -138,6 +142,7 @@ const resourceFilter = ref<'all' | 'with' | 'without'>(normalizeResourceFilter(r
 const actionError = ref('')
 const actionNotice = ref('')
 const selectedIdFromRoute = computed(() => Number(route.query.registro || 0))
+const createRequested = ref(isCreateQuery(route.query.create) || (import.meta.client && new URLSearchParams(window.location.search).get('create') === '1'))
 
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: props.type },
@@ -177,6 +182,8 @@ watch(() => route.query.recurso, (value) => {
 })
 
 watch(filteredRows, (rows) => {
+  if (createRequested.value) return
+
   if (!rows.length) {
     selected.value = null
     return
@@ -200,16 +207,15 @@ watch(selectedIdFromRoute, (id) => {
   if (row) selected.value = row
 })
 
-watch(() => route.query.create, async (value) => {
-  if (value === '1') {
+watch(() => route.query.create, (value) => {
+  if (isCreateQuery(value) && !editing.value) {
+    createRequested.value = true
     startCreate(false)
-    const nextQuery = { ...route.query }
-    delete nextQuery.create
-    await router.replace({ path: route.path, query: nextQuery })
   }
 }, { immediate: true })
 
 function startCreate(updateRoute = true) {
+  createRequested.value = true
   actionError.value = ''
   actionNotice.value = ''
   editing.value = {
@@ -226,11 +232,14 @@ function startCreate(updateRoute = true) {
 }
 
 function closeEditor() {
+  createRequested.value = false
   editing.value = null
   actionError.value = ''
+  if (isCreateQuery(route.query.create)) syncSelectedQuery(selected.value?.id)
 }
 
 function selectRow(item: DaycareResource) {
+  createRequested.value = false
   selected.value = item
   actionError.value = ''
   syncSelectedQuery(item.id)
@@ -243,9 +252,19 @@ async function save(payload: Partial<DaycareResource>) {
   try {
     const saved = await $fetch<DaycareResource>('/api/daycare/admin/resources', {
       method: 'POST',
-      body: { ...payload, sala: String(salaId), type: props.type }
+      body: { ...payload, sala: String(salaId), type: payload.type || props.type }
     })
     editing.value = null
+    createRequested.value = false
+    if (saved.type && saved.type !== props.type) {
+      const section = daycareResourceSection(saved.type)
+      if (section) {
+        const query = route.query.unidad ? { unidad: String(route.query.unidad), registro: String(saved.id) } : { registro: String(saved.id) }
+        await router.replace({ path: `/admin/daycare/salas/${salaId}/${section}`, query })
+        actionNotice.value = 'Publicacion creada en otra categoria.'
+        return
+      }
+    }
     await refresh()
     await nextTick()
     const row = (data.value?.rows || []).find((item) => item.id === saved.id)
@@ -307,18 +326,29 @@ function syncQuery() {
   setQueryValue(nextQuery, 'estado', visibilityFilter.value === 'published' ? '' : visibilityFilter.value)
   setQueryValue(nextQuery, 'recurso', resourceFilter.value === 'all' ? '' : resourceFilter.value)
   delete nextQuery.create
-  router.replace({ path: route.path, query: nextQuery })
+  replaceQueryIfChanged(nextQuery)
 }
 
 function syncSelectedQuery(id?: number, extra: Record<string, string> = {}) {
   const nextQuery = { ...route.query, ...extra }
+  if (!Object.prototype.hasOwnProperty.call(extra, 'create')) delete nextQuery.create
   setQueryValue(nextQuery, 'registro', id ? String(id) : '')
-  router.replace({ path: route.path, query: nextQuery })
+  replaceQueryIfChanged(nextQuery)
 }
 
 function setQueryValue(query: Record<string, any>, key: string, value: string) {
   if (value) query[key] = value
   else delete query[key]
+}
+
+function replaceQueryIfChanged(query: Record<string, any>) {
+  if (!import.meta.client) return Promise.resolve()
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
+  const changed = Array.from(keys).some((key) => {
+    const current = Array.isArray(route.query[key]) ? route.query[key]?.[0] : route.query[key]
+    return String(current || '') !== String(query[key] || '')
+  })
+  return changed ? router.replace({ path: route.path, query }) : Promise.resolve()
 }
 
 function normalizeVisibilityFilter(value: unknown): 'published' | 'hidden' | 'all' {
@@ -327,6 +357,11 @@ function normalizeVisibilityFilter(value: unknown): 'published' | 'hidden' | 'al
 
 function normalizeResourceFilter(value: unknown): 'all' | 'with' | 'without' {
   return value === 'with' || value === 'without' ? value : 'all'
+}
+
+function isCreateQuery(value: unknown) {
+  const source = Array.isArray(value) ? value[0] : value
+  return String(source || '') === '1'
 }
 </script>
 

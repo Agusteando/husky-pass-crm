@@ -3,5 +3,5 @@ definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-index'] })
 </script>
 
 <template>
-  <div />
+  <NuxtPage />
 </template>

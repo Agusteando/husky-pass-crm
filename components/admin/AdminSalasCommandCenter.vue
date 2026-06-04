@@ -2,7 +2,7 @@
   <section class="salas-command stack" data-product-area="daycare" data-product-screen="salas">
     <header class="command-hero">
       <div>
-        <p class="eyebrow">Daycare admin</p>
+        <p class="eyebrow">Guardería admin</p>
         <h1>Salas</h1>
         <p>Selecciona unidad y sala. Desde aquí se decide qué contenido familiar queda visible.</p>
       </div>
@@ -21,9 +21,9 @@
     </header>
 
     <section v-if="noUnidadAvailable" class="card state-card" data-product-panel="daycare-unidades" data-state="unavailable">
-      <p class="eyebrow">Daycare no disponible</p>
+      <p class="eyebrow">Guardería no disponible</p>
       <h2>La sesión no tiene unidades de guardería para consultar.</h2>
-      <p>Verifica que el usuario tenga alcance interno daycare o que existan unidades en la tabla de salas.</p>
+      <p>Verifica que el usuario tenga alcance interno de guardería o que existan unidades en la tabla de salas.</p>
     </section>
 
     <section class="summary-strip" aria-label="Resumen de unidad">
@@ -240,7 +240,7 @@ function syncQuery() {
   if (selectedUnidad.value) query.unidad = selectedUnidad.value
   if (selectedSalaId.value) query.sala = String(selectedSalaId.value)
   if (search.value.trim()) query.buscar = search.value.trim()
-  router.replace({ path: route.path, query })
+  replaceQueryIfChanged(query)
 }
 
 function goToSalaSummary() {
@@ -274,6 +274,16 @@ function normalizeSalaQuery(value: unknown) {
   const source = Array.isArray(value) ? value[0] : value
   const id = Number(source || 0)
   return Number.isInteger(id) && id > 0 ? id : null
+}
+
+function replaceQueryIfChanged(query: Record<string, string>) {
+  if (!import.meta.client) return
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
+  const changed = Array.from(keys).some((key) => {
+    const current = Array.isArray(route.query[key]) ? route.query[key]?.[0] : route.query[key]
+    return String(current || '') !== String(query[key] || '')
+  })
+  if (changed) router.replace({ path: route.path, query })
 }
 
 function roomInitials(value?: string | null) {

@@ -45,12 +45,22 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const model = reactive<Partial<FamilyAccount>>({ ...props.account })
+const model = reactive<Partial<FamilyAccount>>(normalizeAccount(props.account))
 
-watch(() => props.account, (account) => Object.assign(model, account), { deep: true })
+watch(() => props.account, (account) => Object.assign(model, normalizeAccount(account)), { deep: true })
 
 function submit() {
   emit('save', { ...model })
+}
+
+function normalizeAccount(account: Partial<FamilyAccount>) {
+  return {
+    ...account,
+    nombre_nino: account.nombre_nino || '',
+    username: account.username || '',
+    email: account.email || '',
+    plaintext: account.plaintext || ''
+  }
 }
 </script>
 

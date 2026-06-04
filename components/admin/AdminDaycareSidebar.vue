@@ -3,7 +3,7 @@
     <div class="rail-header">
       <div>
         <p class="eyebrow">Workspace</p>
-        <strong>Daycare</strong>
+        <strong>Guardería</strong>
       </div>
       <span v-if="session.user.isSuperAdmin" class="status-pill">Super admin</span>
     </div>
@@ -30,6 +30,7 @@
 
     <nav class="primary-nav" aria-label="Navegación daycare admin">
       <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active" data-diagnostic-link="superadmin">Superadmin</NuxtLink>
+      <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin/marbetes" active-class="active" data-diagnostic-link="marbetes">Marbetes</NuxtLink>
       <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active" data-diagnostic-link="salas">Salas</NuxtLink>
       <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'familias')" active-class="active" data-diagnostic-link="familias">Familias</NuxtLink>
       <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'tareas')" active-class="active" data-diagnostic-link="tareas">Tareas</NuxtLink>

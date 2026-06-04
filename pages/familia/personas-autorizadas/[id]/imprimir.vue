@@ -1,74 +1,76 @@
 <template>
-  <main class="credential-shell">
-    <section v-if="pending" class="credential-card status-card">
-      <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-      <h1>Cargando credencial…</h1>
+  <main class="print-shell" :style="themeVars">
+    <section v-if="pending" class="status-card" data-product-loading>
+      <h1>Preparando marbete...</h1>
     </section>
 
-    <section v-else-if="loadError || !data" class="credential-card status-card">
-      <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-      <h1>Credencial no disponible</h1>
+    <section v-else-if="loadError || !data" class="status-card" data-state="error">
+      <h1>Marbete no disponible</h1>
       <p>No encontramos esta persona autorizada dentro de tu cuenta.</p>
+      <NuxtLink class="btn btn-secondary no-print" to="/familia/personas-autorizadas">Volver</NuxtLink>
     </section>
 
-    <section v-else class="credential-card">
-      <header>
-        <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-        <div>
-          <p>Persona Autorizada</p>
-          <h1>{{ fullName }}</h1>
-          <span>{{ data.parenP || 'Parentesco no especificado' }}</span>
-        </div>
-      </header>
-      <div class="credential-body">
-        <img v-if="data.foto" class="person-photo" :src="normalizeVirtualAssetUrl(data.foto)" alt="Fotografía" />
-        <div v-else class="person-photo empty-photo">PA</div>
-        <div class="qr-box">
-          <img :src="qrImage" alt="Código QR" />
-          <small>{{ validationUrl }}</small>
-        </div>
+    <section v-else class="print-card" data-product-panel="marbete-print" data-state="content">
+      <div class="print-actions no-print">
+        <strong>{{ fullName }}</strong>
+        <span>{{ templateContext }}</span>
+        <a class="btn btn-primary" :href="downloadUrl">Descargar SVG</a>
       </div>
-      <footer><strong>{{ data.nivelEdu || 'Husky Pass' }}</strong></footer>
+      <iframe ref="frame" :src="previewUrl" title="Marbete imprimible" @load="printFrame"></iframe>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
-import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-const route = useRoute()
-const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
-const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
-const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl.value)}`)
 
-onMounted(() => {
-  if (data.value) window.print()
-})
+const route = useRoute()
+const frame = ref<HTMLIFrameElement | null>(null)
+const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
+const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEdu, campus: data.value?.child?.campus }))
+const themeVars = computed(() => personasThemeStyle(theme.value))
+const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
+const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
+const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}`)
+const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
+
+function printFrame() {
+  setTimeout(() => {
+    frame.value?.contentWindow?.focus()
+    frame.value?.contentWindow?.print()
+  }, 250)
+}
 </script>
 
 <style scoped>
-.credential-shell {
+.print-shell {
+  --pa-primary: #618b2f;
+  --pa-contrast: #fff;
+  --pa-soft: rgba(97, 139, 47, 0.12);
+  --pa-border: rgba(97, 139, 47, 0.28);
+  --pa-gray: #50535a;
   background: #fff;
   display: grid;
   min-height: 100vh;
-  padding: 18px;
+  padding: 14px;
   place-items: center;
 }
 
-.credential-card {
+.status-card,
+.print-card {
   background: #fff;
-  border: 1px solid #dfe8d7;
-  border-radius: 28px;
-  color: var(--color-ink);
+  border: 1px solid var(--pa-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 18px;
-  padding: clamp(18px, 4vw, 28px);
-  width: min(100%, 680px);
+  gap: 12px;
+  padding: 14px;
+  width: min(100%, 740px);
 }
 
 .status-card {
@@ -76,101 +78,56 @@ onMounted(() => {
   text-align: center;
 }
 
-.status-card img {
-  max-width: 180px;
-}
-
-.status-card h1,
-.status-card p {
-  margin-bottom: 0;
-}
-
-header {
+.print-actions {
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 16px;
   display: grid;
-  gap: 18px;
-  grid-template-columns: 170px 1fr;
-  padding-bottom: 18px;
+  gap: 4px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px;
 }
 
-header img {
+.print-actions strong,
+.print-actions span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.print-actions span {
+  color: var(--pa-gray);
+  font-size: 0.86rem;
+}
+
+iframe {
+  aspect-ratio: 612 / 792;
+  border: 0;
   width: 100%;
-}
-
-header p {
-  color: var(--color-brand-700);
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-
-header h1 {
-  margin-bottom: 6px;
-}
-
-.credential-body {
-  align-items: center;
-  display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 1fr) 210px;
-}
-
-.person-photo {
-  aspect-ratio: 4 / 5;
-  border-radius: 24px;
-  object-fit: cover;
-  width: 100%;
-}
-
-.empty-photo {
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
-  display: grid;
-  font-size: 3.4rem;
-  font-weight: 900;
-  place-items: center;
-}
-
-.qr-box {
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  text-align: center;
-  word-break: break-word;
-}
-
-.qr-box img {
-  height: 180px;
-  width: 180px;
-}
-
-footer {
-  background: var(--color-brand-100);
-  border-radius: 18px;
-  padding: 14px;
 }
 
 @media print {
-  .credential-shell {
+  .print-shell,
+  .print-card {
+    border: 0;
+    box-shadow: none;
     padding: 0;
   }
 
-  .credential-card {
-    border-radius: 0;
-    width: 100%;
+  .no-print {
+    display: none;
+  }
+
+  iframe {
+    height: 100vh;
   }
 }
 
-@media (max-width: 680px) {
-  header,
-  .credential-body {
+@media (max-width: 640px) {
+  .print-actions {
     grid-template-columns: 1fr;
-  }
-
-  header img {
-    max-width: 170px;
   }
 }
 </style>

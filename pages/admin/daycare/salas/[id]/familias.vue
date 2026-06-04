@@ -6,7 +6,7 @@
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>Familias</h1>
-        <p>Administra cuentas daycare y revisa el acceso familiar de esta sala.</p>
+        <p>Administra cuentas familiares de guardería y revisa el acceso familiar de esta sala.</p>
       </div>
       <div class="family-actions">
         <label class="search-field">
@@ -54,7 +54,7 @@
             <span class="family-avatar">{{ initials(account.nombre_nino || account.username) }}</span>
             <span class="family-copy">
               <strong>{{ account.nombre_nino || 'Sin nombre de niño/a' }}</strong>
-              <small>{{ account.username }} · {{ account.email }}</small>
+              <small>{{ [account.username || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
             </span>
             <span class="role-pill">{{ account.role || 'HUSKY' }}</span>
           </button>
@@ -71,8 +71,8 @@
             </div>
           </div>
           <dl>
-            <div><dt>Usuario</dt><dd>{{ selected.username }}</dd></div>
-            <div><dt>Correo</dt><dd>{{ selected.email }}</dd></div>
+            <div><dt>Usuario</dt><dd>{{ selected.username || 'Sin usuario' }}</dd></div>
+            <div><dt>Correo</dt><dd>{{ selected.email || 'Sin correo' }}</dd></div>
             <div><dt>Rol</dt><dd>{{ selected.role || '—' }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
@@ -174,7 +174,17 @@ function syncQuery(selectedId = selected.value?.id) {
   const query: Record<string, string> = {}
   if (search.value.trim()) query.buscar = search.value.trim()
   if (selectedId) query.familia = String(selectedId)
-  router.replace({ path: route.path, query })
+  replaceQueryIfChanged(query)
+}
+
+function replaceQueryIfChanged(query: Record<string, string>) {
+  if (!import.meta.client) return
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
+  const changed = Array.from(keys).some((key) => {
+    const current = Array.isArray(route.query[key]) ? route.query[key]?.[0] : route.query[key]
+    return String(current || '') !== String(query[key] || '')
+  })
+  if (changed) router.replace({ path: route.path, query })
 }
 
 async function save(payload: Partial<FamilyAccount>) {

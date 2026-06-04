@@ -55,9 +55,9 @@ const route = useRoute()
 const sessionRoleLabel = computed(() => {
   const user = props.session?.user
   if (!user) return ''
-  if (user.kind === 'admin') return user.isSuperAdmin ? 'Superadmin' : 'Admin daycare'
+  if (user.kind === 'admin') return user.isSuperAdmin ? 'Superadmin' : 'Admin guardería'
   if (user.productScopes.includes('daycare') && user.productScopes.includes('personasAutorizadas')) return 'Familia multiproducto'
-  if (user.productScopes.includes('daycare')) return 'Familia daycare'
+  if (user.productScopes.includes('daycare')) return 'Familia guardería'
   if (user.productScopes.includes('personasAutorizadas')) return 'Personas Autorizadas'
   return 'Sesión familiar'
 })
@@ -82,7 +82,7 @@ const impersonationLabel = computed(() => {
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
-  if (targetPath === '/admin/superadmin') return route.path.startsWith('/admin/superadmin')
+  if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
   if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
 }
@@ -92,7 +92,10 @@ function navKey(label: string) {
 }
 
 async function exitImpersonation() {
-  const target = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
+  const impersonation = props.session?.user?.impersonation
+  const target = impersonation?.mode === 'daycarePreview'
+    ? '/admin/daycare/salas'
+    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
   await navigateTo(target)
 }

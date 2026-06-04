@@ -1,0 +1,56 @@
+[
+  {
+    "id": "guarderia-default",
+    "name": "Guarderia / IECS",
+    "filename": "guarderia.svg",
+    "themeKey": "daycare",
+    "nivel": "guarderia",
+    "planteles": [],
+    "color": "#618B2F",
+    "isDefault": true,
+    "createdAt": "2026-06-04T00:00:00.000Z",
+    "updatedAt": "2026-06-04T00:00:00.000Z"
+  },
+  {
+    "id": "preescolar-2024",
+    "name": "Preescolar 2024",
+    "filename": "preescolar.svg",
+    "themeKey": "preescolar",
+    "nivel": "preescolar",
+    "planteles": [],
+    "color": "#E83F4B",
+    "isDefault": true,
+    "createdAt": "2026-06-04T00:00:00.000Z",
+    "updatedAt": "2026-06-04T00:00:00.000Z"
+  },
+  {
+    "id": "primaria-2024",
+    "name": "Primaria 2024",
+    "filename": "primaria.svg",
+    "themeKey": "primaria",
+    "nivel": "primaria",
+    "planteles": [
+      "PT",
+      "PM"
+    ],
+    "color": "#FCBF2C",
+    "isDefault": true,
+    "createdAt": "2026-06-04T00:00:00.000Z",
+    "updatedAt": "2026-06-04T00:00:00.000Z"
+  },
+  {
+    "id": "secundaria-2024",
+    "name": "Secundaria 2024",
+    "filename": "secundaria.svg",
+    "themeKey": "secundaria",
+    "nivel": "secundaria",
+    "planteles": [
+      "ST",
+      "SM"
+    ],
+    "color": "#66A8D8",
+    "isDefault": true,
+    "createdAt": "2026-06-04T00:00:00.000Z",
+    "updatedAt": "2026-06-04T00:00:00.000Z"
+  }
+]

@@ -1,54 +1,115 @@
 <template>
-  <form class="card editor-form" @submit.prevent="submit">
+  <form class="card editor-form" data-product-panel="resource-editor" @submit.prevent="submit">
     <div class="editor-head">
       <div>
-        <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>
+        <p class="eyebrow">{{ model.id ? 'Editar publicacion' : 'Nueva publicacion' }}</p>
         <h2>{{ label }}</h2>
+        <p>{{ unidad || 'Guarderia' }} / {{ salaName || `Sala ${salaId}` }}</p>
       </div>
       <div class="actions top-actions">
-        <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
+        <button class="btn btn-primary" type="submit" :disabled="saving || uploading">{{ saving ? 'Guardando...' : uploading ? 'Subiendo...' : 'Guardar' }}</button>
         <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
       </div>
     </div>
-    <div class="grid grid-2">
+
+    <section class="editor-grid">
       <label class="label">
-        Título
-        <input v-model="model.title" class="input" required />
+        Titulo
+        <input v-model="model.title" class="input" required data-diagnostic-field="resource-title" />
       </label>
+
       <label class="label">
-        Fecha
-        <input v-model="model.date" class="input" type="date" :required="type === 'cal'" />
+        Categoria
+        <select v-model="model.type" class="select" :disabled="Boolean(model.id)" data-diagnostic-field="resource-type">
+          <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
       </label>
-    </div>
+
+      <label class="label">
+        Fecha visible
+        <input v-model="model.date" class="input" type="date" :required="model.type === 'cal'" data-diagnostic-field="resource-date" />
+      </label>
+
+      <div class="publish-panel" :class="{ hidden: !published }">
+        <span>{{ published ? 'Publicado' : 'Borrador oculto' }}</span>
+        <strong>{{ published ? 'Visible para familias' : 'No aparece en la app familiar' }}</strong>
+        <label class="switch-row">
+          <input v-model="published" type="checkbox" data-diagnostic-field="resource-published" />
+          <span>{{ published ? 'Publicar activo' : 'Publicar despues' }}</span>
+        </label>
+      </div>
+    </section>
+
     <label class="label">
-      Descripción
-      <textarea v-model="model.description" class="textarea" />
+      Descripcion para familias
+      <textarea v-model="model.description" class="textarea" placeholder="Mensaje breve, instrucciones o detalle del recurso." data-diagnostic-field="resource-description" />
     </label>
-    <div class="grid grid-2">
-      <label class="label">
-        Recurso publicado
-        <input v-model="model.resource" class="input" inputmode="url" placeholder="URL o ruta del archivo" />
+
+    <section class="resource-attachment">
+      <div class="attachment-head">
+        <div>
+          <p class="eyebrow">Recurso parent-facing</p>
+          <h3>Liga o archivo</h3>
+        </div>
+        <div class="segmented" aria-label="Tipo de recurso">
+          <button type="button" :class="{ active: resourceMode === 'link' }" @click="resourceMode = 'link'">Liga</button>
+          <button type="button" :class="{ active: resourceMode === 'upload' }" @click="resourceMode = 'upload'">Archivo</button>
+        </div>
+      </div>
+
+      <label v-if="resourceMode === 'link'" class="label">
+        Liga publicada
+        <input v-model="model.resource" class="input" inputmode="url" placeholder="https://... o /uploads/daycare/..." data-diagnostic-field="resource-link" />
       </label>
-      <label class="label check-row">
-        <input v-model="model.starred" type="checkbox" />
-        Marcar como prioritario
+
+      <div v-else class="upload-panel" data-product-panel="resource-upload" :data-state="uploadState">
+        <input ref="fileInput" class="file-input" type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" data-diagnostic-field="resource-file" @change="selectFile" />
+        <div class="upload-copy">
+          <strong>{{ selectedFileName || uploadedFileName || 'Selecciona un archivo' }}</strong>
+          <span>{{ selectedFile ? formatBytes(selectedFile.size) : model.resource ? 'Archivo listo para familias' : 'PDF, imagen o documento hasta 8 MB' }}</span>
+        </div>
+        <button class="btn btn-secondary" type="button" :disabled="!selectedFile || uploading" data-diagnostic-action="subir-recurso" @click="uploadSelected">
+          {{ uploading ? 'Subiendo...' : model.resource && !selectedFile ? 'Archivo listo' : 'Subir archivo' }}
+        </button>
+      </div>
+
+      <p v-if="uploadError" class="alert compact-alert">{{ uploadError }}</p>
+      <p v-else-if="model.resource" class="resource-ready">
+        <span>Listo</span>
+        <a :href="resourceHref" target="_blank" rel="noopener">Abrir recurso</a>
+      </p>
+    </section>
+
+    <section class="editor-footer">
+      <label class="check-row">
+        <input v-model="model.starred" type="checkbox" data-diagnostic-field="resource-starred" />
+        <span>
+          <strong>Prioritario</strong>
+          <small>Se destaca en la vista familiar.</small>
+        </span>
       </label>
-      <label class="label check-row">
-        <input v-model="published" type="checkbox" />
-        Publicar para familias
-      </label>
-    </div>
+      <div class="context-chip">
+        <span>Destino</span>
+        <strong>{{ unidad || 'Guarderia' }} / {{ salaName || `Sala ${salaId}` }}</strong>
+      </div>
+    </section>
   </form>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
+import { isPdfResource, publishedPdfViewerUrl } from '~/utils/daycare'
+
+type ResourceType = 'hw' | 'news' | 'cal'
 
 const props = defineProps<{
   resource: Partial<DaycareResource>
   label: string
-  type: 'hw' | 'news' | 'cal'
+  type: ResourceType
+  salaId: number
+  salaName?: string | null
+  unidad?: string | null
   saving?: boolean
 }>()
 
@@ -57,7 +118,19 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const model = reactive<Partial<DaycareResource>>({ ...props.resource })
+const model = reactive<Partial<DaycareResource>>({ ...props.resource, type: props.resource.type || props.type })
+const resourceMode = ref(isUploadResource(model.resource) ? 'upload' : 'link')
+const selectedFile = ref<File | null>(null)
+const selectedFileName = ref('')
+const uploadedFileName = ref('')
+const uploadError = ref('')
+const uploading = ref(false)
+
+const categoryOptions: Array<{ value: ResourceType; label: string }> = [
+  { value: 'hw', label: 'Tarea' },
+  { value: 'news', label: 'Aviso / noticia' },
+  { value: 'cal', label: 'Calendario' }
+]
 
 const published = computed({
   get: () => !isHidden(model.hidden),
@@ -66,14 +139,81 @@ const published = computed({
   }
 })
 
-watch(() => props.resource, (resource) => Object.assign(model, resource), { deep: true })
+const resourceHref = computed(() => isPdfResource(model.resource) ? publishedPdfViewerUrl(model.resource) : model.resource || '')
+const uploadState = computed(() => {
+  if (uploadError.value) return 'error'
+  if (uploading.value) return 'loading'
+  if (model.resource) return 'ready'
+  return selectedFile.value ? 'selected' : 'empty'
+})
 
-function submit() {
-  emit('save', { ...model, starred: model.starred ? 1 : 0, hidden: published.value ? 0 : 1 })
+watch(() => props.resource, (resource) => {
+  Object.assign(model, resource, { type: resource.type || props.type })
+  resourceMode.value = isUploadResource(resource.resource) ? 'upload' : 'link'
+  selectedFile.value = null
+  selectedFileName.value = ''
+  uploadedFileName.value = resource.resource ? String(resource.resource).split('/').pop() || '' : ''
+  uploadError.value = ''
+}, { deep: true })
+
+function selectFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] || null
+  selectedFile.value = file
+  selectedFileName.value = file?.name || ''
+  uploadError.value = ''
+}
+
+async function uploadSelected() {
+  if (!selectedFile.value) return false
+  uploadError.value = ''
+  uploading.value = true
+  try {
+    const body = new FormData()
+    body.append('sala', String(props.salaId))
+    body.append('file', selectedFile.value)
+    const response = await $fetch<{ url: string; filename: string }>('/api/daycare/admin/uploads', { method: 'POST', body })
+    model.resource = response.url
+    uploadedFileName.value = response.filename || selectedFile.value.name
+    selectedFile.value = null
+    selectedFileName.value = ''
+    return true
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+    uploadError.value = error?.data?.statusMessage || error?.statusMessage || error?.message || 'No fue posible subir el archivo.'
+    return false
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function submit() {
+  if (resourceMode.value === 'upload' && selectedFile.value) {
+    const ok = await uploadSelected()
+    if (!ok) return
+  }
+
+  emit('save', {
+    ...model,
+    sala: String(props.salaId),
+    type: model.type || props.type,
+    starred: model.starred ? 1 : 0,
+    hidden: published.value ? 0 : 1
+  })
 }
 
 function isHidden(value: unknown) {
   return value === true || value === 1 || String(value) === '1'
+}
+
+function isUploadResource(value?: string | null) {
+  return Boolean(value && !/^https?:\/\//i.test(String(value)))
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
 }
 </script>
 
@@ -90,34 +230,221 @@ function isHidden(value: unknown) {
   justify-content: space-between;
 }
 
-.editor-head h2 {
+.editor-head h2,
+.editor-head p,
+.attachment-head h3 {
   margin-bottom: 0;
 }
 
 .actions,
-.check-row {
-  display: flex;
+.top-actions {
   align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.check-row {
+.editor-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.4fr) minmax(170px, 0.4fr) minmax(220px, 0.54fr);
+}
+
+.publish-panel,
+.context-chip,
+.check-row,
+.upload-panel,
+.resource-ready {
+  border: 1px solid var(--color-brand-200);
+  border-radius: 16px;
+}
+
+.publish-panel {
   align-self: end;
-  flex-direction: row;
-  padding: 12px 0;
+  background: var(--color-brand-100);
+  display: grid;
+  gap: 5px;
+  min-height: 68px;
+  padding: 10px 12px;
+}
+
+.publish-panel.hidden {
+  background: #f7f4ee;
+  border-color: #e8d9bd;
+}
+
+.publish-panel span,
+.context-chip span,
+.resource-ready span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.switch-row,
+.check-row {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+}
+
+.switch-row {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.resource-attachment {
+  background: linear-gradient(180deg, #fbfdf8, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.attachment-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.segmented {
+  background: #eef4e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+}
+
+.segmented button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 850;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.segmented button.active {
+  background: #fff;
+  color: var(--color-brand-800);
+  box-shadow: var(--shadow-line);
+}
+
+.upload-panel {
+  align-items: center;
+  background: #fff;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.upload-panel[data-state='ready'] {
+  background: var(--color-brand-100);
+}
+
+.upload-panel[data-state='error'] {
+  background: #fff3f0;
+  border-color: #ffd2ca;
+}
+
+.file-input {
+  min-width: 0;
+}
+
+.upload-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.upload-copy strong,
+.upload-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-copy span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.resource-ready {
+  align-items: center;
+  background: var(--color-brand-100);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 11px;
+}
+
+.resource-ready a {
+  color: var(--color-brand-800);
+  font-weight: 900;
+}
+
+.compact-alert {
+  margin: 0;
+}
+
+.editor-footer {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+}
+
+.check-row {
+  background: #fff;
+  padding: 12px;
+}
+
+.check-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.check-row small {
+  color: var(--color-muted);
+}
+
+.context-chip {
+  align-content: center;
+  background: var(--color-brand-100);
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+@media (max-width: 1060px) {
+  .editor-grid,
+  .upload-panel,
+  .editor-footer {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
-  .editor-head {
+  .editor-head,
+  .attachment-head {
     align-items: start;
     flex-direction: column;
   }
 
-  .top-actions {
+  .top-actions,
+  .segmented {
     width: 100%;
   }
 
-  .top-actions .btn {
+  .top-actions .btn,
+  .segmented button {
     flex: 1 1 140px;
   }
 }
