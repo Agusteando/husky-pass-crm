@@ -15,7 +15,7 @@
     <section v-else class="card sibling-list" data-product-panel="siblings" :data-state="siblingsState">
       <article v-for="child in children" :key="child.matricula || child.id || childName(child)" class="sibling-card" :class="{ current: child.isCurrent }">
         <div class="sibling-photo">
-          <img v-if="child.foto" :src="normalizeVirtualAssetUrl(child.foto)" alt="" />
+          <FamilyPersonasProcessedPhoto v-if="child.foto" :src="child.foto" :namespace="`pa-sibling-${child.matricula || child.id || childName(child)}`" />
           <strong v-else>{{ initials(child) }}</strong>
         </div>
         <div>
@@ -52,7 +52,6 @@ import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
-import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })

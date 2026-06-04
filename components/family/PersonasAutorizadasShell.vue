@@ -13,7 +13,7 @@
 
       <section v-if="primaryChild" class="pa-student-chip" data-product-panel="active-student" aria-label="Alumno activo">
         <span class="pa-student-avatar">
-          <img v-if="studentPhoto" :src="studentPhoto" alt="" />
+          <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
           <b v-else>{{ studentInitials }}</b>
         </span>
         <span>

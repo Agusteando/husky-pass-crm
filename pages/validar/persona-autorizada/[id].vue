@@ -9,7 +9,7 @@
       <img class="logo" :src="institutionLogo" :alt="institutionAlt" />
       <span class="status">Autorizado</span>
       <div class="person-row">
-        <img v-if="data.fotoP" :src="normalizeVirtualAssetUrl(data.fotoP)" alt="Persona autorizada" />
+        <FamilyPersonasProcessedPhoto v-if="data.fotoP" :src="data.fotoP" alt="Persona autorizada" :namespace="`pa-validate-${route.params.id}`" />
         <div v-else class="fallback-photo">PA</div>
         <div>
           <p class="eyebrow">Persona autorizada</p>
@@ -37,7 +37,6 @@
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { ScanAuthorizedPerson } from '~/types/daycare'
-import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const route = useRoute()
@@ -86,6 +85,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
 }
 
 .person-row img,
+.person-row .processed-photo,
 .fallback-photo {
   aspect-ratio: 1 / 1;
   background: var(--color-brand-100);
@@ -128,6 +128,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
   }
 
   .person-row img,
+  .person-row .processed-photo,
   .fallback-photo {
     max-width: 220px;
   }

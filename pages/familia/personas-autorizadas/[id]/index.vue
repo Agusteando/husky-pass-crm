@@ -15,7 +15,7 @@
     <section v-else-if="person" class="detail-grid" data-product-panel="authorized-person-detail" data-state="content">
       <article class="identity-card">
         <div class="photo">
-          <img v-if="photoUrl" :src="photoUrl" alt="Fotografia" />
+          <FamilyPersonasProcessedPhoto v-if="photoUrl" :src="person.foto" :processed-src="person.compressed_foto" alt="Fotografía" :namespace="`pa-detail-${person.id}`" />
           <span v-else>{{ initials }}</span>
         </div>
         <div>

@@ -55,8 +55,10 @@ export function publishedPdfViewerUrl(resource?: string | null) {
 }
 
 export function normalizeVirtualAssetUrl(url?: string | null) {
-  if (!url) return ''
-  return String(url).replace(/^https:\/\/casitaiedis\.edu\.mx\/virtual\//, 'https://admin.casitaiedis.edu.mx/virtual/')
+  const value = String(url || '').trim()
+  if (!value) return ''
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('/')) return value
+  return `https://admin.casitaiedis.edu.mx/virtual/${value.replace(/^\/?virtual\//, '')}`
 }
 
 export function authorizedPersonLabel(indice: number) {

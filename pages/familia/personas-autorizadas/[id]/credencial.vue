@@ -23,7 +23,7 @@
       </header>
 
       <div class="credential-body">
-        <img v-if="photoUrl" class="person-photo" :src="photoUrl" alt="Fotografia" />
+        <FamilyPersonasProcessedPhoto v-if="photoUrl" class="person-photo" :src="data.foto" :processed-src="data.compressed_foto" alt="Fotografía" :namespace="`pa-credential-${route.params.id}`" />
         <div v-else class="person-photo empty-photo">PA</div>
         <div class="qr-box">
           <img :src="qrImage" alt="Codigo QR" />

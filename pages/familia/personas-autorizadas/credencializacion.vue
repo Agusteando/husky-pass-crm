@@ -14,7 +14,7 @@
 
     <section v-else-if="profile" class="card photo-flow" data-product-panel="student-photo-update">
       <button class="photo-preview" type="button" :disabled="!currentPhoto" data-diagnostic-action="ver-foto-alumno" @click="currentPhotoModalOpen = Boolean(currentPhoto)">
-        <img v-if="currentPhoto" :src="currentPhoto" alt="Foto actual del alumno" />
+        <FamilyPersonasProcessedPhoto v-if="currentPhoto" :src="currentPhoto" alt="Foto actual del alumno" namespace="pa-student-photo" />
         <span v-else>Sin foto</span>
       </button>
 
@@ -68,7 +68,7 @@
       eyebrow="Alumno"
       @close="currentPhotoModalOpen = false"
     >
-      <img class="current-photo-large" :src="currentPhoto" alt="Foto actual del alumno" />
+      <FamilyPersonasProcessedPhoto class="current-photo-large" :src="currentPhoto" alt="Foto actual del alumno" namespace="pa-student-photo" />
     </FamilyPersonasModal>
 
     <p v-if="error" class="alert">{{ error }}</p>
@@ -183,6 +183,7 @@ async function savePendingPhoto() {
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
 .status-card { align-items: center; background: #f7f7f5; border: 1px solid #e9e9e3; border-radius: 16px; color: var(--pa-muted); display: flex; gap: 10px; font-weight: 850; padding: 12px; }
 .status-card[data-state='loading'], .status-card[data-state='saved'], .status-card[data-state='ready'] { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
-.current-photo-large { border-radius: 22px; display: block; margin: 0 auto; max-height: 70vh; object-fit: contain; }
+.current-photo-large { border-radius: 22px; display: block; height: min(70vh, 560px); margin: 0 auto; width: min(100%, 560px); }
+.current-photo-large :deep(img) { object-fit: contain; }
 @media (max-width: 860px) { .photo-hero, .photo-flow { grid-template-columns: 1fr; } .photo-hero img { justify-self: start; } .photo-preview { width: min(100%, 220px); } }
 </style>

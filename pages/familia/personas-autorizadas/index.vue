@@ -64,7 +64,7 @@
             @click="selectPerson(person)"
           >
             <span class="person-photo">
-              <img v-if="photoUrl(person)" :src="photoUrl(person)" alt="" />
+              <FamilyPersonasProcessedPhoto v-if="photoUrl(person)" :src="person.foto" :processed-src="person.compressed_foto" :namespace="`pa-person-${person.id || person.indice}`" />
               <strong v-else-if="person.id">{{ initials(person) }}</strong>
               <strong v-else>+</strong>
             </span>
@@ -103,7 +103,7 @@
         <div class="marbete-grid">
           <article v-for="person in people" :key="`marbete-${person.indice}`" class="marbete-card" :data-state="marbeteReady(person) ? 'content' : 'unavailable'">
             <div class="person-thumb">
-              <img v-if="photoUrl(person)" :src="photoUrl(person)" alt="" />
+              <FamilyPersonasProcessedPhoto v-if="photoUrl(person)" :src="person.foto" :processed-src="person.compressed_foto" :namespace="`pa-person-${person.id || person.indice}`" />
               <span v-else>{{ person.id ? initials(person) : '—' }}</span>
             </div>
             <div>

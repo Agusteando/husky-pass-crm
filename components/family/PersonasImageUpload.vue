@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { processFaceImage } from '~/utils/visionFace'
+import { processFaceImageCached } from '~/utils/visionFace'
 
 const props = withDefaults(defineProps<{
   initialSrc?: string | null
@@ -142,13 +142,13 @@ async function onFileChange(event: Event) {
       method: 'POST',
       body: { src: dataUrl }
     })
-    const processed = await processFaceImage(normalizeVirtualAssetUrl(uploaded.absoluteUrl))
-    const stored = await $fetch<{ url: string }>('/api/personas-autorizadas/faces', {
+    const processed = await processFaceImageCached(uploaded.absoluteUrl, { namespace: `upload:${props.personaId || 'student'}`, force: true })
+    const stored = await $fetch<{ url: string; absoluteUrl?: string }>('/api/personas-autorizadas/faces', {
       method: 'POST',
       body: { src: processed.src, personaId: props.personaId || null }
     })
-    processedUrl.value = stored.url
-    localPreview.value = normalizeVirtualAssetUrl(stored.url)
+    processedUrl.value = stored.absoluteUrl || stored.url
+    localPreview.value = normalizeVirtualAssetUrl(processedUrl.value)
     notice.value = 'Lista para confirmar.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }

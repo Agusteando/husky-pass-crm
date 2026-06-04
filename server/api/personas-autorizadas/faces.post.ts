@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, getHeader, getRequestURL, readBody } from 'h3'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -11,6 +11,13 @@ const schema = z.object({
   src: z.string().min(32),
   personaId: z.number().int().positive().optional().nullable()
 })
+
+function publicOrigin(event: Parameters<typeof getRequestURL>[0]) {
+  const forwardedHost = getHeader(event, 'x-forwarded-host')
+  const forwardedProto = getHeader(event, 'x-forwarded-proto')
+  if (forwardedHost) return `${forwardedProto || 'https'}://${forwardedHost}`
+  return getRequestURL(event).origin
+}
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
@@ -30,9 +37,11 @@ export default defineEventHandler(async (event) => {
     const fileName = `${body.personaId || 'new'}-${Date.now()}-${randomUUID().slice(0, 8)}.png`
     await writeFile(join(dir, fileName), buffer)
 
+    const url = `/uploads/personas-autorizadas/faces/${user.id}/${fileName}`
     return {
       ok: true,
-      url: `/uploads/personas-autorizadas/faces/${user.id}/${fileName}`
+      url,
+      absoluteUrl: `${publicOrigin(event)}${url}`
     }
   } catch (error) {
     logPersonasDiagnostic('face-image-api-store', error, { userId: user.id, username: user.username })

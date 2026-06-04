@@ -1,1 +1,1 @@
-Corrige flujo minimalista de Personas Autorizadas, datos familiares, fotos, hermanos, marbetes y diagnósticos
+Corrige procesamiento Vision API y renderizado de fotos externas en Personas Autorizadas

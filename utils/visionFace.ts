@@ -1,6 +1,20 @@
 export interface VisionFaceResult {
   src: string
   rawVisionData: Record<string, unknown>
+  fromCache?: boolean
+}
+
+const VISION_BASE = 'https://vision.casitaapps.com'
+const CACHE_PREFIX = 'pa:vision-face:'
+const CACHE_VERSION = 'v2'
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
+const CACHE_MAX_ITEMS = 36
+
+interface CachedVisionFace {
+  src: string
+  rawVisionData?: Record<string, unknown>
+  createdAt: number
+  lastUsedAt: number
 }
 
 function loadVisionImage(url: string) {
@@ -13,15 +27,101 @@ function loadVisionImage(url: string) {
   })
 }
 
+function stableHash(value: string) {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+export function toVisionImageUrl(imageUrl?: string | null) {
+  const value = String(imageUrl || '').trim()
+  if (!value) return ''
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value
+  if (typeof window !== 'undefined' && value.startsWith('/')) return `${window.location.origin}${value}`
+  return value
+}
+
+function cacheKeyFor(imageUrl: string, namespace = 'default') {
+  return `${CACHE_PREFIX}${CACHE_VERSION}:${namespace}:${stableHash(imageUrl)}`
+}
+
+function readCachedFace(imageUrl: string, namespace?: string): VisionFaceResult | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const key = cacheKeyFor(imageUrl, namespace)
+    const raw = window.localStorage.getItem(key)
+    if (!raw) return null
+    const cached = JSON.parse(raw) as CachedVisionFace
+    if (!cached?.src || Date.now() - Number(cached.createdAt || 0) > CACHE_TTL_MS) {
+      window.localStorage.removeItem(key)
+      return null
+    }
+    cached.lastUsedAt = Date.now()
+    window.localStorage.setItem(key, JSON.stringify(cached))
+    return { src: cached.src, rawVisionData: cached.rawVisionData || {}, fromCache: true }
+  } catch {
+    return null
+  }
+}
+
+export function getCachedProcessedFaceImage(imageUrl?: string | null, namespace?: string) {
+  const normalized = toVisionImageUrl(imageUrl)
+  if (!normalized) return ''
+  return readCachedFace(normalized, namespace)?.src || ''
+}
+
+function pruneFaceCache() {
+  if (typeof window === 'undefined') return
+  try {
+    const entries: Array<{ key: string; lastUsedAt: number }> = []
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index) || ''
+      if (!key.startsWith(CACHE_PREFIX)) continue
+      const raw = window.localStorage.getItem(key)
+      if (!raw) continue
+      const cached = JSON.parse(raw) as CachedVisionFace
+      if (!cached?.src || Date.now() - Number(cached.createdAt || 0) > CACHE_TTL_MS) {
+        window.localStorage.removeItem(key)
+        continue
+      }
+      entries.push({ key, lastUsedAt: Number(cached.lastUsedAt || cached.createdAt || 0) })
+    }
+    entries
+      .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
+      .slice(CACHE_MAX_ITEMS)
+      .forEach((entry) => window.localStorage.removeItem(entry.key))
+  } catch {
+    // Cache is an optimization only.
+  }
+}
+
+function writeCachedFace(imageUrl: string, result: VisionFaceResult, namespace?: string) {
+  if (typeof window === 'undefined') return
+  try {
+    pruneFaceCache()
+    window.localStorage.setItem(cacheKeyFor(imageUrl, namespace), JSON.stringify({
+      src: result.src,
+      rawVisionData: result.rawVisionData,
+      createdAt: Date.now(),
+      lastUsedAt: Date.now()
+    } satisfies CachedVisionFace))
+  } catch {
+    // Cache is an optimization only.
+  }
+}
+
 export async function processFaceImage(imageUrl: string): Promise<VisionFaceResult> {
-  if (!imageUrl) throw new Error('Selecciona una imagen para continuar.')
+  const visionImageUrl = toVisionImageUrl(imageUrl)
+  if (!visionImageUrl) throw new Error('Selecciona una imagen para continuar.')
   if (typeof document === 'undefined') throw new Error('El procesamiento de imagen requiere navegador.')
 
-  const visionBase = 'https://vision.casitaapps.com'
   const formData = new FormData()
-  formData.append('imageUrl', imageUrl)
+  formData.append('imageUrl', visionImageUrl)
 
-  const analyzeRes = await fetch(`${visionBase}/analyze`, {
+  const analyzeRes = await fetch(`${VISION_BASE}/analyze`, {
     method: 'POST',
     body: formData
   })
@@ -29,10 +129,10 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
   const data = await analyzeRes.json()
   if (!data || data.ok !== true) throw new Error('No fue posible preparar la fotografía.')
 
-  const img = await loadVisionImage(`${visionBase}/image/${data.imageKey}`)
+  const img = await loadVisionImage(`${VISION_BASE}/image/${data.imageKey}`)
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) throw new Error('No fue posible preparar el lienzo de imagen.')
+  if (!ctx) throw new Error('No fue posible preparar la imagen.')
 
   let sx = 0
   let sy = 0
@@ -88,4 +188,16 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
     src: canvas.toDataURL('image/png'),
     rawVisionData: data
   }
+}
+
+export async function processFaceImageCached(imageUrl: string, options: { namespace?: string; force?: boolean } = {}): Promise<VisionFaceResult> {
+  const visionImageUrl = toVisionImageUrl(imageUrl)
+  if (!visionImageUrl) throw new Error('Selecciona una imagen para continuar.')
+  if (!options.force) {
+    const cached = readCachedFace(visionImageUrl, options.namespace)
+    if (cached) return cached
+  }
+  const result = await processFaceImage(visionImageUrl)
+  writeCachedFace(visionImageUrl, result, options.namespace)
+  return result
 }

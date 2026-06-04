@@ -1,9 +1,8 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, getHeader, getRequestURL, readBody } from 'h3'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { getRequestURL } from 'h3'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
@@ -13,6 +12,13 @@ const schema = z.object({
 })
 
 const allowed = new Set(['jpeg', 'jpg', 'png', 'webp'])
+
+function publicOrigin(event: Parameters<typeof getRequestURL>[0]) {
+  const forwardedHost = getHeader(event, 'x-forwarded-host')
+  const forwardedProto = getHeader(event, 'x-forwarded-proto')
+  if (forwardedHost) return `${forwardedProto || 'https'}://${forwardedHost}`
+  return getRequestURL(event).origin
+}
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
@@ -33,12 +39,10 @@ export default defineEventHandler(async (event) => {
     const fileName = `student-${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`
     await writeFile(join(dir, fileName), buffer)
     const relativeUrl = `/uploads/personas-autorizadas/sources/${user.id}/${fileName}`
-    const origin = getRequestURL(event).origin
-
     return {
       ok: true,
       url: relativeUrl,
-      absoluteUrl: `${origin}${relativeUrl}`
+      absoluteUrl: `${publicOrigin(event)}${relativeUrl}`
     }
   } catch (error) {
     logPersonasDiagnostic('photo-source-api-upload', error, { userId: user.id, username: user.username })
