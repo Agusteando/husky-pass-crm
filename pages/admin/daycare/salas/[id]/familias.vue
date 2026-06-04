@@ -27,7 +27,8 @@
 
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
-    <div v-else-if="pending" class="card loading-card">Cargando familias…</div>
+    <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
+    <div v-if="pending" class="card loading-card">Cargando familias…</div>
 
     <section v-else class="family-desk">
       <div class="card family-list-card">
@@ -36,7 +37,7 @@
             <p class="eyebrow">Cuentas</p>
             <h2>{{ filteredAccounts.length }} familias</h2>
           </div>
-          <button v-if="canPreviewSala" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar de sala</button>
+          <button v-if="canPreviewSala" class="btn btn-secondary" type="button" :disabled="previewing" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar de sala' }}</button>
         </div>
 
         <div v-if="filteredAccounts.length" class="family-list">
@@ -46,7 +47,7 @@
             class="family-row"
             :class="{ active: selected?.id === account.id }"
             type="button"
-            @click="selected = account"
+            @click="selectAccount(account)"
           >
             <span class="family-avatar">{{ initials(account.nombre_nino || account.username) }}</span>
             <span class="family-copy">
@@ -74,7 +75,7 @@
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
-            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" @click="impersonate(selected.id)">Impersonar</button>
+            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" :disabled="impersonatingId === selected.id" @click="impersonate(selected.id)">{{ impersonatingId === selected.id ? 'Abriendo…' : 'Impersonar' }}</button>
             <button class="btn btn-secondary" type="button" @click="editing = { ...selected }">Editar</button>
           </div>
         </template>
@@ -86,7 +87,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
@@ -94,17 +95,37 @@ import { defaultFamilyRoute } from '~/utils/sessionScopes'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
+const router = useRouter()
 const salaId = Number(route.params.id)
 const editing = ref<Partial<FamilyAccount> | null>(null)
 const selected = ref<FamilyAccount | null>(null)
 const saving = ref(false)
-const search = ref('')
+const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const actionError = ref('')
+const actionNotice = ref('')
+const previewing = ref(false)
+const impersonatingId = ref<number | null>(null)
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
 const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId }
+})
+
+const selectedAccountId = computed(() => Number(route.query.familia || 0))
+
+watch(search, () => syncQuery())
+
+watch(() => route.query.buscar, (value) => {
+  const next = typeof value === 'string' ? value : ''
+  if (next !== search.value) search.value = next
+})
+
+watch(() => route.query.familia, (value) => {
+  const id = Number(value || 0)
+  if (!id) return
+  const row = filteredAccounts.value.find((account) => account.id === id)
+  if (row) selected.value = row
 })
 
 const filteredAccounts = computed(() => {
@@ -119,21 +140,47 @@ watch(filteredAccounts, (rows) => {
     selected.value = null
     return
   }
-  if (!selected.value || !rows.some((row) => row.id === selected.value?.id)) selected.value = rows[0] || null
+  const routeSelected = rows.find((row) => row.id === selectedAccountId.value)
+  if (routeSelected) {
+    selected.value = routeSelected
+    return
+  }
+  if (!selected.value || !rows.some((row) => row.id === selected.value?.id)) {
+    selected.value = rows[0] || null
+    syncQuery(selected.value?.id)
+  }
 }, { immediate: true })
 
 function startCreate() {
   actionError.value = ''
+  actionNotice.value = ''
   editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: 'ROLE_HUSKY_USER', username: '', email: '' }
+}
+
+function selectAccount(account: FamilyAccount) {
+  selected.value = account
+  actionError.value = ''
+  syncQuery(account.id)
+}
+
+function syncQuery(selectedId = selected.value?.id) {
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.buscar = search.value.trim()
+  if (selectedId) query.familia = String(selectedId)
+  router.replace({ path: route.path, query })
 }
 
 async function save(payload: Partial<FamilyAccount>) {
   saving.value = true
   actionError.value = ''
+  actionNotice.value = ''
   try {
-    await $fetch('/api/daycare/admin/family-accounts', { method: 'POST', body: { ...payload, sala: String(salaId) } })
+    const saved = await $fetch<FamilyAccount>('/api/daycare/admin/family-accounts', { method: 'POST', body: { ...payload, sala: String(salaId) } })
     editing.value = null
     await refresh()
+    selected.value = (data.value?.rows || []).find((account) => account.id === saved.id) || selected.value
+    syncQuery(saved.id)
+    actionNotice.value = saved.id === payload.id ? 'Cuenta familiar actualizada.' : 'Cuenta familiar creada.'
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la cuenta familiar.'
   } finally {
@@ -144,24 +191,34 @@ async function save(payload: Partial<FamilyAccount>) {
 async function impersonate(userId?: number) {
   if (!userId) return
   actionError.value = ''
+  actionNotice.value = ''
+  impersonatingId.value = userId
   try {
     const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
       method: 'POST',
       body: { userId }
     })
+    actionNotice.value = 'Abriendo impersonación familiar.'
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  } finally {
+    impersonatingId.value = null
   }
 }
 
 async function previewSala() {
   actionError.value = ''
+  actionNotice.value = ''
+  previewing.value = true
   try {
     await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    actionNotice.value = 'Abriendo vista familiar de sala.'
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  } finally {
+    previewing.value = false
   }
 }
 
@@ -340,6 +397,16 @@ dd {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  font-weight: 850;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .loading-card {

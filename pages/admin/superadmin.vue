@@ -6,7 +6,7 @@
         <h1>Gestión de usuarios y productos</h1>
         <p>Monitorea cuentas internas, familias de daycare y familias preescolar-secundaria desde un solo directorio real.</p>
       </div>
-      <button class="btn btn-secondary" type="button" @click="refreshDirectory">Actualizar</button>
+      <button class="btn btn-secondary" type="button" :disabled="pending" @click="refreshDirectory">{{ pending ? 'Actualizando…' : 'Actualizar' }}</button>
     </header>
 
     <section class="scope-tabs" aria-label="Alcance de usuarios">
@@ -16,7 +16,7 @@
         class="scope-tab"
         :class="{ active: selectedScope === option.value }"
         type="button"
-        @click="selectedScope = option.value"
+        @click="selectScope(option.value)"
       >
         <strong>{{ option.label }}</strong>
         <span>{{ option.description }}</span>
@@ -74,7 +74,8 @@
 
     <p v-if="loadError" class="alert">No fue posible cargar el directorio de superadmin.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
-    <div v-else-if="pending" class="card loading-card">Cargando usuarios…</div>
+    <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
+    <div v-if="pending" class="card loading-card">Cargando usuarios…</div>
 
     <section v-else-if="directory?.users?.length" class="directory-grid">
       <article class="card users-card">
@@ -126,7 +127,7 @@
                 </td>
                 <td data-label="Acciones">
                   <div class="row-actions">
-                    <button class="btn btn-secondary compact" type="button" @click="selectedUser = user">Detalle</button>
+                    <button class="btn btn-secondary compact" type="button" @click="selectUser(user)">Detalle</button>
                     <NuxtLink
                       v-if="user.productScopes.includes('daycare') && user.sala"
                       class="btn btn-secondary compact"
@@ -138,9 +139,17 @@
                       class="btn btn-primary compact"
                       type="button"
                       :disabled="!user.canImpersonate || impersonatingId === user.id"
-                      @click="impersonate(user)"
+                      @click="requestImpersonation(user)"
                     >
-                      {{ impersonatingId === user.id ? 'Abriendo…' : 'Impersonar familia' }}
+                      {{ impersonationButtonLabel(user) }}
+                    </button>
+                    <button
+                      v-if="confirmingImpersonationId === user.id"
+                      class="btn btn-secondary compact"
+                      type="button"
+                      @click="cancelImpersonation"
+                    >
+                      Cancelar
                     </button>
                   </div>
                 </td>
@@ -174,12 +183,15 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
+
+const route = useRoute()
+const router = useRouter()
 
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; description: string }> = [
   { value: 'all', label: 'Todos', description: 'Directorio completo' },
@@ -189,13 +201,15 @@ const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; desc
   { value: 'impersonable', label: 'Soporte', description: 'Cuentas familiares' }
 ]
 
-const selectedPlantel = ref('')
-const selectedScope = ref<SuperAdminDirectoryScope>('all')
+const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
+const selectedScope = ref<SuperAdminDirectoryScope>(normalizeScope(route.query.scope))
 const selectedUser = ref<SuperAdminUserSummary | null>(null)
-const search = ref('')
-const limit = ref(120)
+const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
+const limit = ref(normalizeLimit(route.query.limite))
 const actionError = ref('')
+const actionNotice = ref('')
 const impersonatingId = ref<number | null>(null)
+const confirmingImpersonationId = ref<number | null>(null)
 
 const query = computed(() => ({
   plantel: selectedPlantel.value,
@@ -211,19 +225,83 @@ const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAd
   watch: [query]
 })
 
+watch([selectedPlantel, selectedScope, search, limit], () => {
+  confirmingImpersonationId.value = null
+  syncQuery()
+})
+
+watch(() => route.query.plantel, (value) => {
+  const next = typeof value === 'string' ? value : ''
+  if (next !== selectedPlantel.value) selectedPlantel.value = next
+})
+
+watch(() => route.query.buscar, (value) => {
+  const next = typeof value === 'string' ? value : ''
+  if (next !== search.value) search.value = next
+})
+
+watch(() => route.query.scope, (value) => {
+  const next = normalizeScope(value)
+  if (next !== selectedScope.value) selectedScope.value = next
+})
+
+watch(() => route.query.limite, (value) => {
+  const next = normalizeLimit(value)
+  if (next !== limit.value) limit.value = next
+})
+
+watch(() => route.query.usuario, (value) => {
+  const id = Number(value || 0)
+  if (!id) return
+  const user = directory.value?.users.find((item) => item.id === id)
+  if (user) selectedUser.value = user
+})
+
 watch(directory, (value) => {
   if (!value?.users?.length) {
     selectedUser.value = null
     return
   }
+  const routeUser = Number(route.query.usuario || 0)
+  const selectedFromRoute = value.users.find((user) => user.id === routeUser)
+  if (selectedFromRoute) {
+    selectedUser.value = selectedFromRoute
+    return
+  }
   if (!selectedUser.value || !value.users.some((user) => user.id === selectedUser.value?.id)) {
     selectedUser.value = value.users[0] || null
+    syncQuery(selectedUser.value?.id)
   }
 }, { immediate: true })
 
 async function refreshDirectory() {
   actionError.value = ''
+  actionNotice.value = ''
   await refresh()
+  actionNotice.value = 'Directorio actualizado.'
+}
+
+function selectScope(scope: SuperAdminDirectoryScope) {
+  selectedScope.value = scope
+  actionError.value = ''
+  actionNotice.value = ''
+}
+
+function selectUser(user: SuperAdminUserSummary) {
+  selectedUser.value = user
+  actionError.value = ''
+  actionNotice.value = ''
+  syncQuery(user.id)
+}
+
+function syncQuery(selectedId = selectedUser.value?.id) {
+  const nextQuery: Record<string, string> = {}
+  if (selectedPlantel.value) nextQuery.plantel = selectedPlantel.value
+  if (selectedScope.value !== 'all') nextQuery.scope = selectedScope.value
+  if (search.value.trim()) nextQuery.buscar = search.value.trim()
+  if (limit.value !== 120) nextQuery.limite = String(limit.value)
+  if (selectedId) nextQuery.usuario = String(selectedId)
+  router.replace({ path: route.path, query: nextQuery })
 }
 
 function displayName(user: SuperAdminUserSummary) {
@@ -253,21 +331,54 @@ function audienceLabel(user: SuperAdminUserSummary) {
   return 'Sin clasificar'
 }
 
-async function impersonate(user: SuperAdminUserSummary) {
+function impersonationButtonLabel(user: SuperAdminUserSummary) {
+  if (!user.canImpersonate) return 'No disponible'
+  if (impersonatingId.value === user.id) return 'Abriendo…'
+  if (confirmingImpersonationId.value === user.id) return 'Confirmar impersonación'
+  return 'Impersonar familia'
+}
+
+function cancelImpersonation() {
+  confirmingImpersonationId.value = null
+  actionNotice.value = ''
+}
+
+async function requestImpersonation(user: SuperAdminUserSummary) {
   if (!user.canImpersonate) return
+  if (confirmingImpersonationId.value !== user.id) {
+    confirmingImpersonationId.value = user.id
+    selectedUser.value = user
+    syncQuery(user.id)
+    actionError.value = ''
+    actionNotice.value = `Confirma para entrar como ${displayName(user)}. La sesión quedará marcada como impersonación.`
+    return
+  }
+
   actionError.value = ''
+  actionNotice.value = ''
   impersonatingId.value = user.id
   try {
     const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
       method: 'POST',
       body: { userId: user.id }
     })
+    actionNotice.value = 'Abriendo impersonación familiar.'
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible impersonar esta cuenta.'
   } finally {
     impersonatingId.value = null
+    confirmingImpersonationId.value = null
   }
+}
+
+function normalizeScope(value: unknown): SuperAdminDirectoryScope {
+  return value === 'daycare' || value === 'schoolFamilies' || value === 'internal' || value === 'impersonable' ? value : 'all'
+}
+
+function normalizeLimit(value: unknown) {
+  const parsed = Number(value || 120)
+  return parsed === 50 || parsed === 250 ? parsed : 120
 }
 </script>
 
@@ -456,6 +567,16 @@ async function impersonate(user: SuperAdminUserSummary) {
 .compact {
   min-height: 34px;
   padding-inline: 12px;
+}
+
+.notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  font-weight: 850;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .loading-card {

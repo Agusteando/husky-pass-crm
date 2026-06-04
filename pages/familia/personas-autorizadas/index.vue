@@ -71,6 +71,7 @@
     </template>
 
     <p v-if="error" class="alert">{{ error }}</p>
+    <p v-if="notice" class="notice">{{ notice }}</p>
   </section>
 </template>
 
@@ -86,6 +87,7 @@ const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
 const saving = ref(false)
 const error = ref('')
+const notice = ref('')
 
 const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
@@ -100,6 +102,8 @@ function initials(person: AuthorizedPerson) {
 }
 
 function edit(person: AuthorizedPerson) {
+  error.value = ''
+  notice.value = ''
   editing.value = {
     ...person,
     fechaP: person.fechaP || new Date().toISOString().slice(0, 10),
@@ -110,10 +114,12 @@ function edit(person: AuthorizedPerson) {
 async function save(payload: Partial<AuthorizedPerson>) {
   saving.value = true
   error.value = ''
+  notice.value = ''
   try {
     await $fetch('/api/personas-autorizadas/family', { method: 'POST', body: payload })
     editing.value = null
     await refresh()
+    notice.value = payload.id ? 'Registro actualizado.' : 'Registro creado.'
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar el registro.'
   } finally {
@@ -124,9 +130,11 @@ async function save(payload: Partial<AuthorizedPerson>) {
 async function remove(id: number | null | undefined) {
   if (!id || !confirm('¿Eliminar este registro de Personas Autorizadas?')) return
   error.value = ''
+  notice.value = ''
   try {
     await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
     await refresh()
+    notice.value = 'Registro eliminado.'
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible eliminar el registro.'
   }
@@ -232,6 +240,16 @@ async function remove(id: number | null | undefined) {
 
 .children-card h2 {
   margin-bottom: 0;
+}
+
+.notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  font-weight: 850;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .loading-card {

@@ -82,3 +82,21 @@ export function authorizedPersonCredentialPath(id?: number | string | null) {
 export function authorizedPersonPrintPath(id?: number | string | null) {
   return id ? `/familia/personas-autorizadas/${id}/imprimir` : ''
 }
+
+export function isHiddenResource(value: unknown) {
+  return value === true || value === 1 || String(value) === '1' || String(value).toLowerCase() === 'hidden'
+}
+
+export function daycareResourceTypeLabel(type?: string | null) {
+  if (type === 'hw') return 'Tarea'
+  if (type === 'news') return 'Aviso'
+  if (type === 'cal') return 'Evento'
+  return 'Contenido'
+}
+
+export function daycareResourceSection(type?: string | null) {
+  if (type === 'hw') return 'tareas'
+  if (type === 'news') return 'avisos'
+  if (type === 'cal') return 'calendario'
+  return ''
+}

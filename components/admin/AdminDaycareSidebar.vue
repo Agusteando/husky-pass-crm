@@ -11,7 +11,8 @@
     <section class="rail-context">
       <label class="label compact-label">
         Unidad
-        <select v-model="selectedUnidad" class="select" @change="goToUnidad">
+        <select v-model="selectedUnidad" class="select" :disabled="!unidades.length" @change="goToUnidad">
+          <option v-if="!unidades.length" value="">Sin unidades</option>
           <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
         </select>
       </label>
@@ -22,17 +23,18 @@
           <option v-for="sala in salas || []" :key="sala.id" :value="String(sala.id)">{{ sala.sala }}</option>
         </select>
       </label>
-      <button v-if="canPreviewAsFamily" class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala" @click="previewSala">Vista familiar</button>
+      <button v-if="canPreviewAsFamily" class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala || previewing" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar' }}</button>
       <p v-if="actionError" class="rail-alert">{{ actionError }}</p>
+      <p v-if="actionNotice" class="rail-notice">{{ actionNotice }}</p>
     </section>
 
     <nav class="primary-nav" aria-label="Navegación daycare admin">
       <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active">Superadmin</NuxtLink>
       <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active">Salas</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/familias`" active-class="active">Familias</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/tareas`" active-class="active">Tareas</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/avisos`" active-class="active">Avisos</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="`/admin/daycare/salas/${selectedSala}/calendario`" active-class="active">Calendario</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'familias')" active-class="active">Familias</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'tareas')" active-class="active">Tareas</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'avisos')" active-class="active">Avisos</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'calendario')" active-class="active">Calendario</NuxtLink>
     </nav>
 
     <section class="rail-section">
@@ -45,7 +47,7 @@
         <NuxtLink
           v-for="sala in filteredSalas"
           :key="sala.id"
-          :to="`/admin/daycare/salas/${sala.id}`"
+          :to="salaRoute(sala.id)"
           :class="{ active: String(sala.id) === selectedSala }"
         >
           <span class="room-dot">{{ roomInitials(sala.sala) }}</span>
@@ -62,12 +64,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute } from 'nuxt/app'
+import { navigateTo, useFetch, useRequestFetch, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
-import type { SalaSummary } from '~/types/daycare'
+import type { Sala, SalaSummary } from '~/types/daycare'
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
+const requestFetch = useRequestFetch()
 
 const unidades = computed(() => props.session?.user?.unidades || [])
 const routeSalaId = computed(() => {
@@ -79,6 +82,8 @@ const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.
 const selectedSala = ref(routeSalaId.value)
 const search = ref('')
 const actionError = ref('')
+const actionNotice = ref('')
+const previewing = ref(false)
 const canPreviewAsFamily = computed(() => Boolean(props.session?.user?.kind === 'admin'))
 
 watch(unidades, (value) => {
@@ -89,9 +94,17 @@ watch(() => route.query.unidad, (unidad) => {
   if (typeof unidad === 'string' && unidad && unidad !== selectedUnidad.value) selectedUnidad.value = unidad
 })
 
-watch(() => route.params.id, () => {
-  selectedSala.value = routeSalaId.value
-})
+watch(routeSalaId, async (id) => {
+  selectedSala.value = id
+  if (!id) return
+
+  try {
+    const sala = await requestFetch<Sala>(`/api/daycare/admin/salas/${id}`)
+    if (sala?.unidad && sala.unidad !== selectedUnidad.value) selectedUnidad.value = sala.unidad
+  } catch {
+    selectedSala.value = ''
+  }
+}, { immediate: true })
 
 const { data: salas } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
@@ -107,7 +120,7 @@ const filteredSalas = computed(() => {
 
 watch(salas, (value) => {
   if (!value?.length) {
-    selectedSala.value = ''
+    if (!routeSalaId.value) selectedSala.value = ''
     return
   }
   if (routeSalaId.value && value.some((sala) => String(sala.id) === routeSalaId.value)) {
@@ -121,24 +134,36 @@ watch(salas, (value) => {
 
 function goToUnidad() {
   actionError.value = ''
+  actionNotice.value = ''
   selectedSala.value = ''
   navigateTo({ path: '/admin/daycare/salas', query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
 }
 
 function goToSala() {
   actionError.value = ''
+  actionNotice.value = ''
   if (!selectedSala.value) return
-  navigateTo(`/admin/daycare/salas/${selectedSala.value}`)
+  navigateTo(salaRoute(selectedSala.value))
+}
+
+function salaRoute(id?: string | number | null, section?: 'familias' | 'tareas' | 'avisos' | 'calendario') {
+  const path = section ? `/admin/daycare/salas/${id}/${section}` : `/admin/daycare/salas/${id}`
+  return { path, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} }
 }
 
 async function previewSala() {
   if (!selectedSala.value) return
   actionError.value = ''
+  actionNotice.value = ''
+  previewing.value = true
   try {
     await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: selectedSala.value } })
+    actionNotice.value = 'Abriendo vista familiar de sala.'
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+  } finally {
+    previewing.value = false
   }
 }
 
@@ -201,15 +226,25 @@ function roomInitials(value?: string | null) {
   width: 100%;
 }
 
-.rail-alert {
-  background: #fff3f0;
-  border: 1px solid #ffd2ca;
+.rail-alert,
+.rail-notice {
   border-radius: 12px;
-  color: #8d2d25;
   font-size: 0.8rem;
   line-height: 1.35;
   margin: 0;
   padding: 8px 10px;
+}
+
+.rail-alert {
+  background: #fff3f0;
+  border: 1px solid #ffd2ca;
+  color: #8d2d25;
+}
+
+.rail-notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  color: var(--color-brand-900);
 }
 
 .primary-nav {

@@ -36,8 +36,7 @@ defineProps<{ salaId: number | string }>()
 }
 
 .admin-module-tabs a:hover,
-.admin-module-tabs a.active,
-.admin-module-tabs a.router-link-active {
+.admin-module-tabs a.active {
   background: var(--color-brand-100);
   color: var(--color-brand-900);
 }

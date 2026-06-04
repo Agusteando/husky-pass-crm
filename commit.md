@@ -1,1 +1,1 @@
-Corrige errores de typecheck, navegación y retorno de vistas familiares
+Corrige flujos interactivos reales de daycare, familias y superadmin

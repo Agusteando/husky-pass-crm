@@ -41,7 +41,8 @@
 
     <p v-if="error" class="alert">No fue posible cargar las salas de esta unidad.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
-    <div v-else-if="pending" class="card loading-card">Cargando salas…</div>
+    <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
+    <div v-if="pending" class="card loading-card">Cargando salas…</div>
 
     <section v-else class="command-layout">
       <aside class="card sala-picker-card">
@@ -59,7 +60,7 @@
             class="sala-pick"
             :class="{ active: sala.id === selectedSalaId }"
             type="button"
-            @click="selectedSalaId = sala.id"
+            @click="selectSala(sala.id)"
           >
             <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
             <span class="pick-copy">
@@ -83,6 +84,7 @@
           </div>
           <div class="focus-actions">
             <button class="btn btn-primary" type="button" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
+            <button class="btn btn-secondary" type="button" @click="goToSalaSummary">Abrir resumen</button>
             <button class="btn btn-secondary" type="button" @click="goToSalaSection('tareas')">Gestionar tareas</button>
             <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" @click="previewSala(selectedSala.id)">Vista familiar</button>
           </div>
@@ -142,9 +144,10 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-
 
 const unidades = computed(() => session.value?.user?.unidades || [])
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
-const search = ref('')
-const selectedSalaId = ref<number | null>(null)
+const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
+const selectedSalaId = ref<number | null>(normalizeSalaQuery(route.query.sala))
 const actionError = ref('')
+const actionNotice = ref('')
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 
 watch(unidades, (value) => {
@@ -154,6 +157,18 @@ watch(unidades, (value) => {
 watch(() => route.query.unidad, (value) => {
   if (typeof value === 'string' && value && value !== selectedUnidad.value) selectedUnidad.value = value
 })
+
+watch(() => route.query.buscar, (value) => {
+  const next = typeof value === 'string' ? value : ''
+  if (next !== search.value) search.value = next
+})
+
+watch(() => route.query.sala, (value) => {
+  const next = normalizeSalaQuery(value)
+  if (next !== selectedSalaId.value) selectedSalaId.value = next
+})
+
+watch(search, () => syncQuery())
 
 const { data: salas, pending, error } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
@@ -172,10 +187,19 @@ const selectedSala = computed(() => filteredSalas.value.find((sala) => sala.id =
 watch(filteredSalas, (rows) => {
   if (!rows.length) {
     selectedSalaId.value = null
+    syncQuery()
     return
   }
+
+  const routeSala = normalizeSalaQuery(route.query.sala)
+  if (routeSala && rows.some((sala) => sala.id === routeSala)) {
+    selectedSalaId.value = routeSala
+    return
+  }
+
   if (!selectedSalaId.value || !rows.some((sala) => sala.id === selectedSalaId.value)) {
     selectedSalaId.value = rows[0].id
+    syncQuery()
   }
 }, { immediate: true })
 
@@ -186,10 +210,32 @@ const totals = computed(() => filteredSalas.value.reduce((acc, sala) => {
 }, { familias: 0, totalRecursos: 0 }))
 
 function syncUnidad() {
+  actionError.value = ''
+  actionNotice.value = ''
   selectedSalaId.value = null
-  router.replace({ path: route.path, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : {} })
+  syncQuery()
 }
 
+function selectSala(id: number) {
+  actionError.value = ''
+  actionNotice.value = ''
+  selectedSalaId.value = id
+  syncQuery()
+}
+
+function syncQuery() {
+  const query: Record<string, string> = {}
+  if (selectedUnidad.value) query.unidad = selectedUnidad.value
+  if (selectedSalaId.value) query.sala = String(selectedSalaId.value)
+  if (search.value.trim()) query.buscar = search.value.trim()
+  router.replace({ path: route.path, query })
+}
+
+function goToSalaSummary() {
+  actionError.value = ''
+  if (!selectedSala.value?.id) return
+  navigateTo({ path: `/admin/daycare/salas/${selectedSala.value.id}`, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : undefined })
+}
 
 function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
   actionError.value = ''
@@ -200,12 +246,20 @@ function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario
 
 async function previewSala(id: number) {
   actionError.value = ''
+  actionNotice.value = ''
   try {
     await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
+    actionNotice.value = 'Abriendo vista familiar de sala.'
     await navigateTo('/familia/daycare')
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
   }
+}
+
+function normalizeSalaQuery(value: unknown) {
+  const source = Array.isArray(value) ? value[0] : value
+  const id = Number(source || 0)
+  return Number.isInteger(id) && id > 0 ? id : null
 }
 
 function roomInitials(value?: string | null) {
@@ -428,6 +482,16 @@ function roomInitials(value?: string | null) {
   color: var(--color-muted);
   font-size: 0.86rem;
   line-height: 1.35;
+}
+
+.notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  font-weight: 850;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .loading-card {
