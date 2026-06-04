@@ -7,20 +7,21 @@
 
     <div class="image-controls">
       <div>
-        <p class="eyebrow">{{ eyebrow || 'Fotografía' }}</p>
-        <h3>{{ title || 'Subir imagen' }}</h3>
-        <p>{{ helperText }}</p>
+        <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
+        <h3>{{ title || 'Foto' }}</h3>
+        <p v-if="helperText">{{ helperText }}</p>
       </div>
 
       <label class="upload-drop" :class="{ busy: processing }">
         <input ref="inputRef" type="file" accept="image/png,image/jpeg,image/webp" :disabled="processing" data-diagnostic-action="subir-imagen-personas" @change="onFileChange" />
-        <span>{{ processing ? 'Preparando imagen…' : selectedName || 'Seleccionar foto' }}</span>
-        <small>{{ processing ? 'Esto tomará unos segundos.' : 'PNG, JPG o WEBP hasta 5 MB.' }}</small>
+        <span>{{ processing ? 'Preparando…' : selectedName || 'Seleccionar foto' }}</span>
+        <small>PNG, JPG o WEBP · 5 MB máx.</small>
       </label>
 
       <div class="upload-actions">
-        <button v-if="displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="clearSelection">Cambiar foto</button>
-        <button v-if="allowRemove && displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="removePhoto">Quitar foto</button>
+        <button v-if="processedUrl" class="btn btn-primary pa-primary" type="button" :disabled="processing" data-diagnostic-action="confirmar-foto-procesada" @click="confirmProcessed">Usar esta foto</button>
+        <button v-if="displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="clearSelection">Cambiar</button>
+        <button v-if="allowRemove && displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="removePhoto">Quitar</button>
       </div>
 
       <p v-if="error" class="alert compact-alert">{{ error }}</p>
@@ -44,9 +45,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   initialSrc: '',
   personaId: null,
-  title: 'Subir imagen',
+  title: 'Foto',
   eyebrow: 'Fotografía',
-  description: 'Selecciona una foto clara de frente. El sistema la prepara automáticamente para credencial y marbete.',
+  description: '',
   allowRemove: false
 })
 
@@ -66,10 +67,11 @@ const error = ref('')
 const notice = ref('')
 
 const displayPreview = computed(() => localPreview.value || normalizeVirtualAssetUrl(processedUrl.value || props.initialSrc || ''))
-const helperText = computed(() => props.description || 'Selecciona una foto clara. El sistema la prepara automáticamente.')
+const helperText = computed(() => props.description || '')
 const uploadState = computed(() => {
   if (error.value) return 'error'
   if (processing.value) return 'loading'
+  if (processedUrl.value) return 'ready-to-confirm'
   if (displayPreview.value) return 'ready'
   return 'empty'
 })
@@ -105,7 +107,7 @@ async function onFileChange(event: Event) {
   selectedName.value = file.name
 
   if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
-    fail('Usa una imagen PNG, JPG o WEBP.')
+    fail('Usa PNG, JPG o WEBP.')
     input.value = ''
     return
   }
@@ -131,15 +133,20 @@ async function onFileChange(event: Event) {
     })
     processedUrl.value = stored.url
     localPreview.value = normalizeVirtualAssetUrl(stored.url)
-    notice.value = 'Foto lista.'
-    emit('processed', { url: stored.url, preview: localPreview.value })
+    notice.value = 'Lista para usar.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar la foto.')
+    fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cargar la foto.')
   } finally {
     setProcessing(false)
     input.value = ''
   }
+}
+
+function confirmProcessed() {
+  if (!processedUrl.value || processing.value) return
+  notice.value = 'Foto seleccionada.'
+  emit('processed', { url: processedUrl.value, preview: normalizeVirtualAssetUrl(processedUrl.value) })
 }
 
 function fail(message: string) {
@@ -253,6 +260,8 @@ function removePhoto() {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 
 .compact-alert,
 .compact-notice {

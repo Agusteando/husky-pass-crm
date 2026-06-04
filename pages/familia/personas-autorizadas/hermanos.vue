@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Vinculación familiar</p>
         <h1>Hermanos</h1>
-        <p>Los alumnos se vinculan por coincidencia completa del nombre del padre y de la madre en matrícula. Si los datos parentales están incompletos, no se habilita la vinculación automática.</p>
+        <p>Cambio rápido entre alumnos vinculados.</p>
       </div>
       <img :src="mascot" alt="" />
     </section>
@@ -46,7 +46,7 @@
 
       <div v-if="showUnavailable" class="empty-state">
         <img :src="emptyMascot" alt="" />
-        <p>La vinculación automática requiere nombre y apellidos completos de ambos padres en matrícula.</p>
+        <p>Completa nombre y apellidos de ambos padres para vincular hermanos.</p>
       </div>
     </section>
 

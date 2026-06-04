@@ -4,22 +4,53 @@
       <div>
         <p class="eyebrow">Registro familiar</p>
         <h1>Personas Autorizadas</h1>
-        <p>Administra tres personas autorizadas y un Pase Express por cuenta familiar. Cada registro conserva su QR, credencial y marbete cuando tiene datos completos.</p>
+        <p>{{ homeStatus }}</p>
       </div>
       <img :src="mascot" alt="" />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
-    <div v-else-if="pending" class="card loading-row" data-product-loading data-state="loading">Cargando registros...</div>
+    <div v-else-if="pending" class="card loading-row" data-product-loading data-state="loading">Cargando…</div>
 
     <template v-else>
+      <section class="status-grid" data-product-panel="personas-status">
+        <article class="card status-card">
+          <FamilyPersonasIcon name="people" />
+          <span>
+            <b>{{ completedRegularCount }}/3</b>
+            <small>Personas activas</small>
+          </span>
+        </article>
+        <article class="card status-card">
+          <FamilyPersonasIcon name="download" />
+          <span>
+            <b>{{ downloadableCount }}</b>
+            <small>Marbetes listos</small>
+          </span>
+        </article>
+        <NuxtLink class="card status-card actionable" to="/familia/personas-autorizadas/actualizar-datos">
+          <FamilyPersonasIcon name="edit" />
+          <span>
+            <b>Datos</b>
+            <small>Actualizar</small>
+          </span>
+        </NuxtLink>
+        <NuxtLink class="card status-card actionable" to="/familia/personas-autorizadas/credencializacion">
+          <FamilyPersonasIcon name="camera" />
+          <span>
+            <b>Foto</b>
+            <small>Alumno</small>
+          </span>
+        </NuxtLink>
+      </section>
+
       <section class="card pa-slots" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
         <header class="section-head">
           <div>
             <p class="eyebrow">Personas autorizadas</p>
             <h2>{{ completedRegularCount }}/3 registros activos</h2>
           </div>
-          <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas#ayuda">Cómo funciona</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas#ayuda">Ayuda</NuxtLink>
         </header>
 
         <div class="person-grid">
@@ -40,7 +71,7 @@
             </span>
             <span class="person-meta">
               <b>{{ authorizedPersonLabel(person.indice) }}</b>
-              <small>{{ person.id ? fullName(person) || 'Registro guardado' : person.indice === 4 ? 'Pase temporal disponible' : 'Registro disponible' }}</small>
+              <small>{{ personState(person) }}</small>
             </span>
           </button>
         </div>
@@ -49,7 +80,7 @@
           <div>
             <p class="eyebrow">{{ authorizedPersonLabel(selected.indice) }}</p>
             <h3>{{ fullName(selected) || 'Registro disponible' }}</h3>
-            <p>{{ selected.parenP || 'Captura nombre, parentesco y foto para activar credencial y marbete.' }}</p>
+            <p>{{ selected.parenP || 'Nombre, parentesco y foto.' }}</p>
           </div>
           <div class="actions">
             <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="editar-persona-autorizada" @click="edit(selected)">
@@ -58,8 +89,35 @@
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}`">Detalle</NuxtLink>
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}/marbete`">Marbete</NuxtLink>
             <a v-if="selected.id" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`">Descargar</a>
-            <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="eliminar-persona-autorizada" @click="remove(selected.id)">Eliminar</button>
+            <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="confirmar-eliminar-persona-autorizada" @click="deleteTarget = selected">Eliminar</button>
           </div>
+        </div>
+      </section>
+
+      <section id="marbetes" class="card marbete-section" data-product-panel="marbete-downloads">
+        <header class="section-head">
+          <div>
+            <p class="eyebrow">Marbetes</p>
+            <h2>Descargas</h2>
+          </div>
+        </header>
+        <div class="marbete-grid">
+          <article v-for="person in people" :key="`marbete-${person.indice}`" class="marbete-card" :data-state="person.id ? 'content' : 'unavailable'">
+            <div class="person-thumb">
+              <img v-if="photoUrl(person)" :src="photoUrl(person)" alt="" />
+              <span v-else>{{ person.id ? initials(person) : '—' }}</span>
+            </div>
+            <div>
+              <p class="eyebrow">{{ authorizedPersonLabel(person.indice) }}</p>
+              <h3>{{ person.id ? fullName(person) || 'Registro guardado' : 'Pendiente' }}</h3>
+              <small>{{ person.id ? 'Listo para descargar.' : 'Captura el registro.' }}</small>
+            </div>
+            <div class="actions">
+              <NuxtLink v-if="person.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/marbete`">Ver</NuxtLink>
+              <a v-if="person.id" class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`">Descargar</a>
+              <button v-else class="btn btn-secondary" type="button" disabled>Sin marbete</button>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -67,7 +125,6 @@
         v-if="editing"
         :title="authorizedPersonLabel(Number(editing.indice || 1))"
         eyebrow="Personas Autorizadas"
-        description="Completa los datos visibles en credencial, QR y marbete."
         @close="editing = null"
       >
         <FamilyAuthorizedPersonEditor
@@ -79,23 +136,20 @@
         />
       </FamilyPersonasModal>
 
-      <section class="quick-links">
-        <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/actualizar-datos">
-          <FamilyPersonasIcon name="edit" />
-          <strong>Actualizar datos</strong>
-          <span>Datos personales y familiares permitidos.</span>
-        </NuxtLink>
-        <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/credencializacion">
-          <FamilyPersonasIcon name="camera" />
-          <strong>Credencialización</strong>
-          <span>Actualiza la foto del alumno.</span>
-        </NuxtLink>
-        <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/marbetes">
-          <FamilyPersonasIcon name="download" />
-          <strong>Marbetes</strong>
-          <span>Previsualiza y descarga lo disponible.</span>
-        </NuxtLink>
-      </section>
+      <FamilyPersonasModal
+        v-if="deleteTarget"
+        title="Eliminar registro"
+        :eyebrow="authorizedPersonLabel(Number(deleteTarget.indice || 1))"
+        @close="deleteTarget = null"
+      >
+        <section class="delete-confirm">
+          <p>{{ fullName(deleteTarget) || 'Este registro' }}</p>
+          <div class="actions form-actions">
+            <button class="btn btn-danger" type="button" :disabled="deleting" data-diagnostic-action="eliminar-persona-autorizada" @click="remove(deleteTarget.id)">{{ deleting ? 'Eliminando…' : 'Eliminar' }}</button>
+            <button class="btn btn-secondary" type="button" :disabled="deleting" @click="deleteTarget = null">Cancelar</button>
+          </div>
+        </section>
+      </FamilyPersonasModal>
 
       <section id="ayuda" class="help-grid" data-product-panel="personas-help-tutorial">
         <article class="card tutorial-card">
@@ -148,7 +202,9 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-ind
 const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000 })
 
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
+const deleteTarget = ref<AuthorizedPerson | null>(null)
 const saving = ref(false)
+const deleting = ref(false)
 const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
@@ -166,15 +222,20 @@ const mascot = computed(() => personasMascot(theme.value, 'hero'))
 const helpMascot = computed(() => personasMascot(theme.value, 'help'))
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
+const downloadableCount = computed(() => people.value.filter((person) => person.id).length)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
+const homeStatus = computed(() => {
+  if (!people.value.length) return 'Cargando registros.'
+  if (completedRegularCount.value >= 3) return 'Registros completos.'
+  return `Faltan ${3 - completedRegularCount.value} registros.`
+})
 
 const faqItems = [
-  { question: '¿Qué es Personas Autorizadas?', answer: 'Es el módulo para registrar quiénes pueden entregar o recoger al alumno con validación QR.' },
-  { question: '¿Cuántas personas puedo registrar?', answer: 'Puedes mantener tres personas autorizadas y un Pase Express para situaciones temporales.' },
-  { question: '¿Qué foto debo usar?', answer: 'Usa una fotografía clara de frente. El sistema prepara el recorte automáticamente.' },
-  { question: '¿Para qué sirve el Pase Express?', answer: 'Permite generar un registro temporal cuando las personas autorizadas habituales no están disponibles.' },
-  { question: '¿Cómo descargo el marbete?', answer: 'Abre Marbetes / descarga, elige una persona registrada y descarga el formato disponible.' },
-  { question: '¿Puedo cambiar grado, grupo o nivel?', answer: 'No. Esos campos son escolares y se mantienen como solo lectura para familias.' }
+  { question: '¿Cuántas personas puedo registrar?', answer: 'Tres personas autorizadas y un Pase Express.' },
+  { question: '¿Qué foto debo usar?', answer: 'Una foto frontal y clara.' },
+  { question: '¿Para qué sirve el Pase Express?', answer: 'Para una autorización temporal.' },
+  { question: '¿Dónde descargo el marbete?', answer: 'En esta misma pantalla, sección Marbetes.' },
+  { question: '¿Puedo cambiar grado, grupo o nivel?', answer: 'No. Esos datos son escolares.' }
 ]
 
 watch(() => route.query.persona, (value) => {
@@ -203,6 +264,13 @@ function initials(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
 
 function photoUrl(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
   return normalizeVirtualAssetUrl(person.compressed_foto || person.foto || '')
+}
+
+function personState(person: AuthorizedPerson) {
+  if (!person.id) return person.indice === 4 ? 'Pase disponible' : 'Disponible'
+  if (!photoUrl(person)) return 'Falta foto'
+  if (!person.parenP) return 'Falta parentesco'
+  return 'Listo'
 }
 
 function selectPerson(person: AuthorizedPerson) {
@@ -239,16 +307,20 @@ async function save(payload: Partial<AuthorizedPerson>) {
 }
 
 async function remove(id: number | null | undefined) {
-  if (!id || !confirm('Eliminar este registro de Personas Autorizadas?')) return
+  if (!id) return
+  deleting.value = true
   error.value = ''
   notice.value = ''
   try {
     await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
+    deleteTarget.value = null
     await refresh()
     notice.value = 'Registro eliminado.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible eliminar el registro.'
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -262,7 +334,7 @@ function normalizeIndice(value: unknown) {
 .pa-hero,
 .section-head,
 .selected-row,
-.quick-card {
+.status-card {
   align-items: center;
   display: grid;
   gap: 14px;
@@ -296,7 +368,44 @@ function normalizeIndice(value: unknown) {
   padding: 10px 12px;
 }
 
-.pa-slots {
+.status-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.status-card {
+  box-shadow: none;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-height: 82px;
+}
+
+.status-card svg {
+  color: var(--pa-primary);
+}
+
+.status-card b,
+.status-card small {
+  display: block;
+}
+
+.status-card b {
+  color: var(--pa-gray);
+}
+
+.status-card small {
+  color: var(--pa-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.status-card.actionable:hover {
+  border-color: var(--pa-border);
+  transform: translateY(-1px);
+}
+
+.pa-slots,
+.marbete-section {
   display: grid;
   gap: 18px;
 }
@@ -316,14 +425,20 @@ function normalizeIndice(value: unknown) {
 }
 
 .section-head h2,
-.selected-row h3 {
+.selected-row h3,
+.marbete-card h3 {
   margin-bottom: 0;
 }
 
-.person-grid {
+.person-grid,
+.marbete-grid {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(4, minmax(130px, 1fr));
+}
+
+.marbete-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .person-card {
@@ -335,11 +450,11 @@ function normalizeIndice(value: unknown) {
   text-align: left;
 }
 
-.person-photo {
+.person-photo,
+.person-thumb {
   aspect-ratio: 1;
   background: #d9d9d9;
   border: 2px solid transparent;
-  border-radius: 18px 18px 0 0;
   color: #50535a;
   display: grid;
   font-size: 2.2rem;
@@ -347,7 +462,18 @@ function normalizeIndice(value: unknown) {
   place-items: center;
 }
 
-.person-photo img {
+.person-photo {
+  border-radius: 18px 18px 0 0;
+}
+
+.person-thumb {
+  border: 1px solid var(--pa-border);
+  border-radius: 18px;
+  font-size: 1.5rem;
+}
+
+.person-photo img,
+.person-thumb img {
   height: 100%;
   object-fit: cover;
   width: 100%;
@@ -378,7 +504,8 @@ function normalizeIndice(value: unknown) {
   text-transform: uppercase;
 }
 
-.person-meta small {
+.person-meta small,
+.marbete-card small {
   font-size: 0.76rem;
   font-weight: 780;
 }
@@ -391,30 +518,35 @@ function normalizeIndice(value: unknown) {
   padding: 14px;
 }
 
+.marbete-card {
+  align-items: center;
+  background: #f8f8f6;
+  border: 1px solid #ecece7;
+  border-radius: 18px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 82px minmax(0, 1fr);
+  padding: 14px;
+}
+
+.marbete-card .actions {
+  grid-column: 1 / -1;
+}
+
 .actions,
-.quick-links {
+.form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.quick-links {
+.form-actions {
+  justify-content: flex-end;
+}
+
+.delete-confirm {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.quick-card {
-  grid-template-columns: 28px minmax(0, 1fr);
-}
-
-.quick-card svg {
-  color: var(--pa-primary);
-}
-
-.quick-card span {
-  color: var(--color-muted);
-  font-size: 0.88rem;
-  grid-column: 2;
+  gap: 16px;
 }
 
 .help-grid {
@@ -478,12 +610,22 @@ function normalizeIndice(value: unknown) {
   line-height: 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 980px) {
+  .status-grid,
+  .help-grid,
+  .marbete-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
   .pa-hero,
   .selected-row,
   .section-head,
-  .quick-links,
-  .help-grid {
+  .status-grid,
+  .help-grid,
+  .marbete-grid,
+  .marbete-card {
     grid-template-columns: 1fr;
   }
 

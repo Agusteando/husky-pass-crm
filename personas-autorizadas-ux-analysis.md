@@ -1,19 +1,49 @@
-# Análisis UI/UX de Personas Autorizadas
+# Análisis UI/UX — Personas Autorizadas
 
-La corrección principal fue separar lo que pertenece al producto visible de lo que pertenece a la implementación interna. Textos como “Vision API”, “máscara”, “geometría” o “procesamiento” no deben aparecer frente a familias: el usuario sólo debe seleccionar una foto, ver un estado claro y recibir un resultado listo. Exponer detalles técnicos aumenta incertidumbre, suena experimental y desplaza la responsabilidad al usuario.
+Este pase se evaluó con un criterio simple: menos texto, más claridad de acción. Personas Autorizadas debe sentirse como un producto operativo, no como una explicación del sistema. La familia necesita saber qué falta, qué puede hacer y si quedó guardado. Nada más.
 
-La captura de imágenes y recursos no debe depender de pegar ligas. Para una experiencia institucional, el flujo correcto es carga directa, validación inmediata, vista previa, preparación automática, estados de error entendibles y persistencia controlada por el sistema. Las ligas manuales generan recursos rotos, inconsistencias visuales, problemas de privacidad, soporte innecesario y riesgo de guardar destinos no autorizados.
+## Correcciones aplicadas en este pase
 
-Los formularios largos inline no funcionaban bien en móvil ni como flujo de producto. En Personas Autorizadas y Actualizar datos, el patrón más útil es una vista compacta de estado, tarjetas por sección y edición en modal. Esto reduce carga cognitiva, conserva contexto, evita scroll excesivo y hace que guardar/cancelar tenga un alcance claro.
+Marbetes volvió al lugar correcto: dentro de Personas Autorizadas. Se retiró como sección primaria de navegación para evitar fragmentar el recorrido. La descarga queda en la misma pantalla donde se capturan y revisan los registros.
 
-Credencialización estaba planteada como si fuera una credencial del padre o una explicación técnica. El comportamiento esperado es una actualización de foto del alumno: imagen actual, acción única, modal de carga, preparación automática y guardado. El usuario no necesita elegir endpoints, pegar URLs ni entender el pipeline.
+La interfaz se redujo. Se quitó copy explicativo innecesario, lenguaje técnico, instrucciones largas y mensajes orientados a implementación. El flujo visible queda centrado en estado, acción y resultado.
 
-FAQ y tutorial no debían competir como secciones primarias de navegación. Funcionan mejor como ayuda contextual debajo de Personas Autorizadas: video a la izquierda, FAQ a la derecha. Esto mantiene el foco en la tarea principal y conserva soporte inmediato sin fragmentar la navegación.
+Las acciones importantes se movieron a modales: captura/edición de personas, confirmación de eliminación, actualización de datos y cambio de foto del alumno. Esto separa lectura de edición y evita páginas largas con formularios abiertos permanentemente.
 
-La vinculación de hermanos por identificadores internos de familia era frágil para este legado. Si la fuente confiable es `matricula`, el producto debe vincular por nombre completo normalizado de ambos padres y bloquear la vinculación cuando falte cualquier parte necesaria. Aceptar datos incompletos o nulos produciría falsos positivos y accesos ambiguos.
+La carga de foto quedó como componente de upload. El usuario no pega enlaces ni ve detalles internos. Selecciona una imagen, revisa la vista previa y confirma. La preparación ocurre detrás de la interfaz.
 
-Faltaban estados no disponibles consistentes. Un producto completo no debe mostrar controles que no hacen nada, campos que no deberían editarse o flujos que fallan sin explicación. Cada control visible debe tener resultado observable o indicar por qué no está disponible.
+FAQ y tutorial quedaron bajo Personas Autorizadas, con video a la izquierda y preguntas a la derecha. Funcionan como ayuda contextual, no como destino principal de producto.
 
-También faltaba una separación fuerte entre datos familiares y datos escolares. Grado, grupo, nivel, ciclo, plantel, matrícula, baja, servicio y estado interno deben permanecer como lectura o no aparecer en edición familiar. La defensa real debe estar en servidor con whitelist estricta, no sólo en la UI.
+Hermanos dejó de depender de un identificador interno de familia. La vinculación se calcula desde `matricula`, comparando nombre completo normalizado de padre y madre. Si falta cualquier parte requerida de los nombres parentales, no se vincula para evitar falsos positivos.
 
-Para cerrar esta área como producto completo, todavía conviene agregar pruebas Playwright con fixtures reales de sesión familiar, niveles IECS/IEDIS, fotos absolutas existentes, cuentas con y sin datos parentales completos, hermanos con cuenta activa y hermanos sin cuenta activa. Sin esos fixtures, la validación automatizada sólo cubre compilación y análisis estático, no el flujo real autenticado.
+Actualizar datos y Credencialización ahora dependen de una lectura de matrícula compatible con el esquema real. El servidor inspecciona columnas disponibles antes de consultar o actualizar. Si falta una columna, no rompe por `Unknown column`; registra el diagnóstico y limita los campos visibles/guardables.
+
+Se agregaron diagnósticos backend con prefijo `personas-autorizadas`. Los logs incluyen alcance, fecha, usuario, matrícula, columnas seleccionadas, columnas faltantes y resumen del error SQL cuando aplica. El usuario conserva un mensaje breve; soporte obtiene causa precisa.
+
+## Hallazgos críticos aún relevantes
+
+La mayor debilidad histórica no era visual: era que tres flujos centrales no cargaban. Un producto institucional no puede depender de que la UI oculte una falla genérica. Cualquier error de matrícula, sesión, permisos, columnas faltantes o cuenta sin alcance debe poder diagnosticarse en backend en el primer intento.
+
+El producto debe evitar más secciones de las necesarias. Personas Autorizadas es la unidad principal: registros, marbetes, tutorial y FAQ pertenecen ahí. Sólo deben vivir aparte las tareas que realmente requieren pantalla propia: datos del alumno, foto del alumno, hermanos, encuestas y convenios.
+
+La interfaz debe seguir reduciéndose. Cada frase visible debe justificar su presencia. Los textos aceptables son estado, acción, campo, error breve o confirmación. Todo lo demás pertenece a soporte, documentación interna o logs.
+
+Los controles deshabilitados deben ser escasos y claros. Si algo no se puede hacer, debe verse como no disponible, no como error. Si sí se puede hacer, debe guardar, descargar, cambiar o navegar sin ambigüedad.
+
+La vinculación de hermanos por nombres parentales es útil para este legado, pero exige disciplina de datos. No debe aceptar nombres parciales, nulos o vacíos. Tampoco debe permitir cambio rápido si el hermano no tiene cuenta familiar activa y autorizada.
+
+El flujo de foto necesita pruebas reales con imágenes difíciles: rostro lejano, horizontal, baja luz, archivo pesado, formato no permitido y foto existente como URL absoluta. La experiencia debe degradar con un error breve y sin perder el contexto.
+
+## Criterio de aceptación estricto
+
+Actualizar datos carga con la matrícula autenticada, muestra sólo campos familiares permitidos y guarda sólo columnas existentes del whitelist.
+
+Credencialización carga la foto actual del alumno, permite subir una nueva imagen y guarda únicamente el resultado confirmado.
+
+Hermanos carga siempre al alumno actual. Sólo muestra hermanos cuando ambos padres tienen nombres completos normalizados coincidentes y cada alumno destino tiene cuenta válida para cambio rápido.
+
+Personas Autorizadas contiene la descarga de marbetes en la misma pantalla de registros.
+
+Los logs backend explican la causa real de cada falla: sesión, alcance, matrícula inexistente, columna faltante, consulta SQL, escritura rechazada o intento de campo no permitido.
+
+La UI final permanece minimalista: sin lenguaje técnico, sin instrucciones extensas, sin enlaces manuales de recursos y sin controles decorativos.

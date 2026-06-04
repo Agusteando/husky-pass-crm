@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Datos editables por familia</p>
         <h1>Actualizar datos</h1>
-        <p>Revisa los datos escolares y actualiza únicamente la información personal, familiar y de domicilio que corresponde a la familia.</p>
+        <p>Datos familiares permitidos.</p>
       </div>
       <img :src="mascot" alt="" />
     </section>
@@ -27,7 +27,7 @@
       </section>
 
       <section class="data-section-grid" data-product-panel="student-data-sections">
-        <article v-for="group in groups" :key="group.title" class="card data-section-card">
+        <article v-for="group in visibleGroups" :key="group.title" class="card data-section-card">
           <div>
             <p class="eyebrow">{{ group.eyebrow }}</p>
             <h2>{{ group.title }}</h2>
@@ -41,19 +41,25 @@
         v-if="activeGroup"
         :title="activeGroup.title"
         :eyebrow="activeGroup.eyebrow"
-        description="Edita solo los datos de esta sección. Los datos escolares permanecen protegidos."
+        
         @close="closeGroup"
       >
         <form class="student-form" data-product-panel="student-data-modal" @submit.prevent="saveActiveGroup">
           <div class="form-grid">
             <label v-for="field in activeGroup.fields" :key="field.key" class="label">
               {{ field.label }}
+              <select v-if="field.options" v-model="form[field.key]" class="select">
+                <option value="">Seleccionar</option>
+                <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
+              </select>
               <input
+                v-else
                 v-model="form[field.key]"
                 class="input"
                 :type="field.type || 'text'"
                 :autocomplete="field.autocomplete || 'off'"
                 :inputmode="field.inputmode"
+                :maxlength="field.maxlength"
               />
             </label>
           </div>
@@ -83,7 +89,7 @@ import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 type FieldKey = keyof PersonasStudentEditable
-type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' }
+type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
 
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-update-session' })
@@ -111,16 +117,16 @@ const groups: FieldGroup[] = [
     eyebrow: 'Alumno',
     title: 'Identidad, contacto y salud',
     fields: [
-      { key: 'curp', label: 'CURP' },
+      { key: 'curp', label: 'CURP', maxlength: 18 },
       { key: 'nombres', label: 'Nombre(s)', autocomplete: 'given-name' },
       { key: 'apellido_paterno', label: 'Apellido paterno', autocomplete: 'family-name' },
       { key: 'apellido_materno', label: 'Apellido materno' },
       { key: 'fecha_nacimiento', label: 'Fecha de nacimiento', type: 'date' },
       { key: 'lugar_nacimiento', label: 'Lugar de nacimiento' },
-      { key: 'sexo', label: 'Sexo' },
+      { key: 'sexo', label: 'Sexo', options: ['Femenino', 'Masculino'] },
       { key: 'talla', label: 'Talla' },
       { key: 'peso', label: 'Peso' },
-      { key: 'tipo_sangre', label: 'Tipo de sangre' },
+      { key: 'tipo_sangre', label: 'Tipo de sangre', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
       { key: 'alergias', label: 'Alergias' }
     ]
   },
@@ -135,10 +141,10 @@ const groups: FieldGroup[] = [
       { key: 'puesto_padre', label: 'Puesto' },
       { key: 'email_padre', label: 'Email', type: 'email', autocomplete: 'email' },
       { key: 'telefono_padre', label: 'Teléfono', type: 'tel', inputmode: 'tel' },
-      { key: 'estado_civil_padre', label: 'Estado civil' },
+      { key: 'estado_civil_padre', label: 'Estado civil', options: ['Soltero/a', 'Casado/a', 'Unión libre', 'Divorciado/a', 'Viudo/a'] },
       { key: 'fecha_nacimiento_padre', label: 'Fecha de nacimiento', type: 'date' },
-      { key: 'curp_padre', label: 'CURP' },
-      { key: 'ine_padre', label: 'INE' }
+      { key: 'curp_padre', label: 'CURP', maxlength: 18 },
+      { key: 'ine_padre', label: 'INE', maxlength: 18 }
     ]
   },
   {
@@ -152,10 +158,10 @@ const groups: FieldGroup[] = [
       { key: 'puesto_madre', label: 'Puesto' },
       { key: 'email_madre', label: 'Email', type: 'email', autocomplete: 'email' },
       { key: 'telefono_madre', label: 'Teléfono', type: 'tel', inputmode: 'tel' },
-      { key: 'estado_civil_madre', label: 'Estado civil' },
+      { key: 'estado_civil_madre', label: 'Estado civil', options: ['Soltero/a', 'Casado/a', 'Unión libre', 'Divorciado/a', 'Viudo/a'] },
       { key: 'fecha_nacimiento_madre', label: 'Fecha de nacimiento', type: 'date' },
-      { key: 'curp_madre', label: 'CURP' },
-      { key: 'ine_madre', label: 'INE' }
+      { key: 'curp_madre', label: 'CURP', maxlength: 18 },
+      { key: 'ine_madre', label: 'INE', maxlength: 18 }
     ]
   },
   {
@@ -165,11 +171,17 @@ const groups: FieldGroup[] = [
       { key: 'domicilio_calle', label: 'Calle' },
       { key: 'domicio_num', label: 'Número' },
       { key: 'domicilio_colonia', label: 'Colonia' },
-      { key: 'domicilio_cp', label: 'Código postal', inputmode: 'numeric' },
+      { key: 'domicilio_cp', label: 'Código postal', inputmode: 'numeric', maxlength: 5 },
       { key: 'domicilio_municipio', label: 'Municipio' }
     ]
   }
 ]
+
+
+const allowedFieldSet = computed(() => new Set(profile.value?.allowedFields || []))
+const visibleGroups = computed<FieldGroup[]>(() => groups
+  .map((group) => ({ ...group, fields: group.fields.filter((field) => allowedFieldSet.value.has(field.key)) }))
+  .filter((group) => group.fields.length))
 
 const readonlyItems = computed(() => [
   { label: 'Matrícula', value: profile.value?.readonly.matricula },
@@ -212,11 +224,29 @@ function closeGroup() {
   activeGroup.value = null
 }
 
+function validateActiveGroup() {
+  if (!activeGroup.value) return ''
+  for (const field of activeGroup.value.fields) {
+    const value = String(form[field.key] || '').trim()
+    if (!value) continue
+    if (field.key.toString().includes('email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return `Revisa ${field.label}.`
+    if (field.key.toString().includes('curp') && value.length !== 18) return `Revisa ${field.label}.`
+    if (field.key === 'domicilio_cp' && !/^\d{5}$/.test(value)) return 'Revisa Código postal.'
+  }
+  return ''
+}
+
 async function saveActiveGroup() {
   if (!activeGroup.value || !hasActiveGroupChanges.value) return
   saving.value = true
   error.value = ''
   notice.value = ''
+  const invalid = validateActiveGroup()
+  if (invalid) {
+    error.value = invalid
+    saving.value = false
+    return
+  }
   const patch = Object.fromEntries(activeGroup.value.fields
     .filter((field) => String(form[field.key] || '') !== String(original.value[field.key] || ''))
     .map((field) => [field.key, form[field.key] || null]))

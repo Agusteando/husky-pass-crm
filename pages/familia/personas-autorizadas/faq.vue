@@ -2,5 +2,5 @@
 import { navigateTo } from 'nuxt/app'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-await navigateTo('/familia/personas-autorizadas/ayuda', { replace: true })
+await navigateTo('/familia/personas-autorizadas#ayuda', { replace: true })
 </script>

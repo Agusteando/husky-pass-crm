@@ -4,33 +4,33 @@
       <div>
         <p class="eyebrow">Foto del alumno</p>
         <h1>Credencialización</h1>
-        <p>Actualiza la foto institucional del alumno para credencial, validaciones internas y material imprimible.</p>
+        <p>{{ currentPhoto ? 'Foto actual disponible.' : 'Foto pendiente.' }}</p>
       </div>
       <img :src="mascot" alt="" />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos de credencialización.</p>
-    <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando foto...</div>
+    <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando…</div>
 
     <section v-else-if="profile" class="card photo-flow" data-product-panel="student-photo-update">
-      <div class="photo-preview">
+      <button class="photo-preview" type="button" :disabled="!currentPhoto" data-diagnostic-action="ver-foto-alumno" @click="currentPhotoModalOpen = Boolean(currentPhoto)">
         <img v-if="currentPhoto" :src="currentPhoto" alt="Foto actual del alumno" />
         <span v-else>Sin foto</span>
-      </div>
+      </button>
 
       <div class="photo-copy">
         <p class="eyebrow">{{ profile.readonly.matricula || 'Matrícula vinculada' }}</p>
         <h2>{{ studentName || 'Alumno' }}</h2>
-        <p>{{ academicLine || 'Los datos académicos se muestran solo como contexto.' }}</p>
+        <p>{{ academicLine || 'Datos escolares' }}</p>
 
         <div class="actions">
           <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="abrir-modal-foto-alumno" @click="photoModalOpen = true">
             {{ currentPhoto ? 'Actualizar foto' : 'Subir foto' }}
           </button>
-          <a v-if="currentPhoto" class="btn btn-secondary" :href="currentPhoto" target="_blank" rel="noopener noreferrer">Abrir foto actual</a>
+          <button v-if="currentPhoto" class="btn btn-secondary" type="button" @click="currentPhotoModalOpen = true">Ver actual</button>
         </div>
 
-        <div class="status-card" :data-state="processing ? 'loading' : saved ? 'saved' : 'idle'">
+        <div class="status-card" :data-state="processing || saving ? 'loading' : saved ? 'saved' : 'idle'">
           <FamilyPersonasIcon name="camera" />
           <span>{{ statusText }}</span>
         </div>
@@ -39,20 +39,28 @@
 
     <FamilyPersonasModal
       v-if="photoModalOpen"
-      title="Actualizar foto del alumno"
+      title="Foto del alumno"
       eyebrow="Credencialización"
-      description="Selecciona una foto clara de frente. El sistema la prepara y guarda automáticamente."
       @close="closePhotoModal"
     >
       <FamilyPersonasImageUpload
         :initial-src="currentPhoto"
-        eyebrow="Foto del alumno"
-        title="Subir foto institucional"
-        description="La actualización inicia al seleccionar el archivo. No necesitas realizar pasos técnicos."
+        eyebrow="Foto"
+        title="Subir foto"
+        description="Foto frontal, clara."
         @processed="saveProcessedPhoto"
         @processing="processing = $event"
         @error="setUploadError"
       />
+    </FamilyPersonasModal>
+
+    <FamilyPersonasModal
+      v-if="currentPhotoModalOpen && currentPhoto"
+      title="Foto actual"
+      eyebrow="Alumno"
+      @close="currentPhotoModalOpen = false"
+    >
+      <img class="current-photo-large" :src="currentPhoto" alt="Foto actual del alumno" />
     </FamilyPersonasModal>
 
     <p v-if="error" class="alert">{{ error }}</p>
@@ -75,6 +83,7 @@ const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-photo-student-profile', timeout: 15000 })
 
 const photoModalOpen = ref(false)
+const currentPhotoModalOpen = ref(false)
 const processing = ref(false)
 const saving = ref(false)
 const error = ref('')
@@ -93,10 +102,10 @@ const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.read
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
 const academicLine = computed(() => [profile.value?.readonly.plantel, profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
 const statusText = computed(() => {
-  if (processing.value) return 'Preparando foto…'
-  if (saving.value) return 'Guardando foto…'
+  if (processing.value) return 'Preparando…'
+  if (saving.value) return 'Guardando…'
   if (saved.value) return 'Foto actualizada.'
-  return currentPhoto.value ? 'Foto actual disponible.' : 'Sube una foto para completar el expediente.'
+  return currentPhoto.value ? 'Lista.' : 'Pendiente.'
 })
 
 function closePhotoModal() {
@@ -122,7 +131,7 @@ async function saveProcessedPhoto(payload: { url: string }) {
     await refresh()
     saved.value = true
     photoModalOpen.value = false
-    notice.value = 'Foto del alumno actualizada.'
+    notice.value = 'Foto actualizada.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar la foto.'
@@ -164,7 +173,12 @@ async function saveProcessedPhoto(payload: { url: string }) {
   font-size: 1.25rem;
   font-weight: 950;
   overflow: hidden;
+  padding: 0;
   place-items: center;
+}
+
+.photo-preview:not(:disabled) {
+  cursor: pointer;
 }
 
 .photo-preview img {
@@ -221,6 +235,14 @@ async function saveProcessedPhoto(payload: { url: string }) {
   background: var(--pa-soft);
   border-color: var(--pa-border);
   color: var(--pa-primary);
+}
+
+.current-photo-large {
+  border-radius: 22px;
+  display: block;
+  margin: 0 auto;
+  max-height: 70vh;
+  object-fit: contain;
 }
 
 @media (max-width: 860px) {

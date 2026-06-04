@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
-    <div class="pa-modal-backdrop" role="presentation" @click.self="close">
-      <section class="pa-modal" role="dialog" aria-modal="true" :aria-label="title">
+    <div ref="backdropRef" class="pa-modal-backdrop" role="presentation" @click.self="close">
+      <section ref="modalRef" class="pa-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
         <header class="pa-modal-head">
           <div>
             <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
-            <h2>{{ title }}</h2>
+            <h2 :id="titleId">{{ title }}</h2>
             <p v-if="description">{{ description }}</p>
           </div>
           <button class="pa-modal-close" type="button" aria-label="Cerrar" @click="close">×</button>
@@ -19,35 +19,77 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
-const props = defineProps<{
+defineProps<{
   title: string
   eyebrow?: string
   description?: string
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+const modalRef = ref<HTMLElement | null>(null)
+const backdropRef = ref<HTMLElement | null>(null)
+const previousActive = ref<HTMLElement | null>(null)
+const titleId = `pa-modal-title-${Math.random().toString(36).slice(2, 9)}`
 
 function close() {
   emit('close')
 }
 
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') close()
+function focusableElements() {
+  return Array.from(modalRef.value?.querySelectorAll<HTMLElement>([
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',')) || []).filter((element) => !element.hasAttribute('aria-hidden'))
 }
 
-onMounted(() => {
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    close()
+    return
+  }
+  if (event.key !== 'Tab') return
+  const items = focusableElements()
+  if (!items.length) {
+    event.preventDefault()
+    modalRef.value?.focus()
+    return
+  }
+  const first = items[0]
+  const last = items[items.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+onMounted(async () => {
+  previousActive.value = document.activeElement instanceof HTMLElement ? document.activeElement : null
   document.addEventListener('keydown', onKeydown)
   document.body.classList.add('pa-modal-open')
+  await nextTick()
+  const firstFocusable = focusableElements()[0]
+  if (firstFocusable) {
+    firstFocusable.focus()
+  } else {
+    modalRef.value?.focus()
+  }
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown)
   document.body.classList.remove('pa-modal-open')
+  previousActive.value?.focus?.()
 })
 
-void props
 </script>
 
 <style scoped>
@@ -73,6 +115,10 @@ void props
   max-width: min(920px, calc(100vw - 28px));
   overflow: hidden;
   width: 100%;
+}
+
+.pa-modal:focus {
+  outline: none;
 }
 
 .pa-modal-head {

@@ -14,7 +14,7 @@
       <div class="print-actions no-print">
         <strong>{{ fullName }}</strong>
         <span>{{ templateContext }}</span>
-        <a class="btn btn-primary" :href="downloadUrl">Descargar SVG</a>
+        <a class="btn btn-primary" :href="downloadUrl">Descargar</a>
       </div>
       <iframe ref="frame" :src="previewUrl" title="Marbete imprimible" @load="printFrame"></iframe>
     </section>

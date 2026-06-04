@@ -396,3 +396,7 @@ p {
     width: 100%;
   }
 }
+
+body.pa-modal-open {
+  overflow: hidden;
+}

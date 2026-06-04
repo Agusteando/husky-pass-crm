@@ -75,7 +75,7 @@ const baseUserSql = `
     B.route,
     B.icono,
     A.displayName,
-    A.plantel,
+    NULL AS plantel,
     A.campus,
     A.empresa,
     A.unidad,
@@ -243,16 +243,15 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   if (plantel) {
     where.push(`(
-      FIND_IN_SET(?, A.plantel) OR FIND_IN_SET(?, A.unidad) OR
-      A.plantel = ? OR A.unidad = ? OR A.campus = ? OR A.empresa = ?
+      FIND_IN_SET(?, A.unidad) OR A.unidad = ? OR A.campus = ? OR A.empresa = ?
     )`)
-    params.push(plantel, plantel, plantel, plantel, plantel, plantel)
+    params.push(plantel, plantel, plantel, plantel)
   }
 
   if (search) {
     where.push(`(
       A.email LIKE ? OR A.username LIKE ? OR A.displayName LIKE ? OR A.nombre_nino LIKE ? OR
-      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.plantel LIKE ? OR A.campus LIKE ?
+      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.campus LIKE ? OR A.empresa LIKE ?
     )`)
     const like = `%${search}%`
     params.push(like, like, like, like, like, like, like, like, like)
@@ -267,7 +266,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       A.picture,
       A.role,
       A.displayName,
-      A.plantel,
+      NULL AS plantel,
       A.campus,
       A.empresa,
       A.unidad,
@@ -275,7 +274,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       A.nombre_nino
      FROM users AS A
      ${whereSql}
-     ORDER BY COALESCE(NULLIF(A.plantel, ''), NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
+     ORDER BY COALESCE(NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
      LIMIT ${queryLimit}`,
     params
   )
@@ -286,10 +285,10 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
 
   const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
-    `SELECT plantel, unidad, campus
+    `SELECT NULL AS plantel, unidad, campus
      FROM users
-     WHERE plantel IS NOT NULL OR unidad IS NOT NULL OR campus IS NOT NULL
-     ORDER BY plantel ASC, unidad ASC, campus ASC
+     WHERE unidad IS NOT NULL OR campus IS NOT NULL
+     ORDER BY unidad ASC, campus ASC
      LIMIT 5000`
   )
 

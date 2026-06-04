@@ -9,6 +9,16 @@
         <strong>{{ title }}</strong>
         <small>{{ contextLine }}</small>
       </div>
+      <div v-if="primaryChild" class="pa-student-chip" data-product-panel="active-student">
+        <span class="pa-student-avatar">
+          <img v-if="studentPhoto" :src="studentPhoto" alt="" />
+          <b v-else>{{ studentInitials }}</b>
+        </span>
+        <span>
+          <strong>{{ studentName || 'Alumno' }}</strong>
+          <small>{{ contextLine }}</small>
+        </span>
+      </div>
       <button class="pa-logout" type="button" data-diagnostic-action="logout-personas-autorizadas" @click="logout">Salir</button>
       <img class="pa-top-ambassador" :src="headerMascot" :alt="`${levelName.spanish} ambassador`" />
     </header>
@@ -58,6 +68,7 @@ import { computed } from 'vue'
 import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
+import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
@@ -67,6 +78,9 @@ const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas
 
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
+const studentName = computed(() => [primaryChild.value?.nombreA, primaryChild.value?.paternoA, primaryChild.value?.maternoA].filter(Boolean).join(' '))
+const studentPhoto = computed(() => normalizeVirtualAssetUrl(primaryChild.value?.foto || ''))
+const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const theme = computed(() => resolvePersonasTheme({
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,
@@ -89,10 +103,9 @@ const navItems = [
   { key: 'personas', label: 'Personas Autorizadas', shortLabel: 'Personas', icon: 'people', to: '/familia/personas-autorizadas' },
   { key: 'actualizar', label: 'Actualizar datos', shortLabel: 'Datos', icon: 'edit', to: '/familia/personas-autorizadas/actualizar-datos' },
   { key: 'credencializacion', label: 'Credencialización', shortLabel: 'Foto', icon: 'camera', to: '/familia/personas-autorizadas/credencializacion' },
-  { key: 'hermanos', label: 'Hermanos / vinculación', shortLabel: 'Hermanos', icon: 'siblings', to: '/familia/personas-autorizadas/hermanos' },
+  { key: 'hermanos', label: 'Hermanos', shortLabel: 'Hermanos', icon: 'siblings', to: '/familia/personas-autorizadas/hermanos' },
   { key: 'encuestas', label: 'Encuestas', shortLabel: 'Encuestas', icon: 'survey', to: '/familia/personas-autorizadas/encuestas' },
-  { key: 'convenios', label: 'Convenios IECS-IEDIS', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
-  { key: 'marbetes', label: 'Marbetes / descarga', shortLabel: 'Marbetes', icon: 'download', to: '/familia/personas-autorizadas/marbetes' }
+  { key: 'convenios', label: 'Convenios IECS-IEDIS', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' }
 ]
 
 function isActive(item: { to: string }) {
@@ -125,7 +138,7 @@ async function logout() {
   border-bottom: 1px solid #e7e7e7;
   display: grid;
   gap: 16px;
-  grid-template-columns: 150px minmax(0, 1fr) auto 78px;
+  grid-template-columns: 150px minmax(0, 1fr) minmax(190px, 260px) auto 78px;
   min-height: 98px;
   padding: 12px clamp(16px, 4vw, 42px);
   position: sticky;
@@ -172,12 +185,64 @@ async function logout() {
   line-height: 1;
 }
 
-.pa-top-copy small {
-  color: var(--pa-muted);
-  font-weight: 800;
+.pa-top-copy small,
+.pa-student-chip strong,
+.pa-student-chip small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pa-top-copy small {
+  color: var(--pa-muted);
+  font-weight: 800;
+}
+
+.pa-student-chip {
+  align-items: center;
+  background: #f8f8f6;
+  border: 1px solid #ecece7;
+  border-radius: 999px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-width: 0;
+  padding: 6px 12px 6px 6px;
+}
+
+.pa-student-avatar {
+  aspect-ratio: 1;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  display: grid;
+  font-weight: 950;
+  overflow: hidden;
+  place-items: center;
+}
+
+.pa-student-avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.pa-student-chip strong,
+.pa-student-chip small {
+  display: block;
+}
+
+.pa-student-chip strong {
+  color: var(--pa-gray);
+  font-size: 0.86rem;
+  line-height: 1.1;
+}
+
+.pa-student-chip small {
+  color: var(--pa-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .pa-logout {
@@ -282,31 +347,25 @@ async function logout() {
 
 .pa-route-content {
   display: grid;
-  gap: 16px;
-  min-width: 0;
-  padding: clamp(16px, 3vw, 34px);
+  gap: 18px;
+  padding: clamp(16px, 3vw, 32px);
 }
 
 .pa-mobile-nav {
   display: none;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1060px) {
   .pa-product-topbar {
-    grid-template-columns: 92px minmax(0, 1fr) auto 56px;
-    min-height: 82px;
+    grid-template-columns: 128px minmax(0, 1fr) auto 62px;
   }
 
-  .pa-brand img {
-    max-height: 58px;
-    width: 86px;
+  .pa-student-chip {
+    display: none;
   }
+}
 
-  .pa-top-ambassador {
-    height: 54px;
-    width: 54px;
-  }
-
+@media (max-width: 920px) {
   .pa-product-layout {
     grid-template-columns: 1fr;
   }
@@ -315,24 +374,33 @@ async function logout() {
     display: none;
   }
 
+  .pa-route-content {
+    padding-top: 14px;
+  }
+
   .pa-mobile-nav {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.92);
     border: 1px solid #e7e7e7;
-    border-radius: 18px;
+    border-radius: 20px;
     display: flex;
     gap: 8px;
     overflow-x: auto;
     padding: 8px;
+    position: sticky;
+    top: 98px;
+    z-index: 10;
   }
 
   .pa-mobile-nav a {
     align-items: center;
-    border-radius: 14px;
-    color: #73757a;
+    border-radius: 999px;
+    color: var(--pa-muted);
     display: inline-flex;
     flex: 0 0 auto;
     gap: 7px;
+    font-size: 0.82rem;
     font-weight: 850;
+    min-height: 36px;
     padding: 8px 10px;
   }
 

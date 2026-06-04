@@ -14,6 +14,7 @@ import type {
 } from '~/types/daycare'
 import { assertSalaAccess, assertUnidadAccess } from '~/server/utils/authz'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
+import { logPersonasDiagnostic, logPersonasWarning } from '~/server/utils/personasDiagnostics'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
@@ -157,17 +158,17 @@ function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbac
   }
 }
 
-function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | null): PersonasStudentProfile {
+function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | null, allowedFields: readonly string[] = PARENT_EDITABLE_STUDENT_FIELDS): PersonasStudentProfile {
   const readonly: Record<string, unknown> = { plantel: plantel || null }
   const editable: Record<string, unknown> = {}
 
   for (const field of STUDENT_READONLY_FIELDS) readonly[field] = row?.[field] ?? null
-  for (const field of PARENT_EDITABLE_STUDENT_FIELDS) editable[field] = row?.[field] ?? null
+  for (const field of allowedFields) editable[field] = row?.[field] ?? null
 
   return {
     readonly: readonly as PersonasStudentProfile['readonly'],
     editable: editable as PersonasStudentEditable,
-    allowedFields: [...PARENT_EDITABLE_STUDENT_FIELDS]
+    allowedFields: [...allowedFields]
   }
 }
 
@@ -177,6 +178,51 @@ function isHiddenValue(value: unknown) {
   if (typeof value === 'number') return value === 1
   const normalized = String(value).trim().toLowerCase()
   return normalized === '1' || normalized === 'true' || normalized === 'hidden'
+}
+
+
+let matriculaColumnCache: Set<string> | null = null
+const loggedMissingMatriculaColumns = new Set<string>()
+
+function quoteIdentifier(identifier: string) {
+  return `\`${identifier.replace(/`/g, '``')}\``
+}
+
+async function getMatriculaColumnSet() {
+  if (matriculaColumnCache) return matriculaColumnCache
+  try {
+    const rows = await legacyQuery<RowDataPacket[]>('SHOW COLUMNS FROM matricula')
+    matriculaColumnCache = new Set(rows.map((row) => String(row.Field || '').trim()).filter(Boolean))
+    if (!matriculaColumnCache.has('matricula')) {
+      logPersonasWarning('matricula-schema-missing-primary-column', { table: 'matricula', requiredColumn: 'matricula' })
+      throw createError({ statusCode: 500, statusMessage: 'La tabla de matrícula no tiene la columna requerida.' })
+    }
+    return matriculaColumnCache
+  } catch (error) {
+    logPersonasDiagnostic('matricula-schema-inspection-failed', error, { table: 'matricula', action: 'SHOW COLUMNS' })
+    throw createError({ statusCode: 500, statusMessage: 'No fue posible validar la estructura de matrícula.' })
+  }
+}
+
+function existingColumns(columns: Set<string>, fields: readonly string[], scope: string) {
+  const missing = fields.filter((field) => !columns.has(field))
+  if (missing.length) {
+    const key = `${scope}:${missing.join(',')}`
+    if (!loggedMissingMatriculaColumns.has(key)) {
+      loggedMissingMatriculaColumns.add(key)
+      logPersonasWarning('matricula-schema-missing-columns', { scope, missingColumns: missing, table: 'matricula' })
+    }
+  }
+  return fields.filter((field) => columns.has(field))
+}
+
+function matriculaSelect(columns: Set<string>, field: string, alias = 'm') {
+  return columns.has(field) ? `${alias}.${quoteIdentifier(field)}` : `NULL`
+}
+
+function missingRequiredParentFields(row: Partial<Record<ParentNameField, unknown>> | null | undefined) {
+  if (!row) return [...REQUIRED_PARENT_NAME_FIELDS]
+  return REQUIRED_PARENT_NAME_FIELDS.filter((field) => !normalizeFamilyName(row[field]))
 }
 
 export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
@@ -233,32 +279,83 @@ export async function getFamilyDashboard(user: AppSessionUser) {
 
 export async function getEditableStudentProfile(user: AppSessionUser) {
   const matricula = assertFamilyMatricula(user)
-  const columns = [...STUDENT_READONLY_FIELDS, ...PARENT_EDITABLE_STUDENT_FIELDS].join(', ')
-  const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-  const plantel = derivePlantelFromMatricula(matricula, row.nivel as string | null, user.campus || user.empresa)
-  return pickStudentProfile(row, plantel)
+  const columnSet = await getMatriculaColumnSet()
+  const readonlyFields = existingColumns(columnSet, STUDENT_READONLY_FIELDS, 'student-profile-readonly')
+  const editableFields = existingColumns(columnSet, PARENT_EDITABLE_STUDENT_FIELDS, 'student-profile-editable')
+  const selectFields = Array.from(new Set([...readonlyFields, ...editableFields]))
+  if (!selectFields.length) {
+    logPersonasWarning('student-profile-no-readable-columns', { userId: user.id, matricula })
+    throw createError({ statusCode: 500, statusMessage: 'No hay campos de matrícula configurados para consulta familiar.' })
+  }
+
+  try {
+    const columns = selectFields.map(quoteIdentifier).join(', ')
+    const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
+    if (!row) {
+      logPersonasWarning('student-profile-matricula-not-found', { userId: user.id, matricula })
+      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+    }
+    const plantel = derivePlantelFromMatricula(matricula, row.nivel as string | null, user.campus || user.empresa)
+    return pickStudentProfile(row, plantel, editableFields)
+  } catch (error) {
+    logPersonasDiagnostic('student-profile-load-failed', error, {
+      userId: user.id,
+      matricula,
+      selectedColumns: selectFields,
+      missingReadonlyColumns: STUDENT_READONLY_FIELDS.filter((field) => !columnSet.has(field)),
+      missingEditableColumns: PARENT_EDITABLE_STUDENT_FIELDS.filter((field) => !columnSet.has(field))
+    })
+    throw error
+  }
 }
 
 export async function updateEditableStudentProfile(user: AppSessionUser, patch: Partial<PersonasStudentEditable>) {
   const matricula = assertFamilyMatricula(user)
+  const columnSet = await getMatriculaColumnSet()
   const entries = Object.entries(patch).filter(([field]) => (PARENT_EDITABLE_STUDENT_FIELDS as readonly string[]).includes(field)) as [ParentEditableStudentField, unknown][]
   if (!entries.length) throw createError({ statusCode: 400, statusMessage: 'No hay campos familiares autorizados para guardar.' })
 
-  const assignments = entries.map(([field]) => `${field} = ?`).join(', ')
-  const values = entries.map(([, value]) => normalizeString(value))
-  const result = await legacyWrite(`UPDATE matricula SET ${assignments} WHERE matricula = ?`, [...values, matricula])
-  if (!result.affectedRows) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-  return getEditableStudentProfile(user)
+  const missingColumns = entries.map(([field]) => field).filter((field) => !columnSet.has(field))
+  if (missingColumns.length) {
+    logPersonasWarning('student-profile-update-missing-columns', { userId: user.id, matricula, missingColumns })
+    throw createError({ statusCode: 400, statusMessage: 'Algunos campos familiares no están disponibles para actualización.' })
+  }
+
+  try {
+    const assignments = entries.map(([field]) => `${quoteIdentifier(field)} = ?`).join(', ')
+    const values = entries.map(([, value]) => normalizeString(value))
+    const result = await legacyWrite(`UPDATE matricula SET ${assignments} WHERE matricula = ?`, [...values, matricula])
+    if (!result.affectedRows) {
+      logPersonasWarning('student-profile-update-matricula-not-found', { userId: user.id, matricula, updatedFields: entries.map(([field]) => field) })
+      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+    }
+    return getEditableStudentProfile(user)
+  } catch (error) {
+    logPersonasDiagnostic('student-profile-update-failed', error, { userId: user.id, matricula, updatedFields: entries.map(([field]) => field) })
+    throw error
+  }
 }
 
 export async function updateStudentCredentialPhoto(user: AppSessionUser, photoUrl: string) {
   const matricula = assertFamilyMatricula(user)
+  const columnSet = await getMatriculaColumnSet()
+  if (!columnSet.has('foto')) {
+    logPersonasWarning('student-photo-update-missing-column', { userId: user.id, matricula, missingColumn: 'foto', table: 'matricula' })
+    throw createError({ statusCode: 400, statusMessage: 'La foto del alumno no está disponible para actualización.' })
+  }
   const value = normalizeString(photoUrl)
-  if (!value) throw createError({ statusCode: 400, statusMessage: 'La foto procesada es obligatoria.' })
-  const result = await legacyWrite('UPDATE matricula SET foto = ? WHERE matricula = ?', [value, matricula])
-  if (!result.affectedRows) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-  return getEditableStudentProfile(user)
+  if (!value) throw createError({ statusCode: 400, statusMessage: 'La foto es obligatoria.' })
+  try {
+    const result = await legacyWrite('UPDATE matricula SET foto = ? WHERE matricula = ?', [value, matricula])
+    if (!result.affectedRows) {
+      logPersonasWarning('student-photo-update-matricula-not-found', { userId: user.id, matricula })
+      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+    }
+    return getEditableStudentProfile(user)
+  } catch (error) {
+    logPersonasDiagnostic('student-photo-update-failed', error, { userId: user.id, matricula })
+    throw error
+  }
 }
 
 export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'news' | 'cal') {
@@ -294,88 +391,106 @@ export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'new
 
 export async function getFamilyChildren(user: AppSessionUser): Promise<AuthorizedChild[]> {
   const currentMatricula = assertFamilyMatricula(user)
-  const current = await legacyOne<RowDataPacket>(
-    `SELECT
-       m.matricula,
-       m.apellido_paterno,
-       m.apellido_materno,
-       m.nombres,
-       m.grupo,
-       m.grado,
-       m.nivel,
-       m.foto,
-       m.nombre_padre,
-       m.apellido_paterno_padre,
-       m.apellido_materno_padre,
-       m.nombre_madre,
-       m.apellido_paterno_madre,
-       m.apellido_materno_madre,
-       u.id AS user_id,
-       u.campus
+  const columnSet = await getMatriculaColumnSet()
+  const currentSelect = [
+    `${matriculaSelect(columnSet, 'matricula')} AS matricula`,
+    `${matriculaSelect(columnSet, 'apellido_paterno')} AS apellido_paterno`,
+    `${matriculaSelect(columnSet, 'apellido_materno')} AS apellido_materno`,
+    `${matriculaSelect(columnSet, 'nombres')} AS nombres`,
+    `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
+    `${matriculaSelect(columnSet, 'grado')} AS grado`,
+    `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
+    `${matriculaSelect(columnSet, 'foto')} AS foto`,
+    ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
+    'u.id AS user_id',
+    'u.campus'
+  ].join(',\n       ')
+
+  try {
+    const current = await legacyOne<RowDataPacket>(
+      `SELECT
+       ${currentSelect}
      FROM matricula m
      LEFT JOIN users u ON u.username = m.matricula
      WHERE m.matricula = ?
      LIMIT 1`,
-    [currentMatricula]
-  )
+      [currentMatricula]
+    )
 
-  if (!current) return []
+    if (!current) {
+      logPersonasWarning('siblings-current-matricula-not-found', { userId: user.id, matricula: currentMatricula })
+      return []
+    }
 
-  const signature = completeParentSignature(current as Partial<Record<ParentNameField, unknown>>)
-  if (!signature) {
-    const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
-    return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
-  }
+    const missingParentColumns = REQUIRED_PARENT_NAME_FIELDS.filter((field) => !columnSet.has(field))
+    if (missingParentColumns.length) {
+      logPersonasWarning('siblings-required-parent-columns-missing', { userId: user.id, matricula: currentMatricula, missingColumns: missingParentColumns })
+      const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
+      return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
+    }
 
-  const candidates = await legacyQuery<RowDataPacket[]>(
-    `SELECT
-       m.matricula,
-       m.apellido_paterno,
-       m.apellido_materno,
-       m.nombres,
-       m.grupo,
-       m.grado,
-       m.nivel,
-       m.foto,
-       m.nombre_padre,
-       m.apellido_paterno_padre,
-       m.apellido_materno_padre,
-       m.nombre_madre,
-       m.apellido_paterno_madre,
-       m.apellido_materno_madre,
-       u.id AS user_id,
-       u.campus
+    const missingParentValues = missingRequiredParentFields(current as Partial<Record<ParentNameField, unknown>>)
+    const signature = completeParentSignature(current as Partial<Record<ParentNameField, unknown>>)
+    if (!signature) {
+      logPersonasWarning('siblings-parent-signature-incomplete', { userId: user.id, matricula: currentMatricula, missingFields: missingParentValues })
+      const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
+      return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
+    }
+
+    const candidateSelect = [
+      `${matriculaSelect(columnSet, 'matricula')} AS matricula`,
+      `${matriculaSelect(columnSet, 'apellido_paterno')} AS apellido_paterno`,
+      `${matriculaSelect(columnSet, 'apellido_materno')} AS apellido_materno`,
+      `${matriculaSelect(columnSet, 'nombres')} AS nombres`,
+      `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
+      `${matriculaSelect(columnSet, 'grado')} AS grado`,
+      `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
+      `${matriculaSelect(columnSet, 'foto')} AS foto`,
+      ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
+      'u.id AS user_id',
+      'u.campus'
+    ].join(',\n       ')
+    const parentWhere = REQUIRED_PARENT_NAME_FIELDS
+      .map((field) => `m.${quoteIdentifier(field)} IS NOT NULL AND TRIM(m.${quoteIdentifier(field)}) <> ''`)
+      .join('\n       AND ')
+
+    const candidates = await legacyQuery<RowDataPacket[]>(
+      `SELECT
+       ${candidateSelect}
      FROM matricula m
      LEFT JOIN users u ON u.username = m.matricula
-     WHERE m.nombre_padre IS NOT NULL AND TRIM(m.nombre_padre) <> ''
-       AND m.apellido_paterno_padre IS NOT NULL AND TRIM(m.apellido_paterno_padre) <> ''
-       AND m.apellido_materno_padre IS NOT NULL AND TRIM(m.apellido_materno_padre) <> ''
-       AND m.nombre_madre IS NOT NULL AND TRIM(m.nombre_madre) <> ''
-       AND m.apellido_paterno_madre IS NOT NULL AND TRIM(m.apellido_paterno_madre) <> ''
-       AND m.apellido_materno_madre IS NOT NULL AND TRIM(m.apellido_materno_madre) <> ''`
-  )
+     WHERE ${parentWhere}`
+    )
 
-  const seen = new Set<string>()
-  const children = candidates
-    .filter((row) => completeParentSignature(row as Partial<Record<ParentNameField, unknown>>) === signature)
-    .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa))
-    .filter((child) => {
-      const key = child.matricula || String(child.user_id || '')
-      if (!key || seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    .sort((a, b) => {
-      if (a.isCurrent) return -1
-      if (b.isCurrent) return 1
-      return [a.paternoA, a.maternoA, a.nombreA].filter(Boolean).join(' ').localeCompare([b.paternoA, b.maternoA, b.nombreA].filter(Boolean).join(' '), 'es')
-    })
+    const seen = new Set<string>()
+    const children = candidates
+      .filter((row) => completeParentSignature(row as Partial<Record<ParentNameField, unknown>>) === signature)
+      .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa))
+      .filter((child) => {
+        const key = child.matricula || String(child.user_id || '')
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .sort((a, b) => {
+        if (a.isCurrent) return -1
+        if (b.isCurrent) return 1
+        return [a.paternoA, a.maternoA, a.nombreA].filter(Boolean).join(' ').localeCompare([b.paternoA, b.maternoA, b.nombreA].filter(Boolean).join(' '), 'es')
+      })
 
-  if (!children.some((child) => child.isCurrent)) {
-    children.unshift(mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa))
+    if (!children.some((child) => child.isCurrent)) {
+      children.unshift(mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa))
+    }
+
+    if (children.length <= 1) {
+      logPersonasWarning('siblings-no-additional-matches', { userId: user.id, matricula: currentMatricula, searchedCandidates: candidates.length })
+    }
+
+    return children
+  } catch (error) {
+    logPersonasDiagnostic('siblings-load-failed', error, { userId: user.id, matricula: currentMatricula })
+    throw error
   }
-
-  return children
 }
 
 export async function getAdminResources(user: AppSessionUser, salaId: number, type: 'hw' | 'news' | 'cal') {

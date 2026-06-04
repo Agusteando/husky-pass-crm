@@ -1,1 +1,1 @@
-corrige Personas Autorizadas con carga modal de fotos, ayuda integrada y vinculación de hermanos por padres
+Corrige Personas Autorizadas con marbetes integrados, UX minimalista y diagnósticos backend de matrícula

@@ -10,13 +10,13 @@
 
     <section class="chooser-grid">
       <NuxtLink v-if="canDaycare" class="choice-card" to="/familia/daycare">
-        <span>GU</span>
+        <span><FamilyPersonasIcon name="daycare" /></span>
         <h2>Guardería</h2>
         <p>Tareas, avisos y calendario de la sala.</p>
         <strong>Entrar</strong>
       </NuxtLink>
       <NuxtLink v-if="canPa" class="choice-card blue" to="/familia/personas-autorizadas">
-        <span>PA</span>
+        <span><FamilyPersonasIcon name="people" /></span>
         <h2>Personas Autorizadas</h2>
         <p>Gestiona personas autorizadas, QR y credenciales.</p>
         <strong>Entrar</strong>
@@ -63,6 +63,7 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
 }
 
 .choice-card span {
+  align-items: center;
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
   border-radius: 18px;
@@ -72,6 +73,11 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
   height: 58px;
   place-items: center;
   width: 58px;
+}
+
+.choice-card span :deep(.pa-icon) {
+  height: 1.55rem;
+  width: 1.55rem;
 }
 
 .choice-card.blue span {

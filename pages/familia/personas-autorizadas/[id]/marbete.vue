@@ -8,11 +8,11 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-        <a class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar SVG</a>
+        <a class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar marbete</a>
       </div>
     </header>
 
-    <p v-if="loadError" class="alert" data-state="error">No fue posible preparar el marbete.</p>
+    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar el marbete.</p>
     <div v-else-if="pending" class="preview-state" data-product-loading data-state="loading">
       <span></span>
       <strong>Generando vista...</strong>
