@@ -7,6 +7,8 @@ import type {
   DaycareResource,
   FamilyAccount,
   PrintableAuthorizedPerson,
+  PersonasStudentEditable,
+  PersonasStudentProfile,
   Sala,
   ScanAuthorizedPerson
 } from '~/types/daycare'
@@ -27,6 +29,83 @@ function normalizeString(value: unknown) {
   if (value === undefined || value === null) return null
   const normalized = String(value).trim()
   return normalized || null
+}
+
+
+export const PARENT_EDITABLE_STUDENT_FIELDS = [
+  'curp',
+  'nombres',
+  'apellido_paterno',
+  'apellido_materno',
+  'fecha_nacimiento',
+  'lugar_nacimiento',
+  'sexo',
+  'talla',
+  'peso',
+  'tipo_sangre',
+  'alergias',
+  'nombre_padre',
+  'apellido_paterno_padre',
+  'apellido_materno_padre',
+  'lugar_trabajo_padre',
+  'puesto_padre',
+  'email_padre',
+  'telefono_padre',
+  'estado_civil_padre',
+  'fecha_nacimiento_padre',
+  'curp_padre',
+  'ine_padre',
+  'nombre_madre',
+  'apellido_paterno_madre',
+  'apellido_materno_madre',
+  'lugar_trabajo_madre',
+  'puesto_madre',
+  'email_madre',
+  'telefono_madre',
+  'estado_civil_madre',
+  'fecha_nacimiento_madre',
+  'curp_madre',
+  'ine_madre',
+  'domicilio_calle',
+  'domicio_num',
+  'domicilio_colonia',
+  'domicilio_cp',
+  'domicilio_municipio'
+] as const
+
+const STUDENT_READONLY_FIELDS = [
+  'matricula',
+  'plantel',
+  'nivel',
+  'grado',
+  'grupo',
+  'ciclo',
+  'servicio',
+  'baja',
+  'status',
+  'foto'
+] as const
+
+type ParentEditableStudentField = typeof PARENT_EDITABLE_STUDENT_FIELDS[number]
+
+function assertFamilyMatricula(user: AppSessionUser) {
+  const matricula = normalizeString(user.username)
+  if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matrícula vinculada.' })
+  return matricula
+}
+
+function pickStudentProfile(row: RowDataPacket | undefined): PersonasStudentProfile {
+  const readonly: Record<string, unknown> = {}
+  const editable: Record<string, unknown> = {}
+
+  for (const field of STUDENT_READONLY_FIELDS) readonly[field] = row?.[field] ?? null
+  for (const field of PARENT_EDITABLE_STUDENT_FIELDS) editable[field] = row?.[field] ?? null
+
+  return {
+    readonly: readonly as PersonasStudentProfile['readonly'],
+    editable: editable as PersonasStudentEditable,
+    allowedFields: [...PARENT_EDITABLE_STUDENT_FIELDS]
+  }
 }
 
 function isHiddenValue(value: unknown) {
@@ -86,6 +165,36 @@ export async function getFamilyDashboard(user: AppSessionUser) {
   ])
 
   return { tareas, circulares, calendario, valor }
+}
+
+
+export async function getEditableStudentProfile(user: AppSessionUser) {
+  const matricula = assertFamilyMatricula(user)
+  const columns = [...STUDENT_READONLY_FIELDS, ...PARENT_EDITABLE_STUDENT_FIELDS].join(', ')
+  const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+  return pickStudentProfile(row)
+}
+
+export async function updateEditableStudentProfile(user: AppSessionUser, patch: Partial<PersonasStudentEditable>) {
+  const matricula = assertFamilyMatricula(user)
+  const entries = Object.entries(patch).filter(([field]) => (PARENT_EDITABLE_STUDENT_FIELDS as readonly string[]).includes(field)) as [ParentEditableStudentField, unknown][]
+  if (!entries.length) throw createError({ statusCode: 400, statusMessage: 'No hay campos familiares autorizados para guardar.' })
+
+  const assignments = entries.map(([field]) => `${field} = ?`).join(', ')
+  const values = entries.map(([, value]) => normalizeString(value))
+  const result = await legacyWrite(`UPDATE matricula SET ${assignments} WHERE matricula = ?`, [...values, matricula])
+  if (!result.affectedRows) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+  return getEditableStudentProfile(user)
+}
+
+export async function updateStudentCredentialPhoto(user: AppSessionUser, photoUrl: string) {
+  const matricula = assertFamilyMatricula(user)
+  const value = normalizeString(photoUrl)
+  if (!value) throw createError({ statusCode: 400, statusMessage: 'La foto procesada es obligatoria.' })
+  const result = await legacyWrite('UPDATE matricula SET foto = ? WHERE matricula = ?', [value, matricula])
+  if (!result.affectedRows) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+  return getEditableStudentProfile(user)
 }
 
 export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'news' | 'cal') {
@@ -295,53 +404,12 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
   })
 }
 
-async function saveAuthorizedChildren(user: AppSessionUser, children?: AuthorizedChild[]) {
-  if (!children) return
-
-  for (const child of children) {
-    const values = {
-      paternoA: normalizeString(child.paternoA),
-      maternoA: normalizeString(child.maternoA),
-      nombreA: normalizeString(child.nombreA),
-      grupo: normalizeString(child.grupo),
-      grado: normalizeString(child.grado),
-      nivelEdu: normalizeString(child.nivelEdu),
-      campus: normalizeString(child.campus),
-      fechaA: normalizeString(child.fechaA)
-    }
-
-    const hasContent = Object.values(values).some(Boolean)
-    if (!hasContent) continue
-
-    if (child.id) {
-      await legacyWrite(
-        `UPDATE alumno_pa
-         SET paternoA = ?, maternoA = ?, nombreA = ?, grupo = ?, grado = ?, nivelEdu = ?, campus = ?, fechaA = ?, user_id = ?
-         WHERE id = ? AND user_id = ?`,
-        [values.paternoA, values.maternoA, values.nombreA, values.grupo, values.grado, values.nivelEdu, values.campus, values.fechaA, user.id, child.id, user.id]
-      )
-    } else {
-      await legacyWrite(
-        `INSERT INTO alumno_pa (paternoA, maternoA, nombreA, grupo, grado, nivelEdu, campus, fechaA, user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [values.paternoA, values.maternoA, values.nombreA, values.grupo, values.grado, values.nivelEdu, values.campus, values.fechaA, user.id]
-      )
-    }
-  }
-}
-
-export async function upsertAuthorizedChildren(user: AppSessionUser, children: AuthorizedChild[]) {
-  await saveAuthorizedChildren(user, children)
-  return getFamilyChildren(user)
-}
 
 export async function upsertAuthorizedPersona(user: AppSessionUser, payload: AuthorizedPersonPayload) {
   const indice = Number(payload.indice || 1)
   if (indice < 1 || indice > 4) {
     throw createError({ statusCode: 400, statusMessage: 'Índice de persona autorizada inválido' })
   }
-
-  await saveAuthorizedChildren(user, payload.children)
 
   const values = {
     paternoP: normalizeString(payload.paternoP),

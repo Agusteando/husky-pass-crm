@@ -11,14 +11,14 @@
       </div>
     </div>
 
-    <div class="grid grid-2">
+    <div class="grid grid-2 editor-fields">
       <label class="label">
         Nombre(s)
-        <input v-model="model.nombreP" class="input" required />
+        <input v-model="model.nombreP" class="input" required autocomplete="given-name" />
       </label>
       <label class="label">
         Apellido paterno
-        <input v-model="model.paternoP" class="input" />
+        <input v-model="model.paternoP" class="input" autocomplete="family-name" />
       </label>
       <label class="label">
         Apellido materno
@@ -26,10 +26,10 @@
       </label>
       <label class="label">
         Parentesco
-        <input v-model="model.parenP" class="input" required />
+        <input v-model="model.parenP" class="input" required placeholder="Abuela, tío, nana..." />
       </label>
       <label class="label">
-        Fecha
+        Fecha de alta
         <input v-model="model.fechaP" class="input" type="date" />
       </label>
       <label class="label">
@@ -38,7 +38,7 @@
       </label>
     </div>
 
-    <section class="photo-pipeline">
+    <section class="photo-pipeline" data-product-panel="authorized-person-photo">
       <div class="photo-preview">
         <img v-if="photoPreview" :src="photoPreview" alt="Vista previa de foto procesada" />
         <span v-else>Foto</span>
@@ -46,7 +46,7 @@
       <div class="photo-copy">
         <p class="eyebrow">Procesamiento de foto</p>
         <h3>Recorte institucional</h3>
-        <p>La foto se procesa con Vision API para centrar rostro, recortar y aplicar mascara cuando esta disponible.</p>
+        <p>La foto se procesa con Vision API para centrar rostro, recortar y aplicar máscara cuando está disponible.</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="!model.foto || visionLoading" data-diagnostic-action="procesar-foto-vision" @click="processPhoto">
             {{ visionLoading ? 'Procesando...' : 'Procesar foto' }}
@@ -57,58 +57,12 @@
         <p v-if="visionNotice" class="notice">{{ visionNotice }}</p>
       </div>
     </section>
-
-    <section class="child-section">
-      <div class="child-head">
-        <div>
-          <p class="eyebrow">Alumnos vinculados</p>
-          <h3>Datos de alumno</h3>
-        </div>
-        <button class="btn btn-secondary" type="button" @click="addChild">Agregar alumno</button>
-      </div>
-      <div v-for="(child, index) in children" :key="child.id || index" class="child-card">
-        <div class="grid grid-2">
-          <label class="label">
-            Nombre(s)
-            <input v-model="child.nombreA" class="input" />
-          </label>
-          <label class="label">
-            Apellido paterno
-            <input v-model="child.paternoA" class="input" />
-          </label>
-          <label class="label">
-            Apellido materno
-            <input v-model="child.maternoA" class="input" />
-          </label>
-          <label class="label">
-            Nivel educativo
-            <input v-model="child.nivelEdu" class="input" />
-          </label>
-          <label class="label">
-            Grado
-            <input v-model="child.grado" class="input" />
-          </label>
-          <label class="label">
-            Grupo
-            <input v-model="child.grupo" class="input" />
-          </label>
-          <label class="label">
-            Campus
-            <input v-model="child.campus" class="input" />
-          </label>
-          <label class="label">
-            Fecha
-            <input v-model="child.fechaA" class="input" type="date" />
-          </label>
-        </div>
-      </div>
-    </section>
   </form>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, reactive, watch } from 'vue'
-import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import type { AuthorizedPerson } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { processFaceImage } from '~/utils/visionFace'
 
@@ -124,7 +78,6 @@ const emit = defineEmits<{
 }>()
 
 const model = reactive<Partial<AuthorizedPerson>>({ ...props.person })
-const children = ref<AuthorizedChild[]>([...(props.person.children || [])])
 const visionLoading = ref(false)
 const visionError = ref('')
 const visionNotice = ref('')
@@ -132,18 +85,13 @@ const photoPreview = computed(() => normalizeVirtualAssetUrl(model.compressed_fo
 
 watch(() => props.person, (person) => {
   Object.assign(model, person)
-  children.value = [...(person.children || [])]
 }, { deep: true })
-
-function addChild() {
-  children.value.push({})
-}
 
 async function processPhoto() {
   visionError.value = ''
   visionNotice.value = ''
   if (!model.foto) {
-    visionError.value = 'Agrega una URL publica antes de procesar la foto.'
+    visionError.value = 'Agrega una URL pública antes de procesar la foto.'
     return
   }
   visionLoading.value = true
@@ -164,10 +112,7 @@ async function processPhoto() {
 }
 
 function submit() {
-  emit('save', {
-    ...model,
-    children: children.value
-  })
+  emit('save', { ...model })
 }
 </script>
 
@@ -177,16 +122,14 @@ function submit() {
   gap: 16px;
 }
 
-.editor-head,
-.child-head {
+.editor-head {
   align-items: end;
   display: flex;
   gap: 14px;
   justify-content: space-between;
 }
 
-.editor-head h2,
-.child-head h3 {
+.editor-head h2 {
   margin-bottom: 0;
 }
 
@@ -248,50 +191,20 @@ function submit() {
   padding: 10px 12px;
 }
 
-.child-section {
-  border-top: 1px solid var(--color-border);
-  display: grid;
-  gap: 14px;
-  padding-top: 16px;
-}
-
-.child-card {
-  background: var(--pa-soft, var(--color-brand-100));
-  border: 1px solid var(--pa-border, var(--color-brand-200));
-  border-radius: 18px;
-  padding: 14px;
-}
-
-.editor-form {
-  border-color: var(--pa-border, var(--color-border));
-}
-
-.editor-form .eyebrow {
-  color: var(--pa-primary, var(--color-brand-700));
-}
-
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .editor-head,
-  .child-head {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .top-actions {
-    width: 100%;
-  }
-
-  .top-actions .btn,
-  .child-head .btn {
-    flex: 1 1 140px;
-  }
-
-  .photo-pipeline {
+  .top-actions,
+  .photo-pipeline,
+  .editor-fields {
     grid-template-columns: 1fr;
   }
 
-  .photo-preview {
-    max-width: 148px;
+  .editor-head {
+    align-items: stretch;
+  }
+
+  .top-actions .btn {
+    flex: 1 1 140px;
   }
 }
 </style>

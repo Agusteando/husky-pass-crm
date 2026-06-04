@@ -148,6 +148,67 @@ export interface RenderedMarbeteResponse {
   downloadName: string
 }
 
+
+export interface PersonasStudentReadonly {
+  matricula?: string | null
+  plantel?: string | null
+  nivel?: string | null
+  grado?: string | null
+  grupo?: string | null
+  ciclo?: string | null
+  servicio?: string | null
+  baja?: string | number | null
+  status?: string | null
+  foto?: string | null
+}
+
+export interface PersonasStudentEditable {
+  curp?: string | null
+  nombres?: string | null
+  apellido_paterno?: string | null
+  apellido_materno?: string | null
+  fecha_nacimiento?: string | null
+  lugar_nacimiento?: string | null
+  sexo?: string | null
+  talla?: string | null
+  peso?: string | null
+  tipo_sangre?: string | null
+  alergias?: string | null
+  nombre_padre?: string | null
+  apellido_paterno_padre?: string | null
+  apellido_materno_padre?: string | null
+  lugar_trabajo_padre?: string | null
+  puesto_padre?: string | null
+  email_padre?: string | null
+  telefono_padre?: string | null
+  estado_civil_padre?: string | null
+  fecha_nacimiento_padre?: string | null
+  curp_padre?: string | null
+  ine_padre?: string | null
+  nombre_madre?: string | null
+  apellido_paterno_madre?: string | null
+  apellido_materno_madre?: string | null
+  lugar_trabajo_madre?: string | null
+  puesto_madre?: string | null
+  email_madre?: string | null
+  telefono_madre?: string | null
+  estado_civil_madre?: string | null
+  fecha_nacimiento_madre?: string | null
+  curp_madre?: string | null
+  ine_madre?: string | null
+  domicilio_calle?: string | null
+  domicio_num?: string | null
+  domicilio_colonia?: string | null
+  domicilio_cp?: string | null
+  domicilio_municipio?: string | null
+}
+
+export interface PersonasStudentProfile {
+  readonly: PersonasStudentReadonly
+  editable: PersonasStudentEditable
+  allowedFields: string[]
+}
+
 export interface PersonasSurveyConfig {
   enabled: boolean
   title: string
