@@ -149,7 +149,7 @@ async function shareValidation() {
   color: var(--pa-primary);
   display: grid;
   font-size: 2.8rem;
-  font-weight: 950;
+  font-weight: 600;
   overflow: hidden;
   place-items: center;
 }
@@ -178,7 +178,7 @@ async function shareValidation() {
   border-radius: 999px;
   color: var(--pa-muted);
   font-size: 0.8rem;
-  font-weight: 850;
+  font-weight: 600;
   padding: 8px 10px;
 }
 
@@ -197,7 +197,7 @@ async function shareValidation() {
   border: 1px solid var(--pa-border);
   border-radius: 14px;
   color: var(--pa-gray);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }

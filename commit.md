@@ -1,1 +1,1 @@
-Ajusta procesamiento progresivo de fotos con Vision en Personas Autorizadas
+Corrige procesamiento progresivo de fotos con Vision API y aplica tipografía institucional

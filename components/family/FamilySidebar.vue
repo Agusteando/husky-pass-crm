@@ -84,7 +84,7 @@ async function exitPreview() {
 .family-context span {
   color: var(--color-brand-700);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -98,7 +98,7 @@ async function exitPreview() {
 
 .family-context small {
   color: var(--color-muted);
-  font-weight: 760;
+  font-weight: 600;
 }
 
 .family-nav {
@@ -113,7 +113,7 @@ async function exitPreview() {
   color: var(--color-muted);
   display: flex;
   gap: 8px;
-  font-weight: 850;
+  font-weight: 600;
   padding: 9px 11px;
 }
 

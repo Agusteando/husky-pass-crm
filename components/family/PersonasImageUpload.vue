@@ -197,18 +197,18 @@ function removePhoto() {
 .image-frame :deep(.pa-icon) { height: 42px; width: 42px; }
 .image-controls { display: grid; gap: 10px; }
 .image-head h3, .image-head p { margin-bottom: 0; }
-.image-head p:not(.eyebrow) { color: var(--pa-muted, #86888c); font-weight: 760; }
+.image-head p:not(.eyebrow) { color: var(--pa-muted, #86888c); font-weight: 600; }
 .upload-steps { display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
-.upload-steps li { background: #fff; border: 1px solid #ecece7; border-radius: 999px; color: var(--pa-muted, #86888c); font-size: .76rem; font-weight: 900; padding: 7px 9px; text-align: center; }
+.upload-steps li { background: #fff; border: 1px solid #ecece7; border-radius: 999px; color: var(--pa-muted, #86888c); font-size: .76rem; font-weight: 600; padding: 7px 9px; text-align: center; }
 .upload-steps li.active, .upload-steps li.done { background: var(--pa-soft, #f3f5f0); border-color: var(--pa-border, #dce7d0); color: var(--pa-primary, #618b2f); }
 .upload-drop { background: #fff; border: 1px dashed var(--pa-border, #dce7d0); border-radius: 16px; cursor: pointer; display: grid; gap: 2px; padding: 14px; }
 .upload-drop.busy { cursor: progress; opacity: .82; }
 .upload-drop input { height: 1px; opacity: 0; overflow: hidden; position: absolute; width: 1px; }
-.upload-drop span { color: var(--pa-primary, #618b2f); font-weight: 950; }
-.upload-drop small { color: var(--pa-muted, #86888c); font-weight: 760; }
+.upload-drop span { color: var(--pa-primary, #618b2f); font-weight: 600; }
+.upload-drop small { color: var(--pa-muted, #86888c); font-weight: 600; }
 .upload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .compact-alert, .compact-notice { margin: 0; }
-.compact-notice { background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; color: var(--pa-gray, #50535a); font-weight: 850; padding: 10px 12px; }
+.compact-notice { background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; color: var(--pa-gray, #50535a); font-weight: 600; padding: 10px 12px; }
 @media (max-width: 680px) { .pa-image-upload { grid-template-columns: 1fr; } .image-frame { max-width: 180px; } }
 </style>

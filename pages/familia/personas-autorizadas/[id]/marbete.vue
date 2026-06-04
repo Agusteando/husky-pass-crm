@@ -129,7 +129,7 @@ iframe {
 .download-ready span {
   color: var(--pa-muted);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

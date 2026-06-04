@@ -72,7 +72,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
   border-radius: 999px;
   color: #fff;
   display: inline-flex;
-  font-weight: 900;
+  font-weight: 600;
   margin-bottom: 18px;
   padding: 7px 12px;
 }
@@ -98,7 +98,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
   color: var(--color-brand-800);
   display: grid;
   font-size: 2.8rem;
-  font-weight: 900;
+  font-weight: 600;
   place-items: center;
 }
 

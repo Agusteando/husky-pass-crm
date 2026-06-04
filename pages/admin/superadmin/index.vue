@@ -523,7 +523,7 @@ function normalizeLimit(value: unknown) {
 .super-metrics span {
   color: var(--color-muted);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -577,7 +577,7 @@ function normalizeLimit(value: unknown) {
   color: var(--color-brand-900);
   display: inline-flex;
   font-size: 0.78rem;
-  font-weight: 950;
+  font-weight: 600;
   height: 42px;
   justify-content: center;
   width: 42px;
@@ -620,7 +620,7 @@ function normalizeLimit(value: unknown) {
   color: var(--color-brand-800);
   display: inline-flex;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 600;
   padding: 5px 9px;
 }
 
@@ -646,7 +646,7 @@ function normalizeLimit(value: unknown) {
   border: 1px solid var(--color-brand-200);
   border-radius: 14px;
   color: var(--color-brand-900);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }
@@ -679,7 +679,7 @@ function normalizeLimit(value: unknown) {
 .detail-card dt {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

@@ -393,7 +393,7 @@ async function saveConfig() {
 .metric-grid span {
   color: var(--color-muted);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -454,7 +454,7 @@ async function saveConfig() {
 
 .config-upload p:not(.eyebrow) {
   color: var(--color-muted);
-  font-weight: 780;
+  font-weight: 600;
 }
 
 .config-upload[data-state='ready'] {
@@ -550,7 +550,7 @@ async function saveConfig() {
   border-radius: 999px;
   color: var(--color-brand-800);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 600;
   padding: 5px 9px;
 }
 
@@ -573,7 +573,7 @@ async function saveConfig() {
   border-radius: 18px;
   color: #fff;
   display: grid;
-  font-weight: 950;
+  font-weight: 600;
   height: 54px;
   place-items: center;
   width: 54px;
@@ -597,7 +597,7 @@ async function saveConfig() {
 dt {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -629,7 +629,7 @@ dd {
   align-items: center;
   display: flex;
   gap: 10px;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .switch-line input {
@@ -643,7 +643,7 @@ dd {
   border: 1px solid var(--color-brand-200);
   border-radius: 14px;
   color: var(--color-brand-900);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }

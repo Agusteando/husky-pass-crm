@@ -126,7 +126,7 @@ header {
 
 header p {
   color: var(--pa-primary);
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.12em;
   margin-bottom: 6px;
   text-transform: uppercase;
@@ -157,7 +157,7 @@ header h1 {
   color: var(--pa-primary);
   display: grid;
   font-size: 3.4rem;
-  font-weight: 900;
+  font-weight: 600;
   place-items: center;
 }
 

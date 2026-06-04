@@ -69,7 +69,7 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
   border-radius: 18px;
   color: var(--color-brand-800);
   display: grid;
-  font-weight: 900;
+  font-weight: 600;
   height: 58px;
   place-items: center;
   width: 58px;

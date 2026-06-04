@@ -74,14 +74,14 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
   color: var(--color-brand-700);
   display: inline-flex;
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 600;
   padding: 5px 12px;
 }
 
 .starred {
   color: #d88b00;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

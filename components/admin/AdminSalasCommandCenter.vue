@@ -346,7 +346,7 @@ function roomInitials(value?: string | null) {
 .metric-grid span {
   color: var(--color-muted);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -425,7 +425,7 @@ function roomInitials(value?: string | null) {
   color: var(--color-brand-900);
   display: inline-flex;
   font-size: 0.8rem;
-  font-weight: 950;
+  font-weight: 600;
   height: 42px;
   justify-content: center;
   width: 42px;
@@ -513,7 +513,7 @@ function roomInitials(value?: string | null) {
   border: 1px solid var(--color-brand-200);
   border-radius: 14px;
   color: var(--color-brand-900);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }

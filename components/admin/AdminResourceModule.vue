@@ -404,7 +404,7 @@ function isCreateQuery(value: unknown) {
 .search-field span {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -437,7 +437,7 @@ function isCreateQuery(value: unknown) {
   border-radius: 999px;
   color: var(--color-brand-900);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 600;
   padding: 6px 10px;
   white-space: nowrap;
 }
@@ -482,7 +482,7 @@ function isCreateQuery(value: unknown) {
   border-radius: 12px;
   color: var(--color-muted);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 600;
   padding: 7px 8px;
   text-align: center;
   text-transform: capitalize;
@@ -516,7 +516,7 @@ function isCreateQuery(value: unknown) {
 .status-hidden,
 .status-published {
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .status-hidden {
@@ -551,7 +551,7 @@ function isCreateQuery(value: unknown) {
 .preview-card dt {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -572,7 +572,7 @@ function isCreateQuery(value: unknown) {
   border: 1px solid var(--color-brand-200);
   border-radius: 14px;
   color: var(--color-brand-900);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }

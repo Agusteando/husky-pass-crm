@@ -115,16 +115,16 @@ async function switchToChild(child: AuthorizedChild) {
 .section-hero, .section-head { align-items: center; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) auto; }
 .section-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); }
 .section-hero img { max-height: 120px; object-fit: contain; }
-.loading-row, .notice { border: 1px solid var(--pa-border); font-weight: 850; }
+.loading-row, .notice { border: 1px solid var(--pa-border); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
 .sibling-list { display: grid; gap: 12px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .sibling-card { align-items: center; background: #f8f8f6; border: 1px solid #ecece7; border-radius: 18px; display: grid; gap: 14px; grid-template-columns: 72px minmax(0, 1fr) auto; padding: 14px; }
 .sibling-card.current { background: var(--pa-soft); border-color: var(--pa-border); }
-.sibling-photo { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border); border-radius: 16px; color: var(--pa-primary); display: grid; font-weight: 950; overflow: hidden; place-items: center; }
+.sibling-photo { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border); border-radius: 16px; color: var(--pa-primary); display: grid; font-weight: 600; overflow: hidden; place-items: center; }
 .sibling-photo img { height: 100%; object-fit: cover; width: 100%; }
 .sibling-card strong { color: var(--pa-gray); display: block; }
-.sibling-card span, .sibling-card small { color: var(--pa-muted); display: block; font-weight: 800; }
+.sibling-card span, .sibling-card small { color: var(--pa-muted); display: block; font-weight: 600; }
 .empty-state { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 18px; display: flex; gap: 12px; padding: 14px; }
 .empty-state img { height: 72px; object-fit: contain; }
 @media (max-width: 760px) { .section-hero, .section-head, .sibling-card { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } .sibling-photo { width: 82px; } }

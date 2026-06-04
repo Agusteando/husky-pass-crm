@@ -269,7 +269,7 @@ function formatBytes(value: number) {
 .resource-ready span {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -284,7 +284,7 @@ function formatBytes(value: number) {
 .switch-row {
   color: var(--color-muted);
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .resource-attachment {
@@ -318,7 +318,7 @@ function formatBytes(value: number) {
   border: 0;
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 850;
+  font-weight: 600;
   min-height: 32px;
   padding: 0 12px;
 }
@@ -380,7 +380,7 @@ function formatBytes(value: number) {
 
 .resource-ready a {
   color: var(--color-brand-800);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .compact-alert {

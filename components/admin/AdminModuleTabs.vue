@@ -30,7 +30,7 @@ defineProps<{ salaId: number | string }>()
   color: var(--color-muted);
   flex: 0 0 auto;
   font-size: 0.88rem;
-  font-weight: 860;
+  font-weight: 600;
   padding: 9px 12px;
   white-space: nowrap;
 }

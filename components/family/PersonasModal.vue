@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
 
 .pa-modal-head p:not(.eyebrow) {
   color: var(--pa-muted, #86888c);
-  font-weight: 760;
+  font-weight: 600;
   margin-top: 4px;
 }
 

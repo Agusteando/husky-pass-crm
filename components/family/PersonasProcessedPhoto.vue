@@ -1,5 +1,11 @@
 <template>
-  <span class="processed-photo" :class="{ empty: !displaySrc }" :data-state="state" :aria-busy="processing ? 'true' : 'false'">
+  <span
+    class="processed-photo"
+    :class="{ empty: !displaySrc }"
+    :data-state="state"
+    :data-vision-source="visionSource"
+    :aria-busy="processing ? 'true' : 'false'"
+  >
     <img v-if="displaySrc" :src="displaySrc" :alt="alt" :loading="loading" :decoding="decoding" />
     <slot v-else>{{ fallback }}</slot>
   </span>
@@ -30,9 +36,11 @@ const props = withDefaults(defineProps<{
   decoding: 'async'
 })
 
-const displaySrc = ref(normalizeVirtualAssetUrl(props.processedSrc || props.src || ''))
+const displaySrc = ref(normalizeVirtualAssetUrl(props.src || props.processedSrc || ''))
 const processing = ref(false)
 const failed = ref(false)
+const visionSource = ref<'original' | 'stored' | 'cache' | 'vision' | 'fallback' | 'empty'>('empty')
+
 const state = computed(() => {
   if (!displaySrc.value) return 'empty'
   if (processing.value) return 'processing'
@@ -41,45 +49,55 @@ const state = computed(() => {
 })
 
 const originalUrl = computed(() => normalizeVirtualAssetUrl(props.src || ''))
-const processedUrl = computed(() => normalizeVirtualAssetUrl(props.processedSrc || ''))
+const storedUrl = computed(() => normalizeVirtualAssetUrl(props.processedSrc || ''))
 let requestIndex = 0
+
+function firstRenderableSource() {
+  return originalUrl.value || storedUrl.value || ''
+}
+
+function targetSourceForVision() {
+  return originalUrl.value || storedUrl.value || ''
+}
 
 async function resolveDisplay() {
   const currentRequest = requestIndex + 1
   requestIndex = currentRequest
-  const preferred = processedUrl.value
-  const original = originalUrl.value
   failed.value = false
   processing.value = false
 
-  if (preferred) {
-    displaySrc.value = preferred
-    return
-  }
-
-  if (!original) {
+  const fallback = firstRenderableSource()
+  if (!fallback) {
     displaySrc.value = ''
+    visionSource.value = 'empty'
     return
   }
 
-  displaySrc.value = original
-  const visionUrl = toVisionImageUrl(original)
-  if (!props.autoProcess || !canProcessWithVision(visionUrl)) return
+  displaySrc.value = fallback
+  visionSource.value = originalUrl.value ? 'original' : 'stored'
 
-  const cached = getCachedProcessedFaceImage(visionUrl, props.namespace)
+  const target = toVisionImageUrl(targetSourceForVision())
+  if (!props.autoProcess || !canProcessWithVision(target)) return
+
+  const cached = getCachedProcessedFaceImage(target, props.namespace)
   if (cached) {
     displaySrc.value = cached
+    visionSource.value = 'cache'
     return
   }
 
   processing.value = true
   try {
-    const result = await processFaceImageCached(visionUrl, { namespace: props.namespace })
-    if (requestIndex === currentRequest) displaySrc.value = result.src
+    const result = await processFaceImageCached(target, { namespace: props.namespace })
+    if (requestIndex === currentRequest) {
+      displaySrc.value = result.src
+      visionSource.value = result.fromCache ? 'cache' : 'vision'
+    }
   } catch {
     if (requestIndex === currentRequest) {
       failed.value = true
-      displaySrc.value = original
+      displaySrc.value = fallback
+      visionSource.value = 'fallback'
     }
   } finally {
     if (requestIndex === currentRequest) processing.value = false

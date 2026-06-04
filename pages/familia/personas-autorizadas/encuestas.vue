@@ -29,7 +29,7 @@ const surveyAvailable = computed(() => Boolean(config.value?.survey.enabled && c
 .survey-card { display: grid; gap: 16px; }
 .section-head { align-items: center; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) auto; }
 .section-head h1 { margin-bottom: 8px; }
-.status-pill { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); font-weight: 950; padding: 8px 12px; }
+.status-pill { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); font-weight: 600; padding: 8px 12px; }
 iframe { border: 1px solid var(--pa-border); border-radius: 18px; min-height: 680px; width: 100%; }
 @media (max-width: 760px) { .section-head { grid-template-columns: 1fr; } }
 </style>

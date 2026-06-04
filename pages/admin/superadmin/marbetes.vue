@@ -300,7 +300,7 @@ async function saveTemplate() {
   border-radius: 999px;
   color: #fff;
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 600;
   padding: 6px 10px;
   text-transform: uppercase;
 }
@@ -321,7 +321,7 @@ async function saveTemplate() {
 .template-detail dt {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -360,7 +360,7 @@ iframe {
   border: 1px solid var(--color-brand-200);
   border-radius: 14px;
   color: var(--color-brand-900);
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
   padding: 10px 12px;
 }

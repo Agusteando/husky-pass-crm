@@ -135,7 +135,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   box-shadow: var(--shadow-soft);
   color: #fff;
   display: flex;
-  font-weight: 900;
+  font-weight: 600;
   justify-content: space-between;
   min-height: 50px;
   padding: 12px 15px;
@@ -199,7 +199,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 .date-box span {
   color: var(--color-muted);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .cal-card h3 {
@@ -240,7 +240,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 .value-box span {
   color: var(--color-muted);
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

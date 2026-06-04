@@ -6,7 +6,7 @@ export interface VisionFaceResult {
 
 const VISION_BASE = 'https://vision.casitaapps.com'
 const CACHE_PREFIX = 'pa:vision-face:'
-const CACHE_VERSION = 'v3'
+const CACHE_VERSION = 'v4'
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
 const CACHE_MAX_ITEMS = 36
 

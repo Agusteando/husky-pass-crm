@@ -283,19 +283,19 @@ async function saveActiveGroup() {
 .section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 120px; }
 .section-hero img { max-height: 128px; object-fit: contain; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
-.loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 850; }
+.loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
 .readonly-card { display: grid; gap: 8px; }
 .readonly-card header h2 { margin-bottom: 0; }
 .data-section-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .data-section-card { align-items: end; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
 .data-section-card h2, .data-section-card p { margin-bottom: 0; }
-.data-section-card p:not(.eyebrow) { color: var(--pa-muted); font-weight: 800; }
+.data-section-card p:not(.eyebrow) { color: var(--pa-muted); font-weight: 600; }
 .student-form { display: grid; gap: 14px; }
 .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.field-error { color: #8d2d25; font-weight: 850; }
+.field-error { color: #8d2d25; font-weight: 600; }
 .input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: #d35a4e; box-shadow: 0 0 0 3px rgba(211, 90, 78, .12); }
-.change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); display: inline-flex; font-weight: 900; gap: 6px; justify-self: start; padding: 8px 12px; }
+.change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
 .save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 18px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; padding: 12px; }
 @media (max-width: 900px) { .section-hero, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } }
 </style>

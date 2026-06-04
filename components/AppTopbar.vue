@@ -133,7 +133,7 @@ async function logout() {
 .topbar-nav a {
   border-radius: 999px;
   color: var(--color-muted);
-  font-weight: 850;
+  font-weight: 600;
   padding: 8px 12px;
 }
 
@@ -163,7 +163,7 @@ async function logout() {
   place-items: center;
   background: var(--color-brand-200);
   color: var(--color-brand-900);
-  font-weight: 900;
+  font-weight: 600;
   font-size: 0.82rem;
 }
 
@@ -202,7 +202,7 @@ async function logout() {
   border-radius: 999px;
   color: var(--color-brand-800);
   font-size: 0.72rem;
-  font-weight: 950;
+  font-weight: 600;
   padding: 4px 8px;
 }
 
@@ -243,7 +243,7 @@ async function logout() {
   color: #fff;
   cursor: pointer;
   font: inherit;
-  font-weight: 850;
+  font-weight: 600;
   margin-left: auto;
   padding: 0;
   text-decoration: underline;

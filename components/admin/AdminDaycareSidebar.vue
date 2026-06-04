@@ -208,7 +208,7 @@ function roomInitials(value?: string | null) {
   border-radius: 999px;
   color: var(--color-brand-800);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   padding: 5px 9px;
 }
 
@@ -262,7 +262,7 @@ function roomInitials(value?: string | null) {
   border-radius: 999px;
   color: var(--color-muted);
   font-size: 0.82rem;
-  font-weight: 860;
+  font-weight: 600;
   padding: 7px 10px;
 }
 
@@ -284,7 +284,7 @@ function roomInitials(value?: string | null) {
 .rail-title small {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -327,7 +327,7 @@ function roomInitials(value?: string | null) {
   color: var(--color-brand-900);
   display: inline-flex;
   font-size: 0.76rem;
-  font-weight: 950;
+  font-weight: 600;
   height: 38px;
   justify-content: center;
   width: 38px;

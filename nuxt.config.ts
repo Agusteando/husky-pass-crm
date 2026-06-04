@@ -7,8 +7,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   googleFonts: {
     families: {
-      Inter: [400, 500, 600, 700, 800],
-      Fredoka: [500, 600]
+      Montserrat: [600],
+      Fredoka: [600]
     },
     display: 'swap',
     download: false,

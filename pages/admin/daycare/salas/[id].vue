@@ -198,7 +198,7 @@ function resourceTypeLabel(type?: string | null) {
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 1rem;
-  font-weight: 950;
+  font-weight: 600;
   height: 68px;
   justify-content: center;
   width: 68px;
@@ -223,7 +223,7 @@ function resourceTypeLabel(type?: string | null) {
 .metric-grid span {
   color: var(--color-muted);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -277,7 +277,7 @@ function resourceTypeLabel(type?: string | null) {
   color: var(--color-brand-900);
   display: inline-flex;
   font-size: 0.76rem;
-  font-weight: 950;
+  font-weight: 600;
   height: 34px;
   justify-content: center;
   width: 34px;
@@ -312,7 +312,7 @@ function resourceTypeLabel(type?: string | null) {
 .type-pill {
   color: var(--color-brand-700);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
