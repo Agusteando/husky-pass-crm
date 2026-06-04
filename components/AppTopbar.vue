@@ -3,7 +3,14 @@
     <div class="page-shell topbar-inner">
       <BrandMark :to="homeTo" />
       <nav v-if="items.length" class="topbar-nav" aria-label="Navegación principal">
-        <NuxtLink v-for="item in items" :key="item.to" :to="item.to" active-class="active">
+        <NuxtLink
+          v-for="item in items"
+          :key="item.to"
+          :to="item.to"
+          :class="{ active: isActive(item.to) }"
+          :aria-current="isActive(item.to) ? 'page' : undefined"
+          :data-product-nav="navKey(item.label)"
+        >
           {{ item.label }}
         </NuxtLink>
       </nav>
@@ -14,15 +21,19 @@
           <strong>{{ session.user.displayName || session.user.email }}</strong>
           <small>{{ session.user.email }}</small>
         </div>
-        <button v-if="session.user.impersonation" class="btn btn-primary compact-action" type="button" @click="exitImpersonation">Volver</button>
-        <button class="btn btn-secondary compact-action" type="button" @click="logout">Salir</button>
+        <div class="scope-badges" data-diagnostic="session-role">
+          <span>{{ sessionRoleLabel }}</span>
+          <small v-if="sessionScopeLabel">{{ sessionScopeLabel }}</small>
+        </div>
+        <button v-if="session.user.impersonation" class="btn btn-primary compact-action" type="button" data-diagnostic-action="salir-impersonacion" @click="exitImpersonation">Volver</button>
+        <button class="btn btn-secondary compact-action" type="button" data-diagnostic-action="logout" @click="logout">Salir</button>
       </div>
     </div>
     <div v-if="session?.user?.impersonation" class="impersonation-bar">
       <div class="page-shell impersonation-inner">
         <strong>{{ impersonationLabel }}</strong>
         <span>{{ session.user.displayName || session.user.email }}</span>
-        <button class="link-button" type="button" @click="exitImpersonation">Terminar vista</button>
+        <button class="link-button" type="button" data-diagnostic-action="terminar-impersonacion" @click="exitImpersonation">Terminar vista</button>
       </div>
     </div>
   </header>
@@ -30,7 +41,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { navigateTo } from 'nuxt/app'
+import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 
 const props = defineProps<{
@@ -38,6 +49,27 @@ const props = defineProps<{
   homeTo: string
   items: Array<{ label: string; to: string }>
 }>()
+
+const route = useRoute()
+
+const sessionRoleLabel = computed(() => {
+  const user = props.session?.user
+  if (!user) return ''
+  if (user.kind === 'admin') return user.isSuperAdmin ? 'Superadmin' : 'Admin daycare'
+  if (user.productScopes.includes('daycare') && user.productScopes.includes('personasAutorizadas')) return 'Familia multiproducto'
+  if (user.productScopes.includes('daycare')) return 'Familia daycare'
+  if (user.productScopes.includes('personasAutorizadas')) return 'Personas Autorizadas'
+  return 'Sesión familiar'
+})
+
+const sessionScopeLabel = computed(() => {
+  const user = props.session?.user
+  if (!user) return ''
+  if (user.kind === 'admin') return user.unidades.length ? user.unidades.join(' · ') : 'Sin unidad asignada'
+  const daycare = user.scopes.daycare
+  if (daycare) return `${daycare.unidad} · Sala ${daycare.sala}`
+  return user.campus || user.empresa || ''
+})
 
 const initials = computed(() => {
   const source = props.session?.user?.displayName || props.session?.user?.email || 'HP'
@@ -47,6 +79,16 @@ const initials = computed(() => {
 const impersonationLabel = computed(() => {
   return props.session?.user?.impersonation?.mode === 'account' ? 'Impersonación activa' : 'Vista familiar de sala activa'
 })
+
+function isActive(to: string) {
+  if (to === '/admin/superadmin') return route.path.startsWith('/admin/superadmin')
+  if (to === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
+  return route.path === to || route.path.startsWith(`${to}/`)
+}
+
+function navKey(label: string) {
+  return label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-')
+}
 
 async function exitImpersonation() {
   const target = props.session?.user?.impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
@@ -143,6 +185,32 @@ async function logout() {
   font-size: 0.78rem;
 }
 
+.scope-badges {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  max-width: 210px;
+}
+
+.scope-badges span {
+  background: var(--color-brand-100);
+  border: 1px solid var(--color-brand-200);
+  border-radius: 999px;
+  color: var(--color-brand-800);
+  font-size: 0.72rem;
+  font-weight: 950;
+  padding: 4px 8px;
+}
+
+.scope-badges small {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .compact-action {
   min-height: 34px;
   padding-inline: 12px;
@@ -186,7 +254,8 @@ async function logout() {
     margin-left: auto;
   }
 
-  .profile-copy {
+  .profile-copy,
+  .scope-badges {
     display: none;
   }
 

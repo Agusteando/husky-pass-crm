@@ -1,5 +1,5 @@
 <template>
-  <section class="family-module stack">
+  <section class="family-module stack" data-product-area="daycare" data-product-screen="familias">
     <AdminModuleTabs :sala-id="salaId" />
 
     <header class="family-hero">
@@ -11,9 +11,9 @@
       <div class="family-actions">
         <label class="search-field">
           <span>Buscar</span>
-          <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" />
+          <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
         </label>
-        <button class="btn btn-primary" type="button" @click="startCreate">Nueva familia</button>
+        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-familia" @click="startCreate">Nueva familia</button>
       </div>
     </header>
 
@@ -28,16 +28,16 @@
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card">Cargando familias…</div>
+    <div v-if="pending" class="card loading-card" data-product-loading>Cargando familias…</div>
 
     <section v-else class="family-desk">
-      <div class="card family-list-card">
+      <div class="card family-list-card" data-product-panel="familias-list" :data-state="filteredAccounts.length ? 'content' : 'empty'">
         <div class="section-head">
           <div>
             <p class="eyebrow">Cuentas</p>
             <h2>{{ filteredAccounts.length }} familias</h2>
           </div>
-          <button v-if="canPreviewSala" class="btn btn-secondary" type="button" :disabled="previewing" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar de sala' }}</button>
+          <button v-if="canPreviewSala" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" :disabled="previewing" :data-unavailable-reason="previewing ? 'Abriendo vista familiar' : undefined" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar de sala' }}</button>
         </div>
 
         <div v-if="filteredAccounts.length" class="family-list">
@@ -47,6 +47,8 @@
             class="family-row"
             :class="{ active: selected?.id === account.id }"
             type="button"
+            data-diagnostic-action="seleccionar-familia"
+            :aria-pressed="selected?.id === account.id"
             @click="selectAccount(account)"
           >
             <span class="family-avatar">{{ initials(account.nombre_nino || account.username) }}</span>
@@ -60,7 +62,7 @@
         <EmptyState v-else title="Sin familias" description="No hay cuentas familiares para esta búsqueda o sala." />
       </div>
 
-      <aside class="card family-preview-card">
+      <aside class="card family-preview-card" data-product-panel="familia-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
           <div class="section-head">
             <div>
@@ -75,8 +77,9 @@
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
-            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" :disabled="impersonatingId === selected.id" @click="impersonate(selected.id)">{{ impersonatingId === selected.id ? 'Abriendo…' : 'Impersonar' }}</button>
-            <button class="btn btn-secondary" type="button" @click="editing = { ...selected }">Editar</button>
+            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="impersonar-familia" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo impersonación' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
+            <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una familia" description="El detalle y las acciones aparecerán aquí." />
@@ -105,6 +108,7 @@ const actionError = ref('')
 const actionNotice = ref('')
 const previewing = ref(false)
 const impersonatingId = ref<number | null>(null)
+const confirmingImpersonationId = ref<number | null>(null)
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
 const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
@@ -159,7 +163,9 @@ function startCreate() {
 
 function selectAccount(account: FamilyAccount) {
   selected.value = account
+  confirmingImpersonationId.value = null
   actionError.value = ''
+  actionNotice.value = ''
   syncQuery(account.id)
 }
 
@@ -188,8 +194,27 @@ async function save(payload: Partial<FamilyAccount>) {
   }
 }
 
+function impersonationButtonLabel(userId?: number) {
+  if (!userId) return 'Impersonar'
+  if (impersonatingId.value === userId) return 'Abriendo…'
+  if (confirmingImpersonationId.value === userId) return 'Confirmar impersonación'
+  return 'Impersonar'
+}
+
+function cancelImpersonation() {
+  confirmingImpersonationId.value = null
+  actionNotice.value = ''
+}
+
 async function impersonate(userId?: number) {
   if (!userId) return
+  if (confirmingImpersonationId.value !== userId) {
+    confirmingImpersonationId.value = userId
+    actionError.value = ''
+    actionNotice.value = 'Confirma para entrar como esta familia. La sesión quedará marcada como impersonación y podrás volver desde la barra superior.'
+    return
+  }
+
   actionError.value = ''
   actionNotice.value = ''
   impersonatingId.value = userId
@@ -204,6 +229,7 @@ async function impersonate(userId?: number) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
   } finally {
     impersonatingId.value = null
+    confirmingImpersonationId.value = null
   }
 }
 

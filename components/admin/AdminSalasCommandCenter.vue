@@ -1,5 +1,5 @@
 <template>
-  <section class="salas-command stack">
+  <section class="salas-command stack" data-product-area="daycare" data-product-screen="salas">
     <header class="command-hero">
       <div>
         <p class="eyebrow">Daycare admin</p>
@@ -9,13 +9,13 @@
       <div class="hero-controls">
         <label class="label">
           Unidad
-          <select v-model="selectedUnidad" class="select" @change="syncUnidad">
+          <select v-model="selectedUnidad" class="select" data-diagnostic-filter="unidad" @change="syncUnidad">
             <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
           </select>
         </label>
         <label class="label">
           Buscar sala
-          <input v-model="search" class="input" type="search" placeholder="Nombre de sala" />
+          <input v-model="search" class="input" type="search" placeholder="Nombre de sala" data-diagnostic-filter="buscar-sala" />
         </label>
       </div>
     </header>
@@ -42,10 +42,10 @@
     <p v-if="error" class="alert">No fue posible cargar las salas de esta unidad.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card">Cargando salas…</div>
+    <div v-if="pending" class="card loading-card" data-product-loading> Cargando salas…</div>
 
     <section v-else class="command-layout">
-      <aside class="card sala-picker-card">
+      <aside class="card sala-picker-card" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
         <div class="list-head">
           <div>
             <p class="eyebrow">Directorio</p>
@@ -60,6 +60,9 @@
             class="sala-pick"
             :class="{ active: sala.id === selectedSalaId }"
             type="button"
+            data-diagnostic-sala-option
+            :data-sala-id="String(sala.id)"
+            :aria-pressed="sala.id === selectedSalaId"
             @click="selectSala(sala.id)"
           >
             <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
@@ -69,10 +72,10 @@
             </span>
           </button>
         </div>
-        <EmptyState v-else title="Sin salas" description="No hay salas que coincidan con esta búsqueda o unidad." />
+        <div v-else data-diagnostic="sala-unavailable"><EmptyState title="Sin salas" description="No hay salas que coincidan con esta búsqueda o unidad." /></div>
       </aside>
 
-      <article v-if="selectedSala" class="card sala-focus-card">
+      <article v-if="selectedSala" class="card sala-focus-card" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
         <div class="focus-header">
           <div class="focus-title">
             <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
@@ -83,10 +86,10 @@
             </div>
           </div>
           <div class="focus-actions">
-            <button class="btn btn-primary" type="button" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
-            <button class="btn btn-secondary" type="button" @click="goToSalaSummary">Abrir resumen</button>
-            <button class="btn btn-secondary" type="button" @click="goToSalaSection('tareas')">Gestionar tareas</button>
-            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" @click="previewSala(selectedSala.id)">Vista familiar</button>
+            <button class="btn btn-primary" type="button" data-diagnostic-action="nueva-tarea" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="abrir-resumen" @click="goToSalaSummary">Abrir resumen</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="gestionar-tareas" @click="goToSalaSection('tareas')">Gestionar tareas</button>
+            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
           </div>
         </div>
 
@@ -110,19 +113,19 @@
         </div>
 
         <div class="module-launcher">
-          <button type="button" @click="goToSalaSection('familias')">
+          <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
             <strong>Familias</strong>
             <span>Ver cuentas y soporte.</span>
           </button>
-          <button type="button" @click="goToSalaSection('tareas')">
+          <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas')">
             <strong>Tareas</strong>
             <span>Publicar o editar tareas.</span>
           </button>
-          <button type="button" @click="goToSalaSection('avisos')">
+          <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
             <strong>Avisos</strong>
             <span>Comunicados familiares.</span>
           </button>
-          <button type="button" @click="goToSalaSection('calendario')">
+          <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
             <strong>Calendario</strong>
             <span>Eventos próximos.</span>
           </button>
@@ -240,7 +243,9 @@ function goToSalaSummary() {
 function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
   actionError.value = ''
   if (!selectedSala.value?.id) return
-  const query = create ? { create: '1' } : undefined
+  const query: Record<string, string> = {}
+  if (selectedUnidad.value) query.unidad = selectedUnidad.value
+  if (create) query.create = '1'
   navigateTo({ path: `/admin/daycare/salas/${selectedSala.value.id}/${section}`, query })
 }
 

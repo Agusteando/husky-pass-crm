@@ -1,1 +1,1 @@
-Corrige flujos interactivos reales de daycare, familias y superadmin
+Agrega diagnóstico runtime y corrige contratos visibles de producto

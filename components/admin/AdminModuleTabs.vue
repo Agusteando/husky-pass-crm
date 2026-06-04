@@ -1,10 +1,10 @@
 <template>
   <nav class="admin-module-tabs" aria-label="Módulos de sala">
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}`" exact-active-class="active">Resumen</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/familias`" active-class="active">Familias</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/tareas`" active-class="active">Tareas</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/avisos`" active-class="active">Avisos</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/calendario`" active-class="active">Calendario</NuxtLink>
+    <NuxtLink :to="`/admin/daycare/salas/${salaId}`" exact-active-class="active" data-diagnostic-link="tab-resumen">Resumen</NuxtLink>
+    <NuxtLink :to="`/admin/daycare/salas/${salaId}/familias`" active-class="active" data-diagnostic-link="tab-familias">Familias</NuxtLink>
+    <NuxtLink :to="`/admin/daycare/salas/${salaId}/tareas`" active-class="active" data-diagnostic-link="tab-tareas">Tareas</NuxtLink>
+    <NuxtLink :to="`/admin/daycare/salas/${salaId}/avisos`" active-class="active" data-diagnostic-link="tab-avisos">Avisos</NuxtLink>
+    <NuxtLink :to="`/admin/daycare/salas/${salaId}/calendario`" active-class="active" data-diagnostic-link="tab-calendario">Calendario</NuxtLink>
   </nav>
 </template>
 

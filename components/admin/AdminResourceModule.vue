@@ -1,5 +1,5 @@
 <template>
-  <section class="resource-module stack">
+  <section class="resource-module stack" data-product-area="daycare" :data-product-screen="type">
     <AdminModuleTabs :sala-id="salaId" />
 
     <header class="module-hero">
@@ -11,11 +11,11 @@
       <div class="module-actions">
         <label class="search-field">
           <span>Buscar</span>
-          <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" />
+          <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" data-diagnostic-filter="buscar-recurso" />
         </label>
         <label class="search-field">
           <span>Estado</span>
-          <select v-model="visibilityFilter" class="select">
+          <select v-model="visibilityFilter" class="select" data-diagnostic-filter="estado-recurso">
             <option value="published">Publicadas</option>
             <option value="hidden">Ocultas</option>
             <option value="all">Todas</option>
@@ -23,13 +23,13 @@
         </label>
         <label class="search-field">
           <span>Recurso</span>
-          <select v-model="resourceFilter" class="select">
+          <select v-model="resourceFilter" class="select" data-diagnostic-filter="archivo-recurso">
             <option value="all">Todos</option>
             <option value="with">Con archivo o liga</option>
             <option value="without">Sin recurso</option>
           </select>
         </label>
-        <button class="btn btn-primary" type="button" @click="startCreate()">{{ actionLabel }}</button>
+        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" @click="startCreate()">{{ actionLabel }}</button>
       </div>
     </header>
 
@@ -46,10 +46,10 @@
     <p v-if="error" class="alert">No fue posible cargar esta sección.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card">Cargando publicaciones…</div>
+    <div v-if="pending" class="card loading-card" data-product-loading>Cargando publicaciones…</div>
 
     <section v-else class="resource-desk">
-      <div class="card resource-list-card">
+      <div class="card resource-list-card" data-product-panel="resource-list" :data-state="filteredRows.length ? 'content' : 'empty'">
         <div class="section-head">
           <div>
             <p class="eyebrow">Listado</p>
@@ -65,6 +65,8 @@
             class="resource-row"
             :class="{ active: selected?.id === item.id, hidden: isHiddenResource(item.hidden) }"
             type="button"
+            data-diagnostic-action="seleccionar-recurso"
+            :aria-pressed="selected?.id === item.id"
             @click="selectRow(item)"
           >
             <span class="row-date">{{ compactDate(item.date || item.timestamp) }}</span>
@@ -81,7 +83,7 @@
         <EmptyState v-else title="Sin publicaciones" description="No hay registros para esta búsqueda, estado o filtro de recurso." />
       </div>
 
-      <aside class="card preview-card">
+      <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
           <div class="section-head">
             <div>
@@ -99,10 +101,10 @@
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
-            <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener">Abrir recurso</a>
-            <button class="btn btn-secondary" type="button" @click="editing = { ...selected }">Editar</button>
-            <button class="btn btn-secondary" type="button" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
-            <button class="btn btn-danger" type="button" @click="remove(selected.id)">Eliminar</button>
+            <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener" data-diagnostic-link="abrir-recurso">Abrir recurso</a>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" @click="editing = { ...selected }">Editar</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
+            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="remove(selected.id)">Eliminar</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona un registro" description="El detalle aparecerá aquí. Los filtros actualizan el listado y la URL." />

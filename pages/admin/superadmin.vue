@@ -1,12 +1,12 @@
 <template>
-  <section class="superadmin-page stack">
+  <section class="superadmin-page stack" data-product-area="superadmin" data-product-screen="directory">
     <header class="workspace-head compact-head superadmin-head">
       <div>
         <p class="eyebrow">Superadmin</p>
         <h1>Gestión de usuarios y productos</h1>
         <p>Monitorea cuentas internas, familias de daycare y familias preescolar-secundaria desde un solo directorio real.</p>
       </div>
-      <button class="btn btn-secondary" type="button" :disabled="pending" @click="refreshDirectory">{{ pending ? 'Actualizando…' : 'Actualizar' }}</button>
+      <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="pending" :data-unavailable-reason="pending ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ pending ? 'Actualizando…' : 'Actualizar' }}</button>
     </header>
 
     <section class="scope-tabs" aria-label="Alcance de usuarios">
@@ -16,6 +16,8 @@
         class="scope-tab"
         :class="{ active: selectedScope === option.value }"
         type="button"
+        data-diagnostic-action="filtrar-scope"
+        :aria-pressed="selectedScope === option.value"
         @click="selectScope(option.value)"
       >
         <strong>{{ option.label }}</strong>
@@ -26,18 +28,18 @@
     <section class="filters-card card">
       <label class="label">
         Plantel
-        <select v-model="selectedPlantel" class="select">
+        <select v-model="selectedPlantel" class="select" data-diagnostic-filter="plantel">
           <option value="">Todos</option>
           <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
         </select>
       </label>
       <label class="label">
         Buscar usuario
-        <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, rol, sala o campus" />
+        <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, rol, sala o campus" data-diagnostic-filter="buscar-usuario" />
       </label>
       <label class="label">
         Límite
-        <select v-model.number="limit" class="select">
+        <select v-model.number="limit" class="select" data-diagnostic-filter="limite">
           <option :value="50">50</option>
           <option :value="120">120</option>
           <option :value="250">250</option>
@@ -75,9 +77,9 @@
     <p v-if="loadError" class="alert">No fue posible cargar el directorio de superadmin.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card">Cargando usuarios…</div>
+    <div v-if="pending" class="card loading-card" data-product-loading>Cargando usuarios…</div>
 
-    <section v-else-if="directory?.users?.length" class="directory-grid">
+    <section v-else-if="directory?.users?.length" class="directory-grid" data-product-panel="superadmin-directory" data-state="content">
       <article class="card users-card">
         <div class="section-head">
           <div>
@@ -127,18 +129,21 @@
                 </td>
                 <td data-label="Acciones">
                   <div class="row-actions">
-                    <button class="btn btn-secondary compact" type="button" @click="selectUser(user)">Detalle</button>
+                    <button class="btn btn-secondary compact" type="button" data-diagnostic-action="detalle-usuario" @click="selectUser(user)">Detalle</button>
                     <NuxtLink
                       v-if="user.productScopes.includes('daycare') && user.sala"
                       class="btn btn-secondary compact"
                       :to="`/admin/daycare/salas/${user.sala}/familias`"
+                      data-diagnostic-link="ver-sala-usuario"
                     >
                       Ver sala
                     </NuxtLink>
                     <button
                       class="btn btn-primary compact"
                       type="button"
+                      data-diagnostic-action="impersonar-usuario"
                       :disabled="!user.canImpersonate || impersonatingId === user.id"
+                      :data-unavailable-reason="!user.canImpersonate ? 'Usuario sin producto familiar impersonable' : impersonatingId === user.id ? 'Abriendo impersonación' : undefined"
                       @click="requestImpersonation(user)"
                     >
                       {{ impersonationButtonLabel(user) }}
@@ -147,6 +152,7 @@
                       v-if="confirmingImpersonationId === user.id"
                       class="btn btn-secondary compact"
                       type="button"
+                      data-diagnostic-action="cancelar-impersonacion"
                       @click="cancelImpersonation"
                     >
                       Cancelar
@@ -177,7 +183,7 @@
       </aside>
     </section>
 
-    <EmptyState v-else title="Sin usuarios" description="Ajusta el producto, plantel o búsqueda para encontrar usuarios con datos reales." />
+    <div v-else data-product-panel="superadmin-directory" data-state="empty"><EmptyState title="Sin usuarios" description="Ajusta el producto, plantel o búsqueda para encontrar usuarios con datos reales." /></div>
   </section>
 </template>
 

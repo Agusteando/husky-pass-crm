@@ -1,5 +1,5 @@
 <template>
-  <aside v-if="session?.user?.kind === 'admin'" class="workspace-rail" aria-label="Workspace de guardería">
+  <aside v-if="session?.user?.kind === 'admin'" class="workspace-rail" aria-label="Workspace de guardería" data-product-panel="daycare-sidebar" data-state="content">
     <div class="rail-header">
       <div>
         <p class="eyebrow">Workspace</p>
@@ -11,30 +11,30 @@
     <section class="rail-context">
       <label class="label compact-label">
         Unidad
-        <select v-model="selectedUnidad" class="select" :disabled="!unidades.length" @change="goToUnidad">
+        <select v-model="selectedUnidad" class="select" :disabled="!unidades.length" data-diagnostic-filter="unidad" @change="goToUnidad">
           <option v-if="!unidades.length" value="">Sin unidades</option>
           <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
         </select>
       </label>
       <label class="label compact-label">
         Sala
-        <select v-model="selectedSala" class="select" :disabled="!salas?.length" @change="goToSala">
+        <select v-model="selectedSala" class="select" :disabled="!salas?.length" data-diagnostic="sala-select" data-diagnostic-filter="sala" @change="goToSala">
           <option value="">Selecciona sala</option>
           <option v-for="sala in salas || []" :key="sala.id" :value="String(sala.id)">{{ sala.sala }}</option>
         </select>
       </label>
-      <button v-if="canPreviewAsFamily" class="btn btn-primary preview-btn" type="button" :disabled="!selectedSala || previewing" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar' }}</button>
+      <button v-if="canPreviewAsFamily" class="btn btn-primary preview-btn" type="button" data-diagnostic-action="preview-sala" :disabled="!selectedSala || previewing" :data-unavailable-reason="!selectedSala ? 'Selecciona una sala' : previewing ? 'Abriendo vista familiar' : undefined" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar' }}</button>
       <p v-if="actionError" class="rail-alert">{{ actionError }}</p>
       <p v-if="actionNotice" class="rail-notice">{{ actionNotice }}</p>
     </section>
 
     <nav class="primary-nav" aria-label="Navegación daycare admin">
-      <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active">Superadmin</NuxtLink>
-      <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active">Salas</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'familias')" active-class="active">Familias</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'tareas')" active-class="active">Tareas</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'avisos')" active-class="active">Avisos</NuxtLink>
-      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'calendario')" active-class="active">Calendario</NuxtLink>
+      <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active" data-diagnostic-link="superadmin">Superadmin</NuxtLink>
+      <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active" data-diagnostic-link="salas">Salas</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'familias')" active-class="active" data-diagnostic-link="familias">Familias</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'tareas')" active-class="active" data-diagnostic-link="tareas">Tareas</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'avisos')" active-class="active" data-diagnostic-link="avisos">Avisos</NuxtLink>
+      <NuxtLink v-if="selectedSala" :to="salaRoute(selectedSala, 'calendario')" active-class="active" data-diagnostic-link="calendario">Calendario</NuxtLink>
     </nav>
 
     <section class="rail-section">
@@ -42,13 +42,13 @@
         <span>Salas activas</span>
         <small>{{ salas?.length || 0 }}</small>
       </div>
-      <input v-model="search" class="input compact-search" type="search" placeholder="Buscar sala" />
+      <input v-model="search" class="input compact-search" type="search" placeholder="Buscar sala" data-diagnostic-filter="buscar-sala" />
       <div v-if="filteredSalas.length" class="rail-salas" role="list">
         <NuxtLink
           v-for="sala in filteredSalas"
           :key="sala.id"
           :to="salaRoute(sala.id)"
-          :class="{ active: String(sala.id) === selectedSala }"
+          :class="{ active: String(sala.id) === selectedSala }" data-diagnostic-link="sala-sidebar"
         >
           <span class="room-dot">{{ roomInitials(sala.sala) }}</span>
           <span class="sala-copy">
@@ -57,7 +57,7 @@
           </span>
         </NuxtLink>
       </div>
-      <EmptyState v-else title="Sin salas" description="Cambia de unidad o ajusta la búsqueda." />
+      <div v-else data-diagnostic="sala-unavailable" data-product-panel="sidebar-salas" data-state="empty"><EmptyState title="Sin salas" description="Cambia de unidad o ajusta la búsqueda." /></div>
     </section>
   </aside>
 </template>

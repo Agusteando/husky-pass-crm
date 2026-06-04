@@ -1,13 +1,13 @@
 <template>
-  <section class="sala-workspace stack">
+  <section class="sala-workspace stack" data-product-area="daycare" data-product-screen="sala-resumen">
     <AdminModuleTabs :sala-id="salaId" />
 
     <p v-if="error" class="alert">No fue posible cargar el workspace de la sala.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
-    <div v-else-if="pending" class="card loading-card">Cargando sala…</div>
+    <div v-else-if="pending" class="card loading-card" data-product-loading>Cargando sala…</div>
 
     <template v-else-if="overview">
-      <header class="sala-hero">
+      <header class="sala-hero" data-diagnostic="sala-context">
         <div class="hero-title">
           <span class="room-avatar">{{ roomInitials(overview.sala.sala) }}</span>
           <div>
@@ -17,8 +17,8 @@
           </div>
         </div>
         <div class="hero-actions">
-          <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" @click="previewSala">Vista familiar</button>
-          <NuxtLink class="btn btn-primary" :to="`/admin/daycare/salas/${salaId}/familias`">Gestionar familias</NuxtLink>
+          <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala">Vista familiar</button>
+          <NuxtLink class="btn btn-primary" :to="`/admin/daycare/salas/${salaId}/familias`" data-diagnostic-link="gestionar-familias">Gestionar familias</NuxtLink>
         </div>
       </header>
 
@@ -41,7 +41,7 @@
         </article>
       </section>
 
-      <section class="workspace-grid">
+      <section class="workspace-grid" data-product-panel="sala-workspace" :data-state="overview ? 'content' : 'empty'">
         <div class="module-panel card">
           <div class="panel-head">
             <div>
@@ -50,7 +50,7 @@
             </div>
           </div>
           <div class="module-cards">
-            <NuxtLink v-for="module in modules" :key="module.to" :to="module.to" class="module-card">
+            <NuxtLink v-for="module in modules" :key="module.to" :to="module.to" class="module-card" data-diagnostic-link="modulo-sala">
               <span>{{ module.abbr }}</span>
               <strong>{{ module.title }}</strong>
               <small>{{ module.description }}</small>
@@ -77,13 +77,13 @@
         </aside>
       </section>
 
-      <section class="family-strip card">
+      <section class="family-strip card" data-product-panel="sala-families" :data-state="overview.latestFamilies.length ? 'content' : 'empty'">
         <div class="panel-head">
           <div>
             <p class="eyebrow">Familias recientes</p>
             <h2>Accesos daycare</h2>
           </div>
-          <NuxtLink class="btn btn-secondary" :to="`/admin/daycare/salas/${salaId}/familias`">Ver todas</NuxtLink>
+          <NuxtLink class="btn btn-secondary" :to="`/admin/daycare/salas/${salaId}/familias`" data-diagnostic-link="ver-familias">Ver todas</NuxtLink>
         </div>
         <div v-if="overview.latestFamilies.length" class="family-mini-list">
           <article v-for="family in overview.latestFamilies" :key="family.id">
