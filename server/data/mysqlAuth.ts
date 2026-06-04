@@ -233,9 +233,12 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   const search = normalizeLegacyScope(filters.search)
   const scope: SuperAdminDirectoryScope = filters.scope || 'all'
   const limit = Math.min(Math.max(Number(filters.limit || 120), 25), 250)
-  const queryLimit = scope === 'all' ? limit : Math.min(Math.max(limit * 6, 250), 1000)
+  const queryLimit = limit
   const where: string[] = []
   const params: Array<string | number> = []
+
+  const scopePredicate = directoryScopePredicate(scope)
+  if (scopePredicate) where.push(scopePredicate)
 
   if (plantel) {
     where.push(`(
@@ -365,6 +368,30 @@ async function loadAlumnoPaUserIds(userIds: number[]) {
     userIds
   )
   return new Set(rows.map((row) => Number(row.user_id)).filter((id) => Number.isFinite(id)))
+}
+
+
+function directoryScopePredicate(scope: SuperAdminDirectoryScope) {
+  if (scope === 'daycare') {
+    return `(
+      A.role LIKE '%HUSKY%' AND
+      A.sala IS NOT NULL AND TRIM(CAST(A.sala AS CHAR)) <> '' AND
+      A.unidad IS NOT NULL AND TRIM(CAST(A.unidad AS CHAR)) <> ''
+    )`
+  }
+
+  if (scope === 'internal') {
+    return `(
+      A.role IS NOT NULL AND TRIM(CAST(A.role AS CHAR)) <> '' AND
+      NOT (
+        A.role LIKE '%HUSKY%' AND
+        A.sala IS NOT NULL AND TRIM(CAST(A.sala AS CHAR)) <> '' AND
+        A.unidad IS NOT NULL AND TRIM(CAST(A.unidad AS CHAR)) <> ''
+      )
+    )`
+  }
+
+  return ''
 }
 
 

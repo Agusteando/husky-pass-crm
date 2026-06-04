@@ -20,6 +20,12 @@
       </div>
     </header>
 
+    <section v-if="noUnidadAvailable" class="card state-card" data-product-panel="daycare-unidades" data-state="unavailable">
+      <p class="eyebrow">Daycare no disponible</p>
+      <h2>La sesión no tiene unidades de guardería para consultar.</h2>
+      <p>Verifica que el usuario tenga alcance interno daycare o que existan unidades en la tabla de salas.</p>
+    </section>
+
     <section class="summary-strip" aria-label="Resumen de unidad">
       <article>
         <span>Unidad</span>
@@ -44,7 +50,7 @@
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
     <div v-if="pending" class="card loading-card" data-product-loading> Cargando salas…</div>
 
-    <section v-else class="command-layout">
+    <section v-else-if="!noUnidadAvailable" class="command-layout">
       <aside class="card sala-picker-card" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
         <div class="list-head">
           <div>
@@ -143,9 +149,10 @@ import type { SalaSummary } from '~/types/daycare'
 
 const route = useRoute()
 const router = useRouter()
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-salas-command-session' })
+const { data: session, pending: sessionPending } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-salas-command-session' })
 
 const unidades = computed(() => session.value?.user?.unidades || [])
+const noUnidadAvailable = computed(() => !sessionPending.value && unidades.value.length === 0)
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const selectedSalaId = ref<number | null>(normalizeSalaQuery(route.query.sala))

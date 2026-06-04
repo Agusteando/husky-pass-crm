@@ -23,7 +23,9 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout
 
 const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
 const topbarItems = computed(() => {
-  const items = [{ label: 'Daycare', to: '/admin/daycare/salas' }]
+  const firstUnidad = session.value?.user?.unidades?.[0] || ''
+  const daycareTo = firstUnidad ? `/admin/daycare/salas?unidad=${encodeURIComponent(firstUnidad)}` : '/admin/daycare/salas'
+  const items = [{ label: 'Daycare', to: daycareTo }]
   if (session.value?.user?.isSuperAdmin) items.unshift({ label: 'Superadmin', to: '/admin/superadmin' })
   return items
 })

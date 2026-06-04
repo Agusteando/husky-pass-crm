@@ -121,11 +121,20 @@ export default defineEventHandler(async (event) => {
 
   checks.push(await probe('api:superadmin-directory', 'Superadmin protegido y descubrible', async () => {
     if (!isSuperAdmin(user)) return warn('La sesión no es superadmin; el directorio debe permanecer oculto y protegido.', `email=${user.email}`)
-    const directory = await listSuperAdminDirectory({ scope: 'all', limit: 50 })
+    const [directory, daycareDirectory] = await Promise.all([
+      listSuperAdminDirectory({ scope: 'all', limit: 50 }),
+      listSuperAdminDirectory({ scope: 'daycare', limit: 50 })
+    ])
     if (!Array.isArray(directory.users) || !directory.metrics || !Array.isArray(directory.planteles)) {
       return fail('El directorio superadmin no trae users[], metrics y planteles[].')
     }
-    return pass('Directorio superadmin protegido devuelve usuarios, planteles, métricas y scopes.', `usuarios=${directory.users.length}; planteles=${directory.planteles.length}; impersonables=${directory.metrics.impersonable}`)
+    if (!Array.isArray(daycareDirectory.users) || daycareDirectory.filters.scope !== 'daycare') {
+      return fail('El filtro daycare del directorio no devuelve la forma esperada.', `scope=${daycareDirectory.filters.scope}`)
+    }
+    return pass(
+      'Directorio superadmin protegido devuelve usuarios, planteles, métricas y el filtro daycare resuelve una consulta propia.',
+      `usuarios=${directory.users.length}; daycare=${daycareDirectory.users.length}; planteles=${directory.planteles.length}; impersonables=${directory.metrics.impersonable}`
+    )
   }))
 
   return {

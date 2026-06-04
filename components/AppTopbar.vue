@@ -81,9 +81,10 @@ const impersonationLabel = computed(() => {
 })
 
 function isActive(to: string) {
-  if (to === '/admin/superadmin') return route.path.startsWith('/admin/superadmin')
-  if (to === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
-  return route.path === to || route.path.startsWith(`${to}/`)
+  const targetPath = to.split('?')[0] || to
+  if (targetPath === '/admin/superadmin') return route.path.startsWith('/admin/superadmin')
+  if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
+  return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
 }
 
 function navKey(label: string) {

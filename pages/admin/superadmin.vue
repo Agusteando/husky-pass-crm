@@ -333,8 +333,11 @@ async function refreshDirectory() {
 
 function selectScope(scope: SuperAdminDirectoryScope) {
   selectedScope.value = scope
+  selectedUser.value = null
+  confirmingImpersonationId.value = null
   actionError.value = ''
   actionNotice.value = ''
+  syncQuery(undefined)
 }
 
 function selectUser(user: SuperAdminUserSummary) {
@@ -344,7 +347,7 @@ function selectUser(user: SuperAdminUserSummary) {
   syncQuery(user.id)
 }
 
-function syncQuery(selectedId = selectedUser.value?.id) {
+function syncQuery(selectedId: number | null = selectedUser.value?.id || null) {
   const nextQuery: Record<string, string> = {}
   if (selectedPlantel.value) nextQuery.plantel = selectedPlantel.value
   if (selectedScope.value !== 'all') nextQuery.scope = selectedScope.value
