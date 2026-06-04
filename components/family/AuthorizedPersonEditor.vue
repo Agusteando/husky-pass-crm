@@ -29,6 +29,7 @@
       eyebrow="Foto de identificación"
       title="Foto"
       description="Foto frontal, clara."
+      confirm-label="Confirmar foto"
       @processed="setProcessedPhoto"
       @processing="photoBusy = $event"
       @error="visionError = $event"

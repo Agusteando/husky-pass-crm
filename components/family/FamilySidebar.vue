@@ -11,7 +11,7 @@
     </section>
 
     <nav class="family-nav" aria-label="Navegación familiar">
-      <NuxtLink v-for="item in items" :key="item.to" :to="item.to">{{ item.label }}</NuxtLink>
+      <NuxtLink v-for="item in items" :key="item.to" :to="item.to"><FamilyPersonasIcon :name="item.icon" /><span>{{ item.label }}</span></NuxtLink>
     </nav>
 
     <button v-if="session.user.impersonation" class="btn btn-primary exit-preview" type="button" @click="exitPreview">Volver a admin</button>
@@ -107,11 +107,19 @@ async function exitPreview() {
 }
 
 .family-nav a {
+  align-items: center;
   border: 1px solid transparent;
   border-radius: 14px;
   color: var(--color-muted);
+  display: flex;
+  gap: 8px;
   font-weight: 850;
   padding: 9px 11px;
+}
+
+.family-nav a :deep(.pa-icon) {
+  height: 1rem;
+  width: 1rem;
 }
 
 .family-nav a:hover,

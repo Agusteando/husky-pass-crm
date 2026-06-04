@@ -1,13 +1,13 @@
 <template>
-  <FamilyPersonasAutorizadasShell title="Convenios IECS-IEDIS">
+  <FamilyPersonasAutorizadasShell title="Convenios">
     <section class="card convenios-card" :class="{ unavailable: !config?.conveniosUrl }" data-product-panel="convenios" :data-state="config?.conveniosUrl ? 'content' : 'unavailable'">
       <div>
-        <p class="eyebrow">Convenios IECS-IEDIS</p>
-        <h1>Beneficios institucionales</h1>
-        <p>{{ config?.conveniosUrl ? 'Consulta los convenios disponibles para familias.' : 'El colegio aún no ha publicado el archivo de convenios en Husky Pass.' }}</p>
+        <p class="eyebrow">Convenios</p>
+        <h1>Beneficios</h1>
+        <p>{{ config?.conveniosUrl ? 'Disponibles.' : 'No disponibles.' }}</p>
       </div>
-      <a v-if="config?.conveniosUrl" class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
-      <button v-else class="btn btn-secondary" type="button" disabled data-unavailable-reason="Sin archivo configurado">Pendiente</button>
+      <a v-if="config?.conveniosUrl" class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir</a>
+      <button v-else class="btn btn-secondary" type="button" disabled>No disponible</button>
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>

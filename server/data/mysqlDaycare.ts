@@ -83,7 +83,8 @@ const STUDENT_READONLY_FIELDS = [
   'servicio',
   'baja',
   'status',
-  'foto'
+  'foto',
+  'updated_at'
 ] as const
 
 type ParentEditableStudentField = typeof PARENT_EDITABLE_STUDENT_FIELDS[number]
@@ -168,7 +169,8 @@ function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | n
   return {
     readonly: readonly as PersonasStudentProfile['readonly'],
     editable: editable as PersonasStudentEditable,
-    allowedFields: [...allowedFields]
+    allowedFields: [...allowedFields],
+    meta: { updatedAt: row?.updated_at ? String(row.updated_at) : null }
   }
 }
 
@@ -183,6 +185,8 @@ function isHiddenValue(value: unknown) {
 
 let matriculaColumnCache: Set<string> | null = null
 const loggedMissingMatriculaColumns = new Set<string>()
+let usersColumnCache: Set<string> | null = null
+const loggedMissingUserColumns = new Set<string>()
 
 function quoteIdentifier(identifier: string) {
   return `\`${identifier.replace(/`/g, '``')}\``
@@ -202,6 +206,35 @@ async function getMatriculaColumnSet() {
     logPersonasDiagnostic('matricula-schema-inspection-failed', error, { table: 'matricula', action: 'SHOW COLUMNS' })
     throw createError({ statusCode: 500, statusMessage: 'No fue posible validar la estructura de matrícula.' })
   }
+}
+
+
+async function getUsersColumnSet() {
+  if (usersColumnCache) return usersColumnCache
+  try {
+    const rows = await legacyQuery<RowDataPacket[]>('SHOW COLUMNS FROM users')
+    usersColumnCache = new Set(rows.map((row) => String(row.Field || '').trim()).filter(Boolean))
+    if (!usersColumnCache.has('id') || !usersColumnCache.has('username')) {
+      logPersonasWarning('users-schema-missing-primary-columns', { table: 'users', requiredColumns: ['id', 'username'] })
+      throw createError({ statusCode: 500, statusMessage: 'La tabla de usuarios no tiene columnas requeridas.' })
+    }
+    return usersColumnCache
+  } catch (error) {
+    logPersonasDiagnostic('users-schema-inspection-failed', error, { table: 'users', action: 'SHOW COLUMNS' })
+    throw createError({ statusCode: 500, statusMessage: 'No fue posible validar la estructura de usuarios.' })
+  }
+}
+
+function usersSelect(columns: Set<string>, field: string, alias = 'u') {
+  if (!columns.has(field)) {
+    const key = `users:${field}`
+    if (!loggedMissingUserColumns.has(key)) {
+      loggedMissingUserColumns.add(key)
+      logPersonasWarning('users-schema-missing-column', { table: 'users', missingColumn: field })
+    }
+    return 'NULL'
+  }
+  return `${alias}.${quoteIdentifier(field)}`
 }
 
 function existingColumns(columns: Set<string>, fields: readonly string[], scope: string) {
@@ -392,6 +425,7 @@ export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'new
 export async function getFamilyChildren(user: AppSessionUser): Promise<AuthorizedChild[]> {
   const currentMatricula = assertFamilyMatricula(user)
   const columnSet = await getMatriculaColumnSet()
+  const userColumnSet = await getUsersColumnSet()
   const currentSelect = [
     `${matriculaSelect(columnSet, 'matricula')} AS matricula`,
     `${matriculaSelect(columnSet, 'apellido_paterno')} AS apellido_paterno`,
@@ -402,8 +436,8 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
     `${matriculaSelect(columnSet, 'foto')} AS foto`,
     ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
-    'u.id AS user_id',
-    'u.campus'
+    `${usersSelect(userColumnSet, 'id')} AS user_id`,
+    `${usersSelect(userColumnSet, 'campus')} AS campus`
   ].join(',\n       ')
 
   try {
@@ -447,8 +481,8 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
       `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
       `${matriculaSelect(columnSet, 'foto')} AS foto`,
       ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
-      'u.id AS user_id',
-      'u.campus'
+      `${usersSelect(userColumnSet, 'id')} AS user_id`,
+      `${usersSelect(userColumnSet, 'campus')} AS campus`
     ].join(',\n       ')
     const parentWhere = REQUIRED_PARENT_NAME_FIELDS
       .map((field) => `m.${quoteIdentifier(field)} IS NOT NULL AND TRIM(m.${quoteIdentifier(field)}) <> ''`)
@@ -484,6 +518,11 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
 
     if (children.length <= 1) {
       logPersonasWarning('siblings-no-additional-matches', { userId: user.id, matricula: currentMatricula, searchedCandidates: candidates.length })
+    }
+
+    if (children.length > 6) {
+      logPersonasWarning('siblings-parent-signature-review-required', { userId: user.id, matricula: currentMatricula, matchedChildren: children.length })
+      return children.map((child) => child.isCurrent ? child : { ...child, canSwitch: false, siblingMatch: 'review' as const })
     }
 
     return children
@@ -703,7 +742,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
          WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
          WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
          WHEN LEFT(u.username, 2) = 'DM' THEN 'CM'
-         ELSE COALESCE(NULLIF(u.campus, ''), LEFT(u.username, 2))
+         ELSE LEFT(u.username, 2)
        END) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
        MAX(IFNULL(c.foto, IFNULL(m.foto, B.foto))) AS fotoA,

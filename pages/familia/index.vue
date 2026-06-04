@@ -18,7 +18,7 @@
       <NuxtLink v-if="canPa" class="choice-card blue" to="/familia/personas-autorizadas">
         <span><FamilyPersonasIcon name="people" /></span>
         <h2>Personas Autorizadas</h2>
-        <p>Gestiona personas autorizadas, QR y credenciales.</p>
+        <p>Personas, fotos y marbetes.</p>
         <strong>Entrar</strong>
       </NuxtLink>
     </section>

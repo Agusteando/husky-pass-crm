@@ -47,7 +47,7 @@ export interface AuthorizedChild {
   user_id?: number | null
   isCurrent?: boolean
   canSwitch?: boolean
-  siblingMatch?: 'parents' | 'current' | 'unavailable'
+  siblingMatch?: 'parents' | 'current' | 'unavailable' | 'review'
 }
 
 export interface AuthorizedPerson {
@@ -166,6 +166,7 @@ export interface PersonasStudentReadonly {
   baja?: string | number | null
   status?: string | null
   foto?: string | null
+  updated_at?: string | null
 }
 
 export interface PersonasStudentEditable {
@@ -213,6 +214,9 @@ export interface PersonasStudentProfile {
   readonly: PersonasStudentReadonly
   editable: PersonasStudentEditable
   allowedFields: string[]
+  meta?: {
+    updatedAt?: string | null
+  }
 }
 
 export interface PersonasSurveyConfig {

@@ -182,7 +182,7 @@ export function personasMascot(theme: PersonasTheme, variant: PersonasMascotVari
 }
 
 export function personasLevelName(theme: PersonasTheme) {
-  if (theme.key === 'daycare') return { spanish: 'Guarderia', english: 'Daycare' }
+  if (theme.key === 'daycare') return { spanish: 'Guardería', english: 'Daycare' }
   return { spanish: theme.shortLabel || theme.label, english: theme.englishLabel || theme.label }
 }
 

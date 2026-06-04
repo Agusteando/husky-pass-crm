@@ -6,11 +6,17 @@
     </div>
 
     <div class="image-controls">
-      <div>
+      <div class="image-head">
         <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
         <h3>{{ title || 'Foto' }}</h3>
         <p v-if="helperText">{{ helperText }}</p>
       </div>
+
+      <ol class="upload-steps" aria-label="Estado de foto">
+        <li :class="{ done: hasSelection, active: !hasSelection && !processing }">Seleccionar</li>
+        <li :class="{ done: processedUrl, active: processing }">Preparar</li>
+        <li :class="{ done: confirmed, active: processedUrl && !confirmed }">Confirmar</li>
+      </ol>
 
       <label class="upload-drop" :class="{ busy: processing }">
         <input ref="inputRef" type="file" accept="image/png,image/jpeg,image/webp" :disabled="processing" data-diagnostic-action="subir-imagen-personas" @change="onFileChange" />
@@ -19,7 +25,7 @@
       </label>
 
       <div class="upload-actions">
-        <button v-if="processedUrl" class="btn btn-primary pa-primary" type="button" :disabled="processing" data-diagnostic-action="confirmar-foto-procesada" @click="confirmProcessed">Usar esta foto</button>
+        <button v-if="processedUrl && !confirmed" class="btn btn-primary pa-primary" type="button" :disabled="processing" data-diagnostic-action="confirmar-foto-preparada" @click="confirmProcessed">{{ confirmLabel }}</button>
         <button v-if="displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="clearSelection">Cambiar</button>
         <button v-if="allowRemove && displayPreview" class="btn btn-secondary" type="button" :disabled="processing" @click="removePhoto">Quitar</button>
       </div>
@@ -42,13 +48,15 @@ const props = withDefaults(defineProps<{
   eyebrow?: string
   description?: string
   allowRemove?: boolean
+  confirmLabel?: string
 }>(), {
   initialSrc: '',
   personaId: null,
   title: 'Foto',
   eyebrow: 'Fotografía',
   description: '',
-  allowRemove: false
+  allowRemove: false,
+  confirmLabel: 'Usar esta foto'
 })
 
 const emit = defineEmits<{
@@ -63,14 +71,17 @@ const selectedName = ref('')
 const localPreview = ref('')
 const processedUrl = ref('')
 const processing = ref(false)
+const confirmed = ref(false)
 const error = ref('')
 const notice = ref('')
 
 const displayPreview = computed(() => localPreview.value || normalizeVirtualAssetUrl(processedUrl.value || props.initialSrc || ''))
 const helperText = computed(() => props.description || '')
+const hasSelection = computed(() => Boolean(selectedName.value || displayPreview.value))
 const uploadState = computed(() => {
   if (error.value) return 'error'
   if (processing.value) return 'loading'
+  if (confirmed.value) return 'confirmed'
   if (processedUrl.value) return 'ready-to-confirm'
   if (displayPreview.value) return 'ready'
   return 'empty'
@@ -85,6 +96,13 @@ function setProcessing(value: boolean) {
   emit('processing', value)
 }
 
+function resetPreparedState() {
+  processedUrl.value = ''
+  confirmed.value = false
+  error.value = ''
+  notice.value = ''
+}
+
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -97,11 +115,9 @@ function readFileAsDataUrl(file: File) {
 async function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  error.value = ''
-  notice.value = ''
   selectedName.value = ''
   localPreview.value = ''
-  processedUrl.value = ''
+  resetPreparedState()
 
   if (!file) return
   selectedName.value = file.name
@@ -133,10 +149,10 @@ async function onFileChange(event: Event) {
     })
     processedUrl.value = stored.url
     localPreview.value = normalizeVirtualAssetUrl(stored.url)
-    notice.value = 'Lista para usar.'
+    notice.value = 'Lista para confirmar.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cargar la foto.')
+    fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar la foto.')
   } finally {
     setProcessing(false)
     input.value = ''
@@ -145,7 +161,8 @@ async function onFileChange(event: Event) {
 
 function confirmProcessed() {
   if (!processedUrl.value || processing.value) return
-  notice.value = 'Foto seleccionada.'
+  confirmed.value = true
+  notice.value = 'Foto confirmada.'
   emit('processed', { url: processedUrl.value, preview: normalizeVirtualAssetUrl(processedUrl.value) })
 }
 
@@ -157,133 +174,37 @@ function fail(message: string) {
 function clearSelection() {
   selectedName.value = ''
   localPreview.value = ''
-  processedUrl.value = ''
-  error.value = ''
-  notice.value = ''
+  resetPreparedState()
   inputRef.value?.click()
 }
 
 function removePhoto() {
   selectedName.value = ''
   localPreview.value = ''
-  processedUrl.value = ''
-  error.value = ''
-  notice.value = ''
+  resetPreparedState()
   emit('clear')
 }
 </script>
 
 <style scoped>
-.pa-image-upload {
-  align-items: stretch;
-  background: rgba(var(--pa-primary-rgb, 97, 139, 47), 0.07);
-  border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 20px;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 150px minmax(0, 1fr);
-  padding: 14px;
-}
-
-.image-frame {
-  aspect-ratio: 1;
-  background: #fff;
-  border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 20px;
-  color: var(--pa-primary, #618b2f);
-  display: grid;
-  overflow: hidden;
-  place-items: center;
-}
-
-.image-frame img {
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-
-.image-frame :deep(.pa-icon) {
-  height: 42px;
-  width: 42px;
-}
-
-.image-controls {
-  display: grid;
-  gap: 10px;
-}
-
-.image-controls h3,
-.image-controls p {
-  margin-bottom: 0;
-}
-
-.image-controls p:not(.eyebrow) {
-  color: var(--pa-muted, #86888c);
-  font-weight: 760;
-}
-
-.upload-drop {
-  background: #fff;
-  border: 1px dashed var(--pa-border, #dce7d0);
-  border-radius: 16px;
-  cursor: pointer;
-  display: grid;
-  gap: 2px;
-  padding: 14px;
-}
-
-.upload-drop.busy {
-  cursor: progress;
-  opacity: 0.82;
-}
-
-.upload-drop input {
-  height: 1px;
-  opacity: 0;
-  overflow: hidden;
-  position: absolute;
-  width: 1px;
-}
-
-.upload-drop span {
-  color: var(--pa-primary, #618b2f);
-  font-weight: 950;
-}
-
-.upload-drop small {
-  color: var(--pa-muted, #86888c);
-  font-weight: 760;
-}
-
-.upload-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
+.pa-image-upload { align-items: stretch; background: rgba(var(--pa-primary-rgb, 97, 139, 47), .07); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; display: grid; gap: 16px; grid-template-columns: 160px minmax(0, 1fr); padding: 14px; }
+.image-frame { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; }
+.image-frame img { height: 100%; object-fit: cover; width: 100%; }
+.image-frame :deep(.pa-icon) { height: 42px; width: 42px; }
+.image-controls { display: grid; gap: 10px; }
+.image-head h3, .image-head p { margin-bottom: 0; }
+.image-head p:not(.eyebrow) { color: var(--pa-muted, #86888c); font-weight: 760; }
+.upload-steps { display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.upload-steps li { background: #fff; border: 1px solid #ecece7; border-radius: 999px; color: var(--pa-muted, #86888c); font-size: .76rem; font-weight: 900; padding: 7px 9px; text-align: center; }
+.upload-steps li.active, .upload-steps li.done { background: var(--pa-soft, #f3f5f0); border-color: var(--pa-border, #dce7d0); color: var(--pa-primary, #618b2f); }
+.upload-drop { background: #fff; border: 1px dashed var(--pa-border, #dce7d0); border-radius: 16px; cursor: pointer; display: grid; gap: 2px; padding: 14px; }
+.upload-drop.busy { cursor: progress; opacity: .82; }
+.upload-drop input { height: 1px; opacity: 0; overflow: hidden; position: absolute; width: 1px; }
+.upload-drop span { color: var(--pa-primary, #618b2f); font-weight: 950; }
+.upload-drop small { color: var(--pa-muted, #86888c); font-weight: 760; }
+.upload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
-
-.compact-alert,
-.compact-notice {
-  margin: 0;
-}
-
-.compact-notice {
-  background: #fff;
-  border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 14px;
-  color: var(--pa-gray, #50535a);
-  font-weight: 850;
-  padding: 10px 12px;
-}
-
-@media (max-width: 680px) {
-  .pa-image-upload {
-    grid-template-columns: 1fr;
-  }
-
-  .image-frame {
-    max-width: 180px;
-  }
-}
+.compact-alert, .compact-notice { margin: 0; }
+.compact-notice { background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; color: var(--pa-gray, #50535a); font-weight: 850; padding: 10px 12px; }
+@media (max-width: 680px) { .pa-image-upload { grid-template-columns: 1fr; } .image-frame { max-width: 180px; } }
 </style>

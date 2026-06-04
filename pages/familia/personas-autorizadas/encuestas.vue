@@ -4,13 +4,13 @@
       <header class="section-head">
         <div>
           <p class="eyebrow">Encuestas</p>
-          <h1>{{ config?.survey.title || 'Encuesta Personas Autorizadas' }}</h1>
-          <p>{{ surveyAvailable ? 'Formulario institucional disponible.' : 'No hay encuesta activa en este momento.' }}</p>
+          <h1>{{ config?.survey.title || 'Encuesta' }}</h1>
+          <p>{{ surveyAvailable ? 'Disponible.' : 'No disponible.' }}</p>
         </div>
         <span class="status-pill">{{ surveyAvailable ? 'Disponible' : 'No disponible' }}</span>
       </header>
       <iframe v-if="surveyAvailable" :src="config?.survey.embedUrl" title="Encuesta Personas Autorizadas" loading="lazy"></iframe>
-      <button v-else class="btn btn-secondary" type="button" disabled data-unavailable-reason="Sin formulario publicado">Pendiente de publicación</button>
+      <button v-else class="btn btn-secondary" type="button" disabled>No disponible</button>
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>

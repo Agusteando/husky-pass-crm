@@ -1,1 +1,1 @@
-Corrige Personas Autorizadas con marbetes integrados, UX minimalista y diagnósticos backend de matrícula
+Corrige flujo minimalista de Personas Autorizadas, datos familiares, fotos, hermanos, marbetes y diagnósticos
