@@ -1,1 +1,1 @@
-Corrige procesamiento Vision API y renderizado de fotos externas en Personas Autorizadas
+Ajusta procesamiento progresivo de fotos con Vision en Personas Autorizadas

@@ -35,8 +35,11 @@
             <small>Marbetes</small>
           </span>
         </article>
-        <NuxtLink class="card status-card actionable" to="/familia/personas-autorizadas/credencializacion">
-          <FamilyPersonasIcon name="camera" />
+        <NuxtLink class="card status-card actionable student-photo-status" to="/familia/personas-autorizadas/credencializacion">
+          <span class="student-photo-mini">
+            <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" alt="Foto del alumno" namespace="pa-home-student-photo" />
+            <FamilyPersonasIcon v-else name="camera" />
+          </span>
           <span>
             <b>{{ studentPhoto ? 'Lista' : 'Pendiente' }}</b>
             <small>Foto alumno</small>
@@ -331,6 +334,9 @@ function normalizeIndice(value: unknown) {
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
 .status-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .status-card { box-shadow: none; grid-template-columns: 34px minmax(0, 1fr); min-height: 82px; }
+.student-photo-status { grid-template-columns: 48px minmax(0, 1fr); }
+.student-photo-mini { aspect-ratio: 1; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 999px; display: grid; overflow: hidden; place-items: center; }
+.student-photo-mini :deep(.pa-icon) { color: var(--pa-primary); height: 22px; width: 22px; }
 .status-card svg { color: var(--pa-primary); }
 .status-card b, .status-card small { display: block; }
 .status-card b { color: var(--pa-gray); }

@@ -1,6 +1,6 @@
 <template>
   <section class="pa-image-upload" :data-state="uploadState">
-    <div class="image-frame">
+    <div class="image-frame" :data-state="processing ? 'processing' : displayPreview ? 'ready' : 'empty'">
       <img v-if="displayPreview" :src="displayPreview" alt="Vista previa" />
       <FamilyPersonasIcon v-else name="camera" />
     </div>
@@ -188,8 +188,12 @@ function removePhoto() {
 
 <style scoped>
 .pa-image-upload { align-items: stretch; background: rgba(var(--pa-primary-rgb, 97, 139, 47), .07); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; display: grid; gap: 16px; grid-template-columns: 160px minmax(0, 1fr); padding: 14px; }
-.image-frame { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; }
-.image-frame img { height: 100%; object-fit: cover; width: 100%; }
+.image-frame { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; position: relative; }
+.image-frame img { height: 100%; object-fit: cover; transition: filter .24s ease, transform .24s ease; width: 100%; }
+.image-frame[data-state='processing'] img { filter: saturate(.94) brightness(.98); transform: scale(1.01); }
+.image-frame[data-state='processing']::after { animation: pa-upload-scan 1.45s ease-in-out infinite; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.18) 42%, rgba(255,255,255,.48) 50%, rgba(255,255,255,.18) 58%, transparent 100%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-100%); }
+@keyframes pa-upload-scan { 0% { transform: translateX(-100%); } 55%, 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .image-frame[data-state='processing']::after { animation: none; background: rgba(255,255,255,.18); } .image-frame img { transition: none; } }
 .image-frame :deep(.pa-icon) { height: 42px; width: 42px; }
 .image-controls { display: grid; gap: 10px; }
 .image-head h3, .image-head p { margin-bottom: 0; }

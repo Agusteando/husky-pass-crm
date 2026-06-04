@@ -6,9 +6,11 @@ export interface VisionFaceResult {
 
 const VISION_BASE = 'https://vision.casitaapps.com'
 const CACHE_PREFIX = 'pa:vision-face:'
-const CACHE_VERSION = 'v2'
+const CACHE_VERSION = 'v3'
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
 const CACHE_MAX_ITEMS = 36
+
+const inFlight = new Map<string, Promise<VisionFaceResult>>()
 
 interface CachedVisionFace {
   src: string
@@ -36,12 +38,23 @@ function stableHash(value: string) {
   return (hash >>> 0).toString(36)
 }
 
+function normalizeVisionAssetUrl(value?: string | null) {
+  const url = String(value || '').trim()
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url
+  return `${VISION_BASE}${url.startsWith('/') ? '' : '/'}${url}`
+}
+
 export function toVisionImageUrl(imageUrl?: string | null) {
   const value = String(imageUrl || '').trim()
   if (!value) return ''
   if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value
   if (typeof window !== 'undefined' && value.startsWith('/')) return `${window.location.origin}${value}`
   return value
+}
+
+export function canProcessWithVision(imageUrl?: string | null) {
+  return /^https?:\/\//i.test(toVisionImageUrl(imageUrl))
 }
 
 function cacheKeyFor(imageUrl: string, namespace = 'default') {
@@ -113,23 +126,39 @@ function writeCachedFace(imageUrl: string, result: VisionFaceResult, namespace?:
   }
 }
 
+async function readVisionAnalyzeResponse(response: Response) {
+  let data: Record<string, unknown> | null
+  try {
+    data = await response.json()
+  } catch {
+    data = null
+  }
+
+  if (!response.ok || !data || data.ok !== true) {
+    throw new Error('No fue posible preparar la fotografía.')
+  }
+
+  return data
+}
+
 export async function processFaceImage(imageUrl: string): Promise<VisionFaceResult> {
   const visionImageUrl = toVisionImageUrl(imageUrl)
   if (!visionImageUrl) throw new Error('Selecciona una imagen para continuar.')
+  if (!canProcessWithVision(visionImageUrl)) throw new Error('La imagen debe estar disponible por URL pública.')
   if (typeof document === 'undefined') throw new Error('El procesamiento de imagen requiere navegador.')
 
   const formData = new FormData()
   formData.append('imageUrl', visionImageUrl)
 
-  const analyzeRes = await fetch(`${VISION_BASE}/analyze`, {
+  const data = await readVisionAnalyzeResponse(await fetch(`${VISION_BASE}/analyze`, {
     method: 'POST',
     body: formData
-  })
+  }))
 
-  const data = await analyzeRes.json()
-  if (!data || data.ok !== true) throw new Error('No fue posible preparar la fotografía.')
+  const imageKey = String(data.imageKey || '')
+  if (!imageKey) throw new Error('No fue posible preparar la fotografía.')
 
-  const img = await loadVisionImage(`${VISION_BASE}/image/${data.imageKey}`)
+  const img = await loadVisionImage(normalizeVisionAssetUrl(`/image/${imageKey}`))
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) throw new Error('No fue posible preparar la imagen.')
@@ -138,11 +167,18 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
   let sy = 0
   let sWidth = img.width
   let sHeight = img.height
-  if (data.cropBox) {
-    sx = data.cropBox.xMin * img.width
-    sy = data.cropBox.yMin * img.height
-    sWidth = (data.cropBox.xMax - data.cropBox.xMin) * img.width
-    sHeight = (data.cropBox.yMax - data.cropBox.yMin) * img.height
+  const cropBox = data.cropBox as { xMin?: number; yMin?: number; xMax?: number; yMax?: number } | null | undefined
+  if (cropBox) {
+    const xMin = Number(cropBox.xMin)
+    const yMin = Number(cropBox.yMin)
+    const xMax = Number(cropBox.xMax)
+    const yMax = Number(cropBox.yMax)
+    if ([xMin, yMin, xMax, yMax].every(Number.isFinite) && xMax > xMin && yMax > yMin) {
+      sx = Math.max(0, xMin * img.width)
+      sy = Math.max(0, yMin * img.height)
+      sWidth = Math.min(img.width - sx, (xMax - xMin) * img.width)
+      sHeight = Math.min(img.height - sy, (yMax - yMin) * img.height)
+    }
   }
 
   const maxRes = 256
@@ -155,7 +191,7 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
   ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, cW, cH)
 
   if (data.maskAvailable && data.maskUrl) {
-    const maskImg = await loadVisionImage(data.maskUrl)
+    const maskImg = await loadVisionImage(normalizeVisionAssetUrl(String(data.maskUrl)))
     const maskCanvas = document.createElement('canvas')
     maskCanvas.width = cW
     maskCanvas.height = cH
@@ -197,7 +233,20 @@ export async function processFaceImageCached(imageUrl: string, options: { namesp
     const cached = readCachedFace(visionImageUrl, options.namespace)
     if (cached) return cached
   }
-  const result = await processFaceImage(visionImageUrl)
-  writeCachedFace(visionImageUrl, result, options.namespace)
-  return result
+
+  const key = cacheKeyFor(visionImageUrl, options.namespace)
+  const active = inFlight.get(key)
+  if (active && !options.force) return active
+
+  const promise = processFaceImage(visionImageUrl)
+    .then((result) => {
+      writeCachedFace(visionImageUrl, result, options.namespace)
+      return result
+    })
+    .finally(() => {
+      if (inFlight.get(key) === promise) inFlight.delete(key)
+    })
+
+  inFlight.set(key, promise)
+  return promise
 }
