@@ -25,7 +25,7 @@
           <span>Recurso</span>
           <select v-model="resourceFilter" class="select" data-diagnostic-filter="archivo-recurso">
             <option value="all">Todos</option>
-            <option value="with">Con archivo o liga</option>
+            <option value="with">Con archivo</option>
             <option value="without">Sin recurso</option>
           </select>
         </label>
@@ -100,7 +100,7 @@
             <div><dt>Fecha</dt><dd>{{ formatDate(selected.date || selected.timestamp, '—') }}</dd></div>
             <div><dt>Autor</dt><dd>{{ selected.autor || '—' }}</dd></div>
             <div><dt>Estado familiar</dt><dd>{{ isHiddenResource(selected.hidden) ? 'No visible para familias' : 'Visible para familias' }}</dd></div>
-            <div><dt>Recurso</dt><dd>{{ selected.resource || 'Sin archivo o liga' }}</dd></div>
+            <div><dt>Recurso</dt><dd>{{ selected.resource || 'Sin archivo' }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">

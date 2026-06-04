@@ -8,13 +8,13 @@ function loadVisionImage(url: string) {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error(`No fue posible cargar la imagen: ${url}`))
+    img.onerror = () => reject(new Error('No fue posible cargar la imagen seleccionada.'))
     img.src = url
   })
 }
 
 export async function processFaceImage(imageUrl: string): Promise<VisionFaceResult> {
-  if (!imageUrl) throw new Error('Agrega una URL publica de imagen para procesar la foto.')
+  if (!imageUrl) throw new Error('Selecciona una imagen para continuar.')
   if (typeof document === 'undefined') throw new Error('El procesamiento de imagen requiere navegador.')
 
   const visionBase = 'https://vision.casitaapps.com'
@@ -27,7 +27,7 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
   })
 
   const data = await analyzeRes.json()
-  if (!data || data.ok !== true) throw new Error('Vision API no pudo procesar la fotografia.')
+  if (!data || data.ok !== true) throw new Error('No fue posible preparar la fotografía.')
 
   const img = await loadVisionImage(`${visionBase}/image/${data.imageKey}`)
   const canvas = document.createElement('canvas')
@@ -60,7 +60,7 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
     maskCanvas.width = cW
     maskCanvas.height = cH
     const mCtx = maskCanvas.getContext('2d', { willReadFrequently: true })
-    if (!mCtx) throw new Error('No fue posible preparar la mascara.')
+    if (!mCtx) throw new Error('No fue posible preparar la imagen.')
 
     const mScaleX = maskImg.width / img.width
     const mScaleY = maskImg.height / img.height

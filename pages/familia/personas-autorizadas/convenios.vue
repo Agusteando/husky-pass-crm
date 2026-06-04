@@ -4,10 +4,10 @@
       <div>
         <p class="eyebrow">Convenios IECS-IEDIS</p>
         <h1>Beneficios institucionales</h1>
-        <p>{{ config?.conveniosUrl ? 'Consulta los convenios disponibles para familias.' : 'El colegio aún no ha publicado una liga de convenios en Husky Pass.' }}</p>
+        <p>{{ config?.conveniosUrl ? 'Consulta los convenios disponibles para familias.' : 'El colegio aún no ha publicado el archivo de convenios en Husky Pass.' }}</p>
       </div>
       <a v-if="config?.conveniosUrl" class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
-      <button v-else class="btn btn-secondary" type="button" disabled data-unavailable-reason="Sin liga configurada">Pendiente</button>
+      <button v-else class="btn btn-secondary" type="button" disabled data-unavailable-reason="Sin archivo configurado">Pendiente</button>
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>

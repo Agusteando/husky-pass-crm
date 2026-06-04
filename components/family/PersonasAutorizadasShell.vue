@@ -66,7 +66,7 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-she
 const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-shell-family-people', timeout: 15000 })
 
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value[0] || null)
+const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,
@@ -91,8 +91,6 @@ const navItems = [
   { key: 'credencializacion', label: 'Credencialización', shortLabel: 'Foto', icon: 'camera', to: '/familia/personas-autorizadas/credencializacion' },
   { key: 'hermanos', label: 'Hermanos / vinculación', shortLabel: 'Hermanos', icon: 'siblings', to: '/familia/personas-autorizadas/hermanos' },
   { key: 'encuestas', label: 'Encuestas', shortLabel: 'Encuestas', icon: 'survey', to: '/familia/personas-autorizadas/encuestas' },
-  { key: 'ayuda', label: 'FAQ / ayuda', shortLabel: 'Ayuda', icon: 'help', to: '/familia/personas-autorizadas/ayuda' },
-  { key: 'tutorial', label: 'Tutorial', shortLabel: 'Tutorial', icon: 'play', to: '/familia/personas-autorizadas/tutorial' },
   { key: 'convenios', label: 'Convenios IECS-IEDIS', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
   { key: 'marbetes', label: 'Marbetes / descarga', shortLabel: 'Marbetes', icon: 'download', to: '/familia/personas-autorizadas/marbetes' }
 ]

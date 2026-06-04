@@ -13,7 +13,7 @@ const schema = z.object({
 })
 
 function assertOptionalUrl(value: string, label: string) {
-  if (!value) return
+  if (!value || value.startsWith('/uploads/')) return
   try {
     const parsed = new URL(value)
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad-protocol')

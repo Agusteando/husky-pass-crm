@@ -19,7 +19,7 @@
             <p class="eyebrow">Personas autorizadas</p>
             <h2>{{ completedRegularCount }}/3 registros activos</h2>
           </div>
-          <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas/ayuda">Cómo funciona</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas#ayuda">Cómo funciona</NuxtLink>
         </header>
 
         <div class="person-grid">
@@ -36,7 +36,7 @@
             <span class="person-photo">
               <img v-if="photoUrl(person)" :src="photoUrl(person)" alt="" />
               <strong v-else-if="person.id">{{ initials(person) }}</strong>
-              <strong v-else>{{ person.indice === 4 ? '+' : '+' }}</strong>
+              <strong v-else>+</strong>
             </span>
             <span class="person-meta">
               <b>{{ authorizedPersonLabel(person.indice) }}</b>
@@ -63,14 +63,21 @@
         </div>
       </section>
 
-      <FamilyAuthorizedPersonEditor
+      <FamilyPersonasModal
         v-if="editing"
-        :person="editing"
-        :label="authorizedPersonLabel(Number(editing.indice || 1))"
-        :saving="saving"
-        @save="save"
-        @cancel="editing = null"
-      />
+        :title="authorizedPersonLabel(Number(editing.indice || 1))"
+        eyebrow="Personas Autorizadas"
+        description="Completa los datos visibles en credencial, QR y marbete."
+        @close="editing = null"
+      >
+        <FamilyAuthorizedPersonEditor
+          :person="editing"
+          :label="authorizedPersonLabel(Number(editing.indice || 1))"
+          :saving="saving"
+          @save="save"
+          @cancel="editing = null"
+        />
+      </FamilyPersonasModal>
 
       <section class="quick-links">
         <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/actualizar-datos">
@@ -81,13 +88,42 @@
         <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/credencializacion">
           <FamilyPersonasIcon name="camera" />
           <strong>Credencialización</strong>
-          <span>Actualizar foto del alumno con Vision API.</span>
+          <span>Actualiza la foto del alumno.</span>
         </NuxtLink>
         <NuxtLink class="card quick-card" to="/familia/personas-autorizadas/marbetes">
           <FamilyPersonasIcon name="download" />
           <strong>Marbetes</strong>
           <span>Previsualiza y descarga lo disponible.</span>
         </NuxtLink>
+      </section>
+
+      <section id="ayuda" class="help-grid" data-product-panel="personas-help-tutorial">
+        <article class="card tutorial-card">
+          <div class="section-head compact-head">
+            <div>
+              <p class="eyebrow">Tutorial</p>
+              <h2>Uso rápido</h2>
+            </div>
+            <img :src="helpMascot" alt="" />
+          </div>
+          <div class="video-frame">
+            <iframe src="https://www.youtube.com/embed/PMBQolTRysg" title="Tutorial Personas Autorizadas" allowfullscreen loading="lazy"></iframe>
+          </div>
+        </article>
+
+        <article class="card faq-card" data-product-panel="faq" data-state="content">
+          <header>
+            <p class="eyebrow">FAQ</p>
+            <h2>Preguntas frecuentes</h2>
+          </header>
+          <button v-for="(item, index) in faqItems" :key="item.question" class="faq-item" type="button" :aria-expanded="openFaq === index" @click="openFaq = openFaq === index ? null : index">
+            <span>
+              <strong>{{ item.question }}</strong>
+              <em v-if="openFaq === index">{{ item.answer }}</em>
+            </span>
+            <b>{{ openFaq === index ? '−' : '+' }}</b>
+          </button>
+        </article>
       </section>
     </template>
 
@@ -116,19 +152,30 @@ const saving = ref(false)
 const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
+const openFaq = ref<number | null>(0)
 
 const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value[0] || null)
+const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,
   campus: primaryChild.value?.campus || session.value?.user?.campus
 }))
 const mascot = computed(() => personasMascot(theme.value, 'hero'))
+const helpMascot = computed(() => personasMascot(theme.value, 'help'))
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
+
+const faqItems = [
+  { question: '¿Qué es Personas Autorizadas?', answer: 'Es el módulo para registrar quiénes pueden entregar o recoger al alumno con validación QR.' },
+  { question: '¿Cuántas personas puedo registrar?', answer: 'Puedes mantener tres personas autorizadas y un Pase Express para situaciones temporales.' },
+  { question: '¿Qué foto debo usar?', answer: 'Usa una fotografía clara de frente. El sistema prepara el recorte automáticamente.' },
+  { question: '¿Para qué sirve el Pase Express?', answer: 'Permite generar un registro temporal cuando las personas autorizadas habituales no están disponibles.' },
+  { question: '¿Cómo descargo el marbete?', answer: 'Abre Marbetes / descarga, elige una persona registrada y descarga el formato disponible.' },
+  { question: '¿Puedo cambiar grado, grupo o nivel?', answer: 'No. Esos campos son escolares y se mantienen como solo lectura para familias.' }
+]
 
 watch(() => route.query.persona, (value) => {
   const next = normalizeIndice(value)
@@ -258,6 +305,16 @@ function normalizeIndice(value: unknown) {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.compact-head {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 70px;
+}
+
+.compact-head img {
+  max-height: 70px;
+  object-fit: contain;
+}
+
 .section-head h2,
 .selected-row h3 {
   margin-bottom: 0;
@@ -360,11 +417,73 @@ function normalizeIndice(value: unknown) {
   grid-column: 2;
 }
 
+.help-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+}
+
+.tutorial-card,
+.faq-card {
+  display: grid;
+  gap: 14px;
+}
+
+.video-frame {
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.video-frame iframe {
+  border: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.faq-card header h2 {
+  margin-bottom: 0;
+}
+
+.faq-item {
+  align-items: start;
+  background: #f8f8f6;
+  border: 1px solid #ecece7;
+  border-radius: 16px;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.faq-item strong,
+.faq-item em {
+  display: block;
+}
+
+.faq-item em {
+  color: var(--pa-muted);
+  font-style: normal;
+  font-weight: 760;
+  margin-top: 8px;
+}
+
+.faq-item b {
+  color: var(--pa-primary);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
 @media (max-width: 900px) {
   .pa-hero,
   .selected-row,
   .section-head,
-  .quick-links {
+  .quick-links,
+  .help-grid {
     grid-template-columns: 1fr;
   }
 

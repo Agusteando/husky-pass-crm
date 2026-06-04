@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Datos editables por familia</p>
         <h1>Actualizar datos</h1>
-        <p>Solo se guardan campos personales y familiares de la matrícula. Grado, grupo, nivel, ciclo, plantel, matrícula, servicio, baja y estados internos son datos escolares de solo lectura.</p>
+        <p>Revisa los datos escolares y actualiza únicamente la información personal, familiar y de domicilio que corresponde a la familia.</p>
       </div>
       <img :src="mascot" alt="" />
     </section>
@@ -26,14 +26,27 @@
         </div>
       </section>
 
-      <form class="card student-form" data-product-panel="student-data" @submit.prevent="save">
-        <section v-for="group in groups" :key="group.title" class="field-group">
-          <header>
+      <section class="data-section-grid" data-product-panel="student-data-sections">
+        <article v-for="group in groups" :key="group.title" class="card data-section-card">
+          <div>
             <p class="eyebrow">{{ group.eyebrow }}</p>
             <h2>{{ group.title }}</h2>
-          </header>
+            <p>{{ completedFields(group) }}/{{ group.fields.length }} campos con información</p>
+          </div>
+          <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="editar-seccion-datos" @click="openGroup(group)">Editar sección</button>
+        </article>
+      </section>
+
+      <FamilyPersonasModal
+        v-if="activeGroup"
+        :title="activeGroup.title"
+        :eyebrow="activeGroup.eyebrow"
+        description="Edita solo los datos de esta sección. Los datos escolares permanecen protegidos."
+        @close="closeGroup"
+      >
+        <form class="student-form" data-product-panel="student-data-modal" @submit.prevent="saveActiveGroup">
           <div class="form-grid">
-            <label v-for="field in group.fields" :key="field.key" class="label">
+            <label v-for="field in activeGroup.fields" :key="field.key" class="label">
               {{ field.label }}
               <input
                 v-model="form[field.key]"
@@ -44,15 +57,15 @@
               />
             </label>
           </div>
-        </section>
 
-        <div class="save-row">
-          <button class="btn btn-primary pa-primary" type="submit" :disabled="saving || !hasChanges" data-diagnostic-action="guardar-datos-alumno">
-            {{ saving ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Sin cambios' }}
-          </button>
-          <span>El API rechaza campos académicos o no autorizados.</span>
-        </div>
-      </form>
+          <div class="save-row">
+            <button class="btn btn-primary pa-primary" type="submit" :disabled="saving || !hasActiveGroupChanges" data-diagnostic-action="guardar-seccion-datos">
+              {{ saving ? 'Guardando...' : hasActiveGroupChanges ? 'Guardar cambios' : 'Sin cambios' }}
+            </button>
+            <button class="btn btn-secondary" type="button" :disabled="saving" @click="closeGroup">Cancelar</button>
+          </div>
+        </form>
+      </FamilyPersonasModal>
     </template>
 
     <p v-if="error" class="alert">{{ error }}</p>
@@ -70,6 +83,8 @@ import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 type FieldKey = keyof PersonasStudentEditable
+type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' }
+type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
 
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-update-session' })
 const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-update-family-people', timeout: 15000 })
@@ -80,9 +95,10 @@ const original = ref<Record<string, string>>({})
 const saving = ref(false)
 const error = ref('')
 const notice = ref('')
+const activeGroup = ref<FieldGroup | null>(null)
 
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value[0] || null)
+const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0] || profile.value?.readonly.plantel,
   nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
@@ -90,7 +106,7 @@ const theme = computed(() => resolvePersonasTheme({
 }))
 const mascot = computed(() => personasMascot(theme.value, 'help'))
 
-const groups: { eyebrow: string; title: string; fields: { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' }[] }[] = [
+const groups: FieldGroup[] = [
   {
     eyebrow: 'Alumno',
     title: 'Identidad, contacto y salud',
@@ -165,7 +181,7 @@ const readonlyItems = computed(() => [
   { label: 'Servicio', value: profile.value?.readonly.servicio }
 ])
 
-const hasChanges = computed(() => Object.keys(form).some((key) => String(form[key] || '') !== String(original.value[key] || '')))
+const hasActiveGroupChanges = computed(() => Boolean(activeGroup.value?.fields.some((field) => String(form[field.key] || '') !== String(original.value[field.key] || ''))))
 
 watch(profile, (value) => {
   if (!value) return
@@ -181,18 +197,34 @@ function formatEditableValue(value: unknown) {
   return date?.[1] || source
 }
 
-async function save() {
-  if (!hasChanges.value) return
+function completedFields(group: FieldGroup) {
+  return group.fields.filter((field) => String(form[field.key] || '').trim()).length
+}
+
+function openGroup(group: FieldGroup) {
+  activeGroup.value = group
+  error.value = ''
+  notice.value = ''
+}
+
+function closeGroup() {
+  if (saving.value) return
+  activeGroup.value = null
+}
+
+async function saveActiveGroup() {
+  if (!activeGroup.value || !hasActiveGroupChanges.value) return
   saving.value = true
   error.value = ''
   notice.value = ''
-  const patch = Object.fromEntries(Object.keys(form)
-    .filter((key) => String(form[key] || '') !== String(original.value[key] || ''))
-    .map((key) => [key, form[key] || null]))
+  const patch = Object.fromEntries(activeGroup.value.fields
+    .filter((field) => String(form[field.key] || '') !== String(original.value[field.key] || ''))
+    .map((field) => [field.key, form[field.key] || null]))
   try {
     await $fetch('/api/personas-autorizadas/student', { method: 'POST', body: patch })
     await refresh()
-    notice.value = 'Datos familiares actualizados.'
+    activeGroup.value = null
+    notice.value = 'Datos actualizados.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar los datos.'
@@ -233,14 +265,12 @@ async function save() {
 }
 
 .readonly-card,
-.student-form,
-.field-group {
+.student-form {
   display: grid;
   gap: 16px;
 }
 
-.readonly-card header h2,
-.field-group header h2 {
+.readonly-card header h2 {
   margin-bottom: 0;
 }
 
@@ -271,20 +301,33 @@ async function save() {
   font-weight: 850;
 }
 
-.field-group {
-  border-top: 1px solid var(--color-border);
-  padding-top: 16px;
+.data-section-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.field-group:first-child {
-  border-top: 0;
-  padding-top: 0;
+.data-section-card {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.data-section-card h2,
+.data-section-card p {
+  margin-bottom: 0;
+}
+
+.data-section-card p:not(.eyebrow) {
+  color: var(--pa-muted);
+  font-weight: 800;
 }
 
 .form-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .save-row {
@@ -295,18 +338,15 @@ async function save() {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 12px;
-}
-
-.save-row span {
-  color: var(--pa-muted);
-  font-weight: 800;
 }
 
 @media (max-width: 900px) {
   .section-hero,
   .readonly-grid,
+  .data-section-grid,
+  .data-section-card,
   .form-grid {
     grid-template-columns: 1fr;
   }

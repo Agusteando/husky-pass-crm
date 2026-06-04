@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   assertPersonasAutorizadasFamily(user)
   const body = schema.parse(await readBody(event))
   if (!/^https?:\/\//i.test(body.foto) && !body.foto.startsWith('/uploads/')) {
-    throw createError({ statusCode: 400, statusMessage: 'La foto debe ser una URL absoluta existente o un archivo procesado de Husky Pass.' })
+    throw createError({ statusCode: 400, statusMessage: 'La foto procesada no es válida.' })
   }
   return updateStudentCredentialPhoto(user, body.foto)
 })

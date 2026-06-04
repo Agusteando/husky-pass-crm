@@ -48,21 +48,13 @@
     <section class="resource-attachment">
       <div class="attachment-head">
         <div>
-          <p class="eyebrow">Recurso parent-facing</p>
-          <h3>Liga o archivo</h3>
+          <p class="eyebrow">Recurso para familias</p>
+          <h3>Archivo adjunto</h3>
         </div>
-        <div class="segmented" aria-label="Tipo de recurso">
-          <button type="button" :class="{ active: resourceMode === 'link' }" @click="resourceMode = 'link'">Liga</button>
-          <button type="button" :class="{ active: resourceMode === 'upload' }" @click="resourceMode = 'upload'">Archivo</button>
-        </div>
+        <span class="mode-pill">Carga directa</span>
       </div>
 
-      <label v-if="resourceMode === 'link'" class="label">
-        Liga publicada
-        <input v-model="model.resource" class="input" inputmode="url" placeholder="https://... o /uploads/daycare/..." data-diagnostic-field="resource-link" />
-      </label>
-
-      <div v-else class="upload-panel" data-product-panel="resource-upload" :data-state="uploadState">
+      <div class="upload-panel" data-product-panel="resource-upload" :data-state="uploadState">
         <input ref="fileInput" class="file-input" type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" data-diagnostic-field="resource-file" @change="selectFile" />
         <div class="upload-copy">
           <strong>{{ selectedFileName || uploadedFileName || 'Selecciona un archivo' }}</strong>
@@ -73,10 +65,14 @@
         </button>
       </div>
 
+      <p v-if="externalResource" class="resource-ready muted-resource">
+        <span>Recurso existente</span>
+        <a :href="resourceHref" target="_blank" rel="noopener">Abrir</a>
+      </p>
       <p v-if="uploadError" class="alert compact-alert">{{ uploadError }}</p>
-      <p v-else-if="model.resource" class="resource-ready">
+      <p v-else-if="model.resource && !externalResource" class="resource-ready">
         <span>Listo</span>
-        <a :href="resourceHref" target="_blank" rel="noopener">Abrir recurso</a>
+        <a :href="resourceHref" target="_blank" rel="noopener">Abrir archivo</a>
       </p>
     </section>
 
@@ -119,7 +115,6 @@ const emit = defineEmits<{
 }>()
 
 const model = reactive<Partial<DaycareResource>>({ ...props.resource, type: props.resource.type || props.type })
-const resourceMode = ref(isUploadResource(model.resource) ? 'upload' : 'link')
 const selectedFile = ref<File | null>(null)
 const selectedFileName = ref('')
 const uploadedFileName = ref('')
@@ -140,6 +135,7 @@ const published = computed({
 })
 
 const resourceHref = computed(() => isPdfResource(model.resource) ? publishedPdfViewerUrl(model.resource) : model.resource || '')
+const externalResource = computed(() => Boolean(model.resource && /^https?:\/\//i.test(String(model.resource))))
 const uploadState = computed(() => {
   if (uploadError.value) return 'error'
   if (uploading.value) return 'loading'
@@ -149,7 +145,6 @@ const uploadState = computed(() => {
 
 watch(() => props.resource, (resource) => {
   Object.assign(model, resource, { type: resource.type || props.type })
-  resourceMode.value = isUploadResource(resource.resource) ? 'upload' : 'link'
   selectedFile.value = null
   selectedFileName.value = ''
   uploadedFileName.value = resource.resource ? String(resource.resource).split('/').pop() || '' : ''
@@ -188,7 +183,7 @@ async function uploadSelected() {
 }
 
 async function submit() {
-  if (resourceMode.value === 'upload' && selectedFile.value) {
+  if (selectedFile.value) {
     const ok = await uploadSelected()
     if (!ok) return
   }
@@ -204,10 +199,6 @@ async function submit() {
 
 function isHidden(value: unknown) {
   return value === true || value === 1 || String(value) === '1'
-}
-
-function isUploadResource(value?: string | null) {
-  return Boolean(value && !/^https?:\/\//i.test(String(value)))
 }
 
 function formatBytes(value: number) {
@@ -312,7 +303,8 @@ function formatBytes(value: number) {
   justify-content: space-between;
 }
 
-.segmented {
+.segmented,
+.mode-pill {
   background: #eef4e7;
   border: 1px solid var(--color-brand-200);
   border-radius: 999px;
@@ -439,7 +431,8 @@ function formatBytes(value: number) {
   }
 
   .top-actions,
-  .segmented {
+  .segmented,
+.mode-pill {
     width: 100%;
   }
 

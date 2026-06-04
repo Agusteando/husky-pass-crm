@@ -159,10 +159,18 @@
             Google Form embed
             <input v-model="configForm.surveyEmbedUrl" class="input" placeholder="https://docs.google.com/forms/..." data-diagnostic-field="survey-url" />
           </label>
-          <label class="label">
-            Liga convenios
-            <input v-model="configForm.conveniosUrl" class="input" placeholder="https://..." data-diagnostic-field="convenios-url" />
-          </label>
+          <section class="config-upload" data-product-panel="pa-convenios-upload" :data-state="conveniosUploadState">
+            <div>
+              <p class="eyebrow">Convenios</p>
+              <h3>Archivo para familias</h3>
+              <p>{{ configForm.conveniosUrl ? 'Archivo configurado.' : 'PDF, imagen o documento hasta 10 MB.' }}</p>
+            </div>
+            <input type="file" accept="image/*,application/pdf,.doc,.docx,.txt" data-diagnostic-field="convenios-file" @change="selectConveniosFile" />
+            <button class="btn btn-secondary" type="button" :disabled="!conveniosFile || conveniosUploading" data-diagnostic-action="subir-convenios" @click="uploadConveniosFile">
+              {{ conveniosUploading ? 'Subiendo...' : configForm.conveniosUrl && !conveniosFile ? 'Archivo listo' : 'Subir archivo' }}
+            </button>
+            <a v-if="configForm.conveniosUrl" class="btn btn-secondary" :href="configForm.conveniosUrl" target="_blank" rel="noopener">Abrir convenios</a>
+          </section>
           <button class="btn btn-primary" type="submit" :disabled="configSaving" data-diagnostic-action="guardar-config-pa">{{ configSaving ? 'Guardando...' : 'Guardar configuracion' }}</button>
           <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
           <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
@@ -199,6 +207,8 @@ const preparedAccess = ref<{
 const actionError = ref('')
 const actionNotice = ref('')
 const configSaving = ref(false)
+const conveniosUploading = ref(false)
+const conveniosFile = ref<File | null>(null)
 const accessActionUrl = '/api/admin/personas-autorizadas/access-action' as string
 const configPostUrl = '/api/admin/personas-autorizadas/config' as string
 const configForm = reactive({
@@ -225,6 +235,11 @@ const { data: readiness, pending, error: loadError, refresh } = useFetch<Persona
 })
 const { data: config, refresh: refreshConfig } = useFetch<PersonasAutorizadasConfig>('/api/admin/personas-autorizadas/config', { timeout: 15000 })
 const rows = computed(() => readiness.value?.rows || [])
+const conveniosUploadState = computed(() => {
+  if (conveniosUploading.value) return 'loading'
+  if (configForm.conveniosUrl) return 'ready'
+  return conveniosFile.value ? 'selected' : 'empty'
+})
 
 watch(config, (value) => {
   if (!value) return
@@ -293,6 +308,34 @@ async function prepareAccess(row: PersonasReadinessRow) {
     actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar acceso.'
   } finally {
     accessPreparingId.value = null
+  }
+}
+
+
+function selectConveniosFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  conveniosFile.value = input.files?.[0] || null
+  actionError.value = ''
+  actionNotice.value = ''
+}
+
+async function uploadConveniosFile() {
+  if (!conveniosFile.value) return
+  conveniosUploading.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const body = new FormData()
+    body.append('file', conveniosFile.value)
+    const response = await $fetch<{ url: string }>('/api/admin/personas-autorizadas/uploads', { method: 'POST', body })
+    configForm.conveniosUrl = response.url
+    conveniosFile.value = null
+    actionNotice.value = 'Archivo de convenios cargado. Guarda la configuración para publicarlo.'
+  } catch (err: unknown) {
+    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible subir convenios.'
+  } finally {
+    conveniosUploading.value = false
   }
 }
 
@@ -392,6 +435,31 @@ async function saveConfig() {
 .config-card {
   display: grid;
   gap: 12px;
+}
+
+
+.config-upload {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.config-upload h3,
+.config-upload p {
+  margin-bottom: 0;
+}
+
+.config-upload p:not(.eyebrow) {
+  color: var(--color-muted);
+  font-weight: 780;
+}
+
+.config-upload[data-state='ready'] {
+  background: var(--color-brand-100);
+  border-color: var(--color-brand-200);
 }
 
 .section-head {

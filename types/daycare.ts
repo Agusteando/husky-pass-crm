@@ -45,6 +45,9 @@ export interface AuthorizedChild {
   foto?: string | null
   fechaA?: string | null
   user_id?: number | null
+  isCurrent?: boolean
+  canSwitch?: boolean
+  siblingMatch?: 'parents' | 'current' | 'unavailable'
 }
 
 export interface AuthorizedPerson {

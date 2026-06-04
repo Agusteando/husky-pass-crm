@@ -103,6 +103,60 @@ function derivePlantelFromMatricula(matricula?: string | null, nivel?: string | 
   return prefix || normalizeString(fallback) || null
 }
 
+
+const REQUIRED_PARENT_NAME_FIELDS = [
+  'nombre_padre',
+  'apellido_paterno_padre',
+  'apellido_materno_padre',
+  'nombre_madre',
+  'apellido_paterno_madre',
+  'apellido_materno_madre'
+] as const
+
+type ParentNameField = typeof REQUIRED_PARENT_NAME_FIELDS[number]
+
+function normalizeFamilyName(value: unknown) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+}
+
+function completeParentSignature(row: Partial<Record<ParentNameField, unknown>> | null | undefined) {
+  if (!row) return null
+  const values = Object.fromEntries(REQUIRED_PARENT_NAME_FIELDS.map((field) => [field, normalizeFamilyName(row[field])])) as Record<ParentNameField, string>
+  if (REQUIRED_PARENT_NAME_FIELDS.some((field) => !values[field])) return null
+  const father = [values.nombre_padre, values.apellido_paterno_padre, values.apellido_materno_padre].join(' ')
+  const mother = [values.nombre_madre, values.apellido_paterno_madre, values.apellido_materno_madre].join(' ')
+  return `${father}|${mother}`
+}
+
+function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbackCampus?: string | null): AuthorizedChild {
+  const matricula = normalizeString(row.matricula)
+  const isCurrent = matricula === currentMatricula
+  return {
+    id: row.user_id ? Number(row.user_id) : null,
+    paternoA: row.apellido_paterno || null,
+    maternoA: row.apellido_materno || null,
+    nombreA: row.nombres || null,
+    grupo: row.grupo || null,
+    grado: row.grado || null,
+    nivelEdu: row.nivel || null,
+    campus: row.campus || fallbackCampus || null,
+    plantel: derivePlantelFromMatricula(matricula, row.nivel as string | null, row.campus || fallbackCampus),
+    matricula,
+    foto: row.foto || null,
+    fechaA: null,
+    user_id: row.user_id ? Number(row.user_id) : null,
+    isCurrent,
+    canSwitch: Boolean(!isCurrent && row.user_id && matricula),
+    siblingMatch: isCurrent ? 'current' : 'parents'
+  }
+}
+
 function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | null): PersonasStudentProfile {
   const readonly: Record<string, unknown> = { plantel: plantel || null }
   const editable: Record<string, unknown> = {}
@@ -236,33 +290,92 @@ export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'new
   )
 }
 
-export async function getFamilyChildren(user: AppSessionUser) {
-  return legacyQuery<(AuthorizedChild & RowDataPacket)[]>(
+
+
+export async function getFamilyChildren(user: AppSessionUser): Promise<AuthorizedChild[]> {
+  const currentMatricula = assertFamilyMatricula(user)
+  const current = await legacyOne<RowDataPacket>(
     `SELECT
-      B.id,
-      IFNULL(matricula.apellido_paterno, B.paternoA) AS paternoA,
-      IFNULL(matricula.apellido_materno, B.maternoA) AS maternoA,
-      IFNULL(matricula.nombres, B.nombreA) AS nombreA,
-      IFNULL(matricula.grupo, B.grupo) AS grupo,
-      IFNULL(matricula.grado, B.grado) AS grado,
-      IFNULL(matricula.nivel, B.nivelEdu) AS nivelEdu,
-      IFNULL(users.campus, B.campus) AS campus,
-      IFNULL(matricula.foto, B.foto) AS foto,
-      users.username AS matricula,
-      CASE
-        WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
-        WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
-        WHEN LEFT(users.username, 2) = 'DM' THEN 'CM'
-        ELSE COALESCE(NULLIF(users.campus, ''), LEFT(users.username, 2))
-      END AS plantel,
-      B.fechaA,
-      B.user_id
-    FROM alumno_pa B
-    JOIN users ON B.user_id = users.id
-    LEFT JOIN matricula ON users.username = matricula.matricula
-    WHERE B.user_id = ?`,
-    [user.id]
+       m.matricula,
+       m.apellido_paterno,
+       m.apellido_materno,
+       m.nombres,
+       m.grupo,
+       m.grado,
+       m.nivel,
+       m.foto,
+       m.nombre_padre,
+       m.apellido_paterno_padre,
+       m.apellido_materno_padre,
+       m.nombre_madre,
+       m.apellido_paterno_madre,
+       m.apellido_materno_madre,
+       u.id AS user_id,
+       u.campus
+     FROM matricula m
+     LEFT JOIN users u ON u.username = m.matricula
+     WHERE m.matricula = ?
+     LIMIT 1`,
+    [currentMatricula]
   )
+
+  if (!current) return []
+
+  const signature = completeParentSignature(current as Partial<Record<ParentNameField, unknown>>)
+  if (!signature) {
+    const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
+    return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
+  }
+
+  const candidates = await legacyQuery<RowDataPacket[]>(
+    `SELECT
+       m.matricula,
+       m.apellido_paterno,
+       m.apellido_materno,
+       m.nombres,
+       m.grupo,
+       m.grado,
+       m.nivel,
+       m.foto,
+       m.nombre_padre,
+       m.apellido_paterno_padre,
+       m.apellido_materno_padre,
+       m.nombre_madre,
+       m.apellido_paterno_madre,
+       m.apellido_materno_madre,
+       u.id AS user_id,
+       u.campus
+     FROM matricula m
+     LEFT JOIN users u ON u.username = m.matricula
+     WHERE m.nombre_padre IS NOT NULL AND TRIM(m.nombre_padre) <> ''
+       AND m.apellido_paterno_padre IS NOT NULL AND TRIM(m.apellido_paterno_padre) <> ''
+       AND m.apellido_materno_padre IS NOT NULL AND TRIM(m.apellido_materno_padre) <> ''
+       AND m.nombre_madre IS NOT NULL AND TRIM(m.nombre_madre) <> ''
+       AND m.apellido_paterno_madre IS NOT NULL AND TRIM(m.apellido_paterno_madre) <> ''
+       AND m.apellido_materno_madre IS NOT NULL AND TRIM(m.apellido_materno_madre) <> ''`
+  )
+
+  const seen = new Set<string>()
+  const children = candidates
+    .filter((row) => completeParentSignature(row as Partial<Record<ParentNameField, unknown>>) === signature)
+    .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa))
+    .filter((child) => {
+      const key = child.matricula || String(child.user_id || '')
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => {
+      if (a.isCurrent) return -1
+      if (b.isCurrent) return 1
+      return [a.paternoA, a.maternoA, a.nombreA].filter(Boolean).join(' ').localeCompare([b.paternoA, b.maternoA, b.nombreA].filter(Boolean).join(' '), 'es')
+    })
+
+  if (!children.some((child) => child.isCurrent)) {
+    children.unshift(mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa))
+  }
+
+  return children
 }
 
 export async function getAdminResources(user: AppSessionUser, salaId: number, type: 'hw' | 'news' | 'cal') {
