@@ -86,7 +86,7 @@ const { data: dashboard, pending, error } = useFetch<{
   circulares: DaycareResource[]
   calendario: DaycareResource[]
   valor: Array<{ valor: string }>
-}>('/api/daycare/family/dashboard')
+}>('/api/daycare/family/dashboard', { timeout: 15000 })
 
 const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 </script>

@@ -113,7 +113,8 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-
 const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
-  query: { sala: salaId }
+  query: { sala: salaId },
+  timeout: 15000
 })
 
 const selectedAccountId = computed(() => Number(route.query.familia || 0))

@@ -110,7 +110,7 @@ const route = useRoute()
 const salaId = Number(route.params.id)
 const actionError = ref('')
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
-const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`)
+const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`, { timeout: 15000 })
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 
 const modules = computed(() => [

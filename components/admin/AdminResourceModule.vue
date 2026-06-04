@@ -140,7 +140,8 @@ const actionNotice = ref('')
 const selectedIdFromRoute = computed(() => Number(route.query.registro || 0))
 
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
-  query: { sala: salaId, type: props.type }
+  query: { sala: salaId, type: props.type },
+  timeout: 15000
 })
 
 const filteredRows = computed(() => {

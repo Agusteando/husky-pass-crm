@@ -53,6 +53,15 @@ interface DirectoryPlantelRow extends RowDataPacket {
   campus: string | null
 }
 
+interface DirectoryRouteRow extends RowDataPacket {
+  role: string | null
+  route: string | null
+}
+
+interface DirectoryUserIdRow extends RowDataPacket {
+  user_id: number | string | null
+}
+
 const baseUserSql = `
   SELECT
     A.id,
@@ -224,6 +233,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   const search = normalizeLegacyScope(filters.search)
   const scope: SuperAdminDirectoryScope = filters.scope || 'all'
   const limit = Math.min(Math.max(Number(filters.limit || 120), 25), 250)
+  const queryLimit = scope === 'all' ? limit : Math.min(Math.max(limit * 6, 250), 1000)
   const where: string[] = []
   const params: Array<string | number> = []
 
@@ -238,15 +248,11 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   if (search) {
     where.push(`(
       A.email LIKE ? OR A.username LIKE ? OR A.displayName LIKE ? OR A.nombre_nino LIKE ? OR
-      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.plantel LIKE ?
+      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.plantel LIKE ? OR A.campus LIKE ?
     )`)
     const like = `%${search}%`
-    params.push(like, like, like, like, like, like, like, like)
+    params.push(like, like, like, like, like, like, like, like, like)
   }
-
-  // Keep product-scope filtering in application code. Some deployed MySQL/MariaDB
-  // versions reject the more complex correlated scope predicates when executed as
-  // prepared statements, which breaks the superadmin directory at runtime.
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const rows = await legacyQuery<DirectoryUserRow[]>(
@@ -262,18 +268,18 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       A.empresa,
       A.unidad,
       A.sala,
-      A.nombre_nino,
-      GROUP_CONCAT(DISTINCT B.route ORDER BY B.route SEPARATOR '||') AS routes,
-      EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) AS has_alumno_pa,
-      EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) AS has_personas_autorizadas
+      A.nombre_nino
      FROM users AS A
-     LEFT JOIN rutas_rol AS B ON (A.role = B.role)
      ${whereSql}
-     GROUP BY A.id
      ORDER BY COALESCE(NULLIF(A.plantel, ''), NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
-     LIMIT ${limit}`,
+     LIMIT ${queryLimit}`,
     params
   )
+
+  const userIds = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id))
+  const routeMap = await loadDirectoryRoutes(rows)
+  const personasUserIds = await loadPersonasAutorizadasUserIds(userIds)
+  const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
 
   const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
     `SELECT plantel, unidad, campus
@@ -283,8 +289,13 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
      LIMIT 5000`
   )
 
-  const users = rows.map(directoryRowToSummary)
-  const visibleUsers = filterDirectoryUsersByScope(users, scope)
+  const users = rows.map((row) => directoryRowToSummary({
+    ...row,
+    routes: routesForDirectoryRow(row, routeMap).join('||'),
+    has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
+    has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
+  }))
+  const visibleUsers = filterDirectoryUsersByScope(users, scope).slice(0, limit)
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
     ...csvToList(row.unidad),
@@ -310,6 +321,50 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       limit
     }
   }
+}
+
+async function loadDirectoryRoutes(rows: DirectoryUserRow[]) {
+  const roles = Array.from(new Set(rows.flatMap((row) => csvToList(row.role))))
+  if (!roles.length) return new Map<string, string[]>()
+  const placeholders = roles.map(() => '?').join(',')
+  const routeRows = await legacyQuery<DirectoryRouteRow[]>(
+    `SELECT role, route FROM rutas_rol WHERE role IN (${placeholders}) ORDER BY route ASC`,
+    roles
+  )
+  const routeMap = new Map<string, string[]>()
+  for (const row of routeRows) {
+    const role = normalizeLegacyScope(row.role)
+    const route = normalizeLegacyScope(row.route)
+    if (!role || !route) continue
+    const existing = routeMap.get(role) || []
+    existing.push(route)
+    routeMap.set(role, existing)
+  }
+  return routeMap
+}
+
+function routesForDirectoryRow(row: DirectoryUserRow, routeMap: Map<string, string[]>) {
+  return Array.from(new Set(csvToList(row.role).flatMap((role) => routeMap.get(role) || [])))
+}
+
+async function loadPersonasAutorizadasUserIds(userIds: number[]) {
+  if (!userIds.length) return new Set<number>()
+  const placeholders = userIds.map(() => '?').join(',')
+  const rows = await legacyQuery<DirectoryUserIdRow[]>(
+    `SELECT DISTINCT user_id FROM personas_autorizadas WHERE user_id IN (${placeholders})`,
+    userIds
+  )
+  return new Set(rows.map((row) => Number(row.user_id)).filter((id) => Number.isFinite(id)))
+}
+
+async function loadAlumnoPaUserIds(userIds: number[]) {
+  if (!userIds.length) return new Set<number>()
+  const placeholders = userIds.map(() => '?').join(',')
+  const rows = await legacyQuery<DirectoryUserIdRow[]>(
+    `SELECT DISTINCT user_id FROM alumno_pa WHERE user_id IN (${placeholders})`,
+    userIds
+  )
+  return new Set(rows.map((row) => Number(row.user_id)).filter((id) => Number.isFinite(id)))
 }
 
 

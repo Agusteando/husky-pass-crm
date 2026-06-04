@@ -40,7 +40,8 @@ import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 const route = useRoute()
 const { data, pending, error: loadError } = useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
-  query: { id: route.params.id }
+  query: { id: route.params.id },
+  timeout: 15000
 })
 </script>
 

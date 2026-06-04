@@ -1,1 +1,1 @@
-Agrega diagnóstico runtime y corrige contratos visibles de producto
+Corrige carga superadmin y estados de espera

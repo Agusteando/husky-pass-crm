@@ -175,7 +175,9 @@ watch(search, () => syncQuery())
 
 const { data: salas, pending, error } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
-  watch: [selectedUnidad]
+  watch: [selectedUnidad],
+  timeout: 15000,
+  dedupe: 'cancel'
 })
 
 const filteredSalas = computed(() => {

@@ -6,7 +6,7 @@
         <h1>Gestión de usuarios y productos</h1>
         <p>Monitorea cuentas internas, familias de daycare y familias preescolar-secundaria desde un solo directorio real.</p>
       </div>
-      <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="pending" :data-unavailable-reason="pending ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ pending ? 'Actualizando…' : 'Actualizar' }}</button>
+      <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando…' : 'Actualizar' }}</button>
     </header>
 
     <section class="scope-tabs" aria-label="Alcance de usuarios">
@@ -47,7 +47,7 @@
       </label>
     </section>
 
-    <section v-if="directory" class="super-metrics">
+    <section v-if="directory && !loadProblem" class="super-metrics">
       <article>
         <span>Total visible</span>
         <strong>{{ directory.metrics.total }}</strong>
@@ -74,10 +74,16 @@
       </article>
     </section>
 
-    <p v-if="loadError" class="alert">No fue posible cargar el directorio de superadmin.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card" data-product-loading>Cargando usuarios…</div>
+
+    <section v-if="loadProblem" class="card state-card" data-product-panel="superadmin-directory" data-state="error">
+      <p class="eyebrow">Directorio no disponible</p>
+      <h2>No fue posible cargar usuarios.</h2>
+      <p>{{ loadProblemMessage }}</p>
+      <button class="btn btn-secondary compact" type="button" data-diagnostic-action="reintentar-directorio" @click="refreshDirectory">Reintentar</button>
+    </section>
+    <div v-else-if="isLoadingVisible" class="card loading-card" data-product-loading>Cargando usuarios…</div>
 
     <section v-else-if="directory?.users?.length" class="directory-grid" data-product-panel="superadmin-directory" data-state="content">
       <article class="card users-card">
@@ -188,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
@@ -228,7 +234,40 @@ const activeScopeLabel = computed(() => scopeOptions.find((option) => option.val
 
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
   query,
-  watch: [query]
+  watch: [query],
+  timeout: 15000,
+  dedupe: 'cancel'
+})
+
+const directoryTimedOut = ref(false)
+let directoryTimer: ReturnType<typeof setTimeout> | null = null
+
+const isLoadingVisible = computed(() => pending.value && !directoryTimedOut.value)
+const loadProblem = computed(() => Boolean(directoryTimedOut.value || loadError.value))
+const loadProblemMessage = computed(() => {
+  if (directoryTimedOut.value) return 'La consulta excedió el tiempo de espera. Reintenta para abrir una conexión nueva a base de datos.'
+  const error = loadError.value as { data?: { statusMessage?: string }; statusMessage?: string; message?: string } | null
+  return error?.data?.statusMessage || error?.statusMessage || error?.message || 'La consulta falló antes de entregar un estado de contenido o vacío.'
+})
+
+watch(pending, (value) => {
+  if (directoryTimer) {
+    clearTimeout(directoryTimer)
+    directoryTimer = null
+  }
+  if (!value) return
+  directoryTimedOut.value = false
+  directoryTimer = setTimeout(() => {
+    if (pending.value) directoryTimedOut.value = true
+  }, 15000)
+}, { immediate: true })
+
+watch(loadError, (value) => {
+  if (value) directoryTimedOut.value = false
+})
+
+onUnmounted(() => {
+  if (directoryTimer) clearTimeout(directoryTimer)
 })
 
 watch([selectedPlantel, selectedScope, search, limit], () => {
@@ -283,7 +322,12 @@ watch(directory, (value) => {
 async function refreshDirectory() {
   actionError.value = ''
   actionNotice.value = ''
+  directoryTimedOut.value = false
   await refresh()
+  if (loadError.value) {
+    actionError.value = loadProblemMessage.value
+    return
+  }
   actionNotice.value = 'Directorio actualizado.'
 }
 

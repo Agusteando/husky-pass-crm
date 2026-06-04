@@ -169,7 +169,7 @@ function seedChecks(): DiagnosticCheck[] {
 }
 
 async function runServerChecks() {
-  return await $fetch<ServerDiagnosticResponse>('/api/admin/product-diagnostics')
+  return await $fetch<ServerDiagnosticResponse>('/api/admin/product-diagnostics', { timeout: 15000 })
 }
 
 async function runDomChecks(): Promise<DiagnosticCheck[]> {

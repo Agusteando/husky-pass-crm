@@ -29,7 +29,8 @@ const props = defineProps<{
 }>()
 
 const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycare/family/resources', {
-  query: { type: props.type }
+  query: { type: props.type },
+  timeout: 15000
 })
 </script>
 
