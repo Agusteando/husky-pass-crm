@@ -1,21 +1,22 @@
 <template>
   <main class="pa-shell-app" :style="themeVars" data-product-area="personas-autorizadas">
     <header class="pa-product-topbar">
-      <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" aria-label="Husky Pass Personas Autorizadas">
-        <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Personas Autorizadas`">
+        <img :src="institutionLogo" :alt="institution" />
       </NuxtLink>
       <div class="pa-top-copy">
         <span>{{ institution }}</span>
         <strong>{{ title }}</strong>
         <small>{{ contextLine }}</small>
       </div>
-      <img class="pa-top-ambassador" :src="mascot" :alt="`${levelName.spanish} ambassador`" />
+      <button class="pa-logout" type="button" data-diagnostic-action="logout-personas-autorizadas" @click="logout">Salir</button>
+      <img class="pa-top-ambassador" :src="headerMascot" :alt="`${levelName.spanish} ambassador`" />
     </header>
 
     <div class="pa-product-layout">
       <aside class="pa-product-nav" aria-label="Navegación Personas Autorizadas">
         <div class="pa-nav-mark">
-          <img :src="mascot" alt="" />
+          <img :src="navMascot" alt="" />
           <span>{{ levelName.spanish }}</span>
         </div>
         <nav>
@@ -54,10 +55,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useFetch, useRoute } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
-import { personasInstitutionName, personasLevelName, personasMascot, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
@@ -72,9 +73,11 @@ const theme = computed(() => resolvePersonasTheme({
   campus: primaryChild.value?.campus || session.value?.user?.campus
 }))
 const themeVars = computed(() => personasThemeStyle(theme.value))
-const mascot = computed(() => personasMascot(theme.value))
+const headerMascot = computed(() => personasMascot(theme.value, 'header'))
+const navMascot = computed(() => personasMascot(theme.value, 'transition'))
 const levelName = computed(() => personasLevelName(theme.value))
 const institution = computed(() => personasInstitutionName(theme.value))
+const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const title = computed(() => props.title)
 const contextLine = computed(() => {
   const child = primaryChild.value
@@ -97,6 +100,11 @@ const navItems = [
 function isActive(item: { to: string }) {
   return route.path === item.to || (item.to !== '/familia/personas-autorizadas' && route.path.startsWith(`${item.to}/`))
 }
+
+async function logout() {
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  await navigateTo('/login')
+}
 </script>
 
 <style scoped>
@@ -118,8 +126,8 @@ function isActive(item: { to: string }) {
   background: #fff;
   border-bottom: 1px solid #e7e7e7;
   display: grid;
-  gap: 18px;
-  grid-template-columns: 150px minmax(0, 1fr) 78px;
+  gap: 16px;
+  grid-template-columns: 150px minmax(0, 1fr) auto 78px;
   min-height: 98px;
   padding: 12px clamp(16px, 4vw, 42px);
   position: sticky;
@@ -139,6 +147,9 @@ function isActive(item: { to: string }) {
 
 .pa-brand img {
   display: block;
+  max-height: 74px;
+  object-fit: contain;
+  object-position: left center;
   width: 118px;
 }
 
@@ -169,6 +180,23 @@ function isActive(item: { to: string }) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pa-logout {
+  background: #fff;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.pa-logout:hover {
+  background: var(--pa-soft);
 }
 
 .pa-top-ambassador {
@@ -267,12 +295,13 @@ function isActive(item: { to: string }) {
 
 @media (max-width: 980px) {
   .pa-product-topbar {
-    grid-template-columns: 100px minmax(0, 1fr) 56px;
+    grid-template-columns: 92px minmax(0, 1fr) auto 56px;
     min-height: 82px;
   }
 
   .pa-brand img {
-    width: 92px;
+    max-height: 58px;
+    width: 86px;
   }
 
   .pa-top-ambassador {
@@ -312,6 +341,26 @@ function isActive(item: { to: string }) {
   .pa-mobile-nav a.active {
     background: var(--pa-soft);
     color: var(--pa-primary);
+  }
+}
+
+@media (max-width: 640px) {
+  .pa-product-topbar {
+    gap: 10px;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+  }
+
+  .pa-brand img {
+    width: 66px;
+  }
+
+  .pa-top-ambassador {
+    display: none;
+  }
+
+  .pa-logout {
+    min-height: 34px;
+    padding: 0 10px;
   }
 }
 

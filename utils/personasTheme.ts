@@ -1,5 +1,7 @@
 import type { PersonasTheme, PersonasThemeKey } from '~/types/daycare'
 
+export type PersonasMascotVariant = 'header' | 'hero' | 'empty' | 'help' | 'preview' | 'transition'
+
 export const PA_COLORS = {
   daycare: '#618B2F',
   preescolar: '#E83F4B',
@@ -34,12 +36,55 @@ const THEME_ENGLISH_LABELS: Record<PersonasThemeKey, string> = {
   iedis: 'Institutional'
 }
 
-const THEME_MASCOTS: Record<PersonasThemeKey, string> = {
-  daycare: '/personas-autorizadas/ambassadors/daycare-sunny.png',
-  preescolar: '/personas-autorizadas/ambassadors/preescolar-joy.png',
-  primaria: '/personas-autorizadas/ambassadors/primaria-brave.png',
-  secundaria: '/personas-autorizadas/ambassadors/secundaria-hope.png',
-  iedis: '/personas-autorizadas/ambassadors/secundaria-hope.png'
+const THEME_LOGOS: Record<PersonasThemeKey, { logo: string; wordmark: string }> = {
+  daycare: { logo: '/brand/iecs-logo.png', wordmark: '/brand/iecs-wordmark-gradient.png' },
+  preescolar: { logo: '/brand/iecs-logo.png', wordmark: '/brand/iecs-wordmark-gradient.png' },
+  primaria: { logo: '/brand/iedis-logo.png', wordmark: '/brand/iedis-wordmark-gradient.png' },
+  secundaria: { logo: '/brand/iedis-logo.png', wordmark: '/brand/iedis-wordmark-gradient.png' },
+  iedis: { logo: '/brand/iedis-logo.png', wordmark: '/brand/iedis-wordmark-gradient.png' }
+}
+
+const THEME_MASCOT_VARIANTS: Record<PersonasThemeKey, Record<PersonasMascotVariant, string>> = {
+  daycare: {
+    header: '/personas-autorizadas/ambassadors/daycare-sunny.png',
+    hero: '/personas-autorizadas/mascots/sunny-guarderia/1-SUNNY-GUARDERIA/SUNNY-1.png',
+    empty: '/personas-autorizadas/mascots/sunny-guarderia/1-SUNNY-GUARDERIA/SUNNY-5.png',
+    help: '/personas-autorizadas/mascots/sunny-guarderia/1-SUNNY-GUARDERIA/SUNNY-3.png',
+    preview: '/personas-autorizadas/mascots/sunny-guarderia/1-SUNNY-GUARDERIA/SUNNY-8.png',
+    transition: '/personas-autorizadas/ambassadors/daycare-sunny.png'
+  },
+  preescolar: {
+    header: '/personas-autorizadas/ambassadors/preescolar-joy.png',
+    hero: '/personas-autorizadas/mascots/joy-preescolar/2-JOY-PREESCOLAR/JOY-1.png',
+    empty: '/personas-autorizadas/mascots/joy-preescolar/2-JOY-PREESCOLAR/JOY-7.png',
+    help: '/personas-autorizadas/mascots/joy-preescolar/2-JOY-PREESCOLAR/JOY-3.png',
+    preview: '/personas-autorizadas/mascots/joy-preescolar/2-JOY-PREESCOLAR/JOY-14.png',
+    transition: '/personas-autorizadas/mascots/joy-preescolar/2-JOY-PREESCOLAR/JOY-4.png'
+  },
+  primaria: {
+    header: '/personas-autorizadas/ambassadors/primaria-brave.png',
+    hero: '/personas-autorizadas/mascots/brave-primaria/3-BRAVE-PRIMARIA/BRAVE-1.1.png',
+    empty: '/personas-autorizadas/mascots/brave-primaria/3-BRAVE-PRIMARIA/BRAVE-3.png',
+    help: '/personas-autorizadas/mascots/brave-primaria/3-BRAVE-PRIMARIA/BRAVE-5.png',
+    preview: '/personas-autorizadas/mascots/brave-primaria/3-BRAVE-PRIMARIA/BRAVE-10.png',
+    transition: '/personas-autorizadas/mascots/brave-primaria/3-BRAVE-PRIMARIA/BRAVE-6.png'
+  },
+  secundaria: {
+    header: '/personas-autorizadas/ambassadors/secundaria-hope.png',
+    hero: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-1.png',
+    empty: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-5.png',
+    help: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-3.png',
+    preview: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-7.png',
+    transition: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-4.png'
+  },
+  iedis: {
+    header: '/personas-autorizadas/ambassadors/secundaria-hope.png',
+    hero: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-1.png',
+    empty: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-5.png',
+    help: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-3.png',
+    preview: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-7.png',
+    transition: '/personas-autorizadas/mascots/hope-secundaria/4-HOPE-SECUNDARIA/HOPE-4.png'
+  }
 }
 
 function hexToRgb(hex: string) {
@@ -76,7 +121,10 @@ function theme(key: PersonasThemeKey, primary: string): PersonasTheme {
     muted: PA_COLORS.muted,
     gray: PA_COLORS.gray,
     institutional: PA_COLORS.iedis,
-    mascot: THEME_MASCOTS[key]
+    mascot: THEME_MASCOT_VARIANTS[key].header,
+    mascotVariants: THEME_MASCOT_VARIANTS[key],
+    logo: THEME_LOGOS[key].logo,
+    wordmark: THEME_LOGOS[key].wordmark
   }
 }
 
@@ -129,8 +177,8 @@ export function allPersonasThemes() {
   return Object.values(PERSONAS_THEMES)
 }
 
-export function personasMascot(theme: PersonasTheme) {
-  return theme.mascot || THEME_MASCOTS.daycare
+export function personasMascot(theme: PersonasTheme, variant: PersonasMascotVariant = 'header') {
+  return theme.mascotVariants?.[variant] || theme.mascot || THEME_MASCOT_VARIANTS.daycare.header
 }
 
 export function personasLevelName(theme: PersonasTheme) {
@@ -140,4 +188,8 @@ export function personasLevelName(theme: PersonasTheme) {
 
 export function personasInstitutionName(theme: PersonasTheme) {
   return theme.key === 'daycare' || theme.key === 'preescolar' ? 'IECS' : 'IEDIS'
+}
+
+export function personasInstitutionLogo(theme: PersonasTheme, mode: 'logo' | 'wordmark' = 'logo') {
+  return mode === 'wordmark' ? theme.wordmark || THEME_LOGOS[theme.key].wordmark : theme.logo || THEME_LOGOS[theme.key].logo
 }

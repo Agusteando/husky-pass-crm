@@ -78,7 +78,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
       u.username,
       u.plaintext,
       u.displayName,
-      u.plantel,
+      NULL AS plantel,
       u.campus,
       u.empresa,
       u.unidad,
@@ -131,7 +131,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
          WHERE FIND_IN_SET(rr.role, REPLACE(COALESCE(u.role, ''), ' ', '')) > 0
            AND rr.route REGEXP 'personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar'
        )
-     ORDER BY COALESCE(NULLIF(u.plantel, ''), NULLIF(u.campus, ''), u.empresa, '') ASC, u.id DESC
+     ORDER BY COALESCE(NULLIF(u.campus, ''), u.empresa, '') ASC, u.id DESC
      LIMIT ${queryLimit}`
   )
 

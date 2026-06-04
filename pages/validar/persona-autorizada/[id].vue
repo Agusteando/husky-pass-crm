@@ -1,12 +1,12 @@
 <template>
   <main class="validate-shell">
     <section v-if="pending" class="card validate-card empty-public">
-      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="logo" :src="institutionLogo" :alt="institutionAlt" />
       <h1>Validando registro…</h1>
     </section>
 
     <section v-else-if="data" class="card validate-card">
-      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="logo" :src="institutionLogo" :alt="institutionAlt" />
       <span class="status">Autorizado</span>
       <div class="person-row">
         <img v-if="data.fotoP" :src="normalizeVirtualAssetUrl(data.fotoP)" alt="Persona autorizada" />
@@ -26,7 +26,7 @@
     </section>
 
     <section v-else class="card validate-card empty-public">
-      <img class="logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="logo" :src="institutionLogo" :alt="institutionAlt" />
       <h1>Registro no encontrado</h1>
       <p>{{ loadError ? 'No fue posible validar esta persona autorizada.' : 'No fue posible encontrar esta persona autorizada.' }}</p>
     </section>
@@ -34,15 +34,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { ScanAuthorizedPerson } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const route = useRoute()
 const { data, pending, error: loadError } = useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
   query: { id: route.params.id },
   timeout: 15000
 })
+const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEduA }))
+const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
+const institutionAlt = computed(() => personasInstitutionName(theme.value))
 </script>
 
 <style scoped>

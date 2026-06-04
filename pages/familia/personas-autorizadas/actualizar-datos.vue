@@ -88,7 +88,7 @@ const theme = computed(() => resolvePersonasTheme({
   nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
   campus: primaryChild.value?.campus || session.value?.user?.campus
 }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'help'))
 
 const groups: { eyebrow: string; title: string; fields: { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' }[] }[] = [
   {

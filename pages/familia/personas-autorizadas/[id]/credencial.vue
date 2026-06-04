@@ -1,12 +1,12 @@
 <template>
   <main class="credential-shell" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="credential">
     <section v-if="pending" class="credential-card status-card" data-product-loading>
-      <img class="brand-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="brand-logo" :src="institutionLogo" :alt="institutionAlt" />
       <h1>Cargando credencial...</h1>
     </section>
 
     <section v-else-if="loadError || !data" class="credential-card status-card" data-state="error">
-      <img class="brand-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="brand-logo" :src="institutionLogo" :alt="institutionAlt" />
       <h1>Credencial no disponible</h1>
       <p>No encontramos esta persona autorizada dentro de tu cuenta.</p>
       <NuxtLink class="btn btn-secondary no-print" to="/familia/personas-autorizadas">Volver</NuxtLink>
@@ -14,7 +14,7 @@
 
     <section v-else class="credential-card" data-product-panel="credential" data-state="content">
       <header>
-        <img class="brand-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+        <img class="brand-logo" :src="institutionLogo" :alt="institutionAlt" />
         <div>
           <p>Persona Autorizada</p>
           <h1>{{ fullName || 'Registro' }}</h1>
@@ -47,7 +47,7 @@ import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasInstitutionLogo, personasInstitutionName, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -60,9 +60,11 @@ const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>(
 })
 const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEdu, campus: data.value?.child?.campus }))
 const themeVars = computed(() => personasThemeStyle(theme.value))
+const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
+const institutionAlt = computed(() => personasInstitutionName(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const photoUrl = computed(() => normalizeVirtualAssetUrl(data.value?.compressed_foto || data.value?.foto || ''))
-const credentialContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Husky Pass')
+const credentialContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || institutionAlt.value)
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
 const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl.value)}`)
 </script>

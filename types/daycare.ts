@@ -121,6 +121,9 @@ export interface PersonasTheme {
   gray: string
   institutional: string
   mascot?: string
+  mascotVariants?: Partial<Record<'header' | 'hero' | 'empty' | 'help' | 'preview' | 'transition', string>>
+  logo?: string
+  wordmark?: string
 }
 
 export interface MarbeteTemplateMeta {

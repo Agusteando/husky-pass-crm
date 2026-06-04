@@ -10,7 +10,7 @@
     </div>
 
     <section v-if="person" class="card qr-card">
-      <img class="brand" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <img class="brand" :src="institutionLogo" :alt="institutionAlt" />
       <img class="qr" :src="qrImage" alt="Código QR" />
       <div>
         <h2>{{ fullName }}</h2>
@@ -25,14 +25,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedPerson } from '~/types/daycare'
+import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath } from '~/utils/daycare'
+import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 const route = useRoute()
 const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
+const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
+const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel, nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus }))
+const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
+const institutionAlt = computed(() => personasInstitutionName(theme.value))
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
 const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(validationUrl.value)}`)
 </script>

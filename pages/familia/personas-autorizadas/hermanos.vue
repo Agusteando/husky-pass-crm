@@ -25,7 +25,7 @@
         <span>{{ [child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ') || 'Datos pendientes' }}</span>
       </article>
       <div v-if="!children.length" class="empty-state">
-        <img :src="mascot" alt="" />
+        <img :src="emptyMascot" alt="" />
         <p>No hay alumnos vinculados disponibles para esta cuenta.</p>
       </div>
     </section>
@@ -45,7 +45,8 @@ const { data: people, pending, error: loadError } = useFetch<AuthorizedPerson[]>
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0], nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus || session.value?.user?.campus }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'hero'))
+const emptyMascot = computed(() => personasMascot(theme.value, 'empty'))
 function childName(child: AuthorizedChild) {
   return [child.nombreA, child.paternoA, child.maternoA].filter(Boolean).join(' ')
 }

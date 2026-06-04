@@ -75,7 +75,6 @@ export const PARENT_EDITABLE_STUDENT_FIELDS = [
 
 const STUDENT_READONLY_FIELDS = [
   'matricula',
-  'plantel',
   'nivel',
   'grado',
   'grupo',
@@ -94,8 +93,18 @@ function assertFamilyMatricula(user: AppSessionUser) {
   return matricula
 }
 
-function pickStudentProfile(row: RowDataPacket | undefined): PersonasStudentProfile {
-  const readonly: Record<string, unknown> = {}
+function derivePlantelFromMatricula(matricula?: string | null, nivel?: string | null, fallback?: string | null) {
+  const username = normalizeString(matricula)?.toUpperCase() || ''
+  const normalizedNivel = String(nivel || '').toLowerCase()
+  if (username.startsWith('PT') && normalizedNivel.includes('sec')) return 'ST'
+  if (username.startsWith('PT') && normalizedNivel.includes('prim')) return 'PT'
+  if (username.startsWith('DM')) return 'CM'
+  const prefix = username.slice(0, 2)
+  return prefix || normalizeString(fallback) || null
+}
+
+function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | null): PersonasStudentProfile {
+  const readonly: Record<string, unknown> = { plantel: plantel || null }
   const editable: Record<string, unknown> = {}
 
   for (const field of STUDENT_READONLY_FIELDS) readonly[field] = row?.[field] ?? null
@@ -173,7 +182,8 @@ export async function getEditableStudentProfile(user: AppSessionUser) {
   const columns = [...STUDENT_READONLY_FIELDS, ...PARENT_EDITABLE_STUDENT_FIELDS].join(', ')
   const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
   if (!row) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-  return pickStudentProfile(row)
+  const plantel = derivePlantelFromMatricula(matricula, row.nivel as string | null, user.campus || user.empresa)
+  return pickStudentProfile(row, plantel)
 }
 
 export async function updateEditableStudentProfile(user: AppSessionUser, patch: Partial<PersonasStudentEditable>) {
@@ -243,8 +253,7 @@ export async function getFamilyChildren(user: AppSessionUser) {
         WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
         WHEN LEFT(users.username, 2) = 'PT' AND IFNULL(matricula.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
         WHEN LEFT(users.username, 2) = 'DM' THEN 'CM'
-        WHEN users.plantel IS NOT NULL AND users.plantel <> '' THEN users.plantel
-        ELSE LEFT(users.username, 2)
+        ELSE COALESCE(NULLIF(users.campus, ''), LEFT(users.username, 2))
       END AS plantel,
       B.fechaA,
       B.user_id
@@ -466,8 +475,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
          WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
          WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
          WHEN LEFT(u.username, 2) = 'DM' THEN 'CM'
-         WHEN u.plantel IS NOT NULL AND u.plantel <> '' THEN u.plantel
-         ELSE LEFT(u.username, 2)
+         ELSE COALESCE(NULLIF(u.campus, ''), LEFT(u.username, 2))
        END) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
        MAX(IFNULL(c.foto, IFNULL(m.foto, B.foto))) AS fotoA,

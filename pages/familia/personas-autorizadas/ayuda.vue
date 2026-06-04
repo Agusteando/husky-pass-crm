@@ -35,7 +35,7 @@ const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0], nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus || session.value?.user?.campus }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'help'))
 const faqItems = [
   { question: '¿Qué es Personas Autorizadas?', answer: 'Es el módulo para registrar quiénes pueden entregar o recoger al alumno con validación QR.' },
   { question: '¿Cuántas personas puedo registrar?', answer: 'Puedes mantener tres personas autorizadas y un Pase Express para situaciones temporales.' },

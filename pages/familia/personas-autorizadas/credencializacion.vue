@@ -86,7 +86,7 @@ const theme = computed(() => resolvePersonasTheme({
   nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
   campus: primaryChild.value?.campus || session.value?.user?.campus
 }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'preview'))
 const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.readonly.foto || ''))
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
 const academicLine = computed(() => [profile.value?.readonly.plantel, profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))

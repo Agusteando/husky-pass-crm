@@ -125,7 +125,7 @@ const theme = computed(() => resolvePersonasTheme({
   nivelEdu: primaryChild.value?.nivelEdu,
   campus: primaryChild.value?.campus || session.value?.user?.campus
 }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'hero'))
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)

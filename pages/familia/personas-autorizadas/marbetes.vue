@@ -48,7 +48,7 @@ const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0], nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus || session.value?.user?.campus }))
-const mascot = computed(() => personasMascot(theme.value))
+const mascot = computed(() => personasMascot(theme.value, 'preview'))
 function fullName(person: AuthorizedPerson | Partial<AuthorizedPerson>) { return [person.nombreP, person.paternoP, person.maternoP].filter(Boolean).join(' ') }
 function initials(person: AuthorizedPerson | Partial<AuthorizedPerson>) { return (fullName(person) || 'PA').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') }
 function photoUrl(person: AuthorizedPerson | Partial<AuthorizedPerson>) { return normalizeVirtualAssetUrl(person.compressed_foto || person.foto || '') }
