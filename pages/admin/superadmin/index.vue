@@ -203,7 +203,7 @@ import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
-import { displayMatricula } from '~/utils/personasTheme'
+import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 

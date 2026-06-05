@@ -6,7 +6,7 @@ import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { requireSession, setAppSession } from '~/server/utils/session'
 import { hasFamilyScope } from '~/utils/sessionScopes'
 import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
-import { normalizeMatricula } from '~/utils/personasTheme'
+import { normalizeMatricula } from '~/utils/matricula'
 
 const schema = z.object({
   matricula: z.string().min(1)

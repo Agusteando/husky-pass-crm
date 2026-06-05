@@ -1,5 +1,6 @@
 <template>
-  <section class="stack">
+  <FamilyPersonasAutorizadasShell title="Código QR">
+    <section class="stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="qr">
     <div class="workspace-head compact-head">
       <div>
         <p class="eyebrow">Código QR</p>
@@ -20,6 +21,7 @@
     </section>
     <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
   </section>
+  </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
@@ -27,19 +29,21 @@ import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath } from '~/utils/daycare'
-import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
-definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 const route = useRoute()
+const familyTheme = usePersonasFamilyTheme({ key: `pa-qr-${route.params.id}` })
 const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family')
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
-const theme = computed(() => resolvePersonasTheme({
-  matricula: primaryChild.value?.matricula,
-  plantel: primaryChild.value?.plantel,
-  nivelEdu: primaryChild.value?.nivelEdu,
-  campus: primaryChild.value?.campus
+const { theme, themeVars } = useResolvedPersonasTheme(() => ({
+  matricula: primaryChild.value?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
+  plantel: primaryChild.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
+  nivelEdu: primaryChild.value?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))
@@ -49,11 +53,16 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
 
 <style scoped>
 .qr-card {
+  --pa-primary: #618b2f;
+  --pa-contrast: #fff;
+  --pa-soft: rgba(97, 139, 47, 0.12);
+  --pa-border: rgba(97, 139, 47, 0.28);
   align-items: center;
   display: grid;
   gap: 18px;
   justify-items: center;
   margin-inline: auto;
+  border-color: var(--pa-border);
   max-width: 520px;
   text-align: center;
 }
@@ -68,6 +77,7 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
 }
 
 .qr-card h2 {
+  color: var(--pa-primary);
   margin-bottom: 6px;
 }
 

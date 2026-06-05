@@ -18,8 +18,8 @@
         <img v-if="session.user.picture" :src="session.user.picture" alt="" />
         <span v-else class="avatar">{{ initials }}</span>
         <div class="profile-copy">
-          <strong>{{ session.user.displayName || session.user.email }}</strong>
-          <small>{{ session.user.email }}</small>
+          <strong>{{ profileName }}</strong>
+          <small>{{ profileDetail }}</small>
         </div>
         <div class="scope-badges" data-diagnostic="session-role">
           <span>{{ sessionRoleLabel }}</span>
@@ -32,7 +32,7 @@
     <div v-if="session?.user?.impersonation" class="impersonation-bar">
       <div class="page-shell impersonation-inner">
         <strong>{{ impersonationLabel }}</strong>
-        <span>{{ session.user.displayName || session.user.email }}</span>
+        <span>{{ session.user.displayName || displayMatriculaCandidate(session.user.username) || session.user.email }}</span>
         <button class="link-button" type="button" data-diagnostic-action="terminar-impersonacion" @click="exitImpersonation">Terminar vista</button>
       </div>
     </div>
@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 
@@ -51,6 +52,9 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+
+const profileName = computed(() => props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Usuario')
+const profileDetail = computed(() => props.session?.user?.email || displayMatriculaCandidate(props.session?.user?.username) || sessionRoleLabel.value)
 
 const sessionRoleLabel = computed(() => {
   const user = props.session?.user
@@ -72,7 +76,7 @@ const sessionScopeLabel = computed(() => {
 })
 
 const initials = computed(() => {
-  const source = props.session?.user?.displayName || props.session?.user?.email || 'HP'
+  const source = props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'HP'
   return source.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
 })
 

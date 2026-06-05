@@ -17,7 +17,7 @@
       </label>
       <label class="label">
         Usuario / correo
-        <input v-model="model.username" class="input" required />
+        <input v-model="model.username" class="input" required @blur="normalizeUsername" />
       </label>
       <label class="label">
         Correo
@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 import type { FamilyAccount } from '~/types/daycare'
 
 const props = defineProps<{
@@ -49,7 +50,12 @@ const model = reactive<Partial<FamilyAccount>>(normalizeAccount(props.account))
 
 watch(() => props.account, (account) => Object.assign(model, normalizeAccount(account)), { deep: true })
 
+function normalizeUsername() {
+  model.username = displayMatriculaCandidate(model.username)
+}
+
 function submit() {
+  normalizeUsername()
   emit('save', { ...model })
 }
 

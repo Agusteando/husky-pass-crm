@@ -1,5 +1,6 @@
 <template>
-  <section class="marbete-page stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="marbete">
+  <FamilyPersonasAutorizadasShell title="Marbete">
+    <section class="marbete-page stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="marbete">
     <header class="marbete-head">
       <div>
         <p class="eyebrow">Marbete</p>
@@ -26,25 +27,26 @@
       </div>
     </section>
   </section>
+  </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
-import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
-definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
+const familyTheme = usePersonasFamilyTheme({ key: `pa-marbete-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
-const theme = computed(() => resolvePersonasTheme({
-  matricula: data.value?.matricula || data.value?.child?.matricula,
-  plantel: data.value?.plantel,
-  nivelEdu: data.value?.nivelEdu,
-  campus: data.value?.child?.campus
+const { theme, themeVars } = useResolvedPersonasTheme(() => ({
+  matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
+  plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
+  nivelEdu: data.value?.nivelEdu || data.value?.child?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
+  campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
-const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)

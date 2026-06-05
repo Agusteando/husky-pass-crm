@@ -68,29 +68,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { navigateTo, useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
-import type { PublicSession } from '~/types/session'
-import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { navigateTo, useRoute } from 'nuxt/app'
+import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
 
 const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-shell-session' })
-const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-shell-family-people', timeout: 15000 })
-
-const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const studentName = computed(() => [primaryChild.value?.nombreA, primaryChild.value?.paternoA, primaryChild.value?.maternoA].filter(Boolean).join(' '))
-const studentPhoto = computed(() => normalizeVirtualAssetUrl(primaryChild.value?.foto || ''))
+const { primaryChild, studentName, studentPhoto, theme, themeVars } = usePersonasFamilyTheme({ key: 'shell' })
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
-const theme = computed(() => resolvePersonasTheme({
-  matricula: primaryChild.value?.matricula || session.value?.user?.username,
-  plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
-  nivelEdu: primaryChild.value?.nivelEdu,
-  campus: primaryChild.value?.campus || session.value?.user?.campus
-}))
-const themeVars = computed(() => personasThemeStyle(theme.value))
 const headerMascot = computed(() => personasMascot(theme.value, 'header'))
 const navMascot = computed(() => personasMascot(theme.value, 'transition'))
 const levelName = computed(() => personasLevelName(theme.value))

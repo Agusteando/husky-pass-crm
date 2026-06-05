@@ -195,7 +195,8 @@ import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasMascot } from '~/utils/personasTheme'
+import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
@@ -217,7 +218,7 @@ const openFaq = ref<number | null>(0)
 const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const theme = computed(() => resolvePersonasTheme({
+const { theme } = useResolvedPersonasTheme(() => ({
   matricula: primaryChild.value?.matricula || session.value?.user?.username,
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,

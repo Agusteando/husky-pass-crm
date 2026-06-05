@@ -52,7 +52,8 @@ import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
-import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasMascot } from '~/utils/personasTheme'
+import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-siblings-session' })
@@ -62,7 +63,7 @@ const error = ref('')
 const notice = ref('')
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const theme = computed(() => resolvePersonasTheme({
+const { theme } = useResolvedPersonasTheme(() => ({
   matricula: primaryChild.value?.matricula || session.value?.user?.username,
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,

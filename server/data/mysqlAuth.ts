@@ -445,7 +445,7 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
   return {
     id: Number(row.id),
     email: normalizeLegacyScope(row.email),
-    username: normalizeLegacyScope(row.username),
+    username: displayMatriculaCandidate(normalizeLegacyScope(row.username)),
     displayName: normalizeLegacyScope(row.displayName),
     picture: normalizeLegacyScope(row.picture),
     role: normalizeLegacyScope(row.role),

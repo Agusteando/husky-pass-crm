@@ -88,7 +88,7 @@
         </div>
         <div v-if="overview.latestFamilies.length" class="family-mini-list">
           <article v-for="family in overview.latestFamilies" :key="family.id">
-            <strong>{{ family.nombre_nino || family.username }}</strong>
+            <strong>{{ family.nombre_nino || displayMatriculaCandidate(family.username) }}</strong>
             <small>{{ family.email }}</small>
           </article>
         </div>
@@ -102,6 +102,7 @@
 import { computed, ref } from 'vue'
 import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { SalaOverview } from '~/types/daycare'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
 

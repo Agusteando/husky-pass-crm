@@ -3,7 +3,8 @@ import type { PersonasReadinessIssue, PersonasReadinessResponse, PersonasReadine
 import { legacyOne, legacyQuery } from '~/server/utils/mysql'
 import { listMarbeteTemplates, selectMarbeteTemplate } from '~/server/utils/marbeteTemplates'
 import { readLastAccessActions } from '~/server/utils/personasConfig'
-import { normalizeMatricula, normalizePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
+import { normalizePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
+import { normalizeMatricula } from '~/utils/matricula'
 
 interface ReadinessDbRow extends RowDataPacket {
   userId: number

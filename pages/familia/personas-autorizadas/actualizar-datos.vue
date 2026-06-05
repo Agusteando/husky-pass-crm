@@ -108,7 +108,9 @@ import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { normalizeAttendanceText } from '~/utils/attendance'
-import { displayMatricula, personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasMascot } from '~/utils/personasTheme'
+import { displayMatricula } from '~/utils/matricula'
+import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -133,7 +135,7 @@ const activeGroup = ref<FieldGroup | null>(null)
 
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const theme = computed(() => resolvePersonasTheme({
+const { theme } = useResolvedPersonasTheme(() => ({
   matricula: primaryChild.value?.matricula || profile.value?.readonly.matricula || session.value?.user?.username,
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0] || profile.value?.readonly.plantel,
   nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,

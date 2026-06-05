@@ -129,7 +129,7 @@ import { computed, ref } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AdminAccessHistoryResponse } from '~/types/accessHistory'
 import { formatAttendanceDate } from '~/utils/attendance'
-import { displayMatricula } from '~/utils/personasTheme'
+import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['access-history-admin'] })
 

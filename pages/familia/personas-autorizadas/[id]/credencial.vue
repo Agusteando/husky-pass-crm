@@ -47,25 +47,26 @@ import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasInstitutionLogo, personasInstitutionName, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
+const familyTheme = usePersonasFamilyTheme({ key: `pa-printable-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', {
   key: `pa-credential-${route.params.id}`,
   query: { id: route.params.id },
   server: false,
   timeout: 15000
 })
-const theme = computed(() => resolvePersonasTheme({
-  matricula: data.value?.matricula || data.value?.child?.matricula,
-  plantel: data.value?.plantel,
-  nivelEdu: data.value?.nivelEdu,
-  campus: data.value?.child?.campus
+const { theme, themeVars } = useResolvedPersonasTheme(() => ({
+  matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
+  plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
+  nivelEdu: data.value?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
+  campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
-const themeVars = computed(() => personasThemeStyle(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))

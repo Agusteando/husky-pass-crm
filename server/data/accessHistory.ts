@@ -16,7 +16,8 @@ import { getAttendanceChildrenForFamily, resolveAttendanceChild } from '~/server
 import { legacyQuery } from '~/server/utils/mysql'
 import { dateOnly, formatAttendanceTime } from '~/utils/attendance'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { normalizeMatricula, normalizePlantel } from '~/utils/personasTheme'
+import { normalizePlantel } from '~/utils/personasTheme'
+import { normalizeMatricula } from '~/utils/matricula'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { deriveSipaePlantelFromStudent } from '~/server/utils/sipaePlantel'
 

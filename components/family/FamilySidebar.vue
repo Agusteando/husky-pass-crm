@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
@@ -42,7 +43,7 @@ const contextLabel = computed(() => {
   if (activeProduct.value === 'attendance') return 'Asistencia'
   return 'Familia'
 })
-const primaryName = computed(() => props.session?.user?.displayName || props.session?.user?.username || props.session?.user?.email || 'Husky Pass')
+const primaryName = computed(() => props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Husky Pass')
 const secondaryName = computed(() => {
   const user = props.session?.user
   if (!user) return ''

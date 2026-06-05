@@ -15,7 +15,7 @@ import type {
 import { assertSalaAccess, assertUnidadAccess } from '~/server/utils/authz'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { logPersonasDiagnostic, logPersonasWarning } from '~/server/utils/personasDiagnostics'
-import { normalizeMatricula } from '~/utils/personasTheme'
+import { normalizeMatricula } from '~/utils/matricula'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }

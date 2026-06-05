@@ -1,4 +1,6 @@
 import type { PersonasTheme, PersonasThemeKey } from '~/types/daycare'
+import { normalizeMatricula } from './matricula'
+
 
 export type PersonasMascotVariant = 'header' | 'hero' | 'empty' | 'help' | 'preview' | 'transition'
 
@@ -144,11 +146,7 @@ export function normalizeNivel(value?: string | null) {
   return String(value || '').trim().toLowerCase()
 }
 
-export function normalizeMatricula(value?: string | null) {
-  return String(value || '').trim().toUpperCase()
-}
-
-export function personasThemeKeyFromMatricula(value?: string | null): PersonasThemeKey {
+export function personasThemeKeyFromMatricula(value?: string | number | null): PersonasThemeKey {
   const matricula = normalizeMatricula(value)
   if (matricula.startsWith('PREEM') || matricula.startsWith('PREET')) return 'preescolar'
   if (matricula.startsWith('PM') || matricula.startsWith('PT')) return 'primaria'
@@ -156,16 +154,12 @@ export function personasThemeKeyFromMatricula(value?: string | null): PersonasTh
   return 'daycare'
 }
 
-export function displayMatricula(value?: string | null, fallback = '') {
-  return normalizeMatricula(value) || fallback
-}
-
-export function resolvePersonasTheme(input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null; themeKey?: string | null }) {
-  const explicit = String(input.themeKey || '').trim().toLowerCase() as PersonasThemeKey
-  if (explicit && PERSONAS_THEMES[explicit]) return PERSONAS_THEMES[explicit]
-
+export function resolvePersonasTheme(input: { matricula?: string | number | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null; themeKey?: string | null }) {
   const matricula = normalizeMatricula(input.matricula)
   if (matricula) return PERSONAS_THEMES[personasThemeKeyFromMatricula(matricula)]
+
+  const explicit = String(input.themeKey || '').trim().toLowerCase() as PersonasThemeKey
+  if (explicit && PERSONAS_THEMES[explicit]) return PERSONAS_THEMES[explicit]
 
   const plantel = normalizePlantel(input.plantel || input.campus)
   const nivel = normalizeNivel(input.nivelEdu)

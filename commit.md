@@ -1,1 +1,1 @@
-feat: unificar identidad institucional y agregar historial de accesos familiar
+fix: centralizar tema de Personas Autorizadas y normalizar matrículas

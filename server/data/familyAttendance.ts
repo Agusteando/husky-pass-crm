@@ -34,7 +34,7 @@ import {
   normalizeAttendanceText,
   resolveSchoolYearOption
 } from '~/utils/attendance'
-import { normalizeMatricula } from '~/utils/personasTheme'
+import { normalizeMatricula } from '~/utils/matricula'
 
 interface StudentMetaRow extends RowDataPacket {
   matricula: string | null

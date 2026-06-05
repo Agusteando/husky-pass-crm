@@ -4,6 +4,7 @@ import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
 import { getPersonasAccessUser } from '~/server/data/mysqlPersonasAdmin'
 import { appendAccessActionLog } from '~/server/utils/personasConfig'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 
 const schema = z.object({
   userId: z.coerce.number().int().positive()
@@ -16,14 +17,15 @@ export default defineEventHandler(async (event) => {
   const user = await getPersonasAccessUser(body.userId)
   if (!user) throw createError({ statusCode: 404, statusMessage: 'Familia no encontrada.' })
 
-  const login = user.email || user.username || ''
+  const userLogin = displayMatriculaCandidate(user.username)
+  const login = user.email || userLogin || ''
   if (!login) throw createError({ statusCode: 422, statusMessage: 'La familia no tiene correo ni usuario para preparar acceso.' })
 
   const payload = {
     userId: Number(user.id),
     login,
-    contact: user.email || user.username || null,
-    displayName: user.displayName || user.nombre_nino || user.username || `Familia ${user.id}`,
+    contact: user.email || userLogin || null,
+    displayName: user.displayName || user.nombre_nino || userLogin || `Familia ${user.id}`,
     passwordAvailable: Boolean(user.plaintext),
     password: user.plaintext || null,
     status: 'prepared' as const,

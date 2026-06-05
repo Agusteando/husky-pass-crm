@@ -25,20 +25,20 @@
 import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
-import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
+const familyTheme = usePersonasFamilyTheme({ key: `pa-printable-${route.params.id}` })
 const frame = ref<HTMLIFrameElement | null>(null)
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
-const theme = computed(() => resolvePersonasTheme({
-  matricula: data.value?.matricula || data.value?.child?.matricula,
-  plantel: data.value?.plantel,
-  nivelEdu: data.value?.nivelEdu,
-  campus: data.value?.child?.campus
+const { themeVars } = useResolvedPersonasTheme(() => ({
+  matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
+  plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
+  nivelEdu: data.value?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
+  campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
-const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}`)

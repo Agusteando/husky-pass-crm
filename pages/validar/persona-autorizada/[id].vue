@@ -37,7 +37,8 @@
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { ScanAuthorizedPerson } from '~/types/daycare'
-import { displayMatricula, personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
+import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
+import { displayMatricula } from '~/utils/matricula'
 
 const route = useRoute()
 const { data, pending, error: loadError } = useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {

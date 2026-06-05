@@ -51,10 +51,10 @@
             :aria-pressed="selected?.id === account.id"
             @click="selectAccount(account)"
           >
-            <span class="family-avatar">{{ initials(account.nombre_nino || account.username) }}</span>
+            <span class="family-avatar">{{ initials(account.nombre_nino || accountLabel(account.username)) }}</span>
             <span class="family-copy">
               <strong>{{ account.nombre_nino || 'Sin nombre de niño/a' }}</strong>
-              <small>{{ [account.username || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
+              <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
             </span>
             <span class="role-pill">{{ account.role || 'HUSKY' }}</span>
           </button>
@@ -67,11 +67,11 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">Detalle</p>
-              <h2>{{ selected.nombre_nino || selected.username }}</h2>
+              <h2>{{ selected.nombre_nino || accountLabel(selected.username) }}</h2>
             </div>
           </div>
           <dl>
-            <div><dt>Usuario</dt><dd>{{ selected.username || 'Sin usuario' }}</dd></div>
+            <div><dt>Usuario</dt><dd>{{ accountLabel(selected.username) || 'Sin usuario' }}</dd></div>
             <div><dt>Correo</dt><dd>{{ selected.email || 'Sin correo' }}</dd></div>
             <div><dt>Rol</dt><dd>{{ selected.role || '—' }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
@@ -94,6 +94,7 @@ import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -133,11 +134,15 @@ watch(() => route.query.familia, (value) => {
   if (row) selected.value = row
 })
 
+function accountLabel(value?: string | null) {
+  return displayMatriculaCandidate(value)
+}
+
 const filteredAccounts = computed(() => {
   const rows = data.value?.rows || []
   const needle = search.value.trim().toLowerCase()
   if (!needle) return rows
-  return rows.filter((account) => `${account.nombre_nino || ''} ${account.username || ''} ${account.email || ''}`.toLowerCase().includes(needle))
+  return rows.filter((account) => `${account.nombre_nino || ''} ${account.username || ''} ${accountLabel(account.username) || ''} ${account.email || ''}`.toLowerCase().includes(needle))
 })
 
 watch(filteredAccounts, (rows) => {

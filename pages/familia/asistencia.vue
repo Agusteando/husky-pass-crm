@@ -372,7 +372,7 @@ import type {
 } from '~/types/attendance'
 import type { AccessHistoryAction, AccessHistoryDay } from '~/types/accessHistory'
 import { formatAttendanceDate, normalizeAttendanceText } from '~/utils/attendance'
-import { displayMatricula } from '~/utils/personasTheme'
+import { displayMatricula, normalizeMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -423,7 +423,7 @@ const AccessActionChip = defineComponent({
 
 const route = useRoute()
 const router = useRouter()
-const selectedMatricula = ref(queryValue(route.query.matricula))
+const selectedMatricula = ref(normalizeMatricula(queryValue(route.query.matricula)))
 const selectedSchoolYear = ref(queryValue(route.query.schoolYear))
 const editingAbsence = ref<AttendanceAbsenceRecord | null>(null)
 const motivoDraft = ref('')
@@ -586,7 +586,7 @@ const filterOptions = computed(() => {
 
 watch(data, (value) => {
   if (!value) return
-  if (!selectedMatricula.value) selectedMatricula.value = value.selectedChild.matricula
+  if (!selectedMatricula.value) selectedMatricula.value = normalizeMatricula(value.selectedChild.matricula)
   if (!selectedSchoolYear.value) selectedSchoolYear.value = value.selectedSchoolYear.label
   recordLimit.value = 18
   absenceLimit.value = 4
@@ -665,7 +665,7 @@ function syncRoute() {
     path: route.path,
     query: {
       ...route.query,
-      matricula: selectedMatricula.value || undefined,
+      matricula: normalizeMatricula(selectedMatricula.value) || undefined,
       schoolYear: selectedSchoolYear.value || undefined
     }
   })

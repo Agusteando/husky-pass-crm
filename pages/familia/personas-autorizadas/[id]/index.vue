@@ -1,5 +1,6 @@
 <template>
-  <section class="pa-detail stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
+  <FamilyPersonasAutorizadasShell title="Persona autorizada">
+    <section class="pa-detail stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
     <header class="detail-head">
       <div>
         <p class="eyebrow">Persona autorizada</p>
@@ -45,6 +46,7 @@
 
     <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
   </section>
+  </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
@@ -52,22 +54,22 @@ import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonLabel, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
-definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
+const familyTheme = usePersonasFamilyTheme({ key: `pa-detail-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { timeout: 15000 })
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
-const theme = computed(() => resolvePersonasTheme({
-  matricula: primaryChild.value?.matricula,
-  plantel: primaryChild.value?.plantel,
-  nivelEdu: primaryChild.value?.nivelEdu,
-  campus: primaryChild.value?.campus
+const { themeVars } = useResolvedPersonasTheme(() => ({
+  matricula: primaryChild.value?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
+  plantel: primaryChild.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
+  nivelEdu: primaryChild.value?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
-const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const initials = computed(() => (fullName.value || 'PA').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const photoUrl = computed(() => {

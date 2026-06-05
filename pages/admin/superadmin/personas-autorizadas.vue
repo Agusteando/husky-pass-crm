@@ -82,7 +82,7 @@
               <span class="status-dot"></span>
               <span class="family-copy">
                 <strong>{{ row.studentName }}</strong>
-                <small>{{ row.familyLabel }} / {{ row.username || 'sin matrícula' }}</small>
+                <small>{{ row.familyLabel }} / {{ displayMatricula(row.username, 'sin matrícula') }}</small>
               </span>
               <span class="scope-copy">
                 <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
@@ -133,7 +133,7 @@
           <p class="eyebrow">Acceso preparado</p>
           <h2>{{ preparedAccess.displayName }}</h2>
           <dl>
-            <div><dt>Login</dt><dd>{{ preparedAccess.login }}</dd></div>
+            <div><dt>Login</dt><dd>{{ displayMatriculaCandidate(preparedAccess.login) }}</dd></div>
             <div><dt>Contraseña</dt><dd>{{ preparedAccess.passwordAvailable ? preparedAccess.password : 'No visible' }}</dd></div>
             <div><dt>Estado</dt><dd>{{ preparedAccess.message }}</dd></div>
           </dl>
@@ -189,6 +189,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { PersonasAutorizadasConfig, PersonasReadinessResponse, PersonasReadinessRow, PersonasSurveyNivelKey } from '~/types/daycare'
 import { formatDate } from '~/utils/daycare'
+import { displayMatricula, displayMatriculaCandidate } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
