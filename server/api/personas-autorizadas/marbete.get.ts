@@ -3,14 +3,19 @@ import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { getCredentialAuthorizedPersona } from '~/server/data/mysqlDaycare'
-import { listMarbeteTemplates, marbeteDownloadName, readMarbeteTemplateSvg, renderMarbeteSvg, selectMarbeteTemplate } from '~/server/utils/marbeteTemplates'
-import { renderMarbetePdf } from '~/server/utils/marbetePdf'
+import { listMarbeteTemplates, marbeteDownloadName, readMarbeteTemplateSvg, renderMarbeteSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
+import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
+import type { MarbeteReadinessResponse } from '~/types/daycare'
 
 const schema = z.object({
   id: z.coerce.number().int().positive(),
   download: z.string().optional().default(''),
-  format: z.string().optional().default('')
+  format: z.enum(['', 'svg-preview', 'readiness']).optional().default('')
 })
+
+function firstIssue(issues: string[]) {
+  return issues[0] || 'El marbete no tiene todos los datos requeridos.'
+}
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
@@ -24,8 +29,38 @@ export default defineEventHandler(async (event) => {
   if (!template) throw createError({ statusCode: 503, statusMessage: 'No hay plantilla compatible para este alumno.' })
 
   const origin = getRequestURL(event).origin
-  const svg = renderMarbeteSvg(await readMarbeteTemplateSvg(template), data, origin)
+  const templateSvg = await readMarbeteTemplateSvg(template)
+  const requirementStatus = validateMarbeteRequirements(templateSvg, data, origin)
+  const svg = renderMarbeteSvg(templateSvg, data, origin)
   const downloadName = marbeteDownloadName(data, template)
+
+  if (query.format === 'readiness') {
+    const response: MarbeteReadinessResponse = {
+      ok: requirementStatus.ok,
+      issues: requirementStatus.issues,
+      template,
+      themeKey: template.themeKey,
+      downloadName
+    }
+
+    if (requirementStatus.ok) {
+      try {
+        await assertMarbetePdfAssets(svg)
+      } catch (error) {
+        const failure = error as { statusMessage?: string; message?: string; data?: { statusMessage?: string } }
+        response.ok = false
+        response.issues = [failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cargar una imagen requerida para generar el marbete.']
+      }
+    }
+
+    setHeader(event, 'Cache-Control', 'private, no-store')
+    return response
+  }
+
+  if (!requirementStatus.ok) {
+    throw createError({ statusCode: 422, statusMessage: firstIssue(requirementStatus.issues) })
+  }
+
   if (query.format === 'svg-preview' && query.download !== '1') {
     setHeader(event, 'Content-Type', 'image/svg+xml; charset=utf-8')
     setHeader(event, 'Cache-Control', 'private, no-store')

@@ -1,14 +1,14 @@
 <template>
   <Teleport to="body">
     <div ref="backdropRef" class="pa-modal-backdrop" role="presentation" @click.self="close">
-      <section ref="modalRef" class="pa-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+      <section ref="modalRef" class="pa-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" :aria-busy="props.closeDisabled ? 'true' : 'false'" tabindex="-1">
         <header class="pa-modal-head">
           <div>
             <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
             <h2 :id="titleId">{{ title }}</h2>
             <p v-if="description">{{ description }}</p>
           </div>
-          <button class="pa-modal-close" type="button" aria-label="Cerrar" @click="close">×</button>
+          <button class="pa-modal-close" type="button" aria-label="Cerrar" :disabled="props.closeDisabled" @click="close">×</button>
         </header>
         <div class="pa-modal-body">
           <slot />
@@ -21,11 +21,14 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   title: string
   eyebrow?: string
   description?: string
-}>()
+  closeDisabled?: boolean
+}>(), {
+  closeDisabled: false
+})
 
 const emit = defineEmits<{ close: [] }>()
 const modalRef = ref<HTMLElement | null>(null)
@@ -34,6 +37,7 @@ const previousActive = ref<HTMLElement | null>(null)
 const titleId = `pa-modal-title-${Math.random().toString(36).slice(2, 9)}`
 
 function close() {
+  if (props.closeDisabled) return
   emit('close')
 }
 
@@ -50,7 +54,7 @@ function focusableElements() {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
-    close()
+    if (!props.closeDisabled) close()
     return
   }
   if (event.key !== 'Tab') return
@@ -111,7 +115,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
   display: grid;
   gap: 0;
-  max-height: min(88vh, 860px);
+  max-height: min(90dvh, 860px);
   max-width: min(920px, calc(100vw - 28px));
   overflow: hidden;
   width: 100%;
@@ -157,8 +161,16 @@ onBeforeUnmount(() => {
   width: 40px;
 }
 
+.pa-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+
 .pa-modal-body {
+  max-height: calc(90dvh - 98px);
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 18px 22px 22px;
 }
 
@@ -170,8 +182,12 @@ onBeforeUnmount(() => {
 
   .pa-modal {
     border-radius: 24px 24px 0 0;
-    max-height: 92vh;
+    max-height: 92dvh;
     max-width: 100vw;
+  }
+
+  .pa-modal-body {
+    max-height: calc(92dvh - 96px);
   }
 
   .pa-modal-head,

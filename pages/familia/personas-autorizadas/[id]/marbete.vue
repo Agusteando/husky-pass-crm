@@ -9,22 +9,28 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-        <a class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
+        <a v-if="downloadAvailable" class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
+        <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
       </div>
     </header>
 
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar el marbete.</p>
-    <div v-else-if="pending" class="preview-state" data-product-loading data-state="loading">
+    <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el marbete.' }}</p>
+    <div v-else-if="pending || readinessPending" class="preview-state" data-product-loading data-state="loading">
       <span></span>
       <strong>Generando vista...</strong>
     </div>
 
-    <section v-else class="preview-shell" data-product-panel="marbete-preview" data-state="content">
+    <section v-else-if="downloadAvailable" class="preview-shell" data-product-panel="marbete-preview" data-state="content">
       <iframe :src="previewUrl" title="Vista previa de marbete"></iframe>
       <div class="download-ready">
         <span>PDF listo para imprimir</span>
         <strong>{{ theme.label }}</strong>
       </div>
+    </section>
+
+    <section v-else class="preview-state unavailable" data-product-panel="marbete-preview" data-state="unavailable">
+      <strong>Marbete no disponible</strong>
+      <p>{{ readinessMessage }}</p>
     </section>
   </section>
   </FamilyPersonasAutorizadasShell>
@@ -33,7 +39,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteReadinessResponse, PrintableAuthorizedPerson } from '~/types/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
@@ -41,6 +47,11 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-marbete-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
+const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
+  key: `pa-marbete-readiness-${route.params.id}`,
+  query: { id: route.params.id, format: 'readiness' },
+  timeout: 20000
+})
 const { theme, themeVars } = useResolvedPersonasTheme(() => ({
   matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
   plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
@@ -51,6 +62,8 @@ const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
+const downloadAvailable = computed(() => Boolean(readiness.value?.ok))
+const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readinessError.value ? 'No fue posible validar los datos e imágenes del marbete.' : 'Validando datos e imágenes del marbete…'))
 </script>
 
 <style scoped>
@@ -97,6 +110,17 @@ const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route
   display: flex;
   gap: 12px;
   padding: 16px;
+}
+
+.preview-state.unavailable {
+  align-items: start;
+  display: grid;
+}
+
+.preview-state.unavailable p {
+  color: var(--pa-muted);
+  font-weight: 600;
+  margin: 0;
 }
 
 .preview-state span {

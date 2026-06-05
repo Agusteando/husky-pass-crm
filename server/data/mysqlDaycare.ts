@@ -756,8 +756,8 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
      FROM personas_autorizadas A
      LEFT JOIN users u ON u.id = A.user_id
      LEFT JOIN alumno_pa B ON A.user_id = B.user_id
-     LEFT JOIN matricula m ON u.username = m.matricula
-     LEFT JOIN credenciales c ON u.username = c.matricula
+     LEFT JOIN matricula m ON UPPER(u.username) = UPPER(m.matricula)
+     LEFT JOIN credenciales c ON UPPER(u.username) = UPPER(c.matricula)
      WHERE A.id = ?
      GROUP BY A.id`,
     [id]
@@ -765,7 +765,15 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
   assertFamilyOwner(user, row.user_id)
   row.children = await getFamilyChildren(user)
-  row.child = row.children?.[0] || null
+  const currentChild = row.children.find((child) => child.isCurrent) || row.children?.[0] || null
+  row.child = currentChild
+  row.matricula = normalizeMatricula(row.matricula || currentChild?.matricula || user.username) || null
+  row.fullnameA = row.fullnameA || [currentChild?.nombreA, currentChild?.paternoA, currentChild?.maternoA].filter(Boolean).join(' ') || null
+  row.fotoA = row.fotoA || currentChild?.foto || null
+  row.gradoA = row.gradoA || currentChild?.grado || null
+  row.grupoA = row.grupoA || currentChild?.grupo || null
+  row.nivelEdu = row.nivelEdu || currentChild?.nivelEdu || null
+  row.plantel = row.plantel || currentChild?.plantel || derivePlantelFromMatricula(row.matricula, row.nivelEdu, user.campus || user.empresa)
   return row
 }
 

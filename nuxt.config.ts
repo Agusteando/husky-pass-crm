@@ -64,5 +64,11 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: true
+  },
+  nitro: {
+    externals: {
+      trace: false,
+      external: ['pdfkit', 'svg-to-pdfkit', 'fontkit', '@fontsource/montserrat']
+    }
   }
 })

@@ -1,1 +1,1 @@
-fix: centralizar tema de Personas Autorizadas y normalizar matrículas
+Corrige modal de edición de Personas Autorizadas y generación de PDFs de marbete

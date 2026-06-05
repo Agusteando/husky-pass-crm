@@ -30,12 +30,13 @@
         <div class="readiness">
           <span class="ok">Registro guardado</span>
           <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? studentLine : 'Alumno pendiente' }}</span>
-          <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? 'Marbete listo para descargar' : 'Completa alumno para marbete' }}</span>
+          <span :class="{ ok: marbeteReady }">{{ marbeteMessage }}</span>
         </div>
 
         <div class="action-grid">
           <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-marbete">Previsualizar marbete</NuxtLink>
-          <a class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
+          <a v-if="marbeteReady" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
+          <button v-else class="btn btn-secondary" type="button" disabled>{{ marbeteMessage }}</button>
           <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/qr`" data-diagnostic-link="ver-qr">Ver QR</NuxtLink>
           <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validación</button>
         </div>
@@ -52,7 +53,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonLabel, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -62,6 +63,11 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-detail-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { timeout: 15000 })
+const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
+  key: `pa-detail-marbete-readiness-${route.params.id}`,
+  query: { id: route.params.id, format: 'readiness' },
+  timeout: 20000
+})
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
 const { themeVars } = useResolvedPersonasTheme(() => ({
@@ -82,6 +88,12 @@ const studentLine = computed(() => {
   const child = primaryChild.value
   if (!child) return ''
   return [child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ')
+})
+const marbeteReady = computed(() => Boolean(readiness.value?.ok))
+const marbeteMessage = computed(() => {
+  if (readinessPending.value) return 'Validando marbete'
+  if (readinessError.value) return 'No fue posible validar el marbete'
+  return readiness.value?.ok ? 'Marbete listo para descargar' : readiness.value?.issues?.[0] || 'Marbete no disponible'
 })
 const shareMessage = ref('')
 

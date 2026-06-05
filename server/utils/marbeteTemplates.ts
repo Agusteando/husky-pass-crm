@@ -11,6 +11,16 @@ const TEMPLATE_DIR = join(process.cwd(), 'data', 'marbete-templates')
 const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
 const VALID_THEME_KEYS = new Set<PersonasThemeKey>(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis'])
 
+export interface MarbeteRenderValues {
+  values: Record<string, string>
+  validationUrl: string
+}
+
+export interface MarbeteRequirementStatus {
+  ok: boolean
+  issues: string[]
+}
+
 function safeId(value: string) {
   return value
     .normalize('NFD')
@@ -151,30 +161,111 @@ export async function saveMarbeteTemplate(input: {
   return next
 }
 
-export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string) {
+function absoluteAssetUrl(value: string, origin: string) {
+  const normalized = normalizeVirtualAssetUrl(value)
+  if (!normalized) return ''
+  if (/^(?:https?:|data:)/i.test(normalized)) return normalized
+  if (normalized.startsWith('/')) return `${origin.replace(/\/$/, '')}${normalized}`
+  return normalized
+}
+
+function fullName(parts: Array<string | null | undefined>) {
+  return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
+}
+
+export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin: string): MarbeteRenderValues {
   const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
   const trustedProcessedPhoto = isValidatedVisionPhotoUrl(data.compressed_foto) ? data.compressed_foto : ''
-  const photo = normalizeVirtualAssetUrl(data.foto || trustedProcessedPhoto || '')
+  const personPhoto = absoluteAssetUrl(String(trustedProcessedPhoto || data.foto || ''), origin)
+  const studentPhoto = absoluteAssetUrl(String(data.fotoA || data.child?.foto || ''), origin)
+  const studentName = fullName([
+    data.fullnameA || '',
+  ]) || fullName([data.child?.nombreA, data.child?.paternoA, data.child?.maternoA])
+  const authorizedName = fullName([data.nombreP, data.paternoP, data.maternoP])
+  const plantel = String(data.plantel || data.child?.plantel || '')
+  const nivel = String(data.nivelEdu || data.child?.nivelEdu || '')
+  const grado = String(data.gradoA || data.child?.grado || '')
+  const grupo = String(data.grupoA || data.child?.grupo || '')
+  const matricula = displayMatricula(data.matricula || data.child?.matricula)
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl)}`
-  const values: Record<string, string> = {
-    id: String(data.id || ''),
-    qr: String(data.qr || data.id || ''),
-    paternoP: String(data.paternoP || ''),
-    maternoP: String(data.maternoP || ''),
-    nombreP: String(data.nombreP || ''),
-    parenP: String(data.parenP || ''),
-    foto: photo,
-    compressed_foto: photo,
-    qrImage,
-    nivelEdu: String(data.nivelEdu || ''),
-    plantel: String(data.plantel || ''),
-    matricula: displayMatricula(data.matricula),
-    fullnameA: String(data.fullnameA || ''),
-    gradoA: String(data.gradoA || ''),
-    grupoA: String(data.grupoA || ''),
-    fotoA: normalizeVirtualAssetUrl(data.fotoA || ''),
-    validationUrl
+
+  return {
+    validationUrl,
+    values: {
+      id: String(data.id || ''),
+      qr: String(data.qr || data.id || ''),
+      paternoP: String(data.paternoP || ''),
+      maternoP: String(data.maternoP || ''),
+      nombreP: String(data.nombreP || ''),
+      parenP: String(data.parenP || ''),
+      parentesco: String(data.parenP || ''),
+      fullnameP: authorizedName,
+      nombreCompletoP: authorizedName,
+      authorizedPersonName: authorizedName,
+      foto: personPhoto,
+      fotoP: personPhoto,
+      compressed_foto: personPhoto,
+      qrImage,
+      nivelEdu: nivel,
+      nivel,
+      plantel,
+      matricula,
+      fullnameA: studentName,
+      nombreAlumno: studentName,
+      studentName,
+      alumno: studentName,
+      gradoA: grado,
+      grado,
+      grupoA: grupo,
+      grupo,
+      fotoA: studentPhoto,
+      studentPhoto,
+      validationUrl
+    }
   }
+}
+
+function dataTokens(svg: string) {
+  return Array.from(svg.matchAll(/{{\s*data\.([A-Za-z0-9_]+)\s*}}/g)).map((match) => match[1])
+}
+
+function imageTokens(svg: string) {
+  return Array.from(svg.matchAll(/{{\s*getTrustedUrl\(data\.([A-Za-z0-9_]+)\)\s*}}/g)).map((match) => match[1])
+}
+
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)))
+}
+
+function missingLabelFor(key: string) {
+  if (['foto', 'fotoP', 'compressed_foto'].includes(key)) return 'Foto de la persona autorizada pendiente o no disponible.'
+  if (['fotoA', 'studentPhoto'].includes(key)) return 'Foto del alumno pendiente o no disponible.'
+  if (key === 'qrImage') return 'Código QR no disponible.'
+  if (['matricula'].includes(key)) return 'Matrícula del alumno no disponible.'
+  if (['fullnameA', 'nombreAlumno', 'studentName', 'alumno'].includes(key)) return 'Nombre del alumno no disponible.'
+  if (['fullnameP', 'nombreCompletoP', 'authorizedPersonName', 'nombreP'].includes(key)) return 'Nombre de la persona autorizada no disponible.'
+  if (['parenP', 'parentesco'].includes(key)) return 'Parentesco de la persona autorizada no disponible.'
+  return `Dato requerido no disponible: ${key}.`
+}
+
+export function validateMarbeteRequirements(svg: string, data: PrintableAuthorizedPerson, origin: string): MarbeteRequirementStatus {
+  const { values } = buildMarbeteRenderValues(data, origin)
+  const requiredTokens = unique([...dataTokens(svg), ...imageTokens(svg)])
+  const issues = requiredTokens
+    .filter((key) => !String(values[key] || '').trim())
+    .map(missingLabelFor)
+
+  if (!String(values.fullnameP || '').trim()) issues.push(missingLabelFor('fullnameP'))
+  if (!String(values.parenP || '').trim()) issues.push(missingLabelFor('parenP'))
+  if (!String(values.fotoP || values.foto || '').trim()) issues.push(missingLabelFor('fotoP'))
+  if (!String(values.fullnameA || '').trim()) issues.push(missingLabelFor('fullnameA'))
+  if (!String(values.matricula || '').trim()) issues.push(missingLabelFor('matricula'))
+
+  return { ok: !unique(issues).length, issues: unique(issues) }
+}
+
+export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string) {
+  const { values } = buildMarbeteRenderValues(data, origin)
 
   return svg
     .replace(/{{\s*getTrustedUrl\(data\.([A-Za-z0-9_]+)\)\s*}}/g, (_match, key: string) => escapeXml(values[key]))

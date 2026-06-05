@@ -154,6 +154,14 @@ export interface RenderedMarbeteResponse {
   downloadName: string
 }
 
+export interface MarbeteReadinessResponse {
+  ok: boolean
+  issues: string[]
+  template?: MarbeteTemplateMeta | null
+  themeKey?: PersonasThemeKey | null
+  downloadName?: string
+}
+
 
 export interface PersonasStudentReadonly {
   matricula?: string | null

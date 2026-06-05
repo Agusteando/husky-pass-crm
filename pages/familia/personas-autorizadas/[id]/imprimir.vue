@@ -1,12 +1,12 @@
 <template>
   <main class="print-shell" :style="themeVars">
-    <section v-if="pending" class="status-card" data-product-loading>
+    <section v-if="pending || readinessPending" class="status-card" data-product-loading>
       <h1>Preparando marbete...</h1>
     </section>
 
-    <section v-else-if="loadError || !data" class="status-card" data-state="error">
+    <section v-else-if="loadError || !data || readinessError || !marbeteReady" class="status-card" data-state="error">
       <h1>Marbete no disponible</h1>
-      <p>No encontramos esta persona autorizada dentro de tu cuenta.</p>
+      <p>{{ marbeteMessage }}</p>
       <NuxtLink class="btn btn-secondary no-print" to="/familia/personas-autorizadas">Volver</NuxtLink>
     </section>
 
@@ -14,7 +14,7 @@
       <div class="print-actions no-print">
         <strong>{{ fullName }}</strong>
         <span>{{ templateContext }}</span>
-        <a class="btn btn-primary" :href="downloadUrl">Descargar</a>
+        <a v-if="marbeteReady" class="btn btn-primary" :href="downloadUrl">Descargar</a>
       </div>
       <iframe ref="frame" :src="previewUrl" title="Marbete imprimible" @load="printFrame"></iframe>
     </section>
@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteReadinessResponse, PrintableAuthorizedPerson } from '~/types/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
@@ -33,6 +33,11 @@ const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-printable-${route.params.id}` })
 const frame = ref<HTMLIFrameElement | null>(null)
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
+const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
+  key: `pa-print-marbete-readiness-${route.params.id}`,
+  query: { id: route.params.id, format: 'readiness' },
+  timeout: 20000
+})
 const { themeVars } = useResolvedPersonasTheme(() => ({
   matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
   plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
@@ -41,10 +46,18 @@ const { themeVars } = useResolvedPersonasTheme(() => ({
 }))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
+const marbeteReady = computed(() => Boolean(readiness.value?.ok))
+const marbeteMessage = computed(() => {
+  if (loadError.value || !data.value) return 'No encontramos esta persona autorizada dentro de tu cuenta.'
+  if (readinessPending.value) return 'Validando datos e imágenes del marbete.'
+  if (readinessError.value) return 'No fue posible validar los datos e imágenes del marbete.'
+  return readiness.value?.ok ? 'Marbete listo para imprimir.' : readiness.value?.issues?.[0] || 'Marbete no disponible.'
+})
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
 
 function printFrame() {
+  if (!marbeteReady.value) return
   setTimeout(() => {
     frame.value?.contentWindow?.focus()
     frame.value?.contentWindow?.print()

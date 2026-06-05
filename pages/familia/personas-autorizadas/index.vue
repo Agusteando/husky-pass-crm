@@ -90,7 +90,8 @@
             </button>
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}`">Ver</NuxtLink>
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}/marbete`">Marbete</NuxtLink>
-            <a v-if="selected.id" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`">Descargar PDF</a>
+            <a v-if="marbeteReady(selected)" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`">Descargar PDF</a>
+            <button v-else-if="selected.id" class="btn btn-secondary" type="button" disabled>{{ marbeteState(selected) }}</button>
             <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="confirmar-eliminar-persona-autorizada" @click="deleteTarget = selected">Eliminar</button>
           </div>
         </div>
@@ -127,14 +128,18 @@
         v-if="editing"
         :title="authorizedPersonLabel(Number(editing.indice || 1))"
         eyebrow="Persona autorizada"
-        @close="editing = null"
+        :close-disabled="saving || editorBusy"
+        @close="closeEditor"
       >
         <FamilyAuthorizedPersonEditor
+          :key="editingKey"
           :person="editing"
           :label="authorizedPersonLabel(Number(editing.indice || 1))"
           :saving="saving"
+          :server-error="editorError"
+          @busy="editorBusy = $event"
           @save="save"
-          @cancel="editing = null"
+          @cancel="closeEditor"
         />
       </FamilyPersonasModal>
 
@@ -192,9 +197,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { personasMascot } from '~/utils/personasTheme'
 import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -207,6 +213,8 @@ const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-ind
 const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000 })
 
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
+const editorError = ref('')
+const editorBusy = ref(false)
 const deleteTarget = ref<AuthorizedPerson | null>(null)
 const saving = ref(false)
 const deleting = ref(false)
@@ -214,6 +222,8 @@ const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
 const openFaq = ref<number | null>(0)
+const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
+const editingKey = computed(() => editing.value ? `edit-${editing.value.id || 'slot'}-${editing.value.indice}` : 'edit-none')
 
 const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
@@ -264,11 +274,10 @@ watch(people, (value) => {
   if (!value.length) return
   if (!value.some((person) => person.indice === selectedIndice.value)) selectedIndice.value = value[0]?.indice || 1
 }, { immediate: true })
+watch(() => people.value.map((person) => `${person.id || 'empty'}:${person.foto || ''}:${person.compressed_foto || ''}:${person.nombreP || ''}:${person.paternoP || ''}:${person.maternoP || ''}:${person.parenP || ''}`).join('|'), () => {
+  void refreshMarbeteReadiness()
+}, { immediate: true })
 
-function dateOnly(value?: string | null) {
-  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value || ''))
-  return match?.[1] || ''
-}
 function fullName(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
   return [person.nombreP, person.paternoP, person.maternoP].filter(Boolean).join(' ')
 }
@@ -287,14 +296,43 @@ function personState(person: AuthorizedPerson) {
   if (!person.parenP) return 'Falta parentesco'
   return 'Listo'
 }
+function localMarbeteReady(person: AuthorizedPerson) {
+  return Boolean(person.id && photoUrl(person) && fullName(person) && person.parenP)
+}
+function marbeteStatus(person: AuthorizedPerson) {
+  const id = Number(person.id || 0)
+  return id ? marbeteReadiness.value[id] : null
+}
 function marbeteReady(person: AuthorizedPerson) {
-  return Boolean(person.id && photoUrl(person) && fullName(person))
+  return Boolean(localMarbeteReady(person) && marbeteStatus(person)?.ok)
 }
 function marbeteState(person: AuthorizedPerson) {
   if (!person.id) return 'Captura pendiente'
   if (!photoUrl(person)) return 'Falta foto'
   if (!fullName(person)) return 'Falta nombre'
+  if (!person.parenP) return 'Falta parentesco'
+  const status = marbeteStatus(person)
+  if (!status || status.pending) return 'Validando marbete'
+  if (!status.ok) return status.issues[0] || 'Marbete no disponible'
   return 'Listo'
+}
+async function refreshMarbeteReadiness() {
+  const candidates = people.value.filter((person) => localMarbeteReady(person))
+  const candidateIds = new Set(candidates.map((person) => Number(person.id)))
+  for (const id of Object.keys(marbeteReadiness.value)) {
+    if (!candidateIds.has(Number(id))) delete marbeteReadiness.value[Number(id)]
+  }
+  await Promise.all(candidates.map(async (person) => {
+    const id = Number(person.id)
+    marbeteReadiness.value[id] = { ...(marbeteReadiness.value[id] || { ok: false, issues: [] }), pending: true }
+    try {
+      const result = await $fetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', { query: { id, format: 'readiness' } })
+      marbeteReadiness.value[id] = { ...result, pending: false }
+    } catch (err: unknown) {
+      const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+      marbeteReadiness.value[id] = { ok: false, issues: [failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible validar el marbete.'], pending: false }
+    }
+  }))
 }
 function selectPerson(person: AuthorizedPerson) {
   selectedIndice.value = person.indice
@@ -305,20 +343,49 @@ function selectPerson(person: AuthorizedPerson) {
 function edit(person: AuthorizedPerson) {
   error.value = ''
   notice.value = ''
-  editing.value = { ...person, fechaP: dateOnly(person.fechaP) || new Date().toISOString().slice(0, 10) }
+  editorError.value = ''
+  editorBusy.value = false
+  selectedIndice.value = person.indice
+  editing.value = toAuthorizedPersonSavePayload(createAuthorizedPersonForm(person))
+}
+function closeEditor() {
+  if (saving.value || editorBusy.value) return
+  editing.value = null
+  editorError.value = ''
+  editorBusy.value = false
+}
+function applySavedPerson(saved: AuthorizedPerson) {
+  const current = data.value || []
+  const next = current.map((person) => {
+    const sameRecord = saved.id && person.id && Number(person.id) === Number(saved.id)
+    const sameSlot = Number(person.indice) === Number(saved.indice)
+    if (!sameRecord && !sameSlot) return person
+    return {
+      ...person,
+      ...saved,
+      id: saved.id ? Number(saved.id) : person.id || null,
+      indice: Number(saved.indice || person.indice),
+      children: person.children
+    }
+  })
+  data.value = next.length ? next : current
 }
 async function save(payload: Partial<AuthorizedPerson>) {
+  if (saving.value || editorBusy.value) return
   saving.value = true
   error.value = ''
+  editorError.value = ''
   notice.value = ''
   try {
-    await $fetch('/api/personas-autorizadas/family', { method: 'POST', body: payload })
+    const saved = await $fetch<AuthorizedPerson>('/api/personas-autorizadas/family', { method: 'POST', body: payload })
+    applySavedPerson(saved)
     editing.value = null
-    await refresh()
     notice.value = 'Registro guardado.'
+    await refresh()
+    await refreshMarbeteReadiness()
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar el registro.'
+    editorError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar el registro.'
   } finally { saving.value = false }
 }
 async function remove(id: number | null | undefined) {
