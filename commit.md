@@ -1,1 +1,1 @@
-Ajusta densidad visual, uso de viewport y responsividad general de la aplicación
+Corrige validación de artefacto para modal de Personas Autorizadas y PDF de marbete
