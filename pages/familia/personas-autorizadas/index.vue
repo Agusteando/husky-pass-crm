@@ -6,6 +6,7 @@
         <h1>Personas autorizadas</h1>
         <p>{{ nextAction }}</p>
       </div>
+      <FamilyPersonasAmbassador class="home-ambassador" :theme="theme" variant="hero" compact decorative />
       <div class="head-action-card" :data-state="primaryPassPerson ? 'ready' : expedienteState">
         <span>{{ primaryPassPerson ? 'Husky Pass listo' : expedienteStatus }}</span>
         <strong>{{ primaryPassPerson ? fullName(primaryPassPerson) : nextAction }}</strong>
@@ -76,6 +77,14 @@
               Capturar
             </button>
           </header>
+
+          <div v-if="!completedCount" class="empty-guidance" data-state="empty">
+            <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
+            <div>
+              <strong>Empieza con una persona autorizada</strong>
+              <span>Captura sus datos y foto para habilitar su Husky Pass.</span>
+            </div>
+          </div>
 
           <div class="person-list">
             <button
@@ -201,11 +210,12 @@
 
       <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
         <article class="card tutorial-card">
-          <header class="section-head">
+          <header class="section-head branded-head">
             <div>
               <p class="eyebrow">Tutorial</p>
               <h2>Uso rapido</h2>
             </div>
+            <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
           </header>
           <div class="video-frame">
             <iframe src="https://www.youtube.com/embed/PMBQolTRysg" title="Tutorial Personas Autorizadas" allowfullscreen loading="lazy"></iframe>
@@ -240,6 +250,7 @@ import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -263,6 +274,12 @@ const editingKey = computed(() => editing.value ? `edit-${editing.value.id || 's
 const people = computed(() => data.value || [])
 const children = computed<AuthorizedChild[]>(() => people.value.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
+const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula,
+  plantel: primaryChild.value?.plantel,
+  nivelEdu: primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus
+}))
 const studentPhoto = computed(() => normalizeVirtualAssetUrl(primaryChild.value?.foto || ''))
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
@@ -452,7 +469,7 @@ function normalizeIndice(value: unknown) {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  grid-template-columns: minmax(0, 1fr) 104px minmax(260px, 340px);
   padding: clamp(14px, 2vw, 18px);
 }
 .pa-home-head h1,
@@ -464,6 +481,10 @@ function normalizeIndice(value: unknown) {
 .pa-home-head h1 {
   color: var(--pa-gray);
   font-size: clamp(1.55rem, 2.6vw, 2.25rem);
+}
+.home-ambassador {
+  align-self: center;
+  justify-self: center;
 }
 .head-action-card {
   background: #fff;
@@ -568,6 +589,31 @@ function normalizeIndice(value: unknown) {
   display: flex;
   gap: 10px;
   justify-content: space-between;
+}
+.branded-head :deep(.pa-ambassador-card) {
+  flex: 0 0 auto;
+}
+.empty-guidance {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff);
+  border: 1px solid var(--pa-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  padding: 10px;
+}
+.empty-guidance strong,
+.empty-guidance span {
+  display: block;
+}
+.empty-guidance strong {
+  color: var(--pa-gray);
+}
+.empty-guidance span {
+  color: var(--pa-muted);
+  font-size: .82rem;
+  font-weight: 700;
 }
 .person-list {
   display: grid;
@@ -777,6 +823,9 @@ function normalizeIndice(value: unknown) {
   .support-panel {
     grid-template-columns: 1fr;
   }
+  .home-ambassador {
+    justify-self: start;
+  }
   .person-row {
     grid-template-columns: 48px minmax(0, 1fr);
   }
@@ -791,6 +840,9 @@ function normalizeIndice(value: unknown) {
   .selected-identity {
     align-items: start;
     grid-template-columns: 1fr;
+  }
+  .empty-guidance {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
   .selected-photo {
     width: 72px;

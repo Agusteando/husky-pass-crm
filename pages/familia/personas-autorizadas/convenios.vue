@@ -6,6 +6,7 @@
         <h1>Beneficios institucionales</h1>
         <p>{{ config?.conveniosUrl ? 'Consulta los convenios disponibles para tu familia.' : 'No hay convenios disponibles por el momento.' }}</p>
       </div>
+      <FamilyPersonasAmbassador variant="help" compact decorative />
       <div class="convenios-action">
         <span class="badge">{{ config?.conveniosUrl ? 'Disponible' : 'Sin enlace' }}</span>
         <a v-if="config?.conveniosUrl" class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
@@ -24,7 +25,7 @@ const { data: config } = useFetch<PersonasAutorizadasConfig>('/api/personas-auto
 </script>
 
 <style scoped>
-.convenios-card { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto; }
+.convenios-card { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto auto; }
 .convenios-action { align-items: end; display: grid; gap: 10px; justify-items: end; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 @media (max-width: 760px) { .convenios-card { grid-template-columns: 1fr; } .convenios-action { justify-items: stretch; } }

@@ -1348,6 +1348,7 @@ async function saveMotivo() {
 }
 
 .access-chip {
+  --access-photo-size: 42px;
   background: #fff;
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -1358,7 +1359,9 @@ async function saveMotivo() {
 }
 
 .access-chip.compact {
-  min-width: min(240px, 100%);
+  --access-photo-size: 34px;
+  min-width: min(220px, 100%);
+  padding: 8px;
 }
 
 .access-chip.entrada {
@@ -1381,7 +1384,7 @@ async function saveMotivo() {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: var(--access-photo-size) minmax(0, 1fr);
 }
 
 .access-photo-shell {
@@ -1390,12 +1393,20 @@ async function saveMotivo() {
   border: 1px solid var(--pa-border);
   border-radius: 999px;
   display: grid;
+  height: var(--access-photo-size);
+  max-height: var(--access-photo-size);
+  max-width: var(--access-photo-size);
   overflow: hidden;
   place-items: center;
+  width: var(--access-photo-size);
 }
 
+.access-photo-shell :deep(.processed-photo),
 .access-photo-shell :deep(img) {
+  display: block;
   height: 100%;
+  max-height: 100%;
+  max-width: 100%;
   object-fit: cover;
   width: 100%;
 }

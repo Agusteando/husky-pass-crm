@@ -6,6 +6,7 @@
         <h1>Alumnos vinculados</h1>
         <p>{{ siblingTitle }}</p>
       </div>
+      <FamilyPersonasAmbassador :theme="theme" variant="hero" compact decorative />
       <div class="sibling-summary" aria-label="Resumen de alumnos">
         <span>
           <strong>{{ children.length || 0 }}</strong>
@@ -46,6 +47,7 @@
       </article>
 
       <div v-if="showUnavailable" class="empty-state">
+        <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
         <p>{{ unavailableSummary }}</p>
       </div>
     </section>
@@ -59,6 +61,7 @@
 import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 const { data: people, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-siblings-family-people', timeout: 15000 })
@@ -66,6 +69,13 @@ const switching = ref(false)
 const error = ref('')
 const notice = ref('')
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
+const currentChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
+const theme = computed(() => resolvePersonasTheme({
+  matricula: currentChild.value?.matricula,
+  plantel: currentChild.value?.plantel,
+  nivelEdu: currentChild.value?.nivelEdu,
+  campus: currentChild.value?.campus
+}))
 const matchedSiblings = computed(() => children.value.filter((child) => !child.isCurrent && child.siblingMatch === 'parents'))
 const switchableSiblings = computed(() => matchedSiblings.value.filter((child) => child.canSwitch))
 const hasParentMatch = computed(() => matchedSiblings.value.length > 0)
@@ -113,7 +123,7 @@ async function switchToChild(child: AuthorizedChild) {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto; }
+.section-hero { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto auto; }
 .loading-row, .notice { border: 1px solid var(--pa-border); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: var(--radius-lg); margin: 0; padding: 10px 12px; }
 .sibling-summary { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(96px, auto)); }
@@ -127,6 +137,6 @@ async function switchToChild(child: AuthorizedChild) {
 .sibling-photo img { height: 100%; object-fit: cover; width: 100%; }
 .sibling-card strong { color: var(--pa-gray); display: block; }
 .sibling-card span, .sibling-card small { color: var(--pa-muted); display: block; font-weight: 600; }
-.empty-state { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: var(--radius-lg); color: var(--pa-muted); font-weight: 700; padding: 10px 12px; }
-@media (max-width: 680px) { .section-hero, .sibling-card { grid-template-columns: 1fr; } .sibling-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sibling-photo { width: 64px; } }
+.empty-state { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: var(--radius-lg); color: var(--pa-muted); display: grid; font-weight: 700; gap: 10px; grid-template-columns: 72px minmax(0, 1fr); padding: 10px 12px; }
+@media (max-width: 680px) { .section-hero, .sibling-card { grid-template-columns: 1fr; } .sibling-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sibling-photo { width: 64px; } .empty-state { grid-template-columns: 58px minmax(0, 1fr); } }
 </style>

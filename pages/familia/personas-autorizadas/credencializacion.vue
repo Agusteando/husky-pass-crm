@@ -6,6 +6,7 @@
         <h1>Foto del alumno</h1>
         <p>{{ currentPhoto ? 'Lista.' : 'Pendiente.' }}</p>
       </div>
+      <FamilyPersonasAmbassador :theme="theme" variant="preview" compact decorative />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
@@ -80,6 +81,7 @@ import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { PersonasStudentProfile } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -94,6 +96,11 @@ const notice = ref('')
 const saved = ref(false)
 const pendingPhotoUrl = ref('')
 
+const theme = computed(() => resolvePersonasTheme({
+  matricula: profile.value?.readonly.matricula,
+  plantel: profile.value?.readonly.plantel,
+  nivelEdu: profile.value?.readonly.nivel
+}))
 const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.readonly.foto || ''))
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
 const academicLine = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
@@ -155,7 +162,7 @@ async function savePendingPhoto() {
 
 <style scoped>
 .photo-hero, .photo-flow { align-items: center; display: grid; gap: 12px; }
-.photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; }
+.photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; grid-template-columns: minmax(0, 1fr) auto; }
 .photo-flow { grid-template-columns: 150px minmax(0, 1fr); }
 .photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 14px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; width: 150px; }
 .photo-preview:not(:disabled) { cursor: pointer; }

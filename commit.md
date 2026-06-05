@@ -1,1 +1,1 @@
-Corrige validación de artefacto para modal de Personas Autorizadas y PDF de marbete
+Restaura identidad de embajadores en Personas Autorizadas y ajusta miniaturas de asistencia

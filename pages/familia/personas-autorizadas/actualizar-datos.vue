@@ -6,6 +6,7 @@
         <h1>Datos del alumno</h1>
         <p>{{ lastUpdateLabel }}</p>
       </div>
+      <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
@@ -107,6 +108,7 @@ import { useFetch } from 'nuxt/app'
 import type { PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import { normalizeAttendanceText } from '~/utils/attendance'
 import { displayMatricula } from '~/utils/matricula'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -127,6 +129,11 @@ const error = ref('')
 const notice = ref('')
 const activeGroup = ref<FieldGroup | null>(null)
 
+const theme = computed(() => resolvePersonasTheme({
+  matricula: profile.value?.readonly.matricula,
+  plantel: profile.value?.readonly.plantel,
+  nivelEdu: profile.value?.readonly.nivel
+}))
 const academicSummary = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / ') || 'Datos escolares')
 const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? `Actualizado ${formatDate(profile.value.meta.updatedAt)}` : 'Actualización familiar')
 const grupoSigil = computed(() => resolveGrupoSigil(profile.value?.readonly.grupo))
@@ -329,7 +336,7 @@ async function saveActiveGroup() {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; display: grid; gap: 12px; }
+.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 12px; margin: 0; padding: 10px 12px; }

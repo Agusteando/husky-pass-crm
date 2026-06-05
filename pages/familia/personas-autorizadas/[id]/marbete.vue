@@ -7,6 +7,7 @@
           <h1>{{ fullName || 'Persona autorizada' }}</h1>
           <p>{{ passContext }}</p>
         </div>
+        <FamilyPersonasAmbassador class="pass-ambassador" :theme="theme" variant="preview" compact decorative />
         <div class="head-actions">
           <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
           <a v-if="downloadAvailable" class="btn btn-primary pa-primary" :href="downloadUrl" data-diagnostic-link="descargar-husky-pass">Descargar Husky Pass</a>
@@ -29,8 +30,11 @@
       </section>
 
       <section v-else class="preview-state unavailable" data-product-panel="husky-pass-preview" data-state="unavailable">
-        <strong>Husky Pass no disponible</strong>
-        <p>{{ readinessMessage }}</p>
+        <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
+        <div>
+          <strong>Husky Pass no disponible</strong>
+          <p>{{ readinessMessage }}</p>
+        </div>
       </section>
     </section>
   </FamilyPersonasAutorizadasShell>
@@ -91,13 +95,16 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   padding: clamp(12px, 2vw, 16px);
 }
 
 .pass-head h1,
 .pass-head p {
   margin-bottom: 0;
+}
+.pass-ambassador {
+  justify-self: center;
 }
 
 .head-actions {
@@ -120,8 +127,9 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
 }
 
 .preview-state.unavailable {
-  align-items: start;
+  align-items: center;
   display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
 }
 
 .preview-state.unavailable p {
@@ -186,6 +194,12 @@ iframe {
   .pass-head {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+  .pass-ambassador {
+    justify-self: start;
+  }
+  .preview-state.unavailable {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
   .head-actions {
