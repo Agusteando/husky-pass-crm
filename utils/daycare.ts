@@ -48,6 +48,7 @@ export function stripHtml(value?: string | null) {
 
 export function publishedPdfViewerUrl(resource?: string | null) {
   if (!resource) return ''
+  if (/^https?:\/\//i.test(resource)) return resource
   if (resource.startsWith('/uploads/')) return resource
   const fileName = resource.split('/').pop()?.split('#')[0]?.split('?')[0]
   if (!fileName) return resource

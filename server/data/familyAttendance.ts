@@ -290,6 +290,16 @@ function tardyThresholdForPlantel(plantelCode: string) {
   return '09:01:00'
 }
 
+function minutesFromTime(value?: string | null) {
+  const [hours = '0', minutes = '0'] = formatAttendanceTime(value).split(':')
+  return Number(hours) * 60 + Number(minutes)
+}
+
+function minutesLateFor(time?: string | null, threshold?: string | null) {
+  const diff = minutesFromTime(time) - minutesFromTime(threshold)
+  return Number.isFinite(diff) ? Math.max(0, diff) : 0
+}
+
 async function fetchTardiesDbFallback(child: AttendanceChild, range: SchoolYearRange) {
   const threshold = tardyThresholdForPlantel(child.plantelCode)
   const user = await legacyOne<LegacyUserIdRow>(
@@ -356,15 +366,19 @@ async function fetchTardiesDbFallback(child: AttendanceChild, range: SchoolYearR
       matricula: child.matricula,
       date,
       time
-    }))
+    }, child.plantelCode))
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
 }
 
-function mapTardy(record: SipaeTardyRecord): AttendanceTardyRecord {
+function mapTardy(record: SipaeTardyRecord, plantelCode: string): AttendanceTardyRecord {
+  const thresholdTime = formatAttendanceTime(tardyThresholdForPlantel(plantelCode))
+  const time = formatAttendanceTime(record.time)
   return {
     id: Number(record.id),
     date: dateOnly(record.date),
-    time: formatAttendanceTime(record.time),
+    time,
+    thresholdTime,
+    minutesLate: minutesLateFor(time, thresholdTime),
     studentName: cleanText(record.student_fullname),
     matricula: normalizeMatricula(record.matricula) || null
   }
@@ -413,7 +427,7 @@ function extractTardies(payload: SipaeTardiesResponse, child: AttendanceChild) {
   const seen = new Set<string>()
   return (payload.retardos || [])
     .filter((record) => tardyMatchesChild(child, record))
-    .map(mapTardy)
+    .map((record) => mapTardy(record, child.plantelCode))
     .filter((record) => {
       const key = `${record.date}:${record.time}:${record.matricula || record.studentName}`
       if (seen.has(key)) return false
@@ -467,7 +481,7 @@ function buildEvents(absences: AttendanceAbsenceRecord[], tardies: AttendanceTar
     date: tardy.date,
     time: tardy.time,
     title: 'Retardo',
-    detail: tardy.time ? `Entrada ${tardy.time}` : 'Entrada fuera de horario',
+    detail: tardy.minutesLate > 0 ? `${tardy.minutesLate} min tarde` : 'Entrada fuera de horario',
     tardy
   }))
 
@@ -711,6 +725,12 @@ export async function getParentAttendance(user: AppSessionUser, input: { matricu
     resolveAttendanceSource(selected, requestPlantel, selectedSchoolYear),
     resolveTardySource(selected, requestPlantel, selectedSchoolYear)
   ])
+  const { getFamilyAccessHistory } = await import('~/server/data/accessHistory')
+  const accessHistory = await getFamilyAccessHistory(user, {
+    matricula: selected.matricula,
+    startDate: selectedSchoolYear.startDate,
+    endDate: selectedSchoolYear.endDate
+  })
 
   const absences = attendanceSource.absences
   const groupDates = attendanceSource.groupDates
@@ -735,6 +755,7 @@ export async function getParentAttendance(user: AppSessionUser, input: { matricu
     summary,
     absences,
     tardies,
+    accessHistory,
     calendarDays,
     events: buildEvents(absences, tardies),
     source: {
@@ -771,7 +792,7 @@ export async function updateParentAbsenceMotivo(user: AppSessionUser, input: {
   if (!row) throw createError({ statusCode: 404, statusMessage: 'No encontramos la inasistencia solicitada.' })
   const recordDate = dateOnly(row.fecha)
   if (!recordDate || !dateInRange(recordDate, selectedSchoolYear)) {
-    throw createError({ statusCode: 403, statusMessage: 'La inasistencia esta fuera del ciclo seleccionado.' })
+    throw createError({ statusCode: 403, statusMessage: 'La inasistencia está fuera del ciclo seleccionado.' })
   }
   if (!dbAbsenceMatchesChild(selected, row)) {
     throw createError({ statusCode: 403, statusMessage: 'La inasistencia no pertenece al alumno seleccionado.' })

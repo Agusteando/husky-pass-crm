@@ -2,9 +2,9 @@
   <form class="card editor-form" data-product-panel="resource-editor" @submit.prevent="submit">
     <div class="editor-head">
       <div>
-        <p class="eyebrow">{{ model.id ? 'Editar publicacion' : 'Nueva publicacion' }}</p>
+        <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>
         <h2>{{ label }}</h2>
-        <p>{{ unidad || 'Guarderia' }} / {{ salaName || `Sala ${salaId}` }}</p>
+        <p>{{ unidad || 'Guardería' }} / {{ salaName || `Sala ${salaId}` }}</p>
       </div>
       <div class="actions top-actions">
         <button class="btn btn-primary" type="submit" :disabled="saving || uploading">{{ saving ? 'Guardando...' : uploading ? 'Subiendo...' : 'Guardar' }}</button>
@@ -14,12 +14,12 @@
 
     <section class="editor-grid">
       <label class="label">
-        Titulo
+        Título
         <input v-model="model.title" class="input" required data-diagnostic-field="resource-title" />
       </label>
 
       <label class="label">
-        Categoria
+        Categoría
         <select v-model="model.type" class="select" :disabled="Boolean(model.id)" data-diagnostic-field="resource-type">
           <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
@@ -35,13 +35,13 @@
         <strong>{{ published ? 'Visible para familias' : 'No aparece en la app familiar' }}</strong>
         <label class="switch-row">
           <input v-model="published" type="checkbox" data-diagnostic-field="resource-published" />
-          <span>{{ published ? 'Publicar activo' : 'Publicar despues' }}</span>
+          <span>{{ published ? 'Publicar activo' : 'Publicar después' }}</span>
         </label>
       </div>
     </section>
 
     <label class="label">
-      Descripcion para familias
+      Descripción para familias
       <textarea v-model="model.description" class="textarea" placeholder="Mensaje breve, instrucciones o detalle del recurso." data-diagnostic-field="resource-description" />
     </label>
 
@@ -86,7 +86,7 @@
       </label>
       <div class="context-chip">
         <span>Destino</span>
-        <strong>{{ unidad || 'Guarderia' }} / {{ salaName || `Sala ${salaId}` }}</strong>
+        <strong>{{ unidad || 'Guardería' }} / {{ salaName || `Sala ${salaId}` }}</strong>
       </div>
     </section>
   </form>

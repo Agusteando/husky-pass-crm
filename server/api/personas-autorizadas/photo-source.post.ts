@@ -1,49 +1,26 @@
-import { createError, defineEventHandler, getHeader, getRequestURL, readBody } from 'h3'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
+import { dataUrlToUploadFile, externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
 
 const schema = z.object({
   src: z.string().min(64)
 })
-
-const allowed = new Set(['jpeg', 'jpg', 'png', 'webp'])
-
-function publicOrigin(event: Parameters<typeof getRequestURL>[0]) {
-  const forwardedHost = getHeader(event, 'x-forwarded-host')
-  const forwardedProto = getHeader(event, 'x-forwarded-proto')
-  if (forwardedHost) return `${forwardedProto || 'https'}://${forwardedHost}`
-  return getRequestURL(event).origin
-}
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
   try {
     const body = schema.parse(await readBody(event))
-    const match = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/.exec(body.src)
-    if (!match || !allowed.has(match[1])) throw createError({ statusCode: 415, statusMessage: 'La imagen debe ser PNG, JPG o WEBP.' })
-
-    const buffer = Buffer.from(match[2], 'base64')
-    if (!buffer.length || buffer.length > 1024 * 1024 * 5) {
-      throw createError({ statusCode: 413, statusMessage: 'La imagen excede el tamaño permitido.' })
-    }
-
-    const ext = match[1] === 'jpeg' ? 'jpg' : match[1]
-    const dir = join(process.cwd(), 'public', 'uploads', 'personas-autorizadas', 'sources', String(user.id))
-    await mkdir(dir, { recursive: true })
-    const fileName = `student-${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`
-    await writeFile(join(dir, fileName), buffer)
-    const relativeUrl = `/uploads/personas-autorizadas/sources/${user.id}/${fileName}`
-    return {
-      ok: true,
-      url: relativeUrl,
-      absoluteUrl: `${publicOrigin(event)}${relativeUrl}`
-    }
+    const file = dataUrlToUploadFile(body.src, 'foto-original')
+    return uploadToExternalService(file, {
+      folder: externalUploadFolder('personas-source', user.id),
+      maxBytes: 5 * 1024 * 1024,
+      accept: 'images',
+      filenamePrefix: 'foto-original'
+    })
   } catch (error) {
     logPersonasDiagnostic('photo-source-api-upload', error, { userId: user.id, username: user.username })
     throw error

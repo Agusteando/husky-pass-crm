@@ -16,7 +16,7 @@ export function makeSchoolYearRange(startYear: number): SchoolYearRange {
   return {
     label: `${startYear}-${startYear + 1}`,
     startDate: `${startYear}-08-01`,
-    endDate: `${startYear + 1}-08-01`
+    endDate: `${startYear + 1}-07-31`
   }
 }
 

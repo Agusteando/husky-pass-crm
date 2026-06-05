@@ -53,7 +53,6 @@ export function familyNavItems(user: AppSessionUser | null | undefined) {
   if (hasFamilyScope(user, 'personasAutorizadas')) {
     items.push({ label: 'Personas autorizadas', to: '/familia/personas-autorizadas', icon: 'people' })
     items.push({ label: 'Asistencia', to: '/familia/asistencia', icon: 'calendar' })
-    items.push({ label: 'Historial de accesos', to: '/familia/historial-accesos', icon: 'history' })
   }
 
   return items

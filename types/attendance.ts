@@ -1,3 +1,5 @@
+import type { FamilyAccessHistoryResponse } from './accessHistory'
+
 export type AttendanceSourceState = 'ready' | 'unavailable' | 'timeout' | 'error'
 
 export interface SchoolYearRange {
@@ -46,6 +48,8 @@ export interface AttendanceTardyRecord {
   id: number
   date: string
   time: string
+  minutesLate: number
+  thresholdTime: string
   studentName: string
   matricula?: string | null
 }
@@ -86,6 +90,7 @@ export interface ParentAttendanceResponse {
   summary: ParentAttendanceSummary
   absences: AttendanceAbsenceRecord[]
   tardies: AttendanceTardyRecord[]
+  accessHistory: FamilyAccessHistoryResponse
   calendarDays: AttendanceCalendarDay[]
   events: AttendanceEvent[]
   source: {

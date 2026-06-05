@@ -261,7 +261,7 @@ async function save(payload: Partial<DaycareResource>) {
       if (section) {
         const query = route.query.unidad ? { unidad: String(route.query.unidad), registro: String(saved.id) } : { registro: String(saved.id) }
         await router.replace({ path: `/admin/daycare/salas/${salaId}/${section}`, query })
-        actionNotice.value = 'Publicacion creada en otra categoria.'
+        actionNotice.value = 'Publicación creada en otra categoría.'
         return
       }
     }

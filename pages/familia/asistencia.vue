@@ -1,95 +1,99 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Asistencia">
-  <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance">
-    <section class="attendance-hero card">
-      <div class="hero-copy">
-        <p class="eyebrow">Asistencia escolar</p>
-        <h1>{{ heroTitle }}</h1>
-        <p>{{ heroSubtitle }}</p>
+    <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-expediente">
+      <section class="attendance-hero card">
+        <div class="hero-copy">
+          <p class="eyebrow">Expediente de asistencia</p>
+          <h1>{{ heroTitle }}</h1>
+          <p>{{ heroSubtitle }}</p>
 
-        <div v-if="data" class="context-controls">
-          <label v-if="children.length > 1" class="control-label">
-            <span>Alumno</span>
-            <select v-model="selectedMatricula" class="select" data-testid="attendance-child-select" @change="syncRoute">
-              <option v-for="child in children" :key="child.matricula" :value="child.matricula">{{ child.name }}</option>
-            </select>
-          </label>
+          <div v-if="data" class="context-controls">
+            <label v-if="children.length > 1" class="control-label">
+              <span>Alumno</span>
+              <select v-model="selectedMatricula" class="select" data-testid="attendance-child-select" @change="syncRoute">
+                <option v-for="child in children" :key="child.matricula" :value="child.matricula">{{ child.name }}</option>
+              </select>
+            </label>
 
-          <label class="control-label">
-            <span>Ciclo</span>
-            <select v-model="selectedSchoolYear" class="select" data-testid="attendance-year-select" @change="syncRoute">
-              <option v-for="year in schoolYears" :key="year.label" :value="year.label">{{ year.label }}</option>
-            </select>
-          </label>
+            <label class="control-label">
+              <span>Ciclo escolar</span>
+              <select v-model="selectedSchoolYear" class="select" data-testid="attendance-year-select" @change="syncRoute">
+                <option v-for="year in schoolYears" :key="year.label" :value="year.label">{{ year.label }}</option>
+              </select>
+            </label>
+          </div>
         </div>
-      </div>
 
-      <aside class="hero-sigil" :class="{ empty: !grupoImage }" data-testid="grupo-sigil">
-        <img v-if="grupoImage" :src="grupoImage" :alt="grupoAlt" />
-        <FamilyPersonasIcon v-else name="calendar" />
-        <span>{{ grupoLabel }}</span>
-      </aside>
-    </section>
-
-    <p v-if="loadError" class="alert" data-state="error">No fue posible abrir asistencia.</p>
-
-    <section v-else-if="pending && !data" class="loading-grid" data-state="loading">
-      <span v-for="item in 4" :key="item" class="loading-card"></span>
-    </section>
-
-    <template v-else-if="data">
-      <section v-if="sourceWarnings.length" class="source-strip" :data-state="data.status">
-        <span v-for="warning in sourceWarnings" :key="warning">{{ warning }}</span>
+        <aside class="hero-sigil" :class="{ empty: !grupoImage }" data-testid="grupo-sigil">
+          <img v-if="grupoImage" :src="grupoImage" :alt="grupoAlt" />
+          <FamilyPersonasIcon v-else name="calendar" />
+          <span>{{ grupoLabel }}</span>
+        </aside>
       </section>
 
-      <section class="summary-grid" data-product-panel="attendance-summary">
-        <article class="summary-card primary">
-          <span>Ausencias sin motivo</span>
-          <strong>{{ summary.unresolvedAbsences }}</strong>
-          <button
-            v-if="nextMissingAbsence"
-            class="btn btn-primary"
-            type="button"
-            data-testid="primary-motivo-cta"
-            @click="openMotivo(nextMissingAbsence)"
-          >
-            Agregar motivo
-          </button>
-          <small v-else>Sin acciones pendientes</small>
-        </article>
-        <article class="summary-card">
-          <span>Ausencias</span>
-          <strong>{{ summary.absences }}</strong>
-          <small>{{ summary.resolvedAbsences }} con motivo</small>
-        </article>
-        <article class="summary-card">
-          <span>Retardos</span>
-          <strong>{{ summary.tardies }}</strong>
-          <small>{{ selectedSchoolYear }}</small>
-        </article>
-        <article class="summary-card">
-          <span>Sin ausencia registrada</span>
-          <strong>{{ summary.clearDays }}</strong>
-          <small>{{ summary.schoolDaysWithAttendance }} días con pase</small>
-        </article>
+      <p v-if="loadError" class="alert" data-state="error">No fue posible abrir el expediente de asistencia.</p>
+
+      <section v-else-if="pending && !data" class="loading-grid" data-state="loading">
+        <span v-for="item in 5" :key="item" class="loading-card"></span>
       </section>
 
-      <section v-if="emptyState" class="empty-attendance card" data-state="empty">
-        <img v-if="grupoImage" :src="grupoImage" alt="" />
-        <div>
-          <p class="eyebrow">{{ selectedSchoolYear }}</p>
-          <h2>Sin registros para mostrar</h2>
-          <p>No hay ausencias ni retardos visibles para este alumno en el ciclo seleccionado.</p>
-        </div>
-      </section>
+      <template v-else-if="data">
+        <section v-if="sourceWarnings.length" class="source-strip" :data-state="data.status">
+          <span v-for="warning in sourceWarnings" :key="warning">{{ warning }}</span>
+        </section>
 
-      <template v-else>
-        <section v-if="missingAbsences.length && nextMissingAbsence" class="attention-panel" data-product-panel="ausencias-sin-motivo">
-          <header>
-            <p class="eyebrow">Atención</p>
-            <h2>{{ missingAbsences.length === 1 ? 'Ausencia sin motivo' : 'Siguiente ausencia sin motivo' }}</h2>
-          </header>
-          <div class="attention-list">
+        <section class="summary-grid" data-product-panel="attendance-summary">
+          <article class="summary-card coverage-card">
+            <span>Días con expediente</span>
+            <strong>{{ summary.schoolDaysWithAttendance }}</strong>
+            <small>{{ selectedRangeLabel }}</small>
+          </article>
+          <article class="summary-card primary">
+            <span>Ausencias sin motivo</span>
+            <strong>{{ summary.unresolvedAbsences }}</strong>
+            <button
+              v-if="nextMissingAbsence"
+              class="btn btn-primary"
+              type="button"
+              data-testid="primary-motivo-cta"
+              @click="openMotivo(nextMissingAbsence)"
+            >
+              Agregar motivo
+            </button>
+            <small v-else>Sin acciones pendientes</small>
+          </article>
+          <article class="summary-card">
+            <span>Ausencias</span>
+            <strong>{{ summary.absences }}</strong>
+            <small>{{ summary.resolvedAbsences }} con motivo</small>
+          </article>
+          <article class="summary-card danger">
+            <span>Retardos</span>
+            <strong>{{ summary.tardies }}</strong>
+            <small>{{ maxLateLabel }}</small>
+          </article>
+          <article class="summary-card">
+            <span>Entradas / salidas</span>
+            <strong>{{ accessSummary.entries }} / {{ accessSummary.exits }}</strong>
+            <small>{{ accessSummary.days }} días con registro</small>
+          </article>
+        </section>
+
+        <section v-if="emptyState" class="empty-attendance card" data-state="empty">
+          <img v-if="grupoImage" :src="grupoImage" alt="" />
+          <div>
+            <p class="eyebrow">{{ selectedSchoolYearLabel }}</p>
+            <h2>Sin registros para este ciclo escolar</h2>
+            <p>Cuando haya expediente de asistencia, ausencias, retardos o entradas/salidas, aparecerán aquí.</p>
+          </div>
+        </section>
+
+        <template v-else>
+          <section v-if="missingAbsences.length && nextMissingAbsence" class="attention-panel" data-product-panel="ausencias-sin-motivo">
+            <header>
+              <p class="eyebrow">Atención</p>
+              <h2>{{ missingAbsences.length === 1 ? 'Ausencia sin motivo' : 'Siguiente ausencia sin motivo' }}</h2>
+            </header>
             <article class="absence-action" :data-update-state="failedAbsenceId === nextMissingAbsence.id ? 'failed' : 'ready'">
               <div>
                 <strong>{{ dateLabel(nextMissingAbsence.date) }}</strong>
@@ -100,160 +104,250 @@
                 {{ failedAbsenceId === nextMissingAbsence.id ? 'Reintentar' : 'Agregar motivo' }}
               </button>
             </article>
-          </div>
-        </section>
+          </section>
 
-        <section class="insight-grid">
-          <article class="year-pulse card" data-product-panel="attendance-calendar">
-            <header class="section-head">
+          <section class="insight-grid">
+            <article class="coverage-panel card" data-product-panel="attendance-coverage">
+              <header class="section-head">
+                <div>
+                  <p class="eyebrow">Ciclo escolar</p>
+                  <h2>Expediente disponible</h2>
+                </div>
+                <div class="legend">
+                  <span><i class="dot clear"></i>Presente</span>
+                  <span><i class="dot absence"></i>Ausencia</span>
+                  <span><i class="dot tardy"></i>Retardo</span>
+                </div>
+              </header>
+              <div v-if="monthGroups.length" class="month-list">
+                <article v-for="month in monthGroups" :key="month.key" class="month-row">
+                  <div class="month-name">
+                    <strong>{{ month.label }}</strong>
+                    <span>{{ month.days.length }} días</span>
+                  </div>
+                  <div class="day-dots" :aria-label="`Registros de ${month.label}`">
+                    <span
+                      v-for="day in month.days"
+                      :key="day.date"
+                      class="day-dot"
+                      :class="day.status"
+                      :title="dayTitle(day)"
+                    ></span>
+                  </div>
+                </article>
+              </div>
+              <p v-else class="quiet-empty">Sin días de expediente en el ciclo seleccionado.</p>
+            </article>
+
+            <aside class="timeline-panel" data-product-panel="attendance-timeline">
+              <header class="section-head compact">
+                <div>
+                  <p class="eyebrow">Actividad reciente</p>
+                  <h2>Expediente</h2>
+                </div>
+              </header>
+              <div v-if="recentEvents.length" class="timeline-list">
+                <article v-for="event in recentEvents" :key="event.key" class="timeline-item" :class="event.type">
+                  <strong>{{ event.title }}</strong>
+                  <time>{{ dateLabel(event.date) }}<span v-if="event.time"> · {{ event.time }}</span></time>
+                  <span>{{ event.detail }}</span>
+                </article>
+              </div>
+              <p v-else class="quiet-empty">Sin eventos recientes.</p>
+            </aside>
+          </section>
+
+          <section class="records-grid">
+            <article class="record-column" data-product-panel="absence-records">
+              <header class="section-head">
+                <div>
+                  <p class="eyebrow">Ausencias</p>
+                  <h2>Motivos de inasistencia</h2>
+                </div>
+              </header>
+
+              <div v-if="absences.length" class="record-list">
+                <article v-for="absence in absences" :key="absence.id" class="absence-card" :data-state="absence.motivoState">
+                  <div class="record-date">
+                    <strong>{{ dayNumber(absence.date) }}</strong>
+                    <span>{{ monthShort(absence.date) }}</span>
+                  </div>
+                  <div class="record-copy">
+                    <strong>{{ dateLabel(absence.date) }}</strong>
+                    <span>{{ absence.motivo || 'Motivo de inasistencia pendiente' }}</span>
+                    <small>{{ absence.motivoState === 'provided' ? 'Motivo registrado' : 'Sin motivo' }}</small>
+                  </div>
+                  <button class="btn btn-secondary" type="button" data-testid="motivo-update-button" @click="openMotivo(absence)">
+                    {{ absence.motivo ? 'Actualizar' : 'Agregar motivo' }}
+                  </button>
+                </article>
+              </div>
+              <p v-else class="quiet-empty">Sin ausencias en este ciclo escolar.</p>
+            </article>
+
+            <article class="record-column" data-product-panel="tardy-records">
+              <header class="section-head">
+                <div>
+                  <p class="eyebrow">Retardos</p>
+                  <h2>Minutos tarde</h2>
+                </div>
+              </header>
+
+              <div v-if="tardies.length" class="record-list">
+                <article v-for="tardy in tardies" :key="`${tardy.id}-${tardy.date}-${tardy.time}`" class="tardy-card">
+                  <div class="record-date red">
+                    <strong>{{ dayNumber(tardy.date) }}</strong>
+                    <span>{{ monthShort(tardy.date) }}</span>
+                  </div>
+                  <div class="record-copy">
+                    <strong>{{ dateLabel(tardy.date) }}</strong>
+                    <span>Entrada {{ tardy.time }} · límite {{ tardy.thresholdTime }}</span>
+                    <small>{{ displayMatricula(tardy.matricula || data.selectedChild.matricula) }}</small>
+                  </div>
+                  <span class="late-badge" data-testid="late-minutes-badge">{{ tardy.minutesLate }} min</span>
+                </article>
+              </div>
+              <p v-else class="quiet-empty">Sin retardos en este ciclo escolar.</p>
+            </article>
+          </section>
+
+          <section class="access-panel card" data-product-panel="access-history-in-attendance">
+            <header class="access-head">
               <div>
-                <p class="eyebrow">Ciclo {{ selectedSchoolYear }}</p>
-                <h2>Patrón del año</h2>
+                <p class="eyebrow">Entradas y salidas</p>
+                <h2>Registro complementario</h2>
               </div>
-              <div class="legend">
-                <span><i class="dot clear"></i>Sin ausencia</span>
-                <span><i class="dot absence"></i>Ausencia</span>
-                <span><i class="dot tardy"></i>Retardo</span>
-              </div>
+              <span class="access-range">{{ selectedSchoolYearLabel }}</span>
             </header>
 
-            <div class="month-list">
-              <section v-for="month in monthGroups" :key="month.key" class="month-row">
-                <div class="month-name">
-                  <strong>{{ month.label }}</strong>
-                  <span>{{ month.events }} eventos</span>
-                </div>
-                <div class="day-dots" :aria-label="`Días de ${month.label}`">
-                  <span
-                    v-for="day in month.days"
-                    :key="day.date"
-                    class="day-dot"
-                    :class="day.status"
-                    :title="dayTitle(day)"
-                  ></span>
-                </div>
-              </section>
-            </div>
-          </article>
+            <section class="access-filters" aria-label="Filtros de entradas y salidas">
+              <label class="control-label">
+                <span>Buscar</span>
+                <input v-model="accessFilters.search" class="input" type="search" placeholder="Persona, alumno o matrícula" data-testid="access-search" />
+              </label>
+              <label class="control-label">
+                <span>Tipo</span>
+                <select v-model="accessFilters.type" class="select" data-testid="access-type-filter">
+                  <option value="all">Entrada y salida</option>
+                  <option value="entrada">Entrada</option>
+                  <option value="salida">Salida</option>
+                </select>
+              </label>
+              <label class="control-label">
+                <span>Persona</span>
+                <select v-model="accessFilters.person" class="select" data-testid="access-person-filter">
+                  <option value="all">Todas</option>
+                  <option v-for="person in accessPeople" :key="person.id" :value="String(person.id)">{{ person.name }}</option>
+                </select>
+              </label>
+              <label class="control-label">
+                <span>Desde</span>
+                <input v-model="accessFilters.startDate" class="input" type="date" :min="data.selectedSchoolYear.startDate" :max="data.selectedSchoolYear.endDate" />
+              </label>
+              <label class="control-label">
+                <span>Hasta</span>
+                <input v-model="accessFilters.endDate" class="input" type="date" :min="data.selectedSchoolYear.startDate" :max="data.selectedSchoolYear.endDate" />
+              </label>
+            </section>
 
-          <aside class="timeline-panel" data-product-panel="attendance-timeline">
-            <header class="section-head compact">
-              <div>
-                <p class="eyebrow">Cronologia</p>
-                <h2>Lo reciente</h2>
-              </div>
-            </header>
-            <div v-if="recentEvents.length" class="timeline-list">
-              <article v-for="event in recentEvents" :key="event.key" class="timeline-item" :class="event.type">
-                <time>{{ dateLabel(event.date) }}</time>
-                <strong>{{ event.title }}</strong>
-                <span>{{ event.detail }}</span>
+            <div v-if="filteredAccessDays.length" class="access-list">
+              <article v-for="day in filteredAccessDays" :key="day.key" class="access-day-card">
+                <div class="access-date">
+                  <strong>{{ dayNumber(day.date) }}</strong>
+                  <span>{{ monthShort(day.date) }}</span>
+                </div>
+                <div class="access-main">
+                  <div class="access-student">
+                    <strong>{{ day.student.name }}</strong>
+                    <span>{{ displayMatricula(day.student.matricula) }} · {{ [day.student.plantel, day.student.grado, day.student.grupo].filter(Boolean).join(' / ') }}</span>
+                  </div>
+                  <div class="access-pair">
+                    <AccessActionChip label="Entrada" :action="day.entrada" />
+                    <AccessActionChip label="Salida" :action="day.salida" />
+                  </div>
+                </div>
               </article>
             </div>
-            <p v-else class="quiet-empty">Sin eventos recientes.</p>
-          </aside>
-        </section>
+            <p v-else class="quiet-empty">Sin entradas o salidas para los filtros seleccionados.</p>
+          </section>
+        </template>
 
-        <section class="records-grid">
-          <article class="record-column" data-product-panel="absence-records">
-            <header class="section-head">
-              <div>
-                <p class="eyebrow">Ausencias</p>
-                <h2>Motivos de inasistencia</h2>
-              </div>
-            </header>
-
-            <div v-if="absences.length" class="record-list">
-              <article v-for="absence in absences" :key="absence.id" class="absence-card" :data-state="absence.motivoState">
-                <div class="record-date">
-                  <strong>{{ dayNumber(absence.date) }}</strong>
-                  <span>{{ monthShort(absence.date) }}</span>
-                </div>
-                <div class="record-copy">
-                  <strong>{{ dateLabel(absence.date) }}</strong>
-                  <span>{{ absence.motivo || 'Motivo de inasistencia pendiente' }}</span>
-                  <small>{{ absence.motivoState === 'provided' ? 'Motivo registrado' : 'Sin motivo' }}</small>
-                </div>
-                <button class="btn btn-secondary" type="button" data-testid="motivo-update-button" @click="openMotivo(absence)">
-                  {{ absence.motivo ? 'Actualizar' : 'Agregar motivo' }}
-                </button>
-              </article>
-            </div>
-            <p v-else class="quiet-empty">Sin ausencias en este ciclo.</p>
-          </article>
-
-          <article class="record-column" data-product-panel="tardy-records">
-            <header class="section-head">
-              <div>
-                <p class="eyebrow">Retardos</p>
-                <h2>Entradas</h2>
-              </div>
-            </header>
-
-            <div v-if="tardies.length" class="record-list">
-              <article v-for="tardy in tardies" :key="`${tardy.id}-${tardy.date}-${tardy.time}`" class="tardy-card">
-                <div class="record-date blue">
-                  <strong>{{ dayNumber(tardy.date) }}</strong>
-                  <span>{{ monthShort(tardy.date) }}</span>
-                </div>
-                <div class="record-copy">
-                  <strong>{{ dateLabel(tardy.date) }}</strong>
-                  <span>Entrada {{ tardy.time }}</span>
-                  <small>{{ displayMatricula(tardy.matricula || data.selectedChild.matricula) }}</small>
-                </div>
-              </article>
-            </div>
-            <p v-else class="quiet-empty">Sin retardos en este ciclo.</p>
-          </article>
-        </section>
+        <p v-if="notice" class="notice">{{ notice }}</p>
       </template>
 
-      <p v-if="notice" class="notice">{{ notice }}</p>
-    </template>
-
-    <FamilyPersonasModal
-      v-if="editingAbsence"
-      title="Motivo de inasistencia"
-      :eyebrow="dateLabel(editingAbsence.date)"
-      @close="closeMotivo"
-    >
-      <form class="motivo-form" data-testid="motivo-form" @submit.prevent="saveMotivo">
-        <label class="label">
-          <span>Motivo</span>
-          <textarea
-            v-model="motivoDraft"
-            class="textarea"
-            maxlength="700"
-            required
-            data-testid="motivo-textarea"
-            placeholder="Escribe el motivo de la inasistencia"
-          ></textarea>
-        </label>
-        <p v-if="motivoError" class="alert">{{ motivoError }}</p>
-        <div class="form-actions">
-          <button class="btn btn-secondary" type="button" :disabled="savingMotivo" @click="closeMotivo">Cancelar</button>
-          <button class="btn btn-primary" type="submit" :disabled="savingMotivo || motivoDraft.trim().length < 3" data-testid="motivo-submit">
-            {{ savingMotivo ? 'Guardando...' : 'Guardar motivo' }}
-          </button>
-        </div>
-      </form>
-    </FamilyPersonasModal>
-  </section>
+      <FamilyPersonasModal
+        v-if="editingAbsence"
+        title="Motivo de inasistencia"
+        :eyebrow="dateLabel(editingAbsence.date)"
+        @close="closeMotivo"
+      >
+        <form class="motivo-form" data-testid="motivo-form" @submit.prevent="saveMotivo">
+          <label class="label">
+            <span>Motivo de inasistencia</span>
+            <textarea
+              v-model="motivoDraft"
+              class="textarea"
+              maxlength="700"
+              required
+              data-testid="motivo-textarea"
+              placeholder="Escribe el motivo de la inasistencia"
+            ></textarea>
+          </label>
+          <p v-if="motivoError" class="alert">{{ motivoError }}</p>
+          <div class="form-actions">
+            <button class="btn btn-secondary" type="button" :disabled="savingMotivo" @click="closeMotivo">Cancelar</button>
+            <button class="btn btn-primary" type="submit" :disabled="savingMotivo || motivoDraft.trim().length < 3" data-testid="motivo-submit">
+              {{ savingMotivo ? 'Guardando...' : 'Guardar motivo' }}
+            </button>
+          </div>
+        </form>
+      </FamilyPersonasModal>
+    </section>
   </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, defineComponent, h, reactive, ref, resolveComponent, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type {
   AttendanceAbsenceRecord,
   AttendanceCalendarDay,
   ParentAttendanceResponse
 } from '~/types/attendance'
-import { formatAttendanceDate } from '~/utils/attendance'
+import type { AccessHistoryAction } from '~/types/accessHistory'
+import { formatAttendanceDate, normalizeAttendanceText } from '~/utils/attendance'
 import { displayMatricula } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
+
+const AccessActionChip = defineComponent({
+  props: {
+    label: { type: String, required: true },
+    action: { type: Object as () => AccessHistoryAction | null | undefined, default: null }
+  },
+  setup(props) {
+    return () => h('div', { class: ['access-chip', props.action?.type || 'missing'] }, [
+      h('span', { class: 'access-chip-label' }, props.label),
+      props.action
+        ? h('div', { class: 'access-chip-body' }, [
+            h('div', { class: 'access-photo-shell' }, props.action.person.photoUrl
+              ? h(resolveComponent('FamilyPersonasProcessedPhoto'), {
+                  src: props.action.person.photoUrl,
+                  autoProcess: false,
+                  namespace: `access-${props.action.person.id}-${props.action.id}`,
+                  alt: props.action.person.name
+                })
+              : h(resolveComponent('FamilyPersonasIcon'), { name: props.action.type === 'entrada' ? 'entry' : 'exit' })),
+            h('div', { class: 'access-chip-copy' }, [
+              h('strong', props.action.time),
+              h('span', props.action.person.name),
+              h('small', props.action.person.parentesco || 'Persona autorizada')
+            ])
+          ])
+        : h('div', { class: 'access-chip-empty' }, 'Sin registro')
+    ])
+  }
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -265,6 +359,13 @@ const motivoError = ref('')
 const notice = ref('')
 const savingMotivo = ref(false)
 const failedAbsenceId = ref<number | null>(null)
+const accessFilters = reactive({
+  search: '',
+  type: 'all',
+  person: 'all',
+  startDate: '',
+  endDate: ''
+})
 
 const requestQuery = computed(() => ({
   matricula: selectedMatricula.value || undefined,
@@ -288,6 +389,8 @@ const summary = computed(() => data.value?.summary || {
   unresolvedAbsences: 0,
   resolvedAbsences: 0
 })
+const accessSummary = computed(() => data.value?.accessHistory.summary || { days: 0, entries: 0, exits: 0, uniquePeople: 0, students: 0 })
+const accessPeople = computed(() => data.value?.accessHistory.people || [])
 const absences = computed(() => [...(data.value?.absences || [])].sort((a, b) => b.date.localeCompare(a.date)))
 const tardies = computed(() => [...(data.value?.tardies || [])].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)))
 const missingAbsences = computed(() => absences.value.filter((absence) => absence.motivoState === 'missing'))
@@ -295,15 +398,19 @@ const nextMissingAbsence = computed(() => missingAbsences.value[0] || null)
 const recentEvents = computed(() => data.value?.events.slice(0, 8) || [])
 const selectedChildLine = computed(() => [data.value?.selectedChild.grado, data.value?.selectedChild.grupo].filter(Boolean).join(' / ') || data.value?.selectedChild.plantelCode || '')
 const selectedSchoolYearLabel = computed(() => data.value?.selectedSchoolYear.label || selectedSchoolYear.value || '')
+const selectedRangeLabel = computed(() => {
+  const year = data.value?.selectedSchoolYear
+  return year ? `${dateLabel(year.startDate)} - ${dateLabel(year.endDate)}` : selectedSchoolYearLabel.value
+})
 const heroTitle = computed(() => data.value?.selectedChild.name || 'Asistencia')
 const heroSubtitle = computed(() => {
-  if (!data.value) return 'Ausencias, retardos y motivos por ciclo escolar.'
+  if (!data.value) return 'Expediente de asistencia por ciclo escolar.'
   return [selectedSchoolYearLabel.value, selectedChildLine.value, data.value.selectedChild.plantelCode].filter(Boolean).join(' / ')
 })
 const grupoImage = computed(() => data.value?.grupoSigil.image || '')
 const grupoLabel = computed(() => data.value?.grupoSigil.grupoValue || data.value?.selectedChild.grupo || 'Grupo')
-const grupoAlt = computed(() => `Sigil de grupo ${grupoLabel.value}`)
-const emptyState = computed(() => Boolean(data.value && !data.value.absences.length && !data.value.tardies.length && data.value.status !== 'unavailable'))
+const grupoAlt = computed(() => `Imagen de grupo ${grupoLabel.value}`)
+const emptyState = computed(() => Boolean(data.value && !data.value.calendarDays.length && !data.value.accessHistory.days.length && data.value.status !== 'unavailable'))
 const pageState = computed(() => {
   if (loadError.value) return 'error'
   if (pending.value && !data.value) return 'loading'
@@ -320,6 +427,10 @@ const sourceWarnings = computed(() => {
   if (source.tardiness !== 'ready') warnings.push(source.tardinessMessage || 'Retardos no disponibles.')
   return warnings
 })
+const maxLateLabel = computed(() => {
+  const max = Math.max(0, ...tardies.value.map((tardy) => tardy.minutesLate || 0))
+  return max ? `Máximo ${max} min` : selectedSchoolYearLabel.value
+})
 
 const monthGroups = computed(() => {
   const formatter = new Intl.DateTimeFormat('es-MX', { month: 'short', year: 'numeric' })
@@ -335,10 +446,33 @@ const monthGroups = computed(() => {
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key))
 })
 
+const filteredAccessDays = computed(() => {
+  const search = normalizeAttendanceText(accessFilters.search)
+  const start = accessFilters.startDate
+  const end = accessFilters.endDate
+  return (data.value?.accessHistory.days || []).filter((day) => {
+    if (start && day.date < start) return false
+    if (end && day.date > end) return false
+    if (accessFilters.type === 'entrada' && !day.entrada) return false
+    if (accessFilters.type === 'salida' && !day.salida) return false
+    if (accessFilters.person !== 'all' && !day.actions.some((action) => String(action.person.id) === accessFilters.person)) return false
+    if (!search) return true
+    const haystack = normalizeAttendanceText([
+      day.student.name,
+      day.student.matricula,
+      day.student.plantel,
+      day.actions.map((action) => `${action.person.name} ${action.person.parentesco}`).join(' ')
+    ].filter(Boolean).join(' '))
+    return haystack.includes(search)
+  })
+})
+
 watch(data, (value) => {
   if (!value) return
   if (!selectedMatricula.value) selectedMatricula.value = value.selectedChild.matricula
   if (!selectedSchoolYear.value) selectedSchoolYear.value = value.selectedSchoolYear.label
+  accessFilters.startDate = value.selectedSchoolYear.startDate
+  accessFilters.endDate = value.selectedSchoolYear.endDate
 }, { immediate: true })
 
 function queryValue(value: unknown) {
@@ -447,23 +581,21 @@ async function saveMotivo() {
   overflow: hidden;
 }
 
-.hero-copy {
+.hero-copy,
+.record-copy,
+.access-chip-copy {
   display: grid;
-  gap: 12px;
+  gap: 4px;
   min-width: 0;
-}
-
-.hero-copy h1 {
-  margin-bottom: 0;
 }
 
 .context-controls {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(160px, 0.42fr);
-  margin-top: 4px;
-  max-width: 700px;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(170px, 0.44fr);
+  margin-top: 10px;
+  max-width: 720px;
 }
 
 .control-label {
@@ -503,10 +635,6 @@ async function saveMotivo() {
   text-transform: uppercase;
 }
 
-.hero-sigil.empty {
-  color: var(--pa-primary);
-}
-
 .loading-grid,
 .summary-grid,
 .insight-grid,
@@ -517,7 +645,7 @@ async function saveMotivo() {
 
 .loading-grid,
 .summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .loading-card,
@@ -546,9 +674,14 @@ async function saveMotivo() {
   padding: 16px;
 }
 
-.summary-card.primary {
+.summary-card.primary,
+.summary-card.coverage-card {
   background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .12), #ffffff);
   border-color: var(--pa-border);
+}
+
+.summary-card.danger {
+  border-color: #ffd2ca;
 }
 
 .summary-card span,
@@ -569,12 +702,13 @@ async function saveMotivo() {
 .summary-card strong {
   color: var(--color-ink);
   font-family: var(--font-title);
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
   line-height: 0.95;
 }
 
-.summary-card .btn {
-  justify-self: start;
+.summary-card.danger strong,
+.late-badge {
+  color: #9f2f25;
 }
 
 .source-strip,
@@ -607,11 +741,6 @@ async function saveMotivo() {
   object-fit: contain;
 }
 
-.empty-attendance h2,
-.section-head h2 {
-  margin-bottom: 0;
-}
-
 .attention-panel {
   background: #2f3338;
   border-radius: 24px;
@@ -626,12 +755,6 @@ async function saveMotivo() {
   color: #fff;
 }
 
-.attention-list {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .absence-action {
   align-items: center;
   background: rgba(255, 255, 255, 0.1);
@@ -643,17 +766,10 @@ async function saveMotivo() {
   padding: 12px;
 }
 
-.absence-action span {
-  color: rgba(255, 255, 255, 0.76);
-  display: block;
-  font-size: 0.82rem;
-}
-
+.absence-action span,
 .absence-action small {
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(255, 255, 255, 0.72);
   display: block;
-  font-size: 0.76rem;
-  font-weight: 700;
 }
 
 .absence-action[data-update-state='failed'] {
@@ -664,7 +780,8 @@ async function saveMotivo() {
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
 }
 
-.section-head {
+.section-head,
+.access-head {
   align-items: center;
   display: grid;
   gap: 12px;
@@ -672,8 +789,10 @@ async function saveMotivo() {
   margin-bottom: 14px;
 }
 
-.section-head.compact {
-  grid-template-columns: 1fr;
+.section-head h2,
+.access-head h2,
+.hero-copy h1 {
+  margin-bottom: 0;
 }
 
 .legend {
@@ -713,11 +832,11 @@ async function saveMotivo() {
 
 .dot.tardy,
 .day-dot.tardy {
-  background: #2f7fac;
+  background: #c9352b;
 }
 
 .day-dot.absence-tardy {
-  background: linear-gradient(135deg, #cf5c4c 0 50%, #2f7fac 50% 100%);
+  background: linear-gradient(135deg, #cf5c4c 0 50%, #c9352b 50% 100%);
 }
 
 .month-list {
@@ -729,16 +848,12 @@ async function saveMotivo() {
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 126px minmax(0, 1fr);
 }
 
 .month-name strong,
 .month-name span {
   display: block;
-}
-
-.month-name strong {
-  color: var(--color-ink);
 }
 
 .month-name span {
@@ -759,7 +874,8 @@ async function saveMotivo() {
   width: 10px;
 }
 
-.timeline-panel {
+.timeline-panel,
+.coverage-panel {
   background: #fff;
   border: 1px solid var(--color-border);
   border-radius: 24px;
@@ -767,7 +883,9 @@ async function saveMotivo() {
   padding: clamp(16px, 2.4vw, 22px);
 }
 
-.timeline-list {
+.timeline-list,
+.record-list,
+.access-list {
   display: grid;
   gap: 10px;
 }
@@ -784,7 +902,7 @@ async function saveMotivo() {
 }
 
 .timeline-item.tardy {
-  border-color: #2f7fac;
+  border-color: #c9352b;
 }
 
 .timeline-item time,
@@ -794,17 +912,12 @@ async function saveMotivo() {
 }
 
 .records-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
 }
 
 .record-column {
   display: grid;
   gap: 12px;
-}
-
-.record-list {
-  display: grid;
-  gap: 10px;
 }
 
 .absence-card,
@@ -820,15 +933,16 @@ async function saveMotivo() {
   padding: 12px;
 }
 
-.tardy-card {
-  grid-template-columns: 58px minmax(0, 1fr);
-}
-
 .absence-card[data-state='missing'] {
   border-color: #f1d79e;
 }
 
-.record-date {
+.tardy-card {
+  border-color: #ffd2ca;
+}
+
+.record-date,
+.access-date {
   aspect-ratio: 1;
   background: #fff7e8;
   border: 1px solid #f1d79e;
@@ -839,31 +953,29 @@ async function saveMotivo() {
   text-align: center;
 }
 
-.record-date.blue {
-  background: #eaf4fb;
-  border-color: #d2e7f5;
-  color: #236188;
+.record-date.red {
+  background: #fff3f0;
+  border-color: #ffd2ca;
+  color: #9f2f25;
 }
 
 .record-date strong,
-.record-date span {
+.record-date span,
+.access-date strong,
+.access-date span {
   line-height: 1;
 }
 
-.record-date strong {
+.record-date strong,
+.access-date strong {
   font-family: var(--font-title);
   font-size: 1.35rem;
 }
 
-.record-date span {
+.record-date span,
+.access-date span {
   font-size: 0.68rem;
   text-transform: uppercase;
-}
-
-.record-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
 }
 
 .record-copy strong,
@@ -878,6 +990,133 @@ async function saveMotivo() {
   font-size: 0.86rem;
 }
 
+.late-badge {
+  align-items: center;
+  background: #fff3f0;
+  border: 1px solid #ffd2ca;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.access-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.access-range {
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  font-size: 0.78rem;
+  padding: 7px 10px;
+}
+
+.access-filters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, .38fr) minmax(180px, .56fr) minmax(140px, .38fr) minmax(140px, .38fr);
+}
+
+.access-day-card {
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 62px minmax(0, 1fr);
+  padding: 12px;
+}
+
+.access-main {
+  display: grid;
+  gap: 10px;
+}
+
+.access-student {
+  display: grid;
+  gap: 2px;
+}
+
+.access-student span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.access-pair {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:deep(.access-chip) {
+  background: #fbfdf8;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+:deep(.access-chip.entrada) {
+  border-color: var(--pa-border);
+}
+
+:deep(.access-chip.salida) {
+  border-color: #d2e7f5;
+}
+
+:deep(.access-chip-label) {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:deep(.access-chip-body) {
+  align-items: center;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+:deep(.access-photo-shell) {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .88), transparent 42%),
+    linear-gradient(135deg, rgba(var(--pa-primary-rgb), .18), rgba(255, 255, 255, .92));
+  border: 1px solid var(--pa-border);
+  border-radius: 14px;
+  height: 42px;
+  overflow: hidden;
+  width: 42px;
+}
+
+:deep(.access-photo-shell .processed-photo) {
+  background: transparent;
+}
+
+:deep(.access-chip-copy strong),
+:deep(.access-chip-copy span),
+:deep(.access-chip-copy small) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.access-chip-copy span),
+:deep(.access-chip-copy small),
+:deep(.access-chip-empty) {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
 .motivo-form {
   display: grid;
   gap: 14px;
@@ -888,6 +1127,16 @@ async function saveMotivo() {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+@media (max-width: 1180px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .access-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -909,8 +1158,7 @@ async function saveMotivo() {
   }
 
   .summary-grid,
-  .loading-grid,
-  .attention-list {
+  .loading-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -919,11 +1167,14 @@ async function saveMotivo() {
   .context-controls,
   .summary-grid,
   .loading-grid,
-  .attention-list,
   .section-head,
+  .access-head,
   .absence-action,
   .month-row,
-  .empty-attendance {
+  .empty-attendance,
+  .access-filters,
+  .access-day-card,
+  .access-pair {
     grid-template-columns: 1fr;
   }
 
@@ -932,7 +1183,8 @@ async function saveMotivo() {
     grid-template-columns: 52px minmax(0, 1fr);
   }
 
-  .absence-card .btn {
+  .absence-card .btn,
+  .late-badge {
     grid-column: 1 / -1;
   }
 

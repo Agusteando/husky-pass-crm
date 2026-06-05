@@ -188,7 +188,7 @@ function removePhoto() {
 
 <style scoped>
 .pa-image-upload { align-items: stretch; background: rgba(var(--pa-primary-rgb, 97, 139, 47), .07); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; display: grid; gap: 16px; grid-template-columns: 160px minmax(0, 1fr); padding: 14px; }
-.image-frame { aspect-ratio: 1; background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; position: relative; }
+.image-frame { aspect-ratio: 1; background: radial-gradient(circle at 30% 18%, rgba(255,255,255,.92), transparent 34%), linear-gradient(145deg, rgba(var(--pa-primary-rgb, 97, 139, 47), .18), #fff 68%); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; box-shadow: inset 0 -18px 36px rgba(0,0,0,.05); color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; position: relative; }
 .image-frame img { height: 100%; object-fit: cover; transition: filter .24s ease, transform .24s ease; width: 100%; }
 .image-frame[data-state='processing'] img { filter: saturate(.94) brightness(.98); transform: scale(1.01); }
 .image-frame[data-state='processing']::after { animation: pa-upload-scan 1.45s ease-in-out infinite; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.18) 42%, rgba(255,255,255,.48) 50%, rgba(255,255,255,.18) 58%, transparent 100%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-100%); }

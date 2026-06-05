@@ -19,6 +19,7 @@
       </label>
       <p v-if="error" class="alert">{{ error }}</p>
       <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Validando…' : 'Ingresar' }}</button>
+      <NuxtLink class="btn btn-secondary" to="/registro-guarderia">Crear acceso de guardería</NuxtLink>
       <NuxtLink class="btn btn-secondary" to="/admin/login">Acceso interno</NuxtLink>
     </form>
   </LoginPanel>

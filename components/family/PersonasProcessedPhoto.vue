@@ -114,8 +114,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.processed-photo { background: #f2f2ef; display: block; height: 100%; overflow: hidden; position: relative; width: 100%; }
-.processed-photo img { display: block; height: 100%; object-fit: cover; transition: filter .24s ease, opacity .24s ease, transform .24s ease; width: 100%; }
+.processed-photo {
+  background:
+    radial-gradient(circle at 34% 18%, rgba(255,255,255,.92), transparent 34%),
+    linear-gradient(145deg, rgba(var(--pa-primary-rgb, 97, 139, 47), .18), #fff 68%);
+  box-shadow: inset 0 -18px 36px rgba(0,0,0,.05);
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+.processed-photo::before {
+  background: linear-gradient(180deg, rgba(255,255,255,.24), transparent 56%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+.processed-photo img { display: block; height: 100%; object-fit: cover; position: relative; transition: filter .24s ease, opacity .24s ease, transform .24s ease; width: 100%; z-index: 0; }
 .processed-photo.empty { align-items: center; display: grid; place-items: center; }
 .processed-photo[data-state='processing'] img { filter: saturate(.94) brightness(.98); transform: scale(1.01); }
 .processed-photo[data-state='processing']::after { animation: pa-photo-scan 1.45s ease-in-out infinite; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.18) 42%, rgba(255,255,255,.48) 50%, rgba(255,255,255,.18) 58%, transparent 100%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-100%); }

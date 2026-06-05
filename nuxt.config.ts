@@ -35,6 +35,9 @@ export default defineNuxtConfig({
       apiBaseUrl: process.env.SIPAE_API_BASE_URL || 'https://the-sipae-api.casitaapps.com',
       timeoutMs: Number(process.env.SIPAE_API_TIMEOUT_MS || 10000)
     },
+    externalUpload: {
+      url: process.env.EXPEDIENTE_UPLOAD_URL || 'https://expediente.casitaapps.com'
+    },
     sessionSecret: process.env.SESSION_SECRET || 'change-me-before-production',
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     public: {

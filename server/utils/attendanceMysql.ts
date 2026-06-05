@@ -60,10 +60,10 @@ function toPublicMysqlError(error: unknown) {
     const candidate = error as { code?: string; statusCode?: number; statusMessage?: string }
     if (candidate.statusCode && candidate.statusMessage) return error
     if (candidate.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
-      return createError({ statusCode: 504, statusMessage: 'La consulta de asistencia excedio el tiempo de espera. Intenta de nuevo.' })
+      return createError({ statusCode: 504, statusMessage: 'La consulta de asistencia excedió el tiempo de espera. Intenta de nuevo.' })
     }
     if (isTransientMysqlError(error)) {
-      return createError({ statusCode: 503, statusMessage: 'La base de asistencia no esta disponible. Intenta de nuevo.' })
+      return createError({ statusCode: 503, statusMessage: 'La base de asistencia no está disponible. Intenta de nuevo.' })
     }
   }
   return error

@@ -5,8 +5,15 @@
         <p class="eyebrow">Guardería</p>
         <h1>{{ session?.user?.displayName || 'Husky Pass' }}</h1>
         <p>{{ session?.user?.scopes.daycare?.unidad || 'Unidad' }} · Sala {{ session?.user?.scopes.daycare?.sala || '—' }}</p>
+        <div class="hero-actions">
+          <NuxtLink class="btn btn-primary" to="/familia/daycare/calendario">Calendario</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/familia/daycare/avisos">Avisos</NuxtLink>
+        </div>
       </div>
-      <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+      <div class="hero-mark">
+        <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+        <span>Familia guardería</span>
+      </div>
     </section>
 
     <section class="quick-row">
@@ -97,15 +104,17 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 }
 
 .family-hero {
-  align-items: center;
-  background: linear-gradient(135deg, #333, #676767);
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(255, 181, 69, .22), transparent 30%),
+    linear-gradient(135deg, #315f24, #578b26 58%, #7aa83d);
   border-radius: 24px;
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-card);
   color: #fff;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) 170px;
-  min-height: 150px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  min-height: 190px;
   padding: clamp(18px, 3vw, 26px);
 }
 
@@ -119,8 +128,46 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   font-size: clamp(1.75rem, 3vw, 2.7rem);
 }
 
-.family-hero img {
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.hero-actions .btn-primary {
+  background: #fff;
+  color: var(--color-brand-900);
+  box-shadow: none;
+}
+
+.hero-actions .btn-secondary {
+  background: rgba(255, 255, 255, .14);
+  border-color: rgba(255, 255, 255, .28);
+  color: #fff;
+}
+
+.hero-mark {
+  align-items: center;
+  background: rgba(255, 255, 255, .15);
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 22px;
+  display: grid;
+  justify-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.hero-mark img {
+  max-width: 150px;
   width: 100%;
+}
+
+.hero-mark span {
+  color: rgba(255, 255, 255, .82);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
 .quick-row {
@@ -266,7 +313,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
     min-height: 0;
   }
 
-  .family-hero img {
+  .hero-mark img {
     max-width: 150px;
   }
 
