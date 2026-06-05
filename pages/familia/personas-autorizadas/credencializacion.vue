@@ -6,7 +6,6 @@
         <h1>Foto del alumno</h1>
         <p>{{ currentPhoto ? 'Lista.' : 'Pendiente.' }}</p>
       </div>
-      <img :src="mascot" alt="" />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
@@ -79,16 +78,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson, PersonasStudentProfile } from '~/types/daycare'
-import type { PublicSession } from '~/types/session'
+import type { PersonasStudentProfile } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { personasMascot } from '~/utils/personasTheme'
-import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-photo-session' })
-const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-photo-family-people', timeout: 15000 })
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-photo-student-profile', timeout: 15000 })
 
 const photoModalOpen = ref(false)
@@ -100,15 +94,6 @@ const notice = ref('')
 const saved = ref(false)
 const pendingPhotoUrl = ref('')
 
-const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const { theme } = useResolvedPersonasTheme(() => ({
-  matricula: primaryChild.value?.matricula || profile.value?.readonly.matricula || session.value?.user?.username,
-  plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0] || profile.value?.readonly.plantel,
-  nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
-  campus: primaryChild.value?.campus || session.value?.user?.campus
-}))
-const mascot = computed(() => personasMascot(theme.value, 'preview'))
 const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.readonly.foto || ''))
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
 const academicLine = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
@@ -169,23 +154,22 @@ async function savePendingPhoto() {
 </script>
 
 <style scoped>
-.photo-hero, .photo-flow { align-items: center; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 96px; }
-.photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); }
-.photo-hero img { align-self: end; max-height: 82px; object-fit: contain; }
-.photo-flow { grid-template-columns: 180px minmax(0, 1fr); }
-.photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 20px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; }
+.photo-hero, .photo-flow { align-items: center; display: grid; gap: 12px; }
+.photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; }
+.photo-flow { grid-template-columns: 150px minmax(0, 1fr); }
+.photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 14px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; width: 150px; }
 .photo-preview:not(:disabled) { cursor: pointer; }
 .photo-preview img { height: 100%; object-fit: cover; width: 100%; }
 .photo-copy { display: grid; gap: 10px; }
 .photo-copy h2 { margin-bottom: 0; }
 .actions, .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.modal-actions { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 16px; justify-content: flex-end; margin-top: 10px; padding: 10px; }
+.modal-actions { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 14px; justify-content: flex-end; margin-top: 10px; padding: 10px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
-.notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
-.status-card { align-items: center; background: #f7f7f5; border: 1px solid #e9e9e3; border-radius: 14px; color: var(--pa-muted); display: flex; gap: 8px; font-weight: 600; padding: 10px; }
+.notice { background: var(--pa-soft); border-radius: 12px; margin: 0; padding: 10px 12px; }
+.status-card { align-items: center; background: #f7f7f5; border: 1px solid #e9e9e3; border-radius: 12px; color: var(--pa-muted); display: flex; gap: 8px; font-weight: 600; padding: 10px; }
 .status-card[data-state='loading'], .status-card[data-state='saved'], .status-card[data-state='ready'] { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
-.current-photo-large { border-radius: 18px; display: block; height: min(64vh, 480px); margin: 0 auto; width: min(100%, 480px); }
+.current-photo-large { border-radius: 14px; display: block; height: min(64vh, 420px); margin: 0 auto; width: min(100%, 420px); }
 .current-photo-large :deep(img) { object-fit: contain; }
-@media (max-width: 860px) { .photo-hero, .photo-flow { grid-template-columns: 1fr; } .photo-hero img { justify-self: start; } .photo-preview { width: min(100%, 220px); } }
+@media (max-width: 860px) { .photo-hero, .photo-flow { grid-template-columns: 1fr; } .photo-preview { width: min(100%, 180px); } }
 </style>

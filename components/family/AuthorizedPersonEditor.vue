@@ -3,66 +3,79 @@
     <div v-if="serverError" class="alert compact-alert" role="alert">{{ serverError }}</div>
     <div v-if="formNotice" class="notice compact-notice" role="status">{{ formNotice }}</div>
 
-    <div class="grid grid-2 editor-fields">
-      <label class="label">
-        Nombre(s)
-        <input
-          ref="firstInputRef"
-          v-model.trim="form.nombreP"
-          class="input"
-          required
-          autocomplete="given-name"
-          :aria-invalid="Boolean(errors.nombreP)"
-          :aria-describedby="errors.nombreP ? 'pa-edit-nombre-error' : undefined"
-          @input="clearFieldError('nombreP')"
-        />
-        <small v-if="errors.nombreP" id="pa-edit-nombre-error" class="field-error">{{ errors.nombreP }}</small>
-      </label>
-      <label class="label">
-        Apellido paterno
-        <input v-model.trim="form.paternoP" class="input" autocomplete="family-name" />
-      </label>
-      <label class="label">
-        Apellido materno
-        <input v-model.trim="form.maternoP" class="input" autocomplete="additional-name" />
-      </label>
-      <label class="label">
-        Parentesco
-        <input
-          v-model.trim="form.parenP"
-          class="input"
-          required
-          placeholder="Abuela, tío, nana..."
-          :aria-invalid="Boolean(errors.parenP)"
-          :aria-describedby="errors.parenP ? 'pa-edit-parentesco-error' : undefined"
-          @input="clearFieldError('parenP')"
-        />
-        <small v-if="errors.parenP" id="pa-edit-parentesco-error" class="field-error">{{ errors.parenP }}</small>
-      </label>
-      <label class="label">
-        Fecha de alta
-        <input v-model="form.fechaP" class="input" type="date" />
-      </label>
-    </div>
+    <section class="editor-layout">
+      <div class="editor-fields-card">
+        <header class="editor-section-head">
+          <p class="eyebrow">{{ label }}</p>
+          <h3>Datos de la persona</h3>
+        </header>
 
-    <FamilyPersonasImageUpload
-      :key="photoInputKey"
-      :initial-src="form.compressed_foto || form.foto"
-      :persona-id="form.id"
-      eyebrow="Foto de identificación"
-      title="Foto"
-      description="Foto frontal, clara."
-      confirm-label="Confirmar foto"
-      @processed="setProcessedPhoto"
-      @processing="setPhotoBusy"
-      @error="setVisionError"
-    />
+        <div class="grid grid-2 editor-fields">
+          <label class="label">
+            Nombre(s)
+            <input
+              ref="firstInputRef"
+              v-model.trim="form.nombreP"
+              class="input"
+              required
+              autocomplete="given-name"
+              :aria-invalid="Boolean(errors.nombreP)"
+              :aria-describedby="errors.nombreP ? 'pa-edit-nombre-error' : undefined"
+              @input="clearFieldError('nombreP')"
+            />
+            <small v-if="errors.nombreP" id="pa-edit-nombre-error" class="field-error">{{ errors.nombreP }}</small>
+          </label>
+
+          <label class="label">
+            Apellido paterno
+            <input v-model.trim="form.paternoP" class="input" autocomplete="family-name" />
+          </label>
+
+          <label class="label">
+            Apellido materno
+            <input v-model.trim="form.maternoP" class="input" autocomplete="additional-name" />
+          </label>
+
+          <label class="label">
+            Parentesco
+            <input
+              v-model.trim="form.parenP"
+              class="input"
+              required
+              placeholder="Abuela, tio, nana..."
+              :aria-invalid="Boolean(errors.parenP)"
+              :aria-describedby="errors.parenP ? 'pa-edit-parentesco-error' : undefined"
+              @input="clearFieldError('parenP')"
+            />
+            <small v-if="errors.parenP" id="pa-edit-parentesco-error" class="field-error">{{ errors.parenP }}</small>
+          </label>
+
+          <label class="label">
+            Fecha de alta
+            <input v-model="form.fechaP" class="input" type="date" />
+          </label>
+        </div>
+      </div>
+
+      <FamilyPersonasImageUpload
+        :key="photoInputKey"
+        :initial-src="form.compressed_foto || form.foto"
+        :persona-id="form.id"
+        eyebrow="Foto de identificacion"
+        title="Foto"
+        description="Foto frontal, clara."
+        confirm-label="Confirmar foto"
+        @processed="setProcessedPhoto"
+        @processing="setPhotoBusy"
+        @error="setVisionError"
+      />
+    </section>
 
     <p v-if="visionError" class="alert compact-alert" role="alert">{{ visionError }}</p>
 
     <div class="actions form-actions">
       <button class="btn btn-primary" type="submit" :disabled="submitDisabled" data-diagnostic-action="guardar-persona-autorizada">
-        {{ saving ? 'Guardando…' : photoBusy ? 'Preparando foto…' : 'Guardar' }}
+        {{ saving ? 'Guardando...' : photoBusy ? 'Preparando foto...' : 'Guardar' }}
       </button>
       <button class="btn btn-secondary" type="button" :disabled="saving || photoBusy" @click="cancel">Cancelar</button>
     </div>
@@ -150,6 +163,27 @@ function cancel() {
   gap: 12px;
 }
 
+.editor-layout {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.editor-fields-card {
+  background: #fff;
+  border: 1px solid var(--pa-border, #dce7d0);
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.editor-section-head h3,
+.editor-section-head p {
+  margin-bottom: 0;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -159,7 +193,7 @@ function cancel() {
 .form-actions {
   background: var(--pa-soft, #f3f5f0);
   border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 18px;
+  border-radius: 14px;
   justify-content: flex-end;
   padding: 12px;
 }
@@ -172,7 +206,7 @@ function cancel() {
 .compact-notice {
   background: #fff;
   border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--pa-gray, #50535a);
   font-weight: 600;
   padding: 10px 12px;
@@ -184,7 +218,8 @@ function cancel() {
   margin-top: 6px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 820px) {
+  .editor-layout,
   .editor-fields {
     grid-template-columns: 1fr;
   }

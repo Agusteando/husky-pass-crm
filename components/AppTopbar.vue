@@ -116,36 +116,47 @@ async function logout() {
   top: 0;
   z-index: 20;
   backdrop-filter: blur(18px);
-  background: rgba(247, 249, 243, 0.88);
+  background: rgba(251, 252, 248, 0.92);
   border-bottom: 1px solid rgba(223, 232, 215, 0.78);
 }
 
 .topbar-inner {
-  min-height: var(--topbar-height);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 14px;
+  min-height: var(--topbar-height);
 }
 
 .topbar-nav {
   display: flex;
   gap: 6px;
   align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 100%;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
+}
+
+.topbar-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .topbar-nav a {
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   color: var(--color-muted);
+  flex: 0 0 auto;
+  font-size: 0.84rem;
   font-weight: 600;
-  padding: 6px 10px;
+  padding: 7px 10px;
+  white-space: nowrap;
 }
 
 .topbar-nav a.active,
 .topbar-nav a:hover {
-  background: var(--color-brand-100);
+  background: #fff;
+  border-color: var(--color-border);
   color: var(--color-brand-800);
 }
 
@@ -153,6 +164,8 @@ async function logout() {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
   min-width: 0;
 }
 
@@ -205,7 +218,7 @@ async function logout() {
 .scope-badges span {
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   color: var(--color-brand-800);
   font-size: 0.72rem;
   font-weight: 600;
@@ -259,7 +272,7 @@ async function logout() {
   .topbar-inner {
     min-height: var(--topbar-height);
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 6px 10px;
     padding-block: 4px;
   }
 
@@ -275,14 +288,8 @@ async function logout() {
 
   .topbar-nav {
     order: 3;
-    overflow: auto hidden;
     width: 100%;
     padding-bottom: 4px;
-    scrollbar-width: none;
-  }
-
-  .topbar-nav::-webkit-scrollbar {
-    display: none;
   }
 
   .topbar-nav a {

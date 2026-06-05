@@ -190,8 +190,8 @@ function removePhoto() {
 </script>
 
 <style scoped>
-.pa-image-upload { align-items: stretch; background: rgba(var(--pa-primary-rgb, 97, 139, 47), .07); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; display: grid; gap: 12px; grid-template-columns: 160px minmax(0, 1fr); padding: 14px; }
-.image-frame { aspect-ratio: 1; background: radial-gradient(circle at 30% 18%, rgba(255,255,255,.92), transparent 34%), linear-gradient(145deg, rgba(var(--pa-primary-rgb, 97, 139, 47), .18), #fff 68%); border: 1px solid var(--pa-border, #dce7d0); border-radius: 20px; box-shadow: inset 0 -18px 36px rgba(0,0,0,.05); color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; position: relative; }
+.pa-image-upload { align-items: start; background: rgba(var(--pa-primary-rgb, 97, 139, 47), .07); border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; display: grid; gap: 12px; grid-template-columns: 1fr; padding: 14px; }
+.image-frame { aspect-ratio: 1; background: linear-gradient(145deg, rgba(var(--pa-primary-rgb, 97, 139, 47), .14), #fff 68%); border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; box-shadow: inset 0 -14px 28px rgba(0,0,0,.04); color: var(--pa-primary, #618b2f); display: grid; overflow: hidden; place-items: center; position: relative; width: min(100%, 172px); }
 .image-frame img { height: 100%; object-fit: cover; transition: filter .24s ease, transform .24s ease; width: 100%; }
 .image-frame[data-state='processing'] img { filter: saturate(.94) brightness(.98); transform: scale(1.01); }
 .image-frame[data-state='processing']::after { animation: pa-upload-scan 1.45s ease-in-out infinite; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.18) 42%, rgba(255,255,255,.48) 50%, rgba(255,255,255,.18) 58%, transparent 100%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-100%); }
@@ -202,9 +202,9 @@ function removePhoto() {
 .image-head h3, .image-head p { margin-bottom: 0; }
 .image-head p:not(.eyebrow) { color: var(--pa-muted, #86888c); font-weight: 600; }
 .upload-steps { display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
-.upload-steps li { background: #fff; border: 1px solid #ecece7; border-radius: 999px; color: var(--pa-muted, #86888c); font-size: .76rem; font-weight: 600; padding: 7px 9px; text-align: center; }
+.upload-steps li { background: #fff; border: 1px solid #ecece7; border-radius: 10px; color: var(--pa-muted, #86888c); font-size: .74rem; font-weight: 700; padding: 7px 8px; text-align: center; }
 .upload-steps li.active, .upload-steps li.done { background: var(--pa-soft, #f3f5f0); border-color: var(--pa-border, #dce7d0); color: var(--pa-primary, #618b2f); }
-.upload-drop { background: #fff; border: 1px dashed var(--pa-border, #dce7d0); border-radius: 16px; cursor: pointer; display: grid; gap: 2px; padding: 14px; }
+.upload-drop { background: #fff; border: 1px dashed var(--pa-border, #dce7d0); border-radius: 12px; cursor: pointer; display: grid; gap: 2px; padding: 12px; }
 .upload-drop.busy { cursor: progress; opacity: .82; }
 .upload-drop input { height: 1px; opacity: 0; overflow: hidden; position: absolute; width: 1px; }
 .upload-drop span { color: var(--pa-primary, #618b2f); font-weight: 600; }
@@ -212,6 +212,6 @@ function removePhoto() {
 .upload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .compact-alert, .compact-notice { margin: 0; }
-.compact-notice { background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 14px; color: var(--pa-gray, #50535a); font-weight: 600; padding: 10px 12px; }
-@media (max-width: 680px) { .pa-image-upload { grid-template-columns: 1fr; } .image-frame { max-width: 180px; } }
+.compact-notice { background: #fff; border: 1px solid var(--pa-border, #dce7d0); border-radius: 12px; color: var(--pa-gray, #50535a); font-weight: 600; padding: 10px 12px; }
+@media (max-width: 680px) { .image-frame { max-width: 168px; } }
 </style>

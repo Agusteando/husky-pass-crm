@@ -1,22 +1,22 @@
 <template>
   <main class="print-shell" :style="themeVars">
     <section v-if="pending || readinessPending" class="status-card" data-product-loading>
-      <h1>Preparando marbete...</h1>
+      <h1>Preparando Husky Pass...</h1>
     </section>
 
     <section v-else-if="loadError || !data || readinessError || !marbeteReady" class="status-card" data-state="error">
-      <h1>Marbete no disponible</h1>
+      <h1>Husky Pass no disponible</h1>
       <p>{{ marbeteMessage }}</p>
       <NuxtLink class="btn btn-secondary no-print" to="/familia/personas-autorizadas">Volver</NuxtLink>
     </section>
 
-    <section v-else class="print-card" data-product-panel="marbete-print" data-state="content">
+    <section v-else class="print-card" data-product-panel="husky-pass-print" data-state="content">
       <div class="print-actions no-print">
         <strong>{{ fullName }}</strong>
-        <span>{{ templateContext }}</span>
-        <a v-if="marbeteReady" class="btn btn-primary" :href="downloadUrl">Descargar</a>
+        <span>{{ passContext }}</span>
+        <a v-if="marbeteReady" class="btn btn-primary" :href="downloadUrl">Descargar Husky Pass</a>
       </div>
-      <iframe ref="frame" :src="previewUrl" title="Marbete imprimible" @load="printFrame"></iframe>
+      <iframe ref="frame" :src="previewUrl" title="Husky Pass imprimible" @load="printFrame"></iframe>
     </section>
   </main>
 </template>
@@ -45,13 +45,13 @@ const { themeVars } = useResolvedPersonasTheme(() => ({
   campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
+const passContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Datos escolares')
 const marbeteReady = computed(() => Boolean(readiness.value?.ok))
 const marbeteMessage = computed(() => {
   if (loadError.value || !data.value) return 'No encontramos esta persona autorizada dentro de tu cuenta.'
-  if (readinessPending.value) return 'Validando datos e imágenes del marbete.'
-  if (readinessError.value) return 'No fue posible validar los datos e imágenes del marbete.'
-  return readiness.value?.ok ? 'Marbete listo para imprimir.' : readiness.value?.issues?.[0] || 'Marbete no disponible.'
+  if (readinessPending.value) return 'Validando datos e imagenes del Husky Pass.'
+  if (readinessError.value) return 'No fue posible validar los datos e imagenes del Husky Pass.'
+  return readiness.value?.ok ? 'Husky Pass listo.' : readiness.value?.issues?.[0] || 'Husky Pass no disponible.'
 })
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
@@ -83,7 +83,7 @@ function printFrame() {
 .print-card {
   background: #fff;
   border: 1px solid var(--pa-border);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 12px;
@@ -100,7 +100,7 @@ function printFrame() {
   align-items: center;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 16px;
+  border-radius: 12px;
   display: grid;
   gap: 4px 10px;
   grid-template-columns: minmax(0, 1fr) auto;

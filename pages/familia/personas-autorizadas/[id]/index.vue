@@ -1,60 +1,60 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Persona autorizada">
-    <section class="pa-detail stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
-    <header class="detail-head">
-      <div>
-        <p class="eyebrow">Persona autorizada</p>
-        <h1>{{ fullName || 'Registro' }}</h1>
-        <p>{{ subtitle }}</p>
-      </div>
-      <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
-    </header>
-
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar este registro.</p>
-    <div v-else-if="pending" class="card loading-card" data-product-loading data-state="loading">Cargando registro...</div>
-
-    <section v-else-if="person" class="detail-grid" data-product-panel="authorized-person-detail" data-state="content">
-      <article class="identity-card">
-        <div class="photo">
-          <FamilyPersonasProcessedPhoto v-if="photoUrl" :src="person.foto" :processed-src="person.compressed_foto" alt="Fotografía" :namespace="`pa-detail-${person.id}`" />
-          <span v-else>{{ initials }}</span>
-        </div>
+    <section class="pa-detail" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
+      <header class="detail-head">
         <div>
-          <p class="eyebrow">{{ authorizedPersonLabel(person.indice) }}</p>
-          <h2>{{ fullName }}</h2>
-          <p>{{ person.parenP || 'Parentesco no especificado' }}</p>
+          <p class="eyebrow">Persona autorizada</p>
+          <h1>{{ fullName || 'Registro' }}</h1>
+          <p>{{ subtitle }}</p>
         </div>
-      </article>
+        <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
+      </header>
 
-      <article class="actions-card">
-        <div class="readiness">
-          <span class="ok">Registro guardado</span>
-          <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? studentLine : 'Alumno pendiente' }}</span>
-          <span :class="{ ok: marbeteReady }">{{ marbeteMessage }}</span>
-        </div>
+      <p v-if="loadError" class="alert" data-state="error">No fue posible cargar este registro.</p>
+      <div v-else-if="pending" class="card loading-card" data-product-loading data-state="loading">Cargando registro...</div>
 
-        <div class="action-grid">
-          <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-marbete">Previsualizar marbete</NuxtLink>
-          <a v-if="marbeteReady" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
-          <button v-else class="btn btn-secondary" type="button" disabled>{{ marbeteMessage }}</button>
-          <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/qr`" data-diagnostic-link="ver-qr">Ver QR</NuxtLink>
-          <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validación</button>
-        </div>
+      <section v-else-if="person" class="detail-grid" data-product-panel="authorized-person-detail" data-state="content">
+        <article class="identity-card">
+          <div class="photo">
+            <FamilyPersonasProcessedPhoto v-if="photoUrl" :src="person.foto" :processed-src="person.compressed_foto" :auto-process="false" alt="Fotografia" :namespace="`pa-detail-${person.id}`" />
+            <span v-else>{{ initials }}</span>
+          </div>
+          <div>
+            <p class="eyebrow">{{ authorizedPersonLabel(person.indice) }}</p>
+            <h2>{{ fullName }}</h2>
+            <p>{{ person.parenP || 'Parentesco no especificado' }}</p>
+          </div>
+        </article>
 
-        <p v-if="shareMessage" class="notice">{{ shareMessage }}</p>
-      </article>
+        <article class="actions-card">
+          <div class="readiness">
+            <span class="ok">Registro guardado</span>
+            <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? studentLine : 'Alumno pendiente' }}</span>
+            <span :class="{ ok: marbeteReady }">{{ marbeteMessage }}</span>
+          </div>
+
+          <div class="action-grid">
+            <a v-if="marbeteReady" class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-husky-pass">
+              Descargar Husky Pass
+            </a>
+            <button v-else class="btn btn-secondary" type="button" disabled>{{ marbeteMessage }}</button>
+            <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-husky-pass">
+              Vista previa
+            </NuxtLink>
+          </div>
+        </article>
+      </section>
+
+      <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
     </section>
-
-    <EmptyState v-else title="Registro no disponible" description="No encontramos esta persona autorizada en tu cuenta." />
-  </section>
   </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
-import { appAbsoluteUrl, authorizedPersonLabel, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
@@ -83,7 +83,7 @@ const photoUrl = computed(() => {
   const processed = normalizeVirtualAssetUrl(person.value?.compressed_foto || '')
   return original || (isValidatedVisionPhotoUrl(processed) ? processed : '')
 })
-const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta QR, marbete y validación.'))
+const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta y descarga su Husky Pass.'))
 const studentLine = computed(() => {
   const child = primaryChild.value
   if (!child) return ''
@@ -91,32 +91,10 @@ const studentLine = computed(() => {
 })
 const marbeteReady = computed(() => Boolean(readiness.value?.ok))
 const marbeteMessage = computed(() => {
-  if (readinessPending.value) return 'Validando marbete'
-  if (readinessError.value) return 'No fue posible validar el marbete'
-  return readiness.value?.ok ? 'Marbete listo para descargar' : readiness.value?.issues?.[0] || 'Marbete no disponible'
+  if (readinessPending.value) return 'Validando Husky Pass'
+  if (readinessError.value) return 'No fue posible validar el Husky Pass'
+  return readiness.value?.ok ? 'Husky Pass listo' : readiness.value?.issues?.[0] || 'Husky Pass no disponible'
 })
-const shareMessage = ref('')
-
-async function shareValidation() {
-  if (!person.value?.id) return
-
-  const url = appAbsoluteUrl(authorizedPersonValidationPath(person.value.id))
-  const title = fullName.value ? `Validacion de ${fullName.value}` : 'Validacion de Persona Autorizada'
-  shareMessage.value = ''
-
-  try {
-    if (navigator.share) {
-      await navigator.share({ title, text: 'Código de validación de Persona Autorizada.', url })
-      shareMessage.value = 'Validacion compartida.'
-      return
-    }
-
-    await navigator.clipboard.writeText(url)
-    shareMessage.value = 'Liga de validación copiada.'
-  } catch {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-}
 </script>
 
 <style scoped>
@@ -127,6 +105,8 @@ async function shareValidation() {
   --pa-border: rgba(97, 139, 47, 0.28);
   --pa-gray: #50535a;
   --pa-muted: #86888c;
+  display: grid;
+  gap: 12px;
 }
 
 .detail-head,
@@ -134,7 +114,7 @@ async function shareValidation() {
 .actions-card {
   background: #fff;
   border: 1px solid var(--pa-border);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -146,10 +126,11 @@ async function shareValidation() {
   padding: clamp(12px, 2vw, 16px);
 }
 
-.detail-head h1 {
-  color: var(--pa-gray);
-  font-size: clamp(1.55rem, 3vw, 2.25rem);
-  margin-bottom: 6px;
+.detail-head h1,
+.detail-head p,
+.identity-card h2,
+.identity-card p {
+  margin-bottom: 0;
 }
 
 .detail-grid {
@@ -162,20 +143,21 @@ async function shareValidation() {
 .actions-card {
   display: grid;
   gap: 12px;
-  padding: 10px;
+  padding: 12px;
 }
 
 .photo {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 18px;
+  border-radius: 12px;
   color: var(--pa-primary);
   display: grid;
-  font-size: 2.8rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   overflow: hidden;
   place-items: center;
+  width: min(100%, 220px);
 }
 
 .photo img {
@@ -184,46 +166,39 @@ async function shareValidation() {
   width: 100%;
 }
 
-.identity-card h2 {
-  color: var(--pa-gray);
-  font-size: 1.3rem;
-  margin-bottom: 4px;
-}
-
 .readiness,
 .action-grid {
   display: grid;
   gap: 8px;
 }
 
+.readiness {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .readiness span {
   background: #f5f5f4;
   border: 1px solid #e8e8e4;
-  border-radius: 999px;
+  border-radius: 10px;
   color: var(--pa-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 6px 9px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 9px;
 }
 
 .readiness span.ok {
   background: var(--pa-soft);
   border-color: var(--pa-border);
-  color: var(--pa-gray);
+  color: var(--pa-primary);
 }
 
 .action-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.notice {
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 14px;
-  color: var(--pa-gray);
-  font-weight: 600;
-  margin: 0;
-  padding: 10px 12px;
+.pa-primary {
+  background: var(--pa-primary);
+  color: var(--pa-contrast);
 }
 
 .loading-card {
@@ -233,6 +208,7 @@ async function shareValidation() {
 @media (max-width: 760px) {
   .detail-head,
   .detail-grid,
+  .readiness,
   .action-grid {
     grid-template-columns: 1fr;
   }

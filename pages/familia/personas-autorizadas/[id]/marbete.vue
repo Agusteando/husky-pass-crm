@@ -1,38 +1,38 @@
 <template>
-  <FamilyPersonasAutorizadasShell title="Marbete">
-    <section class="marbete-page stack" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="marbete">
-    <header class="marbete-head">
-      <div>
-        <p class="eyebrow">Marbete</p>
-        <h1>{{ fullName || 'Persona autorizada' }}</h1>
-        <p>{{ templateContext }}</p>
-      </div>
-      <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-        <a v-if="downloadAvailable" class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
-        <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
-      </div>
-    </header>
+  <FamilyPersonasAutorizadasShell title="Husky Pass">
+    <section class="pass-page" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="husky-pass">
+      <header class="pass-head">
+        <div>
+          <p class="eyebrow">Husky Pass</p>
+          <h1>{{ fullName || 'Persona autorizada' }}</h1>
+          <p>{{ passContext }}</p>
+        </div>
+        <div class="head-actions">
+          <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
+          <a v-if="downloadAvailable" class="btn btn-primary pa-primary" :href="downloadUrl" data-diagnostic-link="descargar-husky-pass">Descargar Husky Pass</a>
+          <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
+        </div>
+      </header>
 
-    <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el marbete.' }}</p>
-    <div v-else-if="pending || readinessPending" class="preview-state" data-product-loading data-state="loading">
-      <span></span>
-      <strong>Generando vista...</strong>
-    </div>
-
-    <section v-else-if="downloadAvailable" class="preview-shell" data-product-panel="marbete-preview" data-state="content">
-      <iframe :src="previewUrl" title="Vista previa de marbete"></iframe>
-      <div class="download-ready">
-        <span>PDF listo para imprimir</span>
-        <strong>{{ theme.label }}</strong>
+      <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el Husky Pass.' }}</p>
+      <div v-else-if="pending || readinessPending" class="preview-state" data-product-loading data-state="loading">
+        <span></span>
+        <strong>Generando vista...</strong>
       </div>
+
+      <section v-else-if="downloadAvailable" class="preview-shell" data-product-panel="husky-pass-preview" data-state="content">
+        <iframe :src="previewUrl" title="Vista previa de Husky Pass"></iframe>
+        <div class="download-ready">
+          <span>Listo para descargar</span>
+          <strong>{{ theme.label }}</strong>
+        </div>
+      </section>
+
+      <section v-else class="preview-state unavailable" data-product-panel="husky-pass-preview" data-state="unavailable">
+        <strong>Husky Pass no disponible</strong>
+        <p>{{ readinessMessage }}</p>
+      </section>
     </section>
-
-    <section v-else class="preview-state unavailable" data-product-panel="marbete-preview" data-state="unavailable">
-      <strong>Marbete no disponible</strong>
-      <p>{{ readinessMessage }}</p>
-    </section>
-  </section>
   </FamilyPersonasAutorizadasShell>
 </template>
 
@@ -59,33 +59,35 @@ const { theme, themeVars } = useResolvedPersonasTheme(() => ({
   campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
+const passContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Datos escolares')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
 const downloadAvailable = computed(() => Boolean(readiness.value?.ok))
-const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readinessError.value ? 'No fue posible validar los datos e imágenes del marbete.' : 'Validando datos e imágenes del marbete…'))
+const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readinessError.value ? 'No fue posible validar los datos e imagenes del Husky Pass.' : 'Validando datos e imagenes del Husky Pass...'))
 </script>
 
 <style scoped>
-.marbete-page {
+.pass-page {
   --pa-primary: #618b2f;
   --pa-contrast: #fff;
   --pa-soft: rgba(97, 139, 47, 0.12);
   --pa-border: rgba(97, 139, 47, 0.28);
   --pa-gray: #50535a;
   --pa-muted: #86888c;
+  display: grid;
+  gap: 12px;
 }
 
-.marbete-head,
+.pass-head,
 .preview-shell,
 .preview-state {
   background: #fff;
   border: 1px solid var(--pa-border);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: var(--shadow-soft);
 }
 
-.marbete-head {
+.pass-head {
   align-items: center;
   display: grid;
   gap: 12px;
@@ -93,16 +95,21 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
   padding: clamp(12px, 2vw, 16px);
 }
 
-.marbete-head h1 {
-  color: var(--pa-gray);
-  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
-  margin-bottom: 6px;
+.pass-head h1,
+.pass-head p {
+  margin-bottom: 0;
 }
 
 .head-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
+}
+
+.pa-primary {
+  background: var(--pa-primary);
+  color: var(--pa-contrast);
 }
 
 .preview-state {
@@ -119,7 +126,7 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
 
 .preview-state.unavailable p {
   color: var(--pa-muted);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
 }
 
@@ -141,7 +148,7 @@ iframe {
   aspect-ratio: 612 / 792;
   background: #f8f8f7;
   border: 1px solid var(--pa-border);
-  border-radius: 14px;
+  border-radius: 12px;
   height: min(540px, calc(100vh - 220px));
   min-height: 360px;
   width: 100%;
@@ -151,7 +158,7 @@ iframe {
   align-items: center;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -161,7 +168,7 @@ iframe {
 .download-ready span {
   color: var(--pa-muted);
   font-size: 0.76rem;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -176,14 +183,17 @@ iframe {
 }
 
 @media (max-width: 760px) {
-  .marbete-head {
+  .pass-head {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
 
   .head-actions {
-    display: flex;
-    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .head-actions .btn {
+    flex: 1 1 150px;
   }
 
   iframe {

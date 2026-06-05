@@ -111,12 +111,12 @@ onBeforeUnmount(() => {
 .pa-modal {
   background: #fff;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
   display: grid;
   gap: 0;
   max-height: min(90dvh, 860px);
-  max-width: min(920px, calc(100vw - 28px));
+  max-width: min(980px, calc(100vw - 28px));
   overflow: hidden;
   width: 100%;
 }
@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
   align-items: center;
   background: var(--pa-soft, #f3f5f0);
   border: 1px solid var(--pa-border, #dce7d0);
-  border-radius: 999px;
+  border-radius: 10px;
   color: var(--pa-primary, #618b2f);
   cursor: pointer;
   display: inline-grid;
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
   }
 
   .pa-modal {
-    border-radius: 24px 24px 0 0;
+    border-radius: 18px 18px 0 0;
     max-height: 92dvh;
     max-width: 100vw;
   }

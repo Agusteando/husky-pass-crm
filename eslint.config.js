@@ -8,6 +8,7 @@ export default [
   {
     ignores: [
       '.nuxt/**',
+      '127.0.0.1/**',
       '.output/**',
       'node_modules/**',
       'dist/**',

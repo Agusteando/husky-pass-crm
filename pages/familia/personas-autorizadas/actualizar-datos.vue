@@ -6,7 +6,6 @@
         <h1>Datos del alumno</h1>
         <p>{{ lastUpdateLabel }}</p>
       </div>
-      <img :src="mascot" alt="" />
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
@@ -105,12 +104,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson, PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
-import type { PublicSession } from '~/types/session'
+import type { PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import { normalizeAttendanceText } from '~/utils/attendance'
-import { personasMascot } from '~/utils/personasTheme'
 import { displayMatricula } from '~/utils/matricula'
-import { useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -120,8 +116,6 @@ type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
 type GrupoManifestEntry = { grupoValue: string; normalizedKey?: string; previewGreenPng?: string }
 type GrupoManifest = { fallbackGrupo: string; aliases?: Record<string, string>; entries: GrupoManifestEntry[] }
 
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-update-session' })
-const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-update-family-people', timeout: 15000 })
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000 })
 const { data: grupoManifest } = useFetch<GrupoManifest>('/grupo-icons/manifest.json', { key: 'student-data-grupo-icons', server: false })
 
@@ -133,15 +127,6 @@ const error = ref('')
 const notice = ref('')
 const activeGroup = ref<FieldGroup | null>(null)
 
-const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
-const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const { theme } = useResolvedPersonasTheme(() => ({
-  matricula: primaryChild.value?.matricula || profile.value?.readonly.matricula || session.value?.user?.username,
-  plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0] || profile.value?.readonly.plantel,
-  nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
-  campus: primaryChild.value?.campus || session.value?.user?.campus
-}))
-const mascot = computed(() => personasMascot(theme.value, 'help'))
 const academicSummary = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / ') || 'Datos escolares')
 const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? `Actualizado ${formatDate(profile.value.meta.updatedAt)}` : 'Actualización familiar')
 const grupoSigil = computed(() => resolveGrupoSigil(profile.value?.readonly.grupo))
@@ -344,11 +329,10 @@ async function saveActiveGroup() {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 82px; }
-.section-hero img { max-height: 76px; object-fit: contain; }
+.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; display: grid; gap: 12px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
-.notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
+.notice { background: var(--pa-soft); border-radius: 12px; margin: 0; padding: 10px 12px; }
 .readonly-card {
   align-items: center;
   background:
@@ -370,7 +354,7 @@ async function saveActiveGroup() {
 .school-facts div {
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 999px;
+  border-radius: 10px;
   color: var(--pa-primary);
   display: inline-flex;
   gap: 6px;
@@ -390,7 +374,7 @@ async function saveActiveGroup() {
   align-items: center;
   background: rgba(255, 255, 255, .78);
   border: 1px solid var(--pa-border);
-  border-radius: 18px;
+  border-radius: 14px;
   display: grid;
   gap: 10px;
   justify-items: center;
@@ -416,14 +400,14 @@ async function saveActiveGroup() {
   text-transform: uppercase;
 }
 .data-section-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.data-section-card { align-items: end; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; }
+.data-section-card { align-items: end; border-radius: 14px; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; }
 .data-section-card h2, .data-section-card p { margin-bottom: 0; }
 .data-section-card p:not(.eyebrow) { color: var(--pa-muted); font-weight: 600; }
 .student-form { display: grid; gap: 10px; }
 .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field-error { color: #8d2d25; font-weight: 600; }
 .input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: #d35a4e; box-shadow: 0 0 0 3px rgba(211, 90, 78, .12); }
-.change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
-.save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px; }
-@media (max-width: 760px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
+.change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
+.save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 14px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px; }
+@media (max-width: 760px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
 </style>

@@ -66,7 +66,7 @@ async function exitPreview() {
   align-self: start;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 10px;
@@ -76,9 +76,9 @@ async function exitPreview() {
 }
 
 .family-context {
-  background: linear-gradient(180deg, #fbfdf8, #f2f8ea);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfdf8, #f6f8f1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   display: grid;
   gap: 2px;
   padding: 10px;
@@ -112,7 +112,7 @@ async function exitPreview() {
 .family-nav a {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--color-muted);
   display: flex;
   gap: 8px;
@@ -127,9 +127,10 @@ async function exitPreview() {
 
 .family-nav a:hover,
 .family-nav a.router-link-active {
-  background: var(--color-brand-100);
+  background: #fff;
   border-color: var(--color-brand-200);
   color: var(--color-brand-800);
+  box-shadow: var(--shadow-line);
 }
 
 .exit-preview {
@@ -155,6 +156,8 @@ async function exitPreview() {
 
   .family-nav a {
     flex: 0 0 auto;
+    background: #fff;
+    border-color: var(--color-border);
     white-space: nowrap;
   }
 }
