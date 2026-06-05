@@ -1,1 +1,1 @@
-Restaura identidad de embajadores en Personas Autorizadas y ajusta miniaturas de asistencia
+Corrige la generación PDF de Husky Pass con datos e imágenes dinámicas reales

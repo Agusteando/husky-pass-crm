@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { getCredentialAuthorizedPersona } from '~/server/data/mysqlDaycare'
-import { listMarbeteTemplates, marbeteDownloadName, readMarbeteTemplateSvg, renderMarbeteSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
+import { buildMarbeteRenderValues, listMarbeteTemplates, marbeteDownloadName, readMarbeteTemplateSvg, renderMarbeteSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
 import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
 import type { MarbeteReadinessResponse } from '~/types/daycare'
 
@@ -31,7 +31,9 @@ export default defineEventHandler(async (event) => {
   const origin = getRequestURL(event).origin
   const templateSvg = await readMarbeteTemplateSvg(template)
   const requirementStatus = validateMarbeteRequirements(templateSvg, data, origin)
+  const renderValues = buildMarbeteRenderValues(data, origin)
   const svg = renderMarbeteSvg(templateSvg, data, origin)
+  const pdfInput = { templateSvg, renderedSvg: svg, values: renderValues.values, origin }
   const downloadName = marbeteDownloadName(data, template)
 
   if (query.format === 'readiness') {
@@ -45,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
     if (requirementStatus.ok) {
       try {
-        await assertMarbetePdfAssets(svg)
+        await assertMarbetePdfAssets(pdfInput)
       } catch (error) {
         const failure = error as { statusMessage?: string; message?: string; data?: { statusMessage?: string } }
         response.ok = false
@@ -69,7 +71,8 @@ export default defineEventHandler(async (event) => {
     return svg
   }
 
-  const pdf = await renderMarbetePdf(svg)
+  await assertMarbetePdfAssets(pdfInput)
+  const pdf = await renderMarbetePdf(pdfInput)
 
   setHeader(event, 'Content-Type', 'application/pdf')
   setHeader(event, 'Cache-Control', 'private, no-store')
