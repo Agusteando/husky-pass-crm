@@ -4,11 +4,12 @@
       <div>
         <p class="eyebrow">Superadmin</p>
         <h1>Readiness Personas Autorizadas</h1>
-        <p>Detecta familias listas, incompletas o bloqueadas antes de credencializacion y marbetes.</p>
+        <p>Detecta familias listas, incompletas o bloqueadas antes de credencialización y marbetes.</p>
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
         <button class="btn btn-primary" type="button" :disabled="pending" data-diagnostic-action="actualizar-readiness" @click="refreshReadiness">
           {{ pending ? 'Actualizando...' : 'Actualizar' }}
         </button>
@@ -54,7 +55,7 @@
       </label>
       <label class="label search-label">
         Buscar
-        <input v-model="search" class="input" type="search" placeholder="Nombre, matricula, correo, grupo" data-diagnostic-filter="pa-search" />
+        <input v-model="search" class="input" type="search" placeholder="Nombre, matrícula, correo, grupo" data-diagnostic-filter="pa-search" />
       </label>
     </section>
 
@@ -83,7 +84,7 @@
               <span class="status-dot"></span>
               <span class="family-copy">
                 <strong>{{ row.studentName }}</strong>
-                <small>{{ row.familyLabel }} / {{ row.username || 'sin matricula' }}</small>
+                <small>{{ row.familyLabel }} / {{ row.username || 'sin matrícula' }}</small>
               </span>
               <span class="scope-copy">
                 <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
@@ -115,7 +116,7 @@
               <div><dt>Contacto</dt><dd>{{ selectedRow.contact || 'Sin contacto' }}</dd></div>
               <div><dt>Personas autorizadas</dt><dd>{{ selectedRow.authorizedCount }}</dd></div>
               <div><dt>Plantilla</dt><dd>{{ selectedRow.templateName || 'Sin plantilla' }}</dd></div>
-              <div><dt>Ultimo acceso preparado</dt><dd>{{ formatDate(selectedRow.lastAccessActionAt) }}</dd></div>
+              <div><dt>Último acceso preparado</dt><dd>{{ formatDate(selectedRow.lastAccessActionAt) }}</dd></div>
             </dl>
 
             <div class="issue-list">
@@ -127,7 +128,7 @@
               {{ accessPreparingId === selectedRow.userId ? 'Preparando...' : 'Preparar acceso Husky Pass' }}
             </button>
           </template>
-          <EmptyState v-else title="Selecciona una familia" description="Veras faltantes accionables y el acceso preparado." />
+          <EmptyState v-else title="Selecciona una familia" description="Verás faltantes accionables y el acceso preparado." />
         </section>
 
         <section v-if="preparedAccess" class="card access-card" data-product-panel="pa-access-prepared" data-state="prepared">
@@ -135,7 +136,7 @@
           <h2>{{ preparedAccess.displayName }}</h2>
           <dl>
             <div><dt>Login</dt><dd>{{ preparedAccess.login }}</dd></div>
-            <div><dt>Contrasena</dt><dd>{{ preparedAccess.passwordAvailable ? preparedAccess.password : 'No visible' }}</dd></div>
+            <div><dt>Contraseña</dt><dd>{{ preparedAccess.passwordAvailable ? preparedAccess.password : 'No visible' }}</dd></div>
             <div><dt>Estado</dt><dd>{{ preparedAccess.message }}</dd></div>
           </dl>
         </section>
@@ -143,7 +144,7 @@
         <form class="card config-card" data-product-panel="pa-config" @submit.prevent="saveConfig">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Configuracion</p>
+              <p class="eyebrow">Configuración</p>
               <h2>Encuesta y convenios</h2>
             </div>
           </div>
@@ -152,7 +153,7 @@
             <span>Encuesta activa</span>
           </label>
           <label class="label">
-            Titulo encuesta
+            Título encuesta
             <input v-model="configForm.surveyTitle" class="input" />
           </label>
           <label class="label">
@@ -171,7 +172,7 @@
             </button>
             <a v-if="configForm.conveniosUrl" class="btn btn-secondary" :href="configForm.conveniosUrl" target="_blank" rel="noopener">Abrir convenios</a>
           </section>
-          <button class="btn btn-primary" type="submit" :disabled="configSaving" data-diagnostic-action="guardar-config-pa">{{ configSaving ? 'Guardando...' : 'Guardar configuracion' }}</button>
+          <button class="btn btn-primary" type="submit" :disabled="configSaving" data-diagnostic-action="guardar-config-pa">{{ configSaving ? 'Guardando...' : 'Guardar configuración' }}</button>
           <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
           <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
         </form>
@@ -301,7 +302,7 @@ async function prepareAccess(row: PersonasReadinessRow) {
       method: 'POST',
       body: { userId: row.userId }
     })
-    actionNotice.value = 'Acceso preparado. No se marco como enviado.'
+    actionNotice.value = 'Acceso preparado. No se marcó como enviado.'
     await refresh()
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
@@ -349,10 +350,10 @@ async function saveConfig() {
       body: { ...configForm }
     })
     await refreshConfig()
-    actionNotice.value = 'Configuracion PA guardada.'
+    actionNotice.value = 'Configuración PA guardada.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar configuracion.'
+    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar configuración.'
   } finally {
     configSaving.value = false
   }

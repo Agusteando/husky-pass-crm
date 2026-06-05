@@ -1,4 +1,5 @@
 <template>
+  <FamilyPersonasAutorizadasShell title="Asistencia">
   <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance">
     <section class="attendance-hero card">
       <div class="hero-copy">
@@ -43,7 +44,7 @@
 
       <section class="summary-grid" data-product-panel="attendance-summary">
         <article class="summary-card primary">
-          <span>Motivos pendientes</span>
+          <span>Ausencias sin motivo</span>
           <strong>{{ summary.unresolvedAbsences }}</strong>
           <button
             v-if="nextMissingAbsence"
@@ -52,12 +53,12 @@
             data-testid="primary-motivo-cta"
             @click="openMotivo(nextMissingAbsence)"
           >
-            Dar motivo
+            Agregar motivo
           </button>
           <small v-else>Sin acciones pendientes</small>
         </article>
         <article class="summary-card">
-          <span>Faltas</span>
+          <span>Ausencias</span>
           <strong>{{ summary.absences }}</strong>
           <small>{{ summary.resolvedAbsences }} con motivo</small>
         </article>
@@ -67,9 +68,9 @@
           <small>{{ selectedSchoolYear }}</small>
         </article>
         <article class="summary-card">
-          <span>Sin falta registrada</span>
+          <span>Sin ausencia registrada</span>
           <strong>{{ summary.clearDays }}</strong>
-          <small>{{ summary.schoolDaysWithAttendance }} dias con pase</small>
+          <small>{{ summary.schoolDaysWithAttendance }} días con pase</small>
         </article>
       </section>
 
@@ -78,24 +79,25 @@
         <div>
           <p class="eyebrow">{{ selectedSchoolYear }}</p>
           <h2>Sin registros para mostrar</h2>
-          <p>No hay faltas ni retardos visibles para este alumno en el ciclo seleccionado.</p>
+          <p>No hay ausencias ni retardos visibles para este alumno en el ciclo seleccionado.</p>
         </div>
       </section>
 
       <template v-else>
-        <section v-if="missingAbsences.length" class="attention-panel" data-product-panel="motivos-pendientes">
+        <section v-if="missingAbsences.length && nextMissingAbsence" class="attention-panel" data-product-panel="ausencias-sin-motivo">
           <header>
-            <p class="eyebrow">Atencion</p>
-            <h2>{{ missingAbsences.length }} {{ missingAbsences.length === 1 ? 'motivo pendiente' : 'motivos pendientes' }}</h2>
+            <p class="eyebrow">Atención</p>
+            <h2>{{ missingAbsences.length === 1 ? 'Ausencia sin motivo' : 'Siguiente ausencia sin motivo' }}</h2>
           </header>
           <div class="attention-list">
-            <article v-for="absence in missingAbsences" :key="absence.id" class="absence-action" :data-update-state="failedAbsenceId === absence.id ? 'failed' : 'ready'">
+            <article class="absence-action" :data-update-state="failedAbsenceId === nextMissingAbsence.id ? 'failed' : 'ready'">
               <div>
-                <strong>{{ dateLabel(absence.date) }}</strong>
-                <span>{{ [absence.grado, absence.grupo].filter(Boolean).join(' / ') || selectedChildLine }}</span>
+                <strong>{{ dateLabel(nextMissingAbsence.date) }}</strong>
+                <span>{{ [nextMissingAbsence.grado, nextMissingAbsence.grupo].filter(Boolean).join(' / ') || selectedChildLine }}</span>
+                <small>{{ missingAbsences.length === 1 ? 'Motivo de inasistencia pendiente' : `1 de ${missingAbsences.length} ausencias sin motivo` }}</small>
               </div>
-              <button class="btn btn-primary" type="button" data-testid="motivo-card-button" @click="openMotivo(absence)">
-                {{ failedAbsenceId === absence.id ? 'Reintentar' : 'Dar motivo' }}
+              <button class="btn btn-primary" type="button" data-testid="motivo-card-button" @click="openMotivo(nextMissingAbsence)">
+                {{ failedAbsenceId === nextMissingAbsence.id ? 'Reintentar' : 'Agregar motivo' }}
               </button>
             </article>
           </div>
@@ -106,11 +108,11 @@
             <header class="section-head">
               <div>
                 <p class="eyebrow">Ciclo {{ selectedSchoolYear }}</p>
-                <h2>Patron del ano</h2>
+                <h2>Patrón del año</h2>
               </div>
               <div class="legend">
-                <span><i class="dot clear"></i>Sin falta</span>
-                <span><i class="dot absence"></i>Falta</span>
+                <span><i class="dot clear"></i>Sin ausencia</span>
+                <span><i class="dot absence"></i>Ausencia</span>
                 <span><i class="dot tardy"></i>Retardo</span>
               </div>
             </header>
@@ -121,7 +123,7 @@
                   <strong>{{ month.label }}</strong>
                   <span>{{ month.events }} eventos</span>
                 </div>
-                <div class="day-dots" :aria-label="`Dias de ${month.label}`">
+                <div class="day-dots" :aria-label="`Días de ${month.label}`">
                   <span
                     v-for="day in month.days"
                     :key="day.date"
@@ -156,8 +158,8 @@
           <article class="record-column" data-product-panel="absence-records">
             <header class="section-head">
               <div>
-                <p class="eyebrow">Faltas</p>
-                <h2>Motivos</h2>
+                <p class="eyebrow">Ausencias</p>
+                <h2>Motivos de inasistencia</h2>
               </div>
             </header>
 
@@ -169,15 +171,15 @@
                 </div>
                 <div class="record-copy">
                   <strong>{{ dateLabel(absence.date) }}</strong>
-                  <span>{{ absence.motivo || 'Motivo pendiente' }}</span>
-                  <small>{{ absence.motivoState === 'provided' ? 'Motivo registrado' : 'Pendiente' }}</small>
+                  <span>{{ absence.motivo || 'Motivo de inasistencia pendiente' }}</span>
+                  <small>{{ absence.motivoState === 'provided' ? 'Motivo registrado' : 'Sin motivo' }}</small>
                 </div>
                 <button class="btn btn-secondary" type="button" data-testid="motivo-update-button" @click="openMotivo(absence)">
-                  {{ absence.motivo ? 'Actualizar' : 'Dar motivo' }}
+                  {{ absence.motivo ? 'Actualizar' : 'Agregar motivo' }}
                 </button>
               </article>
             </div>
-            <p v-else class="quiet-empty">Sin faltas en este ciclo.</p>
+            <p v-else class="quiet-empty">Sin ausencias en este ciclo.</p>
           </article>
 
           <article class="record-column" data-product-panel="tardy-records">
@@ -197,7 +199,7 @@
                 <div class="record-copy">
                   <strong>{{ dateLabel(tardy.date) }}</strong>
                   <span>Entrada {{ tardy.time }}</span>
-                  <small>{{ tardy.matricula || data.selectedChild.matricula }}</small>
+                  <small>{{ displayMatricula(tardy.matricula || data.selectedChild.matricula) }}</small>
                 </div>
               </article>
             </div>
@@ -237,6 +239,7 @@
       </form>
     </FamilyPersonasModal>
   </section>
+  </FamilyPersonasAutorizadasShell>
 </template>
 
 <script setup lang="ts">
@@ -248,8 +251,9 @@ import type {
   ParentAttendanceResponse
 } from '~/types/attendance'
 import { formatAttendanceDate } from '~/utils/attendance'
+import { displayMatricula } from '~/utils/personasTheme'
 
-definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
 const router = useRouter()
@@ -293,7 +297,7 @@ const selectedChildLine = computed(() => [data.value?.selectedChild.grado, data.
 const selectedSchoolYearLabel = computed(() => data.value?.selectedSchoolYear.label || selectedSchoolYear.value || '')
 const heroTitle = computed(() => data.value?.selectedChild.name || 'Asistencia')
 const heroSubtitle = computed(() => {
-  if (!data.value) return 'Faltas, retardos y motivos por ciclo escolar.'
+  if (!data.value) return 'Ausencias, retardos y motivos por ciclo escolar.'
   return [selectedSchoolYearLabel.value, selectedChildLine.value, data.value.selectedChild.plantelCode].filter(Boolean).join(' / ')
 })
 const grupoImage = computed(() => data.value?.grupoSigil.image || '')
@@ -370,10 +374,10 @@ function monthShort(date: string) {
 
 function dayTitle(day: AttendanceCalendarDay) {
   const labels: Record<AttendanceCalendarDay['status'], string> = {
-    clear: 'Sin falta registrada',
-    absence: day.motivoState === 'provided' ? 'Falta con motivo' : 'Falta sin motivo',
+    clear: 'Sin ausencia registrada',
+    absence: day.motivoState === 'provided' ? 'Ausencia con motivo' : 'Ausencia sin motivo',
     tardy: 'Retardo',
-    'absence-tardy': 'Falta y retardo'
+    'absence-tardy': 'Ausencia y retardo'
   }
   return `${formatAttendanceDate(day.date, 'short')} / ${labels[day.status]}`
 }
@@ -427,11 +431,16 @@ async function saveMotivo() {
   gap: 16px;
 }
 
+.attendance-page .btn-primary {
+  background: var(--pa-primary);
+  color: var(--pa-contrast);
+}
+
 .attendance-hero {
   align-items: stretch;
   background:
-    radial-gradient(circle at 86% 18%, rgba(255, 181, 69, 0.18), transparent 30%),
-    linear-gradient(135deg, #ffffff, #f5faed 62%, #fff7e8);
+    radial-gradient(circle at 86% 18%, rgba(var(--pa-primary-rgb), 0.18), transparent 30%),
+    linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.08));
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
@@ -473,7 +482,7 @@ async function saveMotivo() {
   align-items: center;
   align-self: stretch;
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(223, 232, 215, 0.92);
+  border: 1px solid var(--pa-border);
   border-radius: 22px;
   display: grid;
   justify-items: center;
@@ -488,14 +497,14 @@ async function saveMotivo() {
 }
 
 .hero-sigil span {
-  color: var(--color-brand-800);
+  color: var(--pa-primary);
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .hero-sigil.empty {
-  color: var(--color-brand-700);
+  color: var(--pa-primary);
 }
 
 .loading-grid,
@@ -519,8 +528,8 @@ async function saveMotivo() {
 
 .loading-card {
   animation: pulse 1.1s ease-in-out infinite alternate;
-  background: linear-gradient(90deg, rgba(255,255,255,.6), rgba(221,235,202,.82), rgba(255,255,255,.6));
-  border: 1px solid var(--color-border);
+  background: linear-gradient(90deg, rgba(255,255,255,.6), rgba(var(--pa-primary-rgb), .16), rgba(255,255,255,.6));
+  border: 1px solid var(--pa-border);
 }
 
 @keyframes pulse {
@@ -538,8 +547,8 @@ async function saveMotivo() {
 }
 
 .summary-card.primary {
-  background: linear-gradient(135deg, #fdf8ee, #ffffff);
-  border-color: #f1d79e;
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .12), #ffffff);
+  border-color: var(--pa-border);
 }
 
 .summary-card span,
@@ -581,9 +590,9 @@ async function saveMotivo() {
 }
 
 .notice {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-200);
-  color: var(--color-brand-800);
+  background: var(--pa-soft);
+  border-color: var(--pa-border);
+  color: var(--pa-primary);
 }
 
 .empty-attendance {
@@ -604,7 +613,7 @@ async function saveMotivo() {
 }
 
 .attention-panel {
-  background: #1f2a1a;
+  background: #2f3338;
   border-radius: 24px;
   color: #fff;
   display: grid;
@@ -620,7 +629,7 @@ async function saveMotivo() {
 .attention-list {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .absence-action {
@@ -638,6 +647,13 @@ async function saveMotivo() {
   color: rgba(255, 255, 255, 0.76);
   display: block;
   font-size: 0.82rem;
+}
+
+.absence-action small {
+  color: rgba(255, 255, 255, 0.66);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .absence-action[data-update-state='failed'] {
@@ -687,7 +703,7 @@ async function saveMotivo() {
 
 .dot.clear,
 .day-dot.clear {
-  background: #dcebc9;
+  background: var(--pa-soft);
 }
 
 .dot.absence,
@@ -757,7 +773,7 @@ async function saveMotivo() {
 }
 
 .timeline-item {
-  border-left: 3px solid var(--color-border);
+  border-left: 3px solid var(--pa-border);
   display: grid;
   gap: 2px;
   padding: 2px 0 2px 12px;

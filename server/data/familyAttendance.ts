@@ -34,6 +34,7 @@ import {
   normalizeAttendanceText,
   resolveSchoolYearOption
 } from '~/utils/attendance'
+import { normalizeMatricula } from '~/utils/personasTheme'
 
 interface StudentMetaRow extends RowDataPacket {
   matricula: string | null
@@ -365,7 +366,7 @@ function mapTardy(record: SipaeTardyRecord): AttendanceTardyRecord {
     date: dateOnly(record.date),
     time: formatAttendanceTime(record.time),
     studentName: cleanText(record.student_fullname),
-    matricula: nullable(record.matricula)
+    matricula: normalizeMatricula(record.matricula) || null
   }
 }
 
@@ -457,7 +458,7 @@ function buildEvents(absences: AttendanceAbsenceRecord[], tardies: AttendanceTar
     type: 'absence',
     date: absence.date,
     title: 'Inasistencia',
-    detail: absence.motivo ? 'Motivo registrado' : 'Motivo pendiente',
+    detail: absence.motivo ? 'Motivo registrado' : 'Motivo de inasistencia pendiente',
     absence
   }))
   const tardyEvents: AttendanceEvent[] = tardies.map((tardy) => ({
@@ -504,8 +505,8 @@ const STUDENT_SELECT = `
 `
 
 function familyMatricula(user: AppSessionUser) {
-  const matricula = String(user.username || '').trim()
-  if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matricula vinculada.' })
+  const matricula = normalizeMatricula(user.username)
+  if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matrícula vinculada.' })
   return matricula
 }
 
@@ -518,7 +519,7 @@ function completeAttendanceParentFields(row: StudentMetaRow) {
 }
 
 function attendanceChildFromRow(row: StudentMetaRow, currentMatricula: string, user: AppSessionUser): AttendanceChild | null {
-  const matricula = String(row.matricula || '').trim()
+  const matricula = normalizeMatricula(row.matricula)
   if (!matricula || !isUsableMatricula(matricula)) return null
   const nivelEdu = nullable(row.nivel)
   const campus = nullable(row.campus || user.campus || user.empresa)
@@ -559,7 +560,7 @@ async function loadAttendanceStudentRows(user: AppSessionUser) {
     [currentMatricula]
   )
 
-  if (!current) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matricula vinculada a esta cuenta familiar.' })
+  if (!current) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
   if (!completeAttendanceParentFields(current)) return [current]
 
   const where = FAMILY_PARENT_FIELDS.map((field) => `m.${field} = ?`).join(' AND ')
@@ -575,7 +576,7 @@ async function loadAttendanceStudentRows(user: AppSessionUser) {
   )
 
   if (siblings.length > 6) return [current]
-  if (!siblings.some((row) => String(row.matricula || '').trim() === currentMatricula)) return [current, ...siblings]
+  if (!siblings.some((row) => normalizeMatricula(row.matricula) === currentMatricula)) return [current, ...siblings]
   return siblings
 }
 
@@ -595,7 +596,7 @@ export async function getAttendanceChildrenForFamily(user: AppSessionUser) {
 
 export async function resolveAttendanceChild(user: AppSessionUser, matricula?: string | null) {
   const children = await getAttendanceChildrenForFamily(user)
-  const requested = String(matricula || '').trim()
+  const requested = normalizeMatricula(matricula)
   const selected = requested
     ? children.find((child) => child.matricula === requested)
     : children.find((child) => child.isCurrent) || children[0]

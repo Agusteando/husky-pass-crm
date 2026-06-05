@@ -3,7 +3,7 @@ import type { PersonasReadinessIssue, PersonasReadinessResponse, PersonasReadine
 import { legacyOne, legacyQuery } from '~/server/utils/mysql'
 import { listMarbeteTemplates, selectMarbeteTemplate } from '~/server/utils/marbeteTemplates'
 import { readLastAccessActions } from '~/server/utils/personasConfig'
-import { normalizePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
+import { normalizeMatricula, normalizePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
 
 interface ReadinessDbRow extends RowDataPacket {
   userId: number
@@ -58,9 +58,13 @@ function compactName(...parts: Array<string | null | undefined>) {
 function derivedPlantel(row: ReadinessDbRow) {
   const explicit = clean(row.plantel)
   if (explicit) return normalizePlantel(explicit)
-  const username = clean(row.username).toUpperCase()
-  if (username.startsWith('PT') && /sec/i.test(clean(row.matriculaNivel || row.nivelEdu))) return 'ST'
-  if (username.startsWith('PT') && /prim/i.test(clean(row.matriculaNivel || row.nivelEdu))) return 'PT'
+  const username = normalizeMatricula(row.username)
+  if (username.startsWith('PREEM')) return 'PREEM'
+  if (username.startsWith('PREET')) return 'PREET'
+  if (username.startsWith('PM')) return 'PM'
+  if (username.startsWith('PT')) return 'PT'
+  if (username.startsWith('SM')) return 'SM'
+  if (username.startsWith('ST')) return 'ST'
   if (username.startsWith('DM')) return 'CM'
   return normalizePlantel(username.slice(0, 2) || row.campus || row.empresa || row.unidad)
 }
@@ -143,9 +147,10 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     const grado = clean(row.matriculaGrado || row.grado)
     const grupo = clean(row.matriculaGrupo || row.grupo)
     const plantel = derivedPlantel(row)
-    const theme = resolvePersonasTheme({ plantel, nivelEdu: nivel, campus: row.childCampus || row.campus })
-    const template = selectMarbeteTemplate(templates, { plantel, nivelEdu: nivel, themeKey: theme.key })
-    const hasStudentData = Boolean(studentName && nivel && grado && grupo && clean(row.username))
+    const matricula = normalizeMatricula(row.username)
+    const theme = resolvePersonasTheme({ matricula, plantel, nivelEdu: nivel, campus: row.childCampus || row.campus })
+    const template = selectMarbeteTemplate(templates, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
+    const hasStudentData = Boolean(studentName && nivel && grado && grupo && matricula)
     const hasParentAccess = Boolean(clean(row.email) || clean(row.username))
     const hasPrintableReadiness = Boolean(template && hasStudentData && Number(row.authorizedCount) > 0 && Number(row.authorizedPhotoCount) > 0)
     const issues: PersonasReadinessIssue[] = []
@@ -159,16 +164,16 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
 
     const rowOut: PersonasReadinessRow = {
       userId: Number(row.userId),
-      displayName: clean(row.displayName) || studentName || clean(row.nombre_nino) || clean(row.username) || `Familia ${row.userId}`,
+      displayName: clean(row.displayName) || studentName || clean(row.nombre_nino) || matricula || `Familia ${row.userId}`,
       email: clean(row.email) || null,
-      username: clean(row.username) || null,
-      contact: clean(row.email || row.username) || null,
+      username: matricula || clean(row.username) || null,
+      contact: clean(row.email) || matricula || null,
       plantel,
       nivel: nivel || 'Sin nivel',
       grado: grado || null,
       grupo: grupo || null,
       studentName: studentName || clean(row.nombre_nino) || 'Alumno pendiente',
-      familyLabel: clean(row.nombre_nino) || studentName || clean(row.displayName) || clean(row.username) || `Familia ${row.userId}`,
+      familyLabel: clean(row.nombre_nino) || studentName || clean(row.displayName) || matricula || `Familia ${row.userId}`,
       authorizedCount: Number(row.authorizedCount || 0),
       hasStudentData,
       hasPrintableReadiness,

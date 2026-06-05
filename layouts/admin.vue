@@ -19,6 +19,14 @@ const route = useRoute()
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
 
 const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
+const canAccessHistory = computed(() => {
+  const user = session.value?.user
+  if (!user || user.kind !== 'admin') return false
+  if (user.isSuperAdmin) return true
+  const routeText = user.routes.map((item) => item.route).join(' ')
+  const roleText = user.roles.join(' ')
+  return /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+})
 const topbarItems = computed(() => {
   const firstUnidad = session.value?.user?.unidades?.[0] || ''
   const daycareTo = firstUnidad ? `/admin/daycare/salas?unidad=${encodeURIComponent(firstUnidad)}` : '/admin/daycare/salas'
@@ -27,8 +35,11 @@ const topbarItems = computed(() => {
     items.unshift(
       { label: 'Superadmin', to: '/admin/superadmin' },
       { label: 'Personas Autorizadas', to: '/admin/superadmin/personas-autorizadas' },
+      { label: 'Historial de accesos', to: '/admin/historial-accesos' },
       { label: 'Marbetes', to: '/admin/superadmin/marbetes' }
     )
+  } else if (canAccessHistory.value) {
+    items.unshift({ label: 'Historial de accesos', to: '/admin/historial-accesos' })
   }
   return items
 })

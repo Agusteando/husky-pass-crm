@@ -102,6 +102,7 @@ const pendingPhotoUrl = ref('')
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
 const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula || profile.value?.readonly.matricula || session.value?.user?.username,
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0] || profile.value?.readonly.plantel,
   nivelEdu: primaryChild.value?.nivelEdu || profile.value?.readonly.nivel,
   campus: primaryChild.value?.campus || session.value?.user?.campus

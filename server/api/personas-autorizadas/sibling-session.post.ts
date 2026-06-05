@@ -6,6 +6,7 @@ import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { requireSession, setAppSession } from '~/server/utils/session'
 import { hasFamilyScope } from '~/utils/sessionScopes'
 import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
+import { normalizeMatricula } from '~/utils/personasTheme'
 
 const schema = z.object({
   matricula: z.string().min(1)
@@ -16,10 +17,10 @@ export default defineEventHandler(async (event) => {
   assertPersonasAutorizadasFamily(user)
   try {
     const body = schema.parse(await readBody(event))
-    const targetMatricula = body.matricula.trim()
+    const targetMatricula = normalizeMatricula(body.matricula)
 
     const siblings = await getFamilyChildren(user)
-    const target = siblings.find((child) => child.canSwitch && child.matricula === targetMatricula)
+    const target = siblings.find((child) => child.canSwitch && normalizeMatricula(child.matricula) === targetMatricula)
     if (!target) {
       throw createError({ statusCode: 403, statusMessage: 'El alumno no está disponible para cambio directo.' })
     }

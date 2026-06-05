@@ -1,1 +1,1 @@
-refactor: reemplazar iconografía manual por Lucide y consolidar tipografía oficial
+feat: unificar identidad institucional y agregar historial de accesos familiar

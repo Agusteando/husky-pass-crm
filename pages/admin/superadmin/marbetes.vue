@@ -54,7 +54,7 @@
             </dl>
             <iframe :src="`/api/admin/marbete-templates/${selected.id}`" title="Vista previa de plantilla"></iframe>
           </template>
-          <EmptyState v-else title="Selecciona una plantilla" description="Veras aplicacion, archivo y vista previa protegida." />
+          <EmptyState v-else title="Selecciona una plantilla" description="Verás aplicación, archivo y vista previa protegida." />
         </section>
 
         <form class="card template-form" data-product-panel="marbete-template-form" @submit.prevent="saveTemplate">

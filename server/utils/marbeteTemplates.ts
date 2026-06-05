@@ -2,7 +2,7 @@ import { createError } from 'h3'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MarbeteTemplateMeta, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
-import { allPersonasThemes, normalizeNivel, normalizePlantel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
+import { allPersonasThemes, displayMatricula, normalizeNivel, normalizePlantel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 
 const TEMPLATE_DIR = join(process.cwd(), 'data', 'marbete-templates')
@@ -80,7 +80,7 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   return svg
 }
 
-export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: { plantel?: string | null; nivelEdu?: string | null; themeKey?: string | null }) {
+export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; themeKey?: string | null }) {
   const theme = resolvePersonasTheme(input)
   const plantel = normalizePlantel(input.plantel)
   const nivel = normalizeNivel(input.nivelEdu)
@@ -165,7 +165,7 @@ export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, o
     qrImage,
     nivelEdu: String(data.nivelEdu || ''),
     plantel: String(data.plantel || ''),
-    matricula: String(data.matricula || ''),
+    matricula: displayMatricula(data.matricula),
     fullnameA: String(data.fullnameA || ''),
     gradoA: String(data.gradoA || ''),
     grupoA: String(data.grupoA || ''),

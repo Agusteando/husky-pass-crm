@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const templates = await listMarbeteTemplates()
   if (!templates.length) throw createError({ statusCode: 503, statusMessage: 'No hay plantillas de marbete configuradas.' })
 
-  const template = selectMarbeteTemplate(templates, { plantel: data.plantel, nivelEdu: data.nivelEdu })
+  const template = selectMarbeteTemplate(templates, { matricula: data.matricula, plantel: data.plantel, nivelEdu: data.nivelEdu })
   if (!template) throw createError({ statusCode: 503, statusMessage: 'No hay plantilla compatible para este alumno.' })
 
   const origin = getRequestURL(event).origin

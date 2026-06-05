@@ -46,6 +46,21 @@ export function assertDaycareAdmin(user: AppSessionUser) {
   }
 }
 
+export function assertAccessHistoryAdmin(user: AppSessionUser) {
+  if (user.kind !== 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Acceso administrativo no autorizado' })
+  }
+
+  if (isSuperAdmin(user)) return
+
+  const routeText = user.routes.map((route) => route.route).join(' ')
+  const roleText = user.roles.join(' ')
+  const hasReportAccess = /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  if (!hasReportAccess) {
+    throw createError({ statusCode: 403, statusMessage: 'El usuario no tiene alcance para consultar historial de accesos.' })
+  }
+}
+
 export function assertUnidadAccess(user: AppSessionUser, unidad: string) {
   if (isSuperAdmin(user)) return
   if (!user.unidades.includes(unidad)) {

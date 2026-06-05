@@ -8,6 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Readiness PA</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
         <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
       </div>
     </header>
@@ -116,7 +117,7 @@
                     <span class="user-avatar">{{ initials(user) }}</span>
                     <span>
                       <strong>{{ displayName(user) }}</strong>
-                      <small>{{ user.email || user.username || `ID ${user.id}` }}</small>
+                      <small>{{ user.email || loginLabel(user.username) || `ID ${user.id}` }}</small>
                       <em v-if="user.nombre_nino">{{ user.nombre_nino }}</em>
                     </span>
                   </div>
@@ -181,7 +182,7 @@
           <dl>
             <div><dt>ID</dt><dd>{{ selectedUser.id }}</dd></div>
             <div><dt>Correo</dt><dd>{{ selectedUser.email || '—' }}</dd></div>
-            <div><dt>Usuario</dt><dd>{{ selectedUser.username || '—' }}</dd></div>
+            <div><dt>Usuario</dt><dd>{{ loginLabel(selectedUser.username) || '—' }}</dd></div>
             <div><dt>Rol legado</dt><dd>{{ selectedUser.role || '—' }}</dd></div>
             <div><dt>Producto</dt><dd>{{ selectedUser.productScopes.map(productScopeLabel).join(' · ') || 'Interno / sin producto familiar' }}</dd></div>
             <div><dt>Plantel</dt><dd>{{ labelList([...selectedUser.plantel, ...selectedUser.unidad], '—') }}</dd></div>
@@ -202,6 +203,7 @@ import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
+import { displayMatricula } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
@@ -371,7 +373,14 @@ function replaceQueryIfChanged(query: Record<string, string>) {
 }
 
 function displayName(user: SuperAdminUserSummary) {
-  return user.displayName || user.nombre_nino || user.username || user.email || `Usuario ${user.id}`
+  return user.displayName || user.nombre_nino || loginLabel(user.username) || user.email || `Usuario ${user.id}`
+}
+
+function loginLabel(value?: string | null) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.includes('@')) return raw
+  return /\d/.test(raw) ? displayMatricula(raw) : raw
 }
 
 function initials(user: SuperAdminUserSummary) {

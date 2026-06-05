@@ -85,6 +85,7 @@ const studentName = computed(() => [primaryChild.value?.nombreA, primaryChild.va
 const studentPhoto = computed(() => normalizeVirtualAssetUrl(primaryChild.value?.foto || ''))
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula || session.value?.user?.username,
   plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu,
   campus: primaryChild.value?.campus || session.value?.user?.campus
@@ -105,6 +106,7 @@ const navItems = [
   { key: 'credencializacion', label: 'Foto del alumno', shortLabel: 'Foto', icon: 'camera', to: '/familia/personas-autorizadas/credencializacion' },
   { key: 'hermanos', label: 'Hermanos', shortLabel: 'Hermanos', icon: 'siblings', to: '/familia/personas-autorizadas/hermanos' },
   { key: 'asistencia', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'calendar', to: '/familia/asistencia' },
+  { key: 'historial', label: 'Historial de accesos', shortLabel: 'Accesos', icon: 'history', to: '/familia/historial-accesos' },
   { key: 'encuestas', label: 'Encuestas', shortLabel: 'Encuestas', icon: 'survey', to: '/familia/personas-autorizadas/encuestas' },
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' }
 ]

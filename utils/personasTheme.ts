@@ -144,9 +144,28 @@ export function normalizeNivel(value?: string | null) {
   return String(value || '').trim().toLowerCase()
 }
 
-export function resolvePersonasTheme(input: { plantel?: string | null; nivelEdu?: string | null; campus?: string | null; themeKey?: string | null }) {
+export function normalizeMatricula(value?: string | null) {
+  return String(value || '').trim().toUpperCase()
+}
+
+export function personasThemeKeyFromMatricula(value?: string | null): PersonasThemeKey {
+  const matricula = normalizeMatricula(value)
+  if (matricula.startsWith('PREEM') || matricula.startsWith('PREET')) return 'preescolar'
+  if (matricula.startsWith('PM') || matricula.startsWith('PT')) return 'primaria'
+  if (matricula.startsWith('SM') || matricula.startsWith('ST')) return 'secundaria'
+  return 'daycare'
+}
+
+export function displayMatricula(value?: string | null, fallback = '') {
+  return normalizeMatricula(value) || fallback
+}
+
+export function resolvePersonasTheme(input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null; themeKey?: string | null }) {
   const explicit = String(input.themeKey || '').trim().toLowerCase() as PersonasThemeKey
   if (explicit && PERSONAS_THEMES[explicit]) return PERSONAS_THEMES[explicit]
+
+  const matricula = normalizeMatricula(input.matricula)
+  if (matricula) return PERSONAS_THEMES[personasThemeKeyFromMatricula(matricula)]
 
   const plantel = normalizePlantel(input.plantel || input.campus)
   const nivel = normalizeNivel(input.nivelEdu)

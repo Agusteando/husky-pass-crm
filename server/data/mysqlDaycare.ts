@@ -15,6 +15,7 @@ import type {
 import { assertSalaAccess, assertUnidadAccess } from '~/server/utils/authz'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { logPersonasDiagnostic, logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import { normalizeMatricula } from '~/utils/personasTheme'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
@@ -90,16 +91,19 @@ const STUDENT_READONLY_FIELDS = [
 type ParentEditableStudentField = typeof PARENT_EDITABLE_STUDENT_FIELDS[number]
 
 function assertFamilyMatricula(user: AppSessionUser) {
-  const matricula = normalizeString(user.username)
+  const matricula = normalizeMatricula(user.username)
   if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matrícula vinculada.' })
   return matricula
 }
 
-function derivePlantelFromMatricula(matricula?: string | null, nivel?: string | null, fallback?: string | null) {
-  const username = normalizeString(matricula)?.toUpperCase() || ''
-  const normalizedNivel = String(nivel || '').toLowerCase()
-  if (username.startsWith('PT') && normalizedNivel.includes('sec')) return 'ST'
-  if (username.startsWith('PT') && normalizedNivel.includes('prim')) return 'PT'
+function derivePlantelFromMatricula(matricula?: string | null, _nivel?: string | null, fallback?: string | null) {
+  const username = normalizeMatricula(matricula)
+  if (username.startsWith('PREEM')) return 'PREEM'
+  if (username.startsWith('PREET')) return 'PREET'
+  if (username.startsWith('PM')) return 'PM'
+  if (username.startsWith('PT')) return 'PT'
+  if (username.startsWith('SM')) return 'SM'
+  if (username.startsWith('ST')) return 'ST'
   if (username.startsWith('DM')) return 'CM'
   const prefix = username.slice(0, 2)
   return prefix || normalizeString(fallback) || null
@@ -137,7 +141,7 @@ function completeParentSignature(row: Partial<Record<ParentNameField, unknown>> 
 }
 
 function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbackCampus?: string | null): AuthorizedChild {
-  const matricula = normalizeString(row.matricula)
+  const matricula = normalizeMatricula(row.matricula) || null
   const isCurrent = matricula === currentMatricula
   return {
     id: row.user_id ? Number(row.user_id) : null,
@@ -165,6 +169,7 @@ function pickStudentProfile(row: RowDataPacket | undefined, plantel?: string | n
 
   for (const field of STUDENT_READONLY_FIELDS) readonly[field] = row?.[field] ?? null
   for (const field of allowedFields) editable[field] = row?.[field] ?? null
+  readonly.matricula = normalizeMatricula(readonly.matricula as string | null) || null
 
   return {
     readonly: readonly as PersonasStudentProfile['readonly'],
@@ -737,12 +742,12 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
     `SELECT
        A.*,
        IFNULL(MAX(IFNULL(m.nivel, B.nivelEdu)), 'preescolar') AS nivelEdu,
-       MAX(u.username) AS matricula,
+       UPPER(MAX(u.username)) AS matricula,
        MAX(CASE
-         WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%sec%' THEN 'ST'
-         WHEN LEFT(u.username, 2) = 'PT' AND IFNULL(m.nivel, B.nivelEdu) LIKE '%prim%' THEN 'PT'
-         WHEN LEFT(u.username, 2) = 'DM' THEN 'CM'
-         ELSE LEFT(u.username, 2)
+         WHEN LEFT(UPPER(u.username), 5) = 'PREEM' THEN 'PREEM'
+         WHEN LEFT(UPPER(u.username), 5) = 'PREET' THEN 'PREET'
+         WHEN LEFT(UPPER(u.username), 2) = 'DM' THEN 'CM'
+         ELSE LEFT(UPPER(u.username), 2)
        END) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
        MAX(IFNULL(c.foto, IFNULL(m.foto, B.foto))) AS fotoA,
@@ -778,12 +783,12 @@ export async function getScanAuthorizedPersona(id: number) {
        IFNULL(m.grado, a.grado) AS gradoA,
        IFNULL(m.grupo, a.grupo) AS grupoA,
        p.parenP AS parentesco,
-       u.username AS matricula,
+       UPPER(u.username) AS matricula,
        CASE
-         WHEN LEFT(u.username, 2) = 'PT' AND a.nivelEdu LIKE '%sec%' THEN 'ST'
-         WHEN LEFT(u.username, 2) = 'PT' AND a.nivelEdu LIKE '%prim%' THEN 'PT'
-         WHEN LEFT(u.username, 2) = 'DM' THEN 'CM'
-         ELSE LEFT(u.username, 2)
+         WHEN LEFT(UPPER(u.username), 5) = 'PREEM' THEN 'PREEM'
+         WHEN LEFT(UPPER(u.username), 5) = 'PREET' THEN 'PREET'
+         WHEN LEFT(UPPER(u.username), 2) = 'DM' THEN 'CM'
+         ELSE LEFT(UPPER(u.username), 2)
        END AS plantel,
        SUBSTRING_INDEX(LOWER(a.nivelEdu), ' ', 1) AS nivelEduA
      FROM personas_autorizadas p

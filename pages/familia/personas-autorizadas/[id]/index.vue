@@ -36,7 +36,7 @@
           <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-marbete">Previsualizar marbete</NuxtLink>
           <a class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar marbete</a>
           <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/qr`" data-diagnostic-link="ver-qr">Ver QR</NuxtLink>
-          <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validacion</button>
+          <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validación</button>
         </div>
 
         <p v-if="shareMessage" class="notice">{{ shareMessage }}</p>
@@ -60,12 +60,17 @@ const route = useRoute()
 const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { timeout: 15000 })
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
-const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel, nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus }))
+const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula,
+  plantel: primaryChild.value?.plantel,
+  nivelEdu: primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus
+}))
 const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const initials = computed(() => (fullName.value || 'PA').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const photoUrl = computed(() => normalizeVirtualAssetUrl(person.value?.compressed_foto || person.value?.foto || ''))
-const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta QR, marbete y validacion.'))
+const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta QR, marbete y validación.'))
 const studentLine = computed(() => {
   const child = primaryChild.value
   if (!child) return ''
@@ -82,13 +87,13 @@ async function shareValidation() {
 
   try {
     if (navigator.share) {
-      await navigator.share({ title, text: 'Codigo de validacion de Persona Autorizada.', url })
+      await navigator.share({ title, text: 'Código de validación de Persona Autorizada.', url })
       shareMessage.value = 'Validacion compartida.'
       return
     }
 
     await navigator.clipboard.writeText(url)
-    shareMessage.value = 'Liga de validacion copiada.'
+    shareMessage.value = 'Liga de validación copiada.'
   } catch {
     window.open(url, '_blank', 'noopener,noreferrer')
   }

@@ -24,7 +24,13 @@
       <NuxtLink v-if="canPa" class="choice-card attendance-choice" to="/familia/asistencia">
         <span><FamilyPersonasIcon name="calendar" /></span>
         <h2>Asistencia</h2>
-        <p>Faltas, retardos y motivos por ciclo escolar.</p>
+        <p>Ausencias, retardos y motivos por ciclo escolar.</p>
+        <strong>Entrar</strong>
+      </NuxtLink>
+      <NuxtLink v-if="canPa" class="choice-card history-choice" to="/familia/historial-accesos">
+        <span><FamilyPersonasIcon name="history" /></span>
+        <h2>Historial de accesos</h2>
+        <p>Entradas y salidas registradas por personas autorizadas.</p>
         <strong>Entrar</strong>
       </NuxtLink>
     </section>
@@ -96,6 +102,12 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
   background: #fff3db;
   border-color: #f6d997;
   color: #8a5a12;
+}
+
+.choice-card.history-choice span {
+  background: #e7f5f6;
+  border-color: #c9e7ea;
+  color: var(--color-blue);
 }
 
 .choice-card h2 {

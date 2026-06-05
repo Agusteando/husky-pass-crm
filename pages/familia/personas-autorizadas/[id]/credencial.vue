@@ -26,7 +26,7 @@
         <FamilyPersonasProcessedPhoto v-if="photoUrl" class="person-photo" :src="data.foto" :processed-src="data.compressed_foto" alt="Fotografía" :namespace="`pa-credential-${route.params.id}`" />
         <div v-else class="person-photo empty-photo">PA</div>
         <div class="qr-box">
-          <img :src="qrImage" alt="Codigo QR" />
+          <img :src="qrImage" alt="Código QR" />
           <small>{{ validationUrl }}</small>
         </div>
       </div>
@@ -58,7 +58,12 @@ const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>(
   server: false,
   timeout: 15000
 })
-const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEdu, campus: data.value?.child?.campus }))
+const theme = computed(() => resolvePersonasTheme({
+  matricula: data.value?.matricula || data.value?.child?.matricula,
+  plantel: data.value?.plantel,
+  nivelEdu: data.value?.nivelEdu,
+  campus: data.value?.child?.campus
+}))
 const themeVars = computed(() => personasThemeStyle(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))

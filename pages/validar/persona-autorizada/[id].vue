@@ -21,7 +21,7 @@
         <p class="eyebrow">Alumno</p>
         <h2>{{ data.fullnameA || 'Alumno no disponible' }}</h2>
         <p>{{ data.gradoA || '—' }} · {{ data.grupoA || '—' }} · {{ data.plantel || '—' }}</p>
-        <small>Matrícula: {{ data.matricula || '—' }}</small>
+        <small>Matrícula: {{ displayMatricula(data.matricula, '—') }}</small>
       </div>
     </section>
 
@@ -37,14 +37,14 @@
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { ScanAuthorizedPerson } from '~/types/daycare'
-import { personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
+import { displayMatricula, personasInstitutionLogo, personasInstitutionName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const route = useRoute()
 const { data, pending, error: loadError } = useFetch<ScanAuthorizedPerson>('/api/personas-autorizadas/scan', {
   query: { id: route.params.id },
   timeout: 15000
 })
-const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEduA }))
+const theme = computed(() => resolvePersonasTheme({ matricula: data.value?.matricula, plantel: data.value?.plantel, nivelEdu: data.value?.nivelEduA }))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))
 </script>

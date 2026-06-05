@@ -62,7 +62,12 @@ const error = ref('')
 const notice = ref('')
 const children = computed<AuthorizedChild[]>(() => people.value?.find((person) => person.children?.length)?.children || [])
 const primaryChild = computed(() => children.value.find((child) => child.isCurrent) || children.value[0] || null)
-const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0], nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus || session.value?.user?.campus }))
+const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula || session.value?.user?.username,
+  plantel: primaryChild.value?.plantel || session.value?.user?.plantel?.[0],
+  nivelEdu: primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus || session.value?.user?.campus
+}))
 const mascot = computed(() => personasMascot(theme.value, 'hero'))
 const emptyMascot = computed(() => personasMascot(theme.value, 'empty'))
 const matchedSiblings = computed(() => children.value.filter((child) => !child.isCurrent && child.siblingMatch === 'parents'))

@@ -38,7 +38,12 @@ definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'
 
 const route = useRoute()
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
-const theme = computed(() => resolvePersonasTheme({ plantel: data.value?.plantel, nivelEdu: data.value?.nivelEdu, campus: data.value?.child?.campus }))
+const theme = computed(() => resolvePersonasTheme({
+  matricula: data.value?.matricula || data.value?.child?.matricula,
+  plantel: data.value?.plantel,
+  nivelEdu: data.value?.nivelEdu,
+  campus: data.value?.child?.campus
+}))
 const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')

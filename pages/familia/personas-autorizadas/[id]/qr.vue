@@ -35,7 +35,12 @@ const { data } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family'
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
-const theme = computed(() => resolvePersonasTheme({ plantel: primaryChild.value?.plantel, nivelEdu: primaryChild.value?.nivelEdu, campus: primaryChild.value?.campus }))
+const theme = computed(() => resolvePersonasTheme({
+  matricula: primaryChild.value?.matricula,
+  plantel: primaryChild.value?.plantel,
+  nivelEdu: primaryChild.value?.nivelEdu,
+  campus: primaryChild.value?.campus
+}))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))

@@ -24,7 +24,7 @@ function safeExtension(filename?: string | null) {
 function assertAllowedMime(type?: string | null) {
   const mime = String(type || '').toLowerCase()
   if (ALLOWED_MIME_TYPES.has(mime) || ALLOWED_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix))) return
-  throw createError({ statusCode: 415, statusMessage: 'Tipo de archivo no permitido para recursos de guarderia.' })
+  throw createError({ statusCode: 415, statusMessage: 'Tipo de archivo no permitido para recursos de guardería.' })
 }
 
 export default defineEventHandler(async (event) => {

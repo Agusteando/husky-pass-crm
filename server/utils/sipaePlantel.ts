@@ -154,7 +154,6 @@ export function deriveSipaePlantelFromStudent(input: {
   if (matricula.startsWith('SM')) return 'SM'
   if (matricula.startsWith('ST')) return 'ST'
   if (matricula.startsWith('PM')) return 'PM'
-  if (matricula.startsWith('PT') && nivel.includes('sec')) return 'ST'
   if (matricula.startsWith('PT')) return 'PT'
   if (plantel) return plantel
   if (campus.includes('metepec') && nivel.includes('prees')) return 'PREEM'
