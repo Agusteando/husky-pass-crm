@@ -79,7 +79,7 @@ img {
 }
 
 .page-shell {
-  width: min(100% - 24px, var(--layout-max));
+  width: min(calc(100% - 24px), var(--layout-max));
   margin: 0 auto;
 }
 
@@ -135,7 +135,7 @@ h3,
 .brand-title {
   font-family: var(--font-title);
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 h1 {
@@ -422,5 +422,5 @@ body.pa-modal-open {
 :where(.rail-title, .focus-title, .hero-title, .pa-modal h2, .pa-top-copy strong, .status-card strong, .person-meta strong, .marbete-card strong, .sibling-card strong, .data-section-card h2, .image-head h2) {
   font-family: var(--font-title);
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
 }

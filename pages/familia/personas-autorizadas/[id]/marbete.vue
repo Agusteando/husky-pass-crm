@@ -8,7 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-        <a class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar marbete</a>
+        <a class="btn btn-primary" :href="downloadUrl" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
       </div>
     </header>
 
@@ -21,7 +21,7 @@
     <section v-else class="preview-shell" data-product-panel="marbete-preview" data-state="content">
       <iframe :src="previewUrl" title="Vista previa de marbete"></iframe>
       <div class="download-ready">
-        <span>Listo para descargar</span>
+        <span>PDF listo para imprimir</span>
         <strong>{{ theme.label }}</strong>
       </div>
     </section>
@@ -47,7 +47,7 @@ const theme = computed(() => resolvePersonasTheme({
 const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
 const templateContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Plantilla institucional')
-const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}`)
+const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
 </script>
 

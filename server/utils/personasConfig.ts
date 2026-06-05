@@ -1,18 +1,35 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { PersonasAutorizadasConfig } from '~/types/daycare'
+import type { PersonasAutorizadasConfig, PersonasSurveyConfig, PersonasSurveyNivelKey } from '~/types/daycare'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 const CONFIG_DIR = join(process.cwd(), 'data', 'personas-autorizadas')
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 const ACCESS_ACTION_PATH = join(CONFIG_DIR, 'access-actions.json')
+export const SURVEY_NIVEL_OPTIONS: Array<{ key: PersonasSurveyNivelKey; label: string }> = [
+  { key: 'preescolar', label: 'Preescolar' },
+  { key: 'primaria', label: 'Primaria' },
+  { key: 'secundaria', label: 'Secundaria' },
+  { key: 'daycare', label: 'IECS / fallback' }
+]
 
-const defaultConfig: PersonasAutorizadasConfig = {
-  survey: {
+function defaultSurvey(title = 'Encuesta Personas Autorizadas'): PersonasSurveyConfig {
+  return {
     enabled: false,
-    title: 'Encuesta Personas Autorizadas',
+    title,
     embedUrl: '',
     updatedAt: '',
     updatedBy: null
+  }
+}
+
+const defaultConfig: PersonasAutorizadasConfig = {
+  survey: defaultSurvey(),
+  surveysByNivel: {
+    preescolar: defaultSurvey('Encuesta Preescolar'),
+    primaria: defaultSurvey('Encuesta Primaria'),
+    secundaria: defaultSurvey('Encuesta Secundaria'),
+    daycare: defaultSurvey('Encuesta IECS')
   },
   conveniosUrl: '',
   helpUrl: '',
@@ -28,6 +45,25 @@ function normalizeUrl(value?: string | null) {
   return String(value || '').trim()
 }
 
+function normalizeSurvey(value?: Partial<PersonasSurveyConfig> | null, fallbackTitle = 'Encuesta Personas Autorizadas'): PersonasSurveyConfig {
+  return {
+    enabled: Boolean(value?.enabled),
+    title: String(value?.title || fallbackTitle).trim() || fallbackTitle,
+    embedUrl: normalizeGoogleFormEmbedUrl(value?.embedUrl),
+    updatedAt: value?.updatedAt || '',
+    updatedBy: value?.updatedBy || null
+  }
+}
+
+function normalizeSurveysByNivel(value?: Partial<Record<PersonasSurveyNivelKey, Partial<PersonasSurveyConfig>>> | null) {
+  const next = {} as Record<PersonasSurveyNivelKey, PersonasSurveyConfig>
+  for (const option of SURVEY_NIVEL_OPTIONS) {
+    const fallback = defaultConfig.surveysByNivel?.[option.key]
+    next[option.key] = normalizeSurvey(value?.[option.key] || fallback, fallback?.title || `Encuesta ${option.label}`)
+  }
+  return next
+}
+
 export function normalizeGoogleFormEmbedUrl(value?: string | null) {
   const url = normalizeUrl(value)
   if (!url) return ''
@@ -41,14 +77,12 @@ export async function readPersonasConfig(): Promise<PersonasAutorizadasConfig> {
   try {
     const raw = await readFile(CONFIG_PATH, 'utf8')
     const parsed = JSON.parse(raw) as Partial<PersonasAutorizadasConfig>
+    const legacySurvey = normalizeSurvey(parsed.survey, defaultConfig.survey.title)
     return {
       ...defaultConfig,
       ...parsed,
-      survey: {
-        ...defaultConfig.survey,
-        ...(parsed.survey || {}),
-        embedUrl: normalizeGoogleFormEmbedUrl(parsed.survey?.embedUrl)
-      },
+      survey: legacySurvey,
+      surveysByNivel: normalizeSurveysByNivel(parsed.surveysByNivel),
       conveniosUrl: normalizeUrl(parsed.conveniosUrl),
       helpUrl: normalizeUrl(parsed.helpUrl)
     }
@@ -68,25 +102,51 @@ export async function savePersonasConfig(input: {
   surveyEnabled: boolean
   surveyTitle: string
   surveyEmbedUrl: string
+  surveysByNivel?: Partial<Record<PersonasSurveyNivelKey, Partial<PersonasSurveyConfig>>>
   conveniosUrl: string
   helpUrl?: string
   updatedBy?: string | null
 }) {
   const now = new Date().toISOString()
-  const config: PersonasAutorizadasConfig = {
-    survey: {
-      enabled: input.surveyEnabled,
-      title: input.surveyTitle.trim() || 'Encuesta Personas Autorizadas',
-      embedUrl: normalizeGoogleFormEmbedUrl(input.surveyEmbedUrl),
+  const existing = await readPersonasConfig()
+  const legacySurvey = normalizeSurvey({
+    enabled: input.surveyEnabled,
+    title: input.surveyTitle,
+    embedUrl: input.surveyEmbedUrl,
+    updatedAt: now,
+    updatedBy: input.updatedBy || null
+  })
+  const surveysByNivel = input.surveysByNivel
+    ? normalizeSurveysByNivel(Object.fromEntries(Object.entries(input.surveysByNivel).map(([key, survey]) => [key, {
+      ...survey,
       updatedAt: now,
       updatedBy: input.updatedBy || null
-    },
+    }])) as Partial<Record<PersonasSurveyNivelKey, Partial<PersonasSurveyConfig>>>)
+    : normalizeSurveysByNivel(existing.surveysByNivel)
+  const config: PersonasAutorizadasConfig = {
+    survey: legacySurvey,
+    surveysByNivel,
     conveniosUrl: normalizeUrl(input.conveniosUrl),
     helpUrl: normalizeUrl(input.helpUrl),
     updatedAt: now,
     updatedBy: input.updatedBy || null
   }
   return writePersonasConfig(config)
+}
+
+export function surveyNivelFromStudent(input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null }) {
+  const key = resolvePersonasTheme(input).key
+  return key === 'preescolar' || key === 'primaria' || key === 'secundaria' ? key : 'daycare'
+}
+
+export function resolveSurveyForStudent(config: PersonasAutorizadasConfig, input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null }) {
+  const nivelKey = surveyNivelFromStudent(input)
+  const byNivel = normalizeSurveysByNivel(config.surveysByNivel)
+  const survey = byNivel[nivelKey] || defaultSurvey()
+  return {
+    activeSurveyNivel: nivelKey,
+    activeSurvey: survey
+  }
 }
 
 export async function appendAccessActionLog(entry: Record<string, unknown>) {

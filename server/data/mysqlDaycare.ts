@@ -774,9 +774,10 @@ export async function getScanAuthorizedPersona(id: number) {
     `SELECT
        CONCAT(p.nombreP, ' ', p.paternoP, ' ', p.maternoP) AS fullnameP,
        CASE
-         WHEN IFNULL(p.compressed_foto, '') = '' THEN p.foto
-         WHEN p.compressed_foto LIKE 'http%' OR p.compressed_foto LIKE '/uploads/%' THEN p.compressed_foto
-         ELSE CONCAT('https://admin.casitaiedis.edu.mx/virtual/', p.compressed_foto)
+         WHEN IFNULL(p.foto, '') <> '' THEN p.foto
+         WHEN p.compressed_foto LIKE '%vision=marks-ok%' AND (p.compressed_foto LIKE 'http%' OR p.compressed_foto LIKE '/uploads/%') THEN p.compressed_foto
+         WHEN p.compressed_foto LIKE '%vision=marks-ok%' THEN CONCAT('https://admin.casitaiedis.edu.mx/virtual/', p.compressed_foto)
+         ELSE ''
        END AS fotoP,
        CONCAT(IFNULL(m.nombres, a.nombreA), ' ', IFNULL(m.apellido_paterno, a.paternoA), ' ', IFNULL(m.apellido_materno, a.maternoA)) AS fullnameA,
        MAX(c.foto) AS fotoA,

@@ -120,7 +120,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
        SELECT
          user_id,
          COUNT(*) AS authorizedCount,
-         SUM(CASE WHEN COALESCE(compressed_foto, foto, '') <> '' THEN 1 ELSE 0 END) AS authorizedPhotoCount
+         SUM(CASE WHEN COALESCE(foto, '') <> '' OR COALESCE(compressed_foto, '') LIKE '%vision=marks-ok%' THEN 1 ELSE 0 END) AS authorizedPhotoCount
        FROM personas_autorizadas
        WHERE user_id IS NOT NULL
        GROUP BY user_id
@@ -152,16 +152,16 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     const template = selectMarbeteTemplate(templates, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
     const hasStudentData = Boolean(studentName && nivel && grado && grupo && matricula)
     const hasParentAccess = Boolean(clean(row.email) || clean(row.username))
-    const hasPrintableReadiness = Boolean(template && hasStudentData && Number(row.authorizedCount) > 0 && Number(row.authorizedPhotoCount) > 0)
+    const authorizedCount = Number(row.authorizedCount || 0)
+    const authorizedPhotoCount = Number(row.authorizedPhotoCount || 0)
+    const missingRegisteredPhotos = authorizedCount > 0 && authorizedPhotoCount < authorizedCount
+    const hasPrintableReadiness = Boolean(template && hasStudentData && authorizedCount > 0 && !missingRegisteredPhotos)
     const issues: PersonasReadinessIssue[] = []
-    if (Number(row.authorizedCount) <= 0) issues.push(issue('missingAuthorizedPeople', 'Sin personas autorizadas'))
+    if (authorizedCount <= 0) issues.push(issue('missingAuthorizedPeople', 'Sin personas autorizadas'))
     if (!hasStudentData) issues.push(issue('missingRequiredStudentData', 'Datos de alumno incompletos'))
-    if (!hasPrintableReadiness) issues.push(issue('missingPrintableReadiness', 'Marbete/credencial no listo'))
-    if (!hasParentAccess) issues.push(issue('missingParentAccess', 'Sin acceso o contacto familiar'))
-
-    const blocked = !hasParentAccess
-    if (blocked) issues.push(issue('blocked', 'Bloqueado por falta de contacto'))
-
+    if (!hasPrintableReadiness) {
+      issues.push(issue('missingPrintableReadiness', missingRegisteredPhotos ? 'Foto pendiente en persona registrada' : 'Marbete no disponible'))
+    }
     const rowOut: PersonasReadinessRow = {
       userId: Number(row.userId),
       displayName: clean(row.displayName) || studentName || clean(row.nombre_nino) || matricula || `Familia ${row.userId}`,
@@ -174,11 +174,11 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
       grupo: grupo || null,
       studentName: studentName || clean(row.nombre_nino) || 'Alumno pendiente',
       familyLabel: clean(row.nombre_nino) || studentName || clean(row.displayName) || matricula || `Familia ${row.userId}`,
-      authorizedCount: Number(row.authorizedCount || 0),
+      authorizedCount,
       hasStudentData,
       hasPrintableReadiness,
       hasParentAccess,
-      status: blocked ? 'blocked' : issues.length ? 'incomplete' : 'complete',
+      status: issues.length ? 'incomplete' : 'complete',
       issues,
       templateId: template?.id || null,
       templateName: template?.name || null,

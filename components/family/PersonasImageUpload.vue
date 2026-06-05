@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { processFaceImageCached } from '~/utils/visionFace'
+import { markValidatedVisionPhotoUrl, processFaceImageCached } from '~/utils/visionFace'
 
 const props = withDefaults(defineProps<{
   initialSrc?: string | null
@@ -143,13 +143,16 @@ async function onFileChange(event: Event) {
       body: { src: dataUrl }
     })
     const processed = await processFaceImageCached(uploaded.absoluteUrl, { namespace: `upload:${props.personaId || 'student'}`, force: true })
+    if (!processed.validation.valid) {
+      throw new Error(processed.validation.message)
+    }
     const stored = await $fetch<{ url: string; absoluteUrl?: string }>('/api/personas-autorizadas/faces', {
       method: 'POST',
       body: { src: processed.src, personaId: props.personaId || null }
     })
-    processedUrl.value = stored.absoluteUrl || stored.url
+    processedUrl.value = markValidatedVisionPhotoUrl(stored.absoluteUrl || stored.url)
     localPreview.value = normalizeVirtualAssetUrl(processedUrl.value)
-    notice.value = 'Lista para confirmar.'
+    notice.value = 'Foto validada. Lista para confirmar.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar la foto.')

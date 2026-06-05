@@ -1,12 +1,20 @@
 export interface VisionFaceResult {
   src: string
   rawVisionData: Record<string, unknown>
+  validation: VisionFaceValidation
   fromCache?: boolean
+}
+
+export interface VisionFaceValidation {
+  valid: boolean
+  message: string
+  missingMarks: string[]
 }
 
 const VISION_BASE = 'https://vision.casitaapps.com'
 const CACHE_PREFIX = 'pa:vision-face:'
-const CACHE_VERSION = 'v4'
+const CACHE_VERSION = 'v5'
+const VALIDATED_MARKER = 'vision=marks-ok'
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
 const CACHE_MAX_ITEMS = 36
 
@@ -15,6 +23,7 @@ const inFlight = new Map<string, Promise<VisionFaceResult>>()
 interface CachedVisionFace {
   src: string
   rawVisionData?: Record<string, unknown>
+  validation?: VisionFaceValidation
   createdAt: number
   lastUsedAt: number
 }
@@ -45,6 +54,74 @@ function normalizeVisionAssetUrl(value?: string | null) {
   return `${VISION_BASE}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function stringList(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => String(item || '').trim()).filter(Boolean)
+}
+
+function marksObjectComplete(value: unknown) {
+  const marks = asRecord(value)
+  if (!marks) return null
+  const entries = Object.entries(marks)
+  if (!entries.length) return null
+  return entries.every(([, present]) => present === true || present === 1 || present === 'true' || present === 'present')
+}
+
+export function evaluateVisionFaceValidation(data: Record<string, unknown>): VisionFaceValidation {
+  const explicitMissing = [
+    ...stringList(data.missingRequiredFaceMarks),
+    ...stringList(data.missingRequiredMarks),
+    ...stringList(asRecord(data.validation)?.missingRequiredFaceMarks),
+    ...stringList(asRecord(data.validation)?.missingRequiredMarks),
+    ...stringList(asRecord(data.faceValidation)?.missingRequiredFaceMarks),
+    ...stringList(asRecord(data.faceValidation)?.missingRequiredMarks)
+  ]
+
+  if (explicitMissing.length) {
+    return {
+      valid: false,
+      missingMarks: explicitMissing,
+      message: `La foto no pudo validarse. Faltan marcas faciales requeridas: ${explicitMissing.join(', ')}.`
+    }
+  }
+
+  const flags = [
+    data.requiredFaceMarksPresent,
+    data.requiredMarksPresent,
+    data.allRequiredFaceMarksPresent,
+    data.allRequiredMarksPresent,
+    asRecord(data.validation)?.requiredFaceMarksPresent,
+    asRecord(data.validation)?.requiredMarksPresent,
+    asRecord(data.faceValidation)?.requiredFaceMarksPresent,
+    asRecord(data.faceValidation)?.requiredMarksPresent
+  ]
+  if (flags.some((value) => value === true || value === 1 || value === 'true')) {
+    return { valid: true, missingMarks: [], message: 'Foto validada.' }
+  }
+
+  const markGroups = [
+    marksObjectComplete(data.requiredFaceMarks),
+    marksObjectComplete(data.requiredMarks),
+    marksObjectComplete(asRecord(data.validation)?.requiredFaceMarks),
+    marksObjectComplete(asRecord(data.validation)?.requiredMarks),
+    marksObjectComplete(asRecord(data.faceValidation)?.requiredFaceMarks),
+    marksObjectComplete(asRecord(data.faceValidation)?.requiredMarks)
+  ]
+  if (markGroups.some((value) => value === true)) {
+    return { valid: true, missingMarks: [], message: 'Foto validada.' }
+  }
+
+  return {
+    valid: false,
+    missingMarks: [],
+    message: 'La foto no pudo validarse porque Vision no confirmó todas las marcas faciales requeridas.'
+  }
+}
+
 export function toVisionImageUrl(imageUrl?: string | null) {
   const value = String(imageUrl || '').trim()
   if (!value) return ''
@@ -55,6 +132,16 @@ export function toVisionImageUrl(imageUrl?: string | null) {
 
 export function canProcessWithVision(imageUrl?: string | null) {
   return /^https?:\/\//i.test(toVisionImageUrl(imageUrl))
+}
+
+export function markValidatedVisionPhotoUrl(value?: string | null) {
+  const url = String(value || '').trim()
+  if (!url || isValidatedVisionPhotoUrl(url)) return url
+  return `${url}${url.includes('?') ? '&' : '?'}${VALIDATED_MARKER}`
+}
+
+export function isValidatedVisionPhotoUrl(value?: string | null) {
+  return String(value || '').includes(VALIDATED_MARKER)
 }
 
 function cacheKeyFor(imageUrl: string, namespace = 'default') {
@@ -74,7 +161,11 @@ function readCachedFace(imageUrl: string, namespace?: string): VisionFaceResult 
     }
     cached.lastUsedAt = Date.now()
     window.localStorage.setItem(key, JSON.stringify(cached))
-    return { src: cached.src, rawVisionData: cached.rawVisionData || {}, fromCache: true }
+    if (!cached.validation?.valid) {
+      window.localStorage.removeItem(key)
+      return null
+    }
+    return { src: cached.src, rawVisionData: cached.rawVisionData || {}, validation: cached.validation, fromCache: true }
   } catch {
     return null
   }
@@ -118,6 +209,7 @@ function writeCachedFace(imageUrl: string, result: VisionFaceResult, namespace?:
     window.localStorage.setItem(cacheKeyFor(imageUrl, namespace), JSON.stringify({
       src: result.src,
       rawVisionData: result.rawVisionData,
+      validation: result.validation,
       createdAt: Date.now(),
       lastUsedAt: Date.now()
     } satisfies CachedVisionFace))
@@ -154,6 +246,8 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
     method: 'POST',
     body: formData
   }))
+  const validation = evaluateVisionFaceValidation(data)
+  if (!validation.valid) throw new Error(validation.message)
 
   const imageKey = String(data.imageKey || '')
   if (!imageKey) throw new Error('No fue posible preparar la fotografía.')
@@ -222,7 +316,8 @@ export async function processFaceImage(imageUrl: string): Promise<VisionFaceResu
 
   return {
     src: canvas.toDataURL('image/png'),
-    rawVisionData: data
+    rawVisionData: data,
+    validation
   }
 }
 

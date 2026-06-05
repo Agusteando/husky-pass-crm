@@ -14,10 +14,32 @@
 
     <template v-else-if="profile">
       <section class="card readonly-card" data-product-panel="academic-readonly">
-        <header>
+        <header class="school-summary">
           <p class="eyebrow">Escuela</p>
           <h2>{{ academicSummary }}</h2>
+          <dl class="school-facts">
+            <div v-if="profile.readonly.matricula">
+              <dt>Matrícula</dt>
+              <dd>{{ displayMatricula(profile.readonly.matricula) }}</dd>
+            </div>
+            <div v-if="profile.readonly.plantel">
+              <dt>Plantel</dt>
+              <dd>{{ profile.readonly.plantel }}</dd>
+            </div>
+            <div v-if="profile.readonly.ciclo">
+              <dt>Ciclo</dt>
+              <dd>{{ profile.readonly.ciclo }}</dd>
+            </div>
+          </dl>
         </header>
+
+        <aside v-if="grupoSigil.image || grupoSigil.label" class="grupo-sigil-card" data-testid="student-data-grupo-sigil">
+          <img v-if="grupoSigil.image" :src="grupoSigil.image" :alt="`Imagen del grupo ${grupoSigil.label}`" />
+          <div>
+            <span>Grupo</span>
+            <strong>{{ grupoSigil.label }}</strong>
+          </div>
+        </aside>
       </section>
 
       <section class="data-section-grid" data-product-panel="student-data-sections">
@@ -85,17 +107,21 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
-import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
+import { normalizeAttendanceText } from '~/utils/attendance'
+import { displayMatricula, personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 type FieldKey = keyof PersonasStudentEditable
 type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
+type GrupoManifestEntry = { grupoValue: string; normalizedKey?: string; previewGreenPng?: string }
+type GrupoManifest = { fallbackGrupo: string; aliases?: Record<string, string>; entries: GrupoManifestEntry[] }
 
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'pa-update-session' })
 const { data: people } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-update-family-people', timeout: 15000 })
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000 })
+const { data: grupoManifest } = useFetch<GrupoManifest>('/grupo-icons/manifest.json', { key: 'student-data-grupo-icons', server: false })
 
 const form = reactive<Record<string, string>>({})
 const original = ref<Record<string, string>>({})
@@ -116,6 +142,7 @@ const theme = computed(() => resolvePersonasTheme({
 const mascot = computed(() => personasMascot(theme.value, 'help'))
 const academicSummary = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / ') || 'Datos escolares')
 const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? `Actualizado ${formatDate(profile.value.meta.updatedAt)}` : 'Actualización familiar')
+const grupoSigil = computed(() => resolveGrupoSigil(profile.value?.readonly.grupo))
 
 const groups: FieldGroup[] = [
   {
@@ -207,6 +234,40 @@ function formatDate(value: string) {
   return parsed.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function repairMojibake(value: string) {
+  if (!/[\u00c3\u00c2\ufffd\u0080-\u009f]/.test(value)) return value
+  try {
+    const bytes = Uint8Array.from(Array.from(value, (char) => char.charCodeAt(0) & 0xff))
+    return new TextDecoder('utf-8').decode(bytes)
+  } catch {
+    return value
+  }
+}
+
+function resolveGrupoSigil(grupo?: string | null) {
+  const manifest = grupoManifest.value
+  const fallbackLabel = repairMojibake(manifest?.fallbackGrupo || 'Grupo')
+  if (!manifest?.entries?.length) return { label: String(grupo || fallbackLabel).trim() || fallbackLabel, image: '' }
+
+  const normalizedAliases = Object.fromEntries(Object.entries(manifest.aliases || {})
+    .map(([key, value]) => [normalizeAttendanceText(repairMojibake(key)), normalizeAttendanceText(repairMojibake(value))]))
+  const requested = normalizeAttendanceText(repairMojibake(String(grupo || '')))
+  const alias = requested ? (normalizedAliases[requested] || requested) : ''
+  const entries = manifest.entries.map((entry) => ({
+    ...entry,
+    grupoValue: repairMojibake(entry.grupoValue),
+    normalizedKey: normalizeAttendanceText(repairMojibake(entry.normalizedKey || entry.grupoValue))
+  }))
+  const exact = entries.find((entry) => entry.normalizedKey === alias || normalizeAttendanceText(entry.grupoValue) === alias)
+  const fallback = entries.find((entry) => entry.normalizedKey === normalizeAttendanceText(fallbackLabel)) || entries[0]
+  const entry = exact || fallback
+
+  return {
+    label: entry?.grupoValue || fallbackLabel,
+    image: entry?.previewGreenPng ? `/grupo-icons/${entry.previewGreenPng}` : ''
+  }
+}
+
 function completedFields(group: FieldGroup) {
   return group.fields.filter((field) => String(form[field.key] || '').trim()).length
 }
@@ -286,8 +347,72 @@ async function saveActiveGroup() {
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
-.readonly-card { display: grid; gap: 8px; }
+.readonly-card {
+  align-items: center;
+  background:
+    radial-gradient(circle at 90% 12%, rgba(var(--pa-primary-rgb), .14), transparent 32%),
+    #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  overflow: hidden;
+}
 .readonly-card header h2 { margin-bottom: 0; }
+.school-summary { display: grid; gap: 10px; min-width: 0; }
+.school-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.school-facts div {
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  gap: 6px;
+  padding: 7px 10px;
+}
+.school-facts dt,
+.school-facts dd {
+  font-size: .76rem;
+  font-weight: 800;
+  margin: 0;
+}
+.school-facts dt {
+  color: var(--pa-muted);
+  text-transform: uppercase;
+}
+.grupo-sigil-card {
+  align-items: center;
+  background: rgba(255, 255, 255, .78);
+  border: 1px solid var(--pa-border);
+  border-radius: 22px;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 14px;
+  text-align: center;
+}
+.grupo-sigil-card img {
+  max-height: 112px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.grupo-sigil-card span {
+  color: var(--pa-muted);
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.grupo-sigil-card strong {
+  color: var(--pa-primary);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
 .data-section-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .data-section-card { align-items: end; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
 .data-section-card h2, .data-section-card p { margin-bottom: 0; }
@@ -298,5 +423,5 @@ async function saveActiveGroup() {
 .input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: #d35a4e; box-shadow: 0 0 0 3px rgba(211, 90, 78, .12); }
 .change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
 .save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 18px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; padding: 12px; }
-@media (max-width: 900px) { .section-hero, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } }
+@media (max-width: 900px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
 </style>

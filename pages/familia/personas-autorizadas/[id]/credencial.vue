@@ -48,6 +48,7 @@ import { useFetch, useRoute } from 'nuxt/app'
 import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasInstitutionLogo, personasInstitutionName, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -68,7 +69,11 @@ const themeVars = computed(() => personasThemeStyle(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const institutionAlt = computed(() => personasInstitutionName(theme.value))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const photoUrl = computed(() => normalizeVirtualAssetUrl(data.value?.compressed_foto || data.value?.foto || ''))
+const photoUrl = computed(() => {
+  const original = normalizeVirtualAssetUrl(data.value?.foto || '')
+  const processed = normalizeVirtualAssetUrl(data.value?.compressed_foto || '')
+  return original || (isValidatedVisionPhotoUrl(processed) ? processed : '')
+})
 const credentialContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || institutionAlt.value)
 const validationUrl = computed(() => appAbsoluteUrl(authorizedPersonValidationPath(route.params.id as string)))
 const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl.value)}`)

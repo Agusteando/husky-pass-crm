@@ -24,15 +24,15 @@
         <article class="card status-card">
           <FamilyPersonasIcon name="people" />
           <span>
-            <b>{{ completedRegularCount }}/3</b>
-            <small>Personas</small>
+            <b>{{ completedRegularCount }}</b>
+            <small>{{ completedRegularCount === 1 ? 'Persona registrada' : 'Personas registradas' }}</small>
           </span>
         </article>
         <article class="card status-card">
           <FamilyPersonasIcon name="download" />
           <span>
             <b>{{ downloadableCount }}</b>
-            <small>Marbetes</small>
+            <small>PDF disponibles</small>
           </span>
         </article>
         <NuxtLink class="card status-card actionable student-photo-status" to="/familia/personas-autorizadas/credencializacion">
@@ -51,7 +51,7 @@
         <header class="section-head">
           <div>
             <p class="eyebrow">Personas</p>
-            <h2>{{ completedRegularCount }}/3</h2>
+            <h2>{{ completedRegularCount }} registradas</h2>
           </div>
         </header>
 
@@ -90,7 +90,7 @@
             </button>
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}`">Ver</NuxtLink>
             <NuxtLink v-if="selected.id" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${selected.id}/marbete`">Marbete</NuxtLink>
-            <a v-if="selected.id" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`">Descargar</a>
+            <a v-if="selected.id" class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`">Descargar PDF</a>
             <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="confirmar-eliminar-persona-autorizada" @click="deleteTarget = selected">Eliminar</button>
           </div>
         </div>
@@ -116,7 +116,7 @@
             </div>
             <div class="actions">
               <NuxtLink v-if="marbeteReady(person)" class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/marbete`">Ver</NuxtLink>
-              <a v-if="marbeteReady(person)" class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`">Descargar</a>
+              <a v-if="marbeteReady(person)" class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`">Descargar PDF</a>
               <button v-else class="btn btn-secondary" type="button" disabled>{{ marbeteState(person) }}</button>
             </div>
           </article>
@@ -196,6 +196,7 @@ import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
+import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -230,13 +231,21 @@ const completedRegularCount = computed(() => people.value.filter((person) => per
 const downloadableCount = computed(() => people.value.filter((person) => marbeteReady(person)).length)
 const missingPhotoCount = computed(() => people.value.filter((person) => person.id && !photoUrl(person)).length)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
-const expedienteState = computed(() => completedRegularCount.value >= 3 && missingPhotoCount.value === 0 && studentPhoto.value ? 'complete' : 'incomplete')
-const expedienteStatus = computed(() => expedienteState.value === 'complete' ? 'Listo' : 'Incompleto')
+const registeredPeople = computed(() => people.value.filter((person) => person.id))
+const actionableIssues = computed(() => {
+  const issues: string[] = []
+  if (!registeredPeople.value.length) issues.push('Agrega tu primera persona autorizada')
+  const missingRequired = registeredPeople.value.filter((person) => !fullName(person) || !person.parenP)
+  if (missingRequired.length) issues.push(`${missingRequired.length} ${missingRequired.length === 1 ? 'registro necesita datos' : 'registros necesitan datos'}`)
+  if (missingPhotoCount.value) issues.push(`${missingPhotoCount.value} ${missingPhotoCount.value === 1 ? 'foto pendiente' : 'fotos pendientes'}`)
+  if (!studentPhoto.value) issues.push('Foto del alumno pendiente')
+  if (registeredPeople.value.length && !downloadableCount.value) issues.push('Marbete sin datos suficientes')
+  return issues
+})
+const expedienteState = computed(() => actionableIssues.value.length ? 'action' : 'complete')
+const expedienteStatus = computed(() => expedienteState.value === 'complete' ? 'Listo' : 'Requiere acción')
 const nextAction = computed(() => {
-  if (completedRegularCount.value < 3) return `Faltan ${3 - completedRegularCount.value} personas`
-  if (missingPhotoCount.value) return `Faltan ${missingPhotoCount.value} fotos`
-  if (!studentPhoto.value) return 'Falta foto del alumno'
-  return 'Marbetes disponibles'
+  return actionableIssues.value[0] || 'Marbetes PDF disponibles'
 })
 
 const faqItems = [
@@ -267,10 +276,12 @@ function initials(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
 }
 function photoUrl(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
-  return normalizeVirtualAssetUrl(person.compressed_foto || person.foto || '')
+  const original = normalizeVirtualAssetUrl(person.foto || '')
+  const processed = normalizeVirtualAssetUrl(person.compressed_foto || '')
+  return original || (isValidatedVisionPhotoUrl(processed) ? processed : '')
 }
 function personState(person: AuthorizedPerson) {
-  if (!person.id) return person.indice === 4 ? 'Pase disponible' : 'Disponible'
+  if (!person.id) return person.indice === 4 ? 'Pase Express opcional' : 'Espacio disponible'
   if (!photoUrl(person)) return 'Falta foto'
   if (!person.parenP) return 'Falta parentesco'
   return 'Listo'
@@ -332,13 +343,14 @@ function normalizeIndice(value: unknown) {
 
 <style scoped>
 .pa-hero, .section-head, .selected-row, .status-card { align-items: center; display: grid; gap: 14px; }
-.pa-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .12), #fff); grid-template-columns: minmax(0, 1fr) 140px; overflow: hidden; }
-.pa-hero img { align-self: end; max-height: 140px; object-fit: contain; }
+.pa-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .12), #fff); grid-template-columns: minmax(0, 1fr) 104px; overflow: hidden; padding-block: 16px; }
+.pa-hero h1 { font-size: clamp(1.8rem, 3vw, 2.5rem); margin-bottom: 4px; }
+.pa-hero img { align-self: end; max-height: 104px; object-fit: contain; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
 .status-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.status-card { box-shadow: none; grid-template-columns: 34px minmax(0, 1fr); min-height: 82px; }
+.status-card { box-shadow: none; grid-template-columns: 34px minmax(0, 1fr); min-height: 70px; padding-block: 12px; }
 .student-photo-status { grid-template-columns: 48px minmax(0, 1fr); }
 .student-photo-mini { aspect-ratio: 1; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 999px; display: grid; overflow: hidden; place-items: center; }
 .student-photo-mini :deep(.pa-icon) { color: var(--pa-primary); height: 22px; width: 22px; }
@@ -346,14 +358,15 @@ function normalizeIndice(value: unknown) {
 .status-card b, .status-card small { display: block; }
 .status-card b { color: var(--pa-gray); }
 .status-card small { color: var(--pa-muted); font-size: .82rem; font-weight: 600; }
-.status-card[data-state='complete'] { background: var(--pa-soft); border-color: var(--pa-border); }
+.status-card[data-state='complete'],
+.status-card[data-state='action'] { background: var(--pa-soft); border-color: var(--pa-border); }
 .status-card.actionable:hover { border-color: var(--pa-border); transform: translateY(-1px); }
-.pa-slots, .marbete-section { display: grid; gap: 18px; }
+.pa-slots, .marbete-section { display: grid; gap: 14px; }
 .section-head { grid-template-columns: minmax(0, 1fr) auto; }
 .compact-head { align-items: center; grid-template-columns: minmax(0, 1fr) 64px; }
 .compact-head img { max-height: 64px; object-fit: contain; }
 .section-head h2, .selected-row h3, .marbete-card h3 { margin-bottom: 0; }
-.person-grid, .marbete-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(130px, 1fr)); }
+.person-grid, .marbete-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(130px, 1fr)); }
 .marbete-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .person-card { background: transparent; border: 0; cursor: pointer; display: grid; padding: 0; text-align: left; }
 .person-photo, .person-thumb { aspect-ratio: 1; background: #d9d9d9; border: 2px solid transparent; color: #50535a; display: grid; font-size: 2.2rem; overflow: hidden; place-items: center; }
@@ -361,7 +374,7 @@ function normalizeIndice(value: unknown) {
 .person-thumb { border: 1px solid var(--pa-border); border-radius: 18px; font-size: 1.5rem; }
 .person-photo img, .person-thumb img { height: 100%; object-fit: cover; width: 100%; }
 .person-card.selected .person-photo, .person-card:hover .person-photo { border-color: var(--pa-primary); }
-.person-meta { background: var(--pa-primary); border-radius: 0 0 18px 18px; color: var(--pa-contrast); display: grid; gap: 2px; min-height: 56px; padding: 9px 10px; }
+.person-meta { background: var(--pa-primary); border-radius: 0 0 18px 18px; color: var(--pa-contrast); display: grid; gap: 2px; min-height: 50px; padding: 8px 10px; }
 .person-card.empty .person-meta { background: #ececec; color: #50535a; }
 .person-meta b { font-size: .8rem; text-transform: uppercase; }
 .person-meta small, .marbete-card small { font-size: .76rem; font-weight: 600; }
@@ -382,5 +395,5 @@ function normalizeIndice(value: unknown) {
 .faq-item em { color: var(--pa-muted); font-style: normal; font-weight: 600; margin-top: 8px; }
 .faq-item b { color: var(--pa-primary); font-size: 1.4rem; line-height: 1; }
 @media (max-width: 980px) { .status-grid, .help-grid, .marbete-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 760px) { .pa-hero, .selected-row, .section-head, .status-grid, .help-grid, .marbete-grid, .marbete-card { grid-template-columns: 1fr; } .pa-hero img { justify-self: start; } .person-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .pa-hero, .selected-row, .section-head, .help-grid, .marbete-grid, .marbete-card { grid-template-columns: 1fr; } .pa-hero img { justify-self: start; max-height: 96px; } .status-grid, .person-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .status-card { min-height: 72px; } }
 </style>

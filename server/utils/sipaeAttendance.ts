@@ -62,11 +62,12 @@ function sipaeConfig() {
 }
 
 export function sipaeErrorMessage(error: unknown) {
-  if (!error || typeof error !== 'object') return 'SIPAE no respondio.'
+  if (!error || typeof error !== 'object') return 'SIPAE no respondió.'
   const candidate = error as { name?: string; message?: string; statusCode?: number; data?: { detail?: string } }
-  if (/timeout/i.test(candidate.name || candidate.message || '')) return 'SIPAE excedio el tiempo de espera.'
-  if (candidate.statusCode) return `SIPAE respondio con error ${candidate.statusCode}.`
-  return candidate.data?.detail || candidate.message || 'SIPAE no respondio.'
+  const text = `${candidate.name || ''} ${candidate.message || ''}`
+  if (/timeout|parent read deadline|exceeded parent read deadline/i.test(text)) return 'SIPAE excedió el tiempo de espera.'
+  if (candidate.statusCode) return `SIPAE respondió con error ${candidate.statusCode}.`
+  return candidate.data?.detail || candidate.message || 'SIPAE no respondió.'
 }
 
 export function sipaeErrorState(error: unknown) {

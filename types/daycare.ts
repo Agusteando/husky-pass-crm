@@ -227,8 +227,13 @@ export interface PersonasSurveyConfig {
   updatedBy?: string | null
 }
 
+export type PersonasSurveyNivelKey = 'preescolar' | 'primaria' | 'secundaria' | 'daycare'
+
 export interface PersonasAutorizadasConfig {
   survey: PersonasSurveyConfig
+  surveysByNivel?: Record<PersonasSurveyNivelKey, PersonasSurveyConfig>
+  activeSurvey?: PersonasSurveyConfig
+  activeSurveyNivel?: PersonasSurveyNivelKey | null
   conveniosUrl: string
   helpUrl?: string
   updatedAt?: string

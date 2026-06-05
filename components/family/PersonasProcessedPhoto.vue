@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { canProcessWithVision, getCachedProcessedFaceImage, processFaceImageCached, toVisionImageUrl } from '~/utils/visionFace'
+import { canProcessWithVision, getCachedProcessedFaceImage, isValidatedVisionPhotoUrl, processFaceImageCached, toVisionImageUrl } from '~/utils/visionFace'
 
 const props = withDefaults(defineProps<{
   src?: string | null
@@ -23,6 +23,7 @@ const props = withDefaults(defineProps<{
   fallback?: string
   namespace?: string
   autoProcess?: boolean
+  trustStoredProcessed?: boolean
   loading?: 'lazy' | 'eager'
   decoding?: 'async' | 'sync' | 'auto'
 }>(), {
@@ -32,11 +33,12 @@ const props = withDefaults(defineProps<{
   fallback: '',
   namespace: 'personas-photo',
   autoProcess: true,
+  trustStoredProcessed: false,
   loading: 'lazy',
   decoding: 'async'
 })
 
-const displaySrc = ref(normalizeVirtualAssetUrl(props.src || props.processedSrc || ''))
+const displaySrc = ref(normalizeVirtualAssetUrl(props.src || (props.trustStoredProcessed || isValidatedVisionPhotoUrl(props.processedSrc) ? props.processedSrc : '') || ''))
 const processing = ref(false)
 const failed = ref(false)
 const visionSource = ref<'original' | 'stored' | 'cache' | 'vision' | 'fallback' | 'empty'>('empty')
@@ -50,14 +52,15 @@ const state = computed(() => {
 
 const originalUrl = computed(() => normalizeVirtualAssetUrl(props.src || ''))
 const storedUrl = computed(() => normalizeVirtualAssetUrl(props.processedSrc || ''))
+const storedIsTrusted = computed(() => props.trustStoredProcessed || isValidatedVisionPhotoUrl(storedUrl.value))
 let requestIndex = 0
 
 function firstRenderableSource() {
-  return originalUrl.value || storedUrl.value || ''
+  return originalUrl.value || (storedIsTrusted.value ? storedUrl.value : '') || ''
 }
 
 function targetSourceForVision() {
-  return originalUrl.value || storedUrl.value || ''
+  return originalUrl.value || ''
 }
 
 async function resolveDisplay() {
@@ -104,7 +107,7 @@ async function resolveDisplay() {
   }
 }
 
-watch(() => [props.src, props.processedSrc, props.namespace, props.autoProcess], () => {
+watch(() => [props.src, props.processedSrc, props.namespace, props.autoProcess, props.trustStoredProcessed], () => {
   void resolveDisplay()
 })
 

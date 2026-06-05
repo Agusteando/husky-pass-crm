@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { MarbeteTemplateMeta, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
 import { allPersonasThemes, displayMatricula, normalizeNivel, normalizePlantel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
+import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 const TEMPLATE_DIR = join(process.cwd(), 'data', 'marbete-templates')
 const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
@@ -151,7 +152,8 @@ export async function saveMarbeteTemplate(input: {
 
 export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string) {
   const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
-  const photo = normalizeVirtualAssetUrl(data.compressed_foto || data.foto || '')
+  const trustedProcessedPhoto = isValidatedVisionPhotoUrl(data.compressed_foto) ? data.compressed_foto : ''
+  const photo = normalizeVirtualAssetUrl(data.foto || trustedProcessedPhoto || '')
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl)}`
   const values: Record<string, string> = {
     id: String(data.id || ''),
@@ -161,7 +163,7 @@ export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, o
     nombreP: String(data.nombreP || ''),
     parenP: String(data.parenP || ''),
     foto: photo,
-    compressed_foto: normalizeVirtualAssetUrl(data.compressed_foto || ''),
+    compressed_foto: photo,
     qrImage,
     nivelEdu: String(data.nivelEdu || ''),
     plantel: String(data.plantel || ''),
@@ -181,7 +183,7 @@ export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, o
 
 export function marbeteDownloadName(data: PrintableAuthorizedPerson, template: MarbeteTemplateMeta) {
   const name = [data.nombreP, data.paternoP, data.maternoP].filter(Boolean).join(' ') || `persona-${data.id}`
-  return `${safeId(`marbete-${template.themeKey}-${name}`) || `marbete-${data.id}`}.svg`
+  return `${safeId(`marbete-${template.themeKey}-${name}`) || `marbete-${data.id}`}.pdf`
 }
 
 export function fallbackTemplateColor(themeKey?: string | null) {

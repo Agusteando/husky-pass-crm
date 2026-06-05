@@ -17,6 +17,7 @@ import { legacyQuery } from '~/server/utils/mysql'
 import { dateOnly, formatAttendanceTime } from '~/utils/attendance'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { normalizeMatricula, normalizePlantel } from '~/utils/personasTheme'
+import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { deriveSipaePlantelFromStudent } from '~/server/utils/sipaePlantel'
 
 interface AccessHistoryRow extends RowDataPacket {
@@ -122,12 +123,14 @@ function normalizeActionType(value?: string | null): AccessActionType | null {
 
 function personFromRow(row: AccessHistoryRow): AccessHistoryPerson {
   const name = compactName(row.nombreP, row.paternoP, row.maternoP) || `Persona ${row.personId || ''}`.trim()
+  const originalPhoto = normalizeVirtualAssetUrl(row.fotoP || '')
+  const processedPhoto = normalizeVirtualAssetUrl(row.compressedFotoP || '')
   return {
     id: Number(row.personId || 0),
     name,
     parentesco: clean(row.parenP) || null,
     indice: Number(row.indice || 0) || null,
-    photoUrl: normalizeVirtualAssetUrl(row.compressedFotoP || row.fotoP || '')
+    photoUrl: originalPhoto || (isValidatedVisionPhotoUrl(processedPhoto) ? processedPhoto : '')
   }
 }
 

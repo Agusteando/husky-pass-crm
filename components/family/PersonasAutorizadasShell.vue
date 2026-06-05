@@ -139,10 +139,10 @@ async function logout() {
   background: #fff;
   border-bottom: 1px solid #e7e7e7;
   display: grid;
-  gap: 16px;
-  grid-template-columns: 140px minmax(0, 1fr) minmax(190px, 260px) auto 68px;
-  min-height: 90px;
-  padding: 10px clamp(16px, 4vw, 42px);
+  gap: 12px;
+  grid-template-columns: 238px minmax(0, 1fr) minmax(210px, 300px) auto;
+  min-height: 76px;
+  padding: 8px clamp(14px, 3vw, 32px);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -158,7 +158,7 @@ async function logout() {
   width: 100%;
 }
 
-.pa-brand img { display: block; max-height: 68px; object-fit: contain; object-position: left center; width: 112px; }
+.pa-brand img { display: block; max-height: 58px; object-fit: contain; object-position: left center; width: 92px; }
 .pa-top-copy { display: grid; gap: 2px; min-width: 0; }
 .pa-top-copy span { color: var(--pa-primary); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .pa-top-copy strong { color: #50535a; font-size: clamp(1.2rem, 2vw, 1.65rem); letter-spacing: -0.03em; line-height: 1; }
@@ -183,12 +183,12 @@ async function logout() {
 .pa-student-chip small { color: var(--pa-muted); font-size: 0.72rem; font-weight: 600; }
 .pa-logout { background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); cursor: pointer; font: inherit; font-size: 0.86rem; font-weight: 600; min-height: 38px; padding: 0 14px; }
 .pa-logout:hover { background: var(--pa-soft); }
-.pa-top-ambassador { align-self: end; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 20px; height: 64px; object-fit: contain; object-position: bottom center; padding-top: 4px; width: 64px; }
+.pa-top-ambassador { display: none; }
 
 .pa-product-layout { display: grid; grid-template-columns: 238px minmax(0, 1fr); }
-.pa-product-nav { background: #fff; border-right: 1px solid #e0e0e0; min-height: calc(100vh - 90px); padding: 18px 0 28px; position: sticky; top: 90px; }
+.pa-product-nav { background: #fff; border-right: 1px solid #e0e0e0; min-height: calc(100vh - 76px); padding: 14px 0 24px; position: sticky; top: 76px; }
 .pa-nav-mark { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 20px; display: grid; gap: 8px; justify-items: center; margin: 0 16px 16px; padding: 10px; text-align: center; }
-.pa-nav-mark img { height: 76px; object-fit: contain; }
+.pa-nav-mark img { height: 62px; object-fit: contain; }
 .pa-nav-mark span { color: var(--pa-primary); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .pa-product-nav nav { display: grid; gap: 6px; }
 .pa-nav-link { align-items: center; border: 1px solid transparent; border-radius: 0 18px 18px 0; color: #73757a; display: grid; font-size: 0.9rem; font-weight: 600; gap: 10px; grid-template-columns: 24px minmax(0, 1fr); margin-right: 12px; min-height: 42px; padding: 0 14px 0 24px; }
@@ -198,22 +198,22 @@ async function logout() {
 .pa-mobile-nav { display: none; }
 
 @media (max-width: 1060px) {
-  .pa-product-topbar { grid-template-columns: 116px minmax(0, 1fr) auto 58px; }
+  .pa-product-topbar { grid-template-columns: 94px minmax(0, 1fr) auto; }
   .pa-student-chip { display: none; }
 }
 @media (max-width: 920px) {
   .pa-product-layout { grid-template-columns: 1fr; }
   .pa-product-nav { display: none; }
   .pa-route-content { padding-top: 12px; }
-  .pa-mobile-nav { background: rgba(255,255,255,.94); border: 1px solid #e7e7e7; border-radius: 20px; display: flex; gap: 8px; overflow-x: auto; padding: 8px; position: sticky; top: 90px; z-index: 10; }
+  .pa-mobile-nav { background: rgba(255,255,255,.94); border: 1px solid #e7e7e7; border-radius: 20px; display: flex; gap: 8px; overflow-x: auto; padding: 8px; position: sticky; top: 76px; z-index: 10; }
   .pa-mobile-nav a { align-items: center; border-radius: 999px; color: var(--pa-muted); display: inline-flex; flex: 0 0 auto; gap: 7px; font-size: .82rem; font-weight: 600; min-height: 36px; padding: 8px 10px; }
   .pa-mobile-nav a.active { background: var(--pa-soft); color: var(--pa-primary); }
 }
 @media (max-width: 640px) {
   .pa-product-topbar { gap: 10px; grid-template-columns: 72px minmax(0, 1fr) auto; }
   .pa-brand img { width: 66px; }
-  .pa-top-ambassador { display: none; }
   .pa-logout { min-height: 34px; padding: 0 10px; }
+  .pa-top-copy small { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .pa-top-ambassador, .pa-nav-mark img { animation: pa-ambassador-float 5s ease-in-out infinite; }

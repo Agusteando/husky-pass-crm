@@ -4,10 +4,10 @@
       <div>
         <p class="eyebrow">Superadmin</p>
         <h1>Gestión de usuarios y productos</h1>
-        <p>Monitorea cuentas internas, familias de guardería y familias de Personas Autorizadas desde un solo directorio real.</p>
+        <p>Encuentra cuentas, revisa alcances y abre soporte familiar desde un directorio operativo.</p>
       </div>
       <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Readiness PA</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Personas Autorizadas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
         <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
       </div>
@@ -464,6 +464,7 @@ function normalizeLimit(value: unknown) {
 
 .superadmin-head {
   grid-template-columns: minmax(0, 1fr) auto;
+  padding-block: 18px;
 }
 
 .head-actions {
@@ -481,11 +482,11 @@ function normalizeLimit(value: unknown) {
 .scope-tab {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 14px;
   cursor: pointer;
   display: grid;
   gap: 4px;
-  padding: 12px;
+  padding: 10px 12px;
   text-align: left;
 }
 
@@ -522,11 +523,11 @@ function normalizeLimit(value: unknown) {
 .super-metrics article {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .super-metrics span {
@@ -582,14 +583,14 @@ function normalizeLimit(value: unknown) {
   align-items: center;
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--color-brand-900);
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 600;
-  height: 42px;
+  height: 38px;
   justify-content: center;
-  width: 42px;
+  width: 38px;
 }
 
 .user-cell strong,

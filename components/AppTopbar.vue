@@ -128,6 +128,8 @@ async function logout() {
   display: flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .topbar-nav a {
@@ -252,10 +254,14 @@ async function logout() {
 @media (max-width: 760px) {
   .topbar-inner {
     min-height: var(--topbar-height);
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-block: 6px;
   }
 
   .profile {
     margin-left: auto;
+    gap: 6px;
   }
 
   .profile-copy,
@@ -265,9 +271,20 @@ async function logout() {
 
   .topbar-nav {
     order: 3;
-    overflow-x: auto;
+    overflow: auto hidden;
     width: 100%;
     padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .topbar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-nav a {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    white-space: nowrap;
   }
 
   .compact-action {

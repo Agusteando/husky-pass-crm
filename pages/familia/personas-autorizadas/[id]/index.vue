@@ -34,7 +34,7 @@
 
         <div class="action-grid">
           <NuxtLink class="btn btn-primary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-marbete">Previsualizar marbete</NuxtLink>
-          <a class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar marbete</a>
+          <a class="btn btn-secondary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-marbete">Descargar PDF</a>
           <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/qr`" data-diagnostic-link="ver-qr">Ver QR</NuxtLink>
           <button class="btn btn-secondary" type="button" data-diagnostic-action="compartir-validacion" @click="shareValidation">Compartir validación</button>
         </div>
@@ -53,6 +53,7 @@ import { useFetch, useRoute } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import { appAbsoluteUrl, authorizedPersonLabel, authorizedPersonValidationPath, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
+import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'personas-autorizadas'] })
 
@@ -69,7 +70,11 @@ const theme = computed(() => resolvePersonasTheme({
 const themeVars = computed(() => personasThemeStyle(theme.value))
 const fullName = computed(() => [person.value?.nombreP, person.value?.paternoP, person.value?.maternoP].filter(Boolean).join(' '))
 const initials = computed(() => (fullName.value || 'PA').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
-const photoUrl = computed(() => normalizeVirtualAssetUrl(person.value?.compressed_foto || person.value?.foto || ''))
+const photoUrl = computed(() => {
+  const original = normalizeVirtualAssetUrl(person.value?.foto || '')
+  const processed = normalizeVirtualAssetUrl(person.value?.compressed_foto || '')
+  return original || (isValidatedVisionPhotoUrl(processed) ? processed : '')
+})
 const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? studentLine.value : 'Consulta QR, marbete y validación.'))
 const studentLine = computed(() => {
   const child = primaryChild.value

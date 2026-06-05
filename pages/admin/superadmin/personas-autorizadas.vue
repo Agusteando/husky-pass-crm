@@ -3,15 +3,15 @@
     <header class="workspace-head compact-head pa-admin-head">
       <div>
         <p class="eyebrow">Superadmin</p>
-        <h1>Readiness Personas Autorizadas</h1>
-        <p>Detecta familias listas, incompletas o bloqueadas antes de credencialización y marbetes.</p>
+        <h1>Personas Autorizadas</h1>
+        <p>Revisa familias listas, registros con acción pendiente, marbetes PDF y encuestas por nivel.</p>
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
         <button class="btn btn-primary" type="button" :disabled="pending" data-diagnostic-action="actualizar-readiness" @click="refreshReadiness">
-          {{ pending ? 'Actualizando...' : 'Actualizar' }}
+          {{ isInitialReadinessLoad ? 'Actualizando...' : 'Actualizar' }}
         </button>
       </div>
     </header>
@@ -19,10 +19,10 @@
     <section v-if="readiness" class="metric-grid">
       <article><span>Total</span><strong>{{ readiness.metrics.total }}</strong></article>
       <article class="ok"><span>Listas</span><strong>{{ readiness.metrics.complete }}</strong></article>
-      <article class="warn"><span>Incompletas</span><strong>{{ readiness.metrics.incomplete }}</strong></article>
-      <article class="danger"><span>Bloqueadas</span><strong>{{ readiness.metrics.blocked }}</strong></article>
+      <article class="warn"><span>Requieren acción</span><strong>{{ readiness.metrics.incomplete }}</strong></article>
       <article><span>Sin personas</span><strong>{{ readiness.metrics.missingAuthorizedPeople }}</strong></article>
-      <article><span>Sin acceso</span><strong>{{ readiness.metrics.missingParentAccess }}</strong></article>
+      <article><span>Datos alumno</span><strong>{{ readiness.metrics.missingRequiredStudentData }}</strong></article>
+      <article><span>Marbete/foto</span><strong>{{ readiness.metrics.missingPrintableReadiness }}</strong></article>
     </section>
 
     <section class="filters-card card">
@@ -44,13 +44,11 @@
         Estado
         <select v-model="selectedStatus" class="select" data-diagnostic-filter="pa-status">
           <option value="all">Todos</option>
-          <option value="complete">Completas</option>
-          <option value="incomplete">Incompletas</option>
-          <option value="blocked">Bloqueadas</option>
+          <option value="complete">Listas</option>
+          <option value="incomplete">Requieren acción</option>
           <option value="missingAuthorizedPeople">Sin personas</option>
           <option value="missingRequiredStudentData">Datos alumno</option>
           <option value="missingPrintableReadiness">Marbete</option>
-          <option value="missingParentAccess">Acceso/contacto</option>
         </select>
       </label>
       <label class="label search-label">
@@ -59,15 +57,15 @@
       </label>
     </section>
 
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar readiness PA.</p>
-    <div v-else-if="pending" class="card loading-card" data-product-loading data-state="loading">Cargando readiness...</div>
+    <p v-if="loadError && !readiness" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
+    <div v-else-if="isInitialReadinessLoad" class="card loading-card" data-product-loading data-state="loading">Cargando estado...</div>
 
-    <section v-else class="readiness-layout">
+    <section v-else-if="readiness" class="readiness-layout">
       <article class="card readiness-card" data-product-panel="pa-readiness-table" :data-state="rows.length ? 'content' : 'empty'">
         <div class="section-head">
           <div>
             <p class="eyebrow">Familias y alumnos</p>
-            <h2>{{ rows.length }} registros</h2>
+            <h2>{{ rows.length }} familias</h2>
           </div>
           <span class="muted">Datos reales de users, alumno_pa, personas_autorizadas y plantillas</span>
         </div>
@@ -90,7 +88,7 @@
                 <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
                 <small>{{ [row.nivel, row.grado, row.grupo].filter(Boolean).join(' / ') || 'Datos pendientes' }}</small>
               </span>
-              <span class="count-pill">{{ row.authorizedCount }}/3</span>
+              <span class="count-pill">{{ row.authorizedCount }} registradas</span>
               <span class="status-pill">{{ statusLabel(row.status) }}</span>
             </button>
           </article>
@@ -125,7 +123,7 @@
             </div>
 
             <button class="btn btn-primary" type="button" :disabled="accessPreparingId === selectedRow.userId" data-diagnostic-action="preparar-acceso-husky" @click="prepareAccess(selectedRow)">
-              {{ accessPreparingId === selectedRow.userId ? 'Preparando...' : 'Preparar acceso Husky Pass' }}
+              {{ accessPreparingId === selectedRow.userId ? 'Preparando...' : 'Preparar acceso familiar' }}
             </button>
           </template>
           <EmptyState v-else title="Selecciona una familia" description="Verás faltantes accionables y el acceso preparado." />
@@ -145,21 +143,25 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">Configuración</p>
-              <h2>Encuesta y convenios</h2>
+              <h2>Encuestas por nivel</h2>
             </div>
           </div>
-          <label class="switch-line">
-            <input v-model="configForm.surveyEnabled" type="checkbox" />
-            <span>Encuesta activa</span>
-          </label>
-          <label class="label">
-            Título encuesta
-            <input v-model="configForm.surveyTitle" class="input" />
-          </label>
-          <label class="label">
-            Google Form embed
-            <input v-model="configForm.surveyEmbedUrl" class="input" placeholder="https://docs.google.com/forms/..." data-diagnostic-field="survey-url" />
-          </label>
+          <div class="survey-level-list">
+            <article v-for="option in surveyLevelOptions" :key="option.key" class="survey-level-row">
+              <label class="switch-line">
+                <input v-model="configForm.surveysByNivel[option.key].enabled" type="checkbox" />
+                <span>{{ option.label }}</span>
+              </label>
+              <label class="label compact-label">
+                Título
+                <input v-model="configForm.surveysByNivel[option.key].title" class="input" />
+              </label>
+              <label class="label compact-label">
+                Google Form
+                <input v-model="configForm.surveysByNivel[option.key].embedUrl" class="input" placeholder="https://docs.google.com/forms/..." :data-diagnostic-field="`survey-url-${option.key}`" />
+              </label>
+            </article>
+          </div>
           <section class="config-upload" data-product-panel="pa-convenios-upload" :data-state="conveniosUploadState">
             <div>
               <p class="eyebrow">Convenios</p>
@@ -178,13 +180,14 @@
         </form>
       </aside>
     </section>
+    <EmptyState v-else title="Sin estado disponible" description="Vuelve a actualizar para consultar familias de Personas Autorizadas." />
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { PersonasAutorizadasConfig, PersonasReadinessResponse, PersonasReadinessRow } from '~/types/daycare'
+import type { PersonasAutorizadasConfig, PersonasReadinessResponse, PersonasReadinessRow, PersonasSurveyNivelKey } from '~/types/daycare'
 import { formatDate } from '~/utils/daycare'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
@@ -212,10 +215,20 @@ const conveniosUploading = ref(false)
 const conveniosFile = ref<File | null>(null)
 const accessActionUrl = '/api/admin/personas-autorizadas/access-action' as string
 const configPostUrl = '/api/admin/personas-autorizadas/config' as string
+const surveyLevelOptions: Array<{ key: PersonasSurveyNivelKey; label: string; defaultTitle: string }> = [
+  { key: 'preescolar', label: 'Preescolar', defaultTitle: 'Encuesta Preescolar' },
+  { key: 'primaria', label: 'Primaria', defaultTitle: 'Encuesta Primaria' },
+  { key: 'secundaria', label: 'Secundaria', defaultTitle: 'Encuesta Secundaria' },
+  { key: 'daycare', label: 'IECS / fallback', defaultTitle: 'Encuesta IECS' }
+]
 const configForm = reactive({
   surveyEnabled: false,
   surveyTitle: 'Encuesta Personas Autorizadas',
   surveyEmbedUrl: '',
+  surveysByNivel: surveyLevelOptions.reduce((acc, option) => {
+    acc[option.key] = { enabled: false, title: option.defaultTitle, embedUrl: '' }
+    return acc
+  }, {} as Record<PersonasSurveyNivelKey, { enabled: boolean; title: string; embedUrl: string }>),
   conveniosUrl: '',
   helpUrl: ''
 })
@@ -236,6 +249,7 @@ const { data: readiness, pending, error: loadError, refresh } = useFetch<Persona
 })
 const { data: config, refresh: refreshConfig } = useFetch<PersonasAutorizadasConfig>('/api/admin/personas-autorizadas/config', { timeout: 15000 })
 const rows = computed(() => readiness.value?.rows || [])
+const isInitialReadinessLoad = computed(() => Boolean(pending.value && !readiness.value))
 const conveniosUploadState = computed(() => {
   if (conveniosUploading.value) return 'loading'
   if (configForm.conveniosUrl) return 'ready'
@@ -247,6 +261,12 @@ watch(config, (value) => {
   configForm.surveyEnabled = Boolean(value.survey.enabled)
   configForm.surveyTitle = value.survey.title || 'Encuesta Personas Autorizadas'
   configForm.surveyEmbedUrl = value.survey.embedUrl || ''
+  for (const option of surveyLevelOptions) {
+    const survey = value.surveysByNivel?.[option.key]
+    configForm.surveysByNivel[option.key].enabled = Boolean(survey?.enabled)
+    configForm.surveysByNivel[option.key].title = survey?.title || option.defaultTitle
+    configForm.surveysByNivel[option.key].embedUrl = survey?.embedUrl || ''
+  }
   configForm.conveniosUrl = value.conveniosUrl || ''
   configForm.helpUrl = value.helpUrl || ''
 }, { immediate: true })
@@ -280,16 +300,16 @@ function selectRow(row: PersonasReadinessRow) {
 }
 
 function statusLabel(status: PersonasReadinessRow['status']) {
-  if (status === 'complete') return 'Completa'
-  if (status === 'blocked') return 'Bloqueada'
-  return 'Incompleta'
+  if (status === 'complete') return 'Lista'
+  if (status === 'blocked') return 'Revisión'
+  return 'Requiere acción'
 }
 
 async function refreshReadiness() {
   actionError.value = ''
   actionNotice.value = ''
   await refresh()
-  actionNotice.value = 'Readiness actualizado.'
+  actionNotice.value = 'Estado actualizado.'
 }
 
 async function prepareAccess(row: PersonasReadinessRow) {
@@ -363,10 +383,24 @@ async function saveConfig() {
 <style scoped>
 .pa-admin {
   gap: 12px;
+  min-width: 0;
+}
+
+.pa-admin > * {
+  min-width: 0;
 }
 
 .pa-admin-head {
   grid-template-columns: minmax(0, 1fr) auto;
+  padding-block: 18px;
+}
+
+.pa-admin-head > div {
+  min-width: 0;
+}
+
+.pa-admin-head p {
+  overflow-wrap: anywhere;
 }
 
 .head-actions {
@@ -384,11 +418,11 @@ async function saveConfig() {
 .metric-grid article {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 5px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .metric-grid span {
@@ -428,6 +462,11 @@ async function saveConfig() {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+  min-width: 0;
+}
+
+.readiness-layout > * {
+  min-width: 0;
 }
 
 .readiness-card,
@@ -436,6 +475,7 @@ async function saveConfig() {
 .config-card {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 
@@ -445,7 +485,35 @@ async function saveConfig() {
   border-radius: 16px;
   display: grid;
   gap: 10px;
+  min-width: 0;
   padding: 12px;
+}
+
+.survey-level-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.survey-level-row {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 0.55fr) minmax(160px, 0.7fr) minmax(220px, 1fr);
+  min-width: 0;
+  padding: 10px;
+}
+
+.survey-level-row > *,
+.config-card > *,
+.config-upload > * {
+  min-width: 0;
+}
+
+.compact-label {
+  gap: 5px;
 }
 
 .config-upload h3,
@@ -468,6 +536,11 @@ async function saveConfig() {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  min-width: 0;
+}
+
+.section-head > * {
+  min-width: 0;
 }
 
 .section-head h2,
@@ -491,13 +564,13 @@ async function saveConfig() {
   align-items: center;
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow: var(--shadow-line);
   cursor: pointer;
   display: grid;
   gap: 10px;
   grid-template-columns: 14px minmax(220px, 1fr) minmax(190px, 0.8fr) auto auto;
-  padding: 12px;
+  padding: 10px 12px;
   text-align: left;
   width: 100%;
 }
@@ -667,22 +740,68 @@ dd {
   .pa-admin-head {
     grid-template-columns: 1fr;
   }
+
+  .survey-level-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
-  .metric-grid,
   .filters-card {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-grid article {
+    min-height: 68px;
+    padding: 9px 10px;
+  }
+
+  .metric-grid strong {
+    font-size: 1.25rem;
+  }
+
+  .pa-admin-head {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .pa-admin-head h1 {
+    font-size: 1.6rem;
+  }
+
+  .pa-admin-head p {
+    font-size: 0.92rem;
+    line-height: 1.42;
   }
 
   .section-head,
   .head-actions {
     align-items: stretch;
-    flex-direction: column;
+  }
+
+  .section-head {
+    grid-template-columns: 1fr;
+  }
+
+  .head-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .head-actions .btn {
+    min-height: 38px;
+    padding-inline: 10px;
   }
 
   .readiness-row button {
     grid-template-columns: 14px minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
   }
 
   .scope-copy,
