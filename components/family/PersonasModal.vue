@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
 .pa-modal {
   background: #fff;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 28px;
+  border-radius: 18px;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
   display: grid;
   gap: 0;
@@ -129,9 +129,9 @@ onBeforeUnmount(() => {
   align-items: start;
   border-bottom: 1px solid #ecece7;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 20px 22px 16px;
+  padding: 14px 16px 12px;
 }
 
 .pa-modal-head h2,

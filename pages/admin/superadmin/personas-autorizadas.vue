@@ -383,7 +383,7 @@ async function saveConfig() {
 
 <style scoped>
 .pa-admin {
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -393,7 +393,7 @@ async function saveConfig() {
 
 .pa-admin-head {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding-block: 18px;
+  padding-block: 12px;
 }
 
 .pa-admin-head > div {
@@ -423,7 +423,7 @@ async function saveConfig() {
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 5px;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .metric-grid span {
@@ -436,7 +436,7 @@ async function saveConfig() {
 
 .metric-grid strong {
   color: var(--color-ink);
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
@@ -455,14 +455,14 @@ async function saveConfig() {
 .filters-card {
   align-items: end;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(140px, 0.4fr) minmax(160px, 0.5fr) minmax(190px, 0.55fr) minmax(240px, 1fr);
 }
 
 .readiness-layout {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   min-width: 0;
 }
 
@@ -475,7 +475,7 @@ async function saveConfig() {
 .access-card,
 .config-card {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -535,7 +535,7 @@ async function saveConfig() {
 .section-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
   min-width: 0;
 }
@@ -570,8 +570,8 @@ async function saveConfig() {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 14px minmax(220px, 1fr) minmax(190px, 0.8fr) auto auto;
-  padding: 10px 12px;
+  grid-template-columns: 12px minmax(180px, 1fr) minmax(170px, 0.72fr) auto auto;
+  padding: 8px 10px;
   text-align: left;
   width: 100%;
 }
@@ -632,15 +632,15 @@ async function saveConfig() {
 .side-column {
   align-content: start;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .detail-top {
   --detail-color: var(--color-brand-700);
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr);
 }
 
 .detail-avatar {
@@ -649,9 +649,9 @@ async function saveConfig() {
   color: #fff;
   display: grid;
   font-weight: 600;
-  height: 54px;
+  height: 44px;
   place-items: center;
-  width: 54px;
+  width: 44px;
 }
 
 .detail-card dl,
@@ -720,7 +720,7 @@ dd {
   color: var(--color-brand-900);
   font-weight: 600;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .compact-alert {
@@ -758,7 +758,7 @@ dd {
   }
 
   .metric-grid article {
-    min-height: 68px;
+    min-height: 58px;
     padding: 9px 10px;
   }
 
@@ -768,7 +768,7 @@ dd {
 
   .pa-admin-head {
     gap: 10px;
-    padding: 14px;
+    padding: 10px;
   }
 
   .pa-admin-head h1 {

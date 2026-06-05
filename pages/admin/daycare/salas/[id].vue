@@ -147,7 +147,7 @@ function resourceTypeLabel(type?: string | null) {
 
 <style scoped>
 .sala-workspace {
-  gap: 12px;
+  gap: 10px;
 }
 
 .sala-hero {
@@ -156,12 +156,12 @@ function resourceTypeLabel(type?: string | null) {
     radial-gradient(circle at top right, rgba(255, 181, 69, 0.18), transparent 44%),
     linear-gradient(135deg, #ffffff, #f4f9ec);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: flex;
-  gap: 16px;
+  gap: 10px;
   justify-content: space-between;
-  padding: clamp(15px, 2vw, 22px);
+  padding: clamp(12px, 1.8vw, 18px);
 }
 
 .hero-title,
@@ -169,7 +169,7 @@ function resourceTypeLabel(type?: string | null) {
 .panel-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hero-title {
@@ -177,7 +177,7 @@ function resourceTypeLabel(type?: string | null) {
 }
 
 .hero-title h1 {
-  font-size: clamp(1.75rem, 3vw, 2.65rem);
+  font-size: clamp(1.45rem, 2.3vw, 2.05rem);
   margin-bottom: 5px;
 }
 
@@ -194,15 +194,15 @@ function resourceTypeLabel(type?: string | null) {
   align-items: center;
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 22px;
+  border-radius: 18px;
   color: var(--color-brand-900);
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 1rem;
   font-weight: 600;
-  height: 68px;
+  height: 54px;
   justify-content: center;
-  width: 68px;
+  width: 54px;
 }
 
 .metric-grid {
@@ -218,7 +218,7 @@ function resourceTypeLabel(type?: string | null) {
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
+  padding: 9px 10px;
 }
 
 .metric-grid span {
@@ -230,19 +230,19 @@ function resourceTypeLabel(type?: string | null) {
 }
 
 .metric-grid strong {
-  font-size: 1.55rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
 .workspace-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
 }
 
 .panel-head {
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .panel-head h2 {
@@ -262,8 +262,8 @@ function resourceTypeLabel(type?: string | null) {
   border-radius: 18px;
   display: grid;
   gap: 8px;
-  min-height: 128px;
-  padding: 14px;
+  min-height: 76px;
+  padding: 10px;
 }
 
 .module-card:hover {

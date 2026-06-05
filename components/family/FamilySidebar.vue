@@ -66,22 +66,22 @@ async function exitPreview() {
   align-self: start;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 12px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 10px;
+  padding: 10px;
   position: sticky;
-  top: calc(var(--topbar-height) + 12px);
+  top: calc(var(--topbar-height) + 10px);
 }
 
 .family-context {
   background: linear-gradient(180deg, #fbfdf8, #f2f8ea);
   border: 1px solid var(--color-brand-200);
-  border-radius: 18px;
+  border-radius: 12px;
   display: grid;
-  gap: 3px;
-  padding: 12px;
+  gap: 2px;
+  padding: 10px;
 }
 
 .family-context span {
@@ -106,18 +106,18 @@ async function exitPreview() {
 
 .family-nav {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .family-nav a {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--color-muted);
   display: flex;
   gap: 8px;
   font-weight: 600;
-  padding: 9px 11px;
+  padding: 8px 10px;
 }
 
 .family-nav a :deep(.pa-icon) {
@@ -138,7 +138,7 @@ async function exitPreview() {
 
 @media (max-width: 980px) {
   .family-panel {
-    gap: 12px;
+    gap: 6px;
     position: static;
   }
 
@@ -148,7 +148,7 @@ async function exitPreview() {
 
   .family-nav {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     padding-bottom: 2px;
   }

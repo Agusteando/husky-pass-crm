@@ -81,7 +81,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
 .person-row {
   align-items: center;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: 150px 1fr;
 }
 
@@ -90,7 +90,7 @@ const institutionAlt = computed(() => personasInstitutionName(theme.value))
 .fallback-photo {
   aspect-ratio: 1 / 1;
   background: var(--color-brand-100);
-  border-radius: 24px;
+  border-radius: 20px;
   object-fit: cover;
   width: 100%;
 }

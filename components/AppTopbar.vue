@@ -125,12 +125,12 @@ async function logout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 8px;
 }
 
 .topbar-nav {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   min-width: 0;
   max-width: 100%;
@@ -140,7 +140,7 @@ async function logout() {
   border-radius: 999px;
   color: var(--color-muted);
   font-weight: 600;
-  padding: 8px 12px;
+  padding: 6px 10px;
 }
 
 .topbar-nav a.active,
@@ -151,15 +151,15 @@ async function logout() {
 
 .profile {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   min-width: 0;
 }
 
 .profile img,
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex: 0 0 auto;
 }
@@ -180,26 +180,26 @@ async function logout() {
 .profile strong,
 .profile small {
   display: block;
-  max-width: 190px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .profile strong {
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 .profile small {
   color: var(--color-muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .scope-badges {
   display: grid;
-  gap: 2px;
+  gap: 1px;
   justify-items: start;
-  max-width: 210px;
+  max-width: 170px;
 }
 
 .scope-badges span {
@@ -209,21 +209,21 @@ async function logout() {
   color: var(--color-brand-800);
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 3px 7px;
 }
 
 .scope-badges small {
   color: var(--color-muted);
   font-size: 0.72rem;
-  max-width: 210px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .compact-action {
-  min-height: 34px;
-  padding-inline: 12px;
+  min-height: 32px;
+  padding-inline: 10px;
 }
 
 .impersonation-bar {
@@ -234,9 +234,9 @@ async function logout() {
 .impersonation-inner {
   align-items: center;
   display: flex;
-  gap: 10px;
-  min-height: 36px;
-  font-size: 0.9rem;
+  gap: 8px;
+  min-height: 30px;
+  font-size: 0.84rem;
 }
 
 .impersonation-inner span {
@@ -259,8 +259,8 @@ async function logout() {
   .topbar-inner {
     min-height: var(--topbar-height);
     flex-wrap: wrap;
-    gap: 8px;
-    padding-block: 6px;
+    gap: 6px;
+    padding-block: 4px;
   }
 
   .profile {
@@ -287,18 +287,18 @@ async function logout() {
 
   .topbar-nav a {
     flex: 0 0 auto;
-    padding: 7px 10px;
+    padding: 6px 9px;
     white-space: nowrap;
   }
 
   .compact-action {
-    min-height: 32px;
+    min-height: 30px;
     width: auto;
   }
 
   .impersonation-inner {
     flex-wrap: wrap;
-    padding: 8px 0;
+    padding: 6px 0;
   }
 
   .link-button {

@@ -59,7 +59,7 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
   --pa-border: rgba(97, 139, 47, 0.28);
   align-items: center;
   display: grid;
-  gap: 18px;
+  gap: 10px;
   justify-items: center;
   margin-inline: auto;
   border-color: var(--pa-border);
@@ -68,12 +68,12 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
 }
 
 .brand {
-  max-width: 180px;
+  max-width: 140px;
 }
 
 .qr {
-  height: 240px;
-  width: 240px;
+  height: min(210px, 54vw);
+  width: min(210px, 54vw);
 }
 
 .qr-card h2 {

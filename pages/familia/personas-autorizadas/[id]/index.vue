@@ -143,7 +143,7 @@ async function shareValidation() {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: clamp(14px, 2.4vw, 20px);
+  padding: clamp(12px, 2vw, 16px);
 }
 
 .detail-head h1 {
@@ -155,14 +155,14 @@ async function shareValidation() {
 .detail-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
 }
 
 .identity-card,
 .actions-card {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 10px;
 }
 
 .photo {
@@ -203,7 +203,7 @@ async function shareValidation() {
   color: var(--pa-muted);
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 8px 10px;
+  padding: 6px 9px;
 }
 
 .readiness span.ok {

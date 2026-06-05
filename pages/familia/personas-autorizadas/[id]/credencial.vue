@@ -92,19 +92,19 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
     #f2f4ef;
   display: grid;
   min-height: 100vh;
-  padding: 18px;
+  padding: 12px;
   place-items: center;
 }
 
 .credential-card {
   background: #fff;
   border: 1px solid var(--pa-border);
-  border-radius: 28px;
+  border-radius: 18px;
   box-shadow: var(--shadow-card);
   color: var(--color-ink);
   display: grid;
-  gap: 18px;
-  padding: clamp(18px, 4vw, 28px);
+  gap: 10px;
+  padding: clamp(14px, 3vw, 22px);
   width: min(100%, 680px);
 }
 
@@ -114,7 +114,7 @@ const qrImage = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size
 }
 
 .status-card .brand-logo {
-  max-width: 180px;
+  max-width: 140px;
 }
 
 .status-card h1,
@@ -126,9 +126,9 @@ header {
   align-items: center;
   border-bottom: 1px solid var(--pa-border);
   display: grid;
-  gap: 18px;
-  grid-template-columns: 170px 1fr;
-  padding-bottom: 18px;
+  gap: 10px;
+  grid-template-columns: 130px 1fr;
+  padding-bottom: 12px;
 }
 
 .brand-logo {
@@ -151,14 +151,14 @@ header h1 {
 .credential-body {
   align-items: center;
   display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 170px;
 }
 
 .person-photo {
   aspect-ratio: 4 / 5;
   border: 1px solid var(--pa-border);
-  border-radius: 24px;
+  border-radius: 20px;
   object-fit: cover;
   width: 100%;
 }
@@ -181,8 +181,8 @@ header h1 {
 }
 
 .qr-box img {
-  height: 180px;
-  width: 180px;
+  height: 150px;
+  width: 150px;
 }
 
 footer {
@@ -194,7 +194,7 @@ footer {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: space-between;
-  padding: 14px;
+  padding: 10px;
 }
 
 footer strong {
@@ -231,7 +231,7 @@ footer strong {
   }
 
   header .brand-logo {
-    max-width: 170px;
+    max-width: 130px;
   }
 }
 </style>

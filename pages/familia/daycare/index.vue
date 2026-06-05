@@ -100,7 +100,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 <style scoped>
 .daycare-home {
-  gap: 14px;
+  gap: 12px;
 }
 
 .family-hero {
@@ -108,14 +108,14 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   background:
     radial-gradient(circle at 82% 16%, rgba(255, 181, 69, .22), transparent 30%),
     linear-gradient(135deg, #315f24, #578b26 58%, #7aa83d);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-card);
   color: #fff;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
-  min-height: 190px;
-  padding: clamp(18px, 3vw, 26px);
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 180px);
+  min-height: 136px;
+  padding: clamp(12px, 2vw, 16px);
 }
 
 .family-hero .eyebrow,
@@ -125,14 +125,14 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 .family-hero h1 {
   color: #fff;
-  font-size: clamp(1.75rem, 3vw, 2.7rem);
+  font-size: clamp(1.45rem, 2.4vw, 2.05rem);
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .hero-actions .btn-primary {
@@ -151,15 +151,15 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   align-items: center;
   background: rgba(255, 255, 255, .15);
   border: 1px solid rgba(255, 255, 255, .24);
-  border-radius: 22px;
+  border-radius: 18px;
   display: grid;
   justify-items: center;
-  padding: 16px;
+  padding: 12px;
   text-align: center;
 }
 
 .hero-mark img {
-  max-width: 150px;
+  max-width: 120px;
   width: 100%;
 }
 
@@ -173,7 +173,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 .quick-row {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .quick-card {
@@ -184,8 +184,8 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   display: flex;
   font-weight: 600;
   justify-content: space-between;
-  min-height: 50px;
-  padding: 12px 15px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 
 .quick-card strong {
@@ -210,7 +210,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 .section-head h2 {
   color: var(--color-brand-700);
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   margin-bottom: 0;
 }
 
@@ -225,7 +225,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
   border-radius: 18px;
-  flex: 0 0 210px;
+  flex: 0 0 180px;
   padding: 12px;
 }
 
@@ -239,7 +239,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 .date-box strong {
   color: var(--color-brand-700);
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   line-height: 1;
 }
 
@@ -264,8 +264,8 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 .family-grid {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.78fr);
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
 }
 
 .compact-list,
@@ -314,7 +314,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
   }
 
   .hero-mark img {
-    max-width: 150px;
+    max-width: 120px;
   }
 
   .section-head,
@@ -323,11 +323,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
     flex-direction: column;
   }
 
-  .section-head .btn {
-    width: 100%;
-  }
-
-  .cal-card {
+    .cal-card {
     flex-basis: 80vw;
   }
 }

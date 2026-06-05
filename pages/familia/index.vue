@@ -47,19 +47,19 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
 <style scoped>
 .chooser-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .choice-card {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 12px;
-  min-height: 220px;
-  padding: 22px;
+  min-height: 104px;
+  padding: 14px;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -76,14 +76,14 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
   color: var(--color-brand-800);
   display: grid;
   font-weight: 600;
-  height: 58px;
+  height: 48px;
   place-items: center;
-  width: 58px;
+  width: 48px;
 }
 
 .choice-card span :deep(.pa-icon) {
-  height: 1.55rem;
-  width: 1.55rem;
+  height: 1.35rem;
+  width: 1.35rem;
 }
 
 .choice-card.blue span {

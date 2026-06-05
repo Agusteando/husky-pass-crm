@@ -213,7 +213,7 @@ async function refreshReport() {
 
 <style scoped>
 .access-admin {
-  gap: 12px;
+  gap: 10px;
 }
 
 .access-head {
@@ -229,7 +229,7 @@ async function refreshReport() {
 .filters-card {
   align-items: end;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(140px, .44fr)) minmax(260px, 1fr);
 }
 
@@ -246,7 +246,7 @@ async function refreshReport() {
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
+  padding: 9px 10px;
 }
 
 .metric-grid span,
@@ -269,14 +269,14 @@ async function refreshReport() {
 
 .report-layout {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
 
 .section-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
   margin-bottom: 12px;
 }
@@ -315,7 +315,7 @@ async function refreshReport() {
 .gallery-card {
   align-self: start;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: calc(var(--topbar-height) + 12px);
 }
@@ -335,7 +335,7 @@ async function refreshReport() {
   border-radius: 18px;
   display: grid;
   gap: 10px;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   padding: 8px;
 }
 
@@ -394,13 +394,13 @@ async function refreshReport() {
   .filters-card,
   .head-actions,
   .gallery-card {
-    display: none !important;
+    display: none;
   }
 
   .report-layout,
   .access-head,
   .metric-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .report-card {

@@ -344,8 +344,8 @@ async function saveActiveGroup() {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 120px; }
-.section-hero img { max-height: 128px; object-fit: contain; }
+.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 82px; }
+.section-hero img { max-height: 76px; object-fit: contain; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
@@ -355,12 +355,12 @@ async function saveActiveGroup() {
     radial-gradient(circle at 90% 12%, rgba(var(--pa-primary-rgb), .14), transparent 32%),
     #fff;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 170px);
   overflow: hidden;
 }
 .readonly-card header h2 { margin-bottom: 0; }
-.school-summary { display: grid; gap: 10px; min-width: 0; }
+.school-summary { display: grid; gap: 8px; min-width: 0; }
 .school-facts {
   display: flex;
   flex-wrap: wrap;
@@ -374,7 +374,7 @@ async function saveActiveGroup() {
   color: var(--pa-primary);
   display: inline-flex;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 6px 9px;
 }
 .school-facts dt,
 .school-facts dd {
@@ -390,15 +390,15 @@ async function saveActiveGroup() {
   align-items: center;
   background: rgba(255, 255, 255, .78);
   border: 1px solid var(--pa-border);
-  border-radius: 22px;
+  border-radius: 18px;
   display: grid;
   gap: 10px;
   justify-items: center;
-  padding: 14px;
+  padding: 10px;
   text-align: center;
 }
 .grupo-sigil-card img {
-  max-height: 112px;
+  max-height: 78px;
   max-width: 100%;
   object-fit: contain;
 }
@@ -415,15 +415,15 @@ async function saveActiveGroup() {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-.data-section-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.data-section-card { align-items: end; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
+.data-section-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.data-section-card { align-items: end; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; }
 .data-section-card h2, .data-section-card p { margin-bottom: 0; }
 .data-section-card p:not(.eyebrow) { color: var(--pa-muted); font-weight: 600; }
-.student-form { display: grid; gap: 14px; }
+.student-form { display: grid; gap: 10px; }
 .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field-error { color: #8d2d25; font-weight: 600; }
 .input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: #d35a4e; box-shadow: 0 0 0 3px rgba(211, 90, 78, .12); }
 .change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
-.save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 18px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; padding: 12px; }
-@media (max-width: 900px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
+.save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px; }
+@media (max-width: 760px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .section-hero img { justify-self: start; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
 </style>

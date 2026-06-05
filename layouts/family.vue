@@ -23,9 +23,9 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 <style scoped>
 .workspace-shell {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 268px minmax(0, 1fr);
-  padding: 18px 0 44px;
+  gap: 12px;
+  grid-template-columns: 244px minmax(0, 1fr);
+  padding: 12px 0 32px;
 }
 
 .layout-main {
@@ -35,7 +35,7 @@ const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
 @media (max-width: 980px) {
   .workspace-shell {
     grid-template-columns: 1fr;
-    padding-top: 12px;
+    padding-top: 10px;
   }
 }
 </style>

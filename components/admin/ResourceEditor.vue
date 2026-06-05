@@ -211,7 +211,7 @@ function formatBytes(value: number) {
 <style scoped>
 .editor-form {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .editor-head {

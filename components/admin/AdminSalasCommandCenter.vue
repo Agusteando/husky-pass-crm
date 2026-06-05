@@ -302,16 +302,16 @@ function roomInitials(value?: string | null) {
     radial-gradient(circle at top right, rgba(255, 181, 69, 0.16), transparent 44%),
     linear-gradient(135deg, #ffffff, #f4f9ec);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
-  padding: clamp(15px, 2vw, 22px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+  padding: clamp(12px, 1.8vw, 18px);
 }
 
 .command-hero h1 {
-  font-size: clamp(1.75rem, 3vw, 2.65rem);
+  font-size: clamp(1.45rem, 2.3vw, 2.05rem);
   margin-bottom: 6px;
 }
 
@@ -339,7 +339,7 @@ function roomInitials(value?: string | null) {
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 3px;
-  padding: 12px 14px;
+  padding: 9px 10px;
 }
 
 .summary-strip span,
@@ -361,7 +361,7 @@ function roomInitials(value?: string | null) {
 .command-layout {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(250px, 0.68fr) minmax(0, 1.32fr);
+  grid-template-columns: minmax(230px, 0.58fr) minmax(0, 1.42fr);
 }
 
 .sala-picker-card,
@@ -406,7 +406,7 @@ function roomInitials(value?: string | null) {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   padding: 10px;
   text-align: left;
 }
@@ -426,16 +426,16 @@ function roomInitials(value?: string | null) {
   display: inline-flex;
   font-size: 0.8rem;
   font-weight: 600;
-  height: 42px;
+  height: 36px;
   justify-content: center;
-  width: 42px;
+  width: 36px;
 }
 
 .room-avatar.large {
   border-radius: 20px;
   font-size: 1rem;
-  height: 64px;
-  width: 64px;
+  height: 52px;
+  width: 52px;
 }
 
 .pick-copy {
@@ -469,14 +469,14 @@ function roomInitials(value?: string | null) {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .module-launcher {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .module-launcher button {
@@ -487,8 +487,8 @@ function roomInitials(value?: string | null) {
   display: grid;
   font: inherit;
   gap: 5px;
-  min-height: 106px;
-  padding: 14px;
+  min-height: 72px;
+  padding: 10px;
   text-align: left;
 }
 

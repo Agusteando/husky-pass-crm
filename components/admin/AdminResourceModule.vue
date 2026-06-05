@@ -376,16 +376,16 @@ function isCreateQuery(value: unknown) {
     radial-gradient(circle at top right, rgba(255, 181, 69, 0.13), transparent 44%),
     linear-gradient(135deg, #fff, #f6faef);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(560px, 1fr);
-  padding: clamp(15px, 2vw, 22px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(440px, 0.9fr);
+  padding: clamp(12px, 1.8vw, 18px);
 }
 
 .module-hero h1 {
-  font-size: clamp(1.65rem, 2.8vw, 2.45rem);
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
   margin-bottom: 6px;
 }
 
@@ -412,7 +412,7 @@ function isCreateQuery(value: unknown) {
 .resource-desk {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
 
 .resource-list-card {
@@ -424,7 +424,7 @@ function isCreateQuery(value: unknown) {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .section-head h2 {
@@ -460,8 +460,8 @@ function isCreateQuery(value: unknown) {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 72px minmax(0, 1fr) minmax(118px, auto);
-  padding: 10px;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(108px, auto);
+  padding: 8px;
   text-align: left;
   width: 100%;
 }
@@ -574,7 +574,7 @@ function isCreateQuery(value: unknown) {
   color: var(--color-brand-900);
   font-weight: 600;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .loading-card {

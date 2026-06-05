@@ -65,6 +65,11 @@ export default defineNuxtConfig({
     strict: true,
     typeCheck: true
   },
+  vite: {
+    build: {
+      reportCompressedSize: false
+    }
+  },
   nitro: {
     externals: {
       trace: false,

@@ -459,12 +459,12 @@ function normalizeLimit(value: unknown) {
 
 <style scoped>
 .superadmin-page {
-  gap: 12px;
+  gap: 10px;
 }
 
 .superadmin-head {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding-block: 18px;
+  padding-block: 12px;
 }
 
 .head-actions {
@@ -476,7 +476,7 @@ function normalizeLimit(value: unknown) {
 .scope-tabs {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
 }
 
 .scope-tab {
@@ -486,7 +486,7 @@ function normalizeLimit(value: unknown) {
   cursor: pointer;
   display: grid;
   gap: 4px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-align: left;
 }
 
@@ -510,7 +510,7 @@ function normalizeLimit(value: unknown) {
 .filters-card {
   align-items: end;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr) minmax(120px, 0.32fr);
 }
 
@@ -527,7 +527,7 @@ function normalizeLimit(value: unknown) {
   box-shadow: var(--shadow-line);
   display: grid;
   gap: 4px;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .super-metrics span {
@@ -540,22 +540,22 @@ function normalizeLimit(value: unknown) {
 
 .super-metrics strong {
   color: var(--color-ink);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
 .directory-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
 
 .section-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .section-head h2,
@@ -576,7 +576,7 @@ function normalizeLimit(value: unknown) {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
 }
 
 .user-avatar {
@@ -588,9 +588,9 @@ function normalizeLimit(value: unknown) {
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 600;
-  height: 38px;
+  height: 34px;
   justify-content: center;
-  width: 38px;
+  width: 34px;
 }
 
 .user-cell strong,
@@ -648,7 +648,7 @@ function normalizeLimit(value: unknown) {
 
 .compact {
   min-height: 34px;
-  padding-inline: 12px;
+  padding-inline: 10px;
 }
 
 .notice {
@@ -658,7 +658,7 @@ function normalizeLimit(value: unknown) {
   color: var(--color-brand-900);
   font-weight: 600;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .loading-card {
@@ -668,7 +668,7 @@ function normalizeLimit(value: unknown) {
 .detail-card {
   align-self: start;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: calc(var(--topbar-height) + 12px);
 }

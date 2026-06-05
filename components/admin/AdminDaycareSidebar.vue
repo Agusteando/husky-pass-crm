@@ -180,11 +180,11 @@ function roomInitials(value?: string | null) {
   align-self: start;
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   position: sticky;
   top: calc(var(--topbar-height) + 12px);
 }
@@ -290,7 +290,7 @@ function roomInitials(value?: string | null) {
 }
 
 .compact-search {
-  min-height: 36px;
+  min-height: 34px;
   padding-block: 8px;
 }
 
@@ -308,7 +308,7 @@ function roomInitials(value?: string | null) {
   border-radius: 15px;
   display: grid;
   gap: 9px;
-  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   padding: 8px;
 }
 

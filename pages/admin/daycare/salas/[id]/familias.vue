@@ -280,16 +280,16 @@ function initials(value?: string | null) {
     radial-gradient(circle at top right, rgba(255, 181, 69, 0.13), transparent 44%),
     linear-gradient(135deg, #fff, #f6faef);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.7fr);
-  padding: clamp(15px, 2vw, 22px);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.64fr);
+  padding: clamp(12px, 1.8vw, 18px);
 }
 
 .family-hero h1 {
-  font-size: clamp(1.65rem, 2.8vw, 2.45rem);
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
   margin-bottom: 6px;
 }
 
@@ -316,7 +316,7 @@ function initials(value?: string | null) {
 .family-desk {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
 
 .section-head {

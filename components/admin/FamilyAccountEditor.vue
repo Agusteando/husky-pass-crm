@@ -73,7 +73,7 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
 <style scoped>
 .editor-form {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .editor-head {

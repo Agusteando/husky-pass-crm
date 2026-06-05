@@ -43,7 +43,7 @@ const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'S
   border: 1px solid var(--color-border);
   border-radius: 20px;
   box-shadow: var(--shadow-soft);
-  padding: 16px;
+  padding: 12px;
 }
 
 .variant-notice {
@@ -103,7 +103,7 @@ img {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: block;
   margin-top: 2px;
-  max-height: 280px;
+  max-height: 220px;
   object-fit: cover;
   width: 100%;
 }

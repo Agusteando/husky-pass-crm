@@ -200,7 +200,7 @@ async function saveTemplate() {
 
 <style scoped>
 .marbete-admin {
-  gap: 12px;
+  gap: 10px;
 }
 
 .marbete-head {
@@ -215,8 +215,8 @@ async function saveTemplate() {
 
 .template-workspace {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 0.82fr) minmax(360px, 0.62fr);
+  gap: 10px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.58fr);
 }
 
 .template-list {
@@ -238,7 +238,7 @@ async function saveTemplate() {
   display: grid;
   gap: 10px;
   grid-template-columns: 18px minmax(0, 1fr) auto;
-  padding: 12px;
+  padding: 10px;
   text-align: left;
   width: 100%;
 }
@@ -275,19 +275,19 @@ async function saveTemplate() {
 
 .editor-column {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .template-detail,
 .template-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .section-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
 }
 
@@ -362,7 +362,7 @@ iframe {
   color: var(--color-brand-900);
   font-weight: 600;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .loading-card {

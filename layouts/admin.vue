@@ -49,12 +49,12 @@ const isDaycareWorkspace = computed(() => route.path.startsWith('/admin/daycare'
 <style scoped>
 .workspace-shell {
   display: grid;
-  gap: 14px;
-  padding: 14px 0 42px;
+  gap: 12px;
+  padding: 12px 0 32px;
 }
 
 .workspace-shell.with-rail {
-  grid-template-columns: minmax(260px, 306px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
 }
 
 .workspace-shell.full-width {
@@ -74,7 +74,7 @@ const isDaycareWorkspace = computed(() => route.path.startsWith('/admin/daycare'
   .workspace-shell.with-rail,
   .workspace-shell.full-width {
     grid-template-columns: 1fr;
-    padding-top: 12px;
+    padding-top: 10px;
   }
 }
 </style>

@@ -1,1 +1,1 @@
-Corrige modal de edición de Personas Autorizadas y generación de PDFs de marbete
+Ajusta densidad visual, uso de viewport y responsividad general de la aplicación

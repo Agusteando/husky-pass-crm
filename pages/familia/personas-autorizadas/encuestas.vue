@@ -39,12 +39,13 @@ const nivelLabels: Record<PersonasSurveyNivelKey, string> = {
 </script>
 
 <style scoped>
-.survey-card { display: grid; gap: 16px; min-height: 0; }
+.survey-card { display: grid; gap: 12px; min-height: 0; }
 .section-head { align-items: center; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) auto; }
 .section-head h1 { margin-bottom: 8px; }
 .status-pill { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 999px; color: var(--pa-primary); font-weight: 600; padding: 8px 12px; }
-iframe { border: 1px solid var(--pa-border); border-radius: 18px; min-height: 620px; width: 100%; }
-.compact-empty { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border: 1px solid var(--pa-border); border-radius: 18px; display: grid; gap: 4px; min-height: 180px; padding: 22px; text-align: center; }
+iframe { border: 1px solid var(--pa-border); border-radius: 18px; height: min(620px, calc(100vh - 190px));
+  min-height: 360px; width: 100%; }
+.compact-empty { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border: 1px solid var(--pa-border); border-radius: 18px; display: grid; gap: 4px; min-height: 132px; padding: 16px; text-align: center; }
 .compact-empty strong { color: var(--pa-gray); }
 .compact-empty span { color: var(--pa-muted); font-weight: 600; }
 @media (max-width: 760px) { .section-head { grid-template-columns: 1fr; } }

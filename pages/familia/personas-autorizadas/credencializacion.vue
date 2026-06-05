@@ -169,23 +169,23 @@ async function savePendingPhoto() {
 </script>
 
 <style scoped>
-.photo-hero, .photo-flow { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 150px; }
+.photo-hero, .photo-flow { align-items: center; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 96px; }
 .photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), #fff); }
-.photo-hero img { align-self: end; max-height: 140px; object-fit: contain; }
-.photo-flow { grid-template-columns: 220px minmax(0, 1fr); }
-.photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 26px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; }
+.photo-hero img { align-self: end; max-height: 82px; object-fit: contain; }
+.photo-flow { grid-template-columns: 180px minmax(0, 1fr); }
+.photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 20px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; }
 .photo-preview:not(:disabled) { cursor: pointer; }
 .photo-preview img { height: 100%; object-fit: cover; width: 100%; }
-.photo-copy { display: grid; gap: 12px; }
+.photo-copy { display: grid; gap: 10px; }
 .photo-copy h2 { margin-bottom: 0; }
-.actions, .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.modal-actions { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 18px; justify-content: flex-end; margin-top: 14px; padding: 12px; }
+.actions, .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.modal-actions { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 16px; justify-content: flex-end; margin-top: 10px; padding: 10px; }
 .pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
 .loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: 14px; margin: 0; padding: 10px 12px; }
-.status-card { align-items: center; background: #f7f7f5; border: 1px solid #e9e9e3; border-radius: 16px; color: var(--pa-muted); display: flex; gap: 10px; font-weight: 600; padding: 12px; }
+.status-card { align-items: center; background: #f7f7f5; border: 1px solid #e9e9e3; border-radius: 14px; color: var(--pa-muted); display: flex; gap: 8px; font-weight: 600; padding: 10px; }
 .status-card[data-state='loading'], .status-card[data-state='saved'], .status-card[data-state='ready'] { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
-.current-photo-large { border-radius: 22px; display: block; height: min(70vh, 560px); margin: 0 auto; width: min(100%, 560px); }
+.current-photo-large { border-radius: 18px; display: block; height: min(64vh, 480px); margin: 0 auto; width: min(100%, 480px); }
 .current-photo-large :deep(img) { object-fit: contain; }
 @media (max-width: 860px) { .photo-hero, .photo-flow { grid-template-columns: 1fr; } .photo-hero img { justify-self: start; } .photo-preview { width: min(100%, 220px); } }
 </style>

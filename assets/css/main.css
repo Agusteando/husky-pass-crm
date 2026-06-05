@@ -18,14 +18,18 @@
   --color-border: #dfe8d7;
   --color-surface: #ffffff;
   --color-page: #f6f8f1;
-  --shadow-card: 0 18px 42px rgba(45, 73, 31, 0.12);
-  --shadow-soft: 0 8px 24px rgba(45, 73, 31, 0.08);
+  --shadow-card: 0 14px 32px rgba(45, 73, 31, 0.11);
+  --shadow-soft: 0 6px 18px rgba(45, 73, 31, 0.08);
   --shadow-line: 0 1px 0 rgba(223, 232, 215, 0.9);
-  --radius-xl: 26px;
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --layout-max: 1220px;
-  --topbar-height: 68px;
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --layout-max: 1280px;
+  --topbar-height: 60px;
+  --space-page: clamp(10px, 1.8vw, 18px);
+  --space-section: clamp(12px, 2vw, 18px);
+  --space-card: clamp(13px, 1.8vw, 18px);
+  --control-height: 36px;
 }
 
 * {
@@ -40,7 +44,7 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(142, 193, 82, 0.18), transparent 26rem),
+    radial-gradient(circle at top left, rgba(142, 193, 82, 0.12), transparent 22rem),
     linear-gradient(180deg, #fbfdf7 0%, var(--color-page) 100%);
   color: var(--color-ink);
   font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -79,18 +83,18 @@ img {
 }
 
 .page-shell {
-  width: min(calc(100% - 24px), var(--layout-max));
+  width: min(calc(100% - 20px), var(--layout-max));
   margin: 0 auto;
 }
 
 .stack {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .grid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .grid-2 {
@@ -106,7 +110,7 @@ img {
   border: 1px solid rgba(223, 232, 215, 0.96);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
-  padding: clamp(16px, 2.5vw, 22px);
+  padding: var(--space-card);
 }
 
 .card.subtle {
@@ -139,25 +143,25 @@ h3,
 }
 
 h1 {
-  font-size: clamp(1.8rem, 3vw, 3.1rem);
-  line-height: 0.98;
-  margin-bottom: 10px;
+  font-size: clamp(1.55rem, 2.4vw, 2.45rem);
+  line-height: 1.02;
+  margin-bottom: 6px;
 }
 
 h2 {
-  font-size: clamp(1.35rem, 2.2vw, 2.1rem);
-  line-height: 1.05;
-  margin-bottom: 10px;
+  font-size: clamp(1.18rem, 1.8vw, 1.65rem);
+  line-height: 1.1;
+  margin-bottom: 6px;
 }
 
 h3 {
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.18;
 }
 
 p {
   color: var(--color-muted);
-  line-height: 1.52;
+  line-height: 1.42;
   margin-bottom: 0;
 }
 
@@ -170,8 +174,8 @@ p {
   justify-content: center;
   gap: 8px;
   font-weight: 600;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: var(--control-height);
+  padding: 0 13px;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
@@ -210,12 +214,12 @@ p {
   border-radius: 14px;
   background: #ffffff;
   color: var(--color-ink);
-  padding: 11px 13px;
+  padding: 9px 11px;
   outline: none;
 }
 
 .textarea {
-  min-height: 96px;
+  min-height: 84px;
   resize: vertical;
 }
 
@@ -247,7 +251,7 @@ p {
 .table th,
 .table td {
   border-bottom: 1px solid var(--color-border);
-  padding: 12px 10px;
+  padding: 9px 9px;
   text-align: left;
   vertical-align: top;
 }
@@ -267,7 +271,7 @@ p {
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  padding: 5px 9px;
+  padding: 4px 8px;
   background: var(--color-brand-100);
   color: var(--color-brand-800);
   font-weight: 600;
@@ -280,7 +284,7 @@ p {
 
 .alert {
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: #fff3f0;
   color: #8d2d25;
   border: 1px solid #ffd2ca;
@@ -291,7 +295,7 @@ p {
   :root {
   --font-body: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-title: 'Fredoka', 'Montserrat', system-ui, sans-serif;
-    --topbar-height: 58px;
+    --topbar-height: 56px;
   }
 
   .grid-2,
@@ -300,12 +304,12 @@ p {
   }
 
   .page-shell {
-    width: min(100% - 18px, var(--layout-max));
+    width: min(100% - 16px, var(--layout-max));
   }
 
   .stack,
   .grid {
-    gap: 14px;
+    gap: 10px;
   }
 
 
@@ -344,7 +348,7 @@ p {
     display: grid;
     gap: 4px;
     grid-template-columns: 108px minmax(0, 1fr);
-    padding: 9px 4px;
+    padding: 8px 4px;
   }
 
   .table.responsive-table td::before {
@@ -363,11 +367,7 @@ p {
 
 @media (max-width: 560px) {
   h1 {
-    font-size: clamp(1.65rem, 9vw, 2.15rem);
-  }
-
-  .btn {
-    width: 100%;
+    font-size: clamp(1.45rem, 7.5vw, 1.95rem);
   }
 
   .table.responsive-table td {
@@ -384,18 +384,18 @@ p {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: clamp(15px, 2.4vw, 22px);
+  padding: var(--space-card);
 }
 
 .workspace-head.compact-head h1 {
-  font-size: clamp(1.7rem, 2.6vw, 2.5rem);
-  margin-bottom: 7px;
+  font-size: clamp(1.45rem, 2.2vw, 2.05rem);
+  margin-bottom: 4px;
 }
 
 .workspace-head.compact-head p:last-child {
-  max-width: 680px;
+  max-width: 740px;
 }
 
 .workspace-head h1,
@@ -409,10 +409,29 @@ p {
     align-items: start;
     grid-template-columns: 1fr;
   }
+}
 
-  .workspace-head .btn {
-    width: 100%;
-  }
+.density-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compact-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.compact-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.viewport-priority {
+  display: grid;
+  gap: var(--space-section);
 }
 
 body.pa-modal-open {

@@ -220,25 +220,25 @@ async function submit() {
 .registration-page {
   align-items: center;
   display: grid;
-  gap: clamp(18px, 4vw, 40px);
-  grid-template-columns: minmax(0, 0.85fr) minmax(360px, 520px);
+  gap: clamp(14px, 3vw, 30px);
+  grid-template-columns: minmax(0, 0.8fr) minmax(340px, 500px);
   margin: 0 auto;
   min-height: 100vh;
-  padding: clamp(18px, 4vw, 42px) 0;
-  width: min(100% - 24px, 1120px);
+  padding: clamp(12px, 3vw, 28px) 0;
+  width: min(100% - 20px, 1120px);
 }
 
 .registration-hero {
   background:
     radial-gradient(circle at 82% 18%, rgba(255, 181, 69, 0.18), transparent 28%),
     linear-gradient(135deg, #315f24, #5d972d);
-  border-radius: 30px;
+  border-radius: 18px;
   box-shadow: var(--shadow-card);
   color: #fff;
   display: grid;
-  gap: clamp(24px, 5vw, 54px);
-  min-height: 560px;
-  padding: clamp(22px, 5vw, 46px);
+  gap: clamp(16px, 4vw, 34px);
+  min-height: min(440px, calc(100vh - 56px));
+  padding: clamp(16px, 4vw, 32px);
 }
 
 .registration-hero :deep(.brand-mark) {
@@ -252,7 +252,7 @@ async function submit() {
 
 .registration-hero h1 {
   color: #fff;
-  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-size: clamp(1.65rem, 3.8vw, 3rem);
 }
 
 .hero-note {
@@ -262,7 +262,7 @@ async function submit() {
   border-radius: 20px;
   display: grid;
   gap: 4px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .hero-note span {
@@ -271,7 +271,7 @@ async function submit() {
 
 .registration-card {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .form-head {

@@ -739,7 +739,7 @@ async function saveMotivo() {
 <style scoped>
 .attendance-page {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   margin: 0 auto;
   max-width: 1320px;
   width: 100%;
@@ -756,10 +756,10 @@ async function saveMotivo() {
     radial-gradient(circle at 86% 18%, rgba(var(--pa-primary-rgb), 0.16), transparent 30%),
     linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.08));
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(168px, 220px);
   overflow: hidden;
-  padding: clamp(18px, 2.6vw, 28px);
+  padding: clamp(12px, 2vw, 18px);
 }
 
 .student-context,
@@ -773,12 +773,12 @@ async function saveMotivo() {
 .student-context {
   align-content: center;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .student-context h1 {
-  font-size: clamp(2rem, 4vw, 3.6rem);
-  line-height: 0.95;
+  font-size: clamp(1.55rem, 3vw, 2.5rem);
+  line-height: 1.02;
   margin-bottom: 0;
 }
 
@@ -803,14 +803,14 @@ async function saveMotivo() {
   border: 1px solid var(--pa-border);
   color: var(--pa-primary);
   font-size: 0.78rem;
-  padding: 6px 10px;
+  padding: 5px 8px;
 }
 
 .context-controls {
   align-items: end;
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.48fr);
+  gap: 8px;
+  grid-template-columns: minmax(210px, 1fr) minmax(160px, 0.42fr);
   max-width: 760px;
 }
 
@@ -830,17 +830,17 @@ async function saveMotivo() {
   align-items: center;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid var(--pa-border);
-  border-radius: 24px;
+  border-radius: 16px;
   display: grid;
-  gap: 12px;
+  gap: 8px;
   justify-items: center;
-  min-height: 172px;
-  padding: 18px;
+  min-height: 100px;
+  padding: 10px;
   text-align: center;
 }
 
 .context-card img {
-  max-height: 116px;
+  max-height: 78px;
   max-width: 100%;
   object-fit: contain;
 }
@@ -862,7 +862,7 @@ async function saveMotivo() {
 
 .loading-layout {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -870,8 +870,8 @@ async function saveMotivo() {
   animation: pulse 1.1s ease-in-out infinite alternate;
   background: linear-gradient(90deg, rgba(255,255,255,.7), rgba(var(--pa-primary-rgb), .14), rgba(255,255,255,.7));
   border: 1px solid var(--pa-border);
-  border-radius: 24px;
-  min-height: 160px;
+  border-radius: 16px;
+  min-height: 92px;
 }
 
 @keyframes pulse {
@@ -903,19 +903,19 @@ async function saveMotivo() {
 .empty-expediente {
   align-items: center;
   display: grid;
-  gap: 18px;
+  gap: 10px;
   grid-template-columns: 112px minmax(0, 1fr);
 }
 
 .empty-expediente img {
-  max-height: 104px;
+  max-height: 78px;
   object-fit: contain;
 }
 
 .dashboard-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.85fr);
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.82fr);
 }
 
 .coverage-board,
@@ -924,13 +924,13 @@ async function saveMotivo() {
 .records-hub,
 .access-panel {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .panel-head {
   align-items: start;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
@@ -954,15 +954,15 @@ async function saveMotivo() {
   border-radius: 18px;
   display: grid;
   gap: 2px;
-  min-width: 110px;
-  padding: 12px;
+  min-width: 92px;
+  padding: 9px;
   text-align: center;
 }
 
 .coverage-total strong {
   color: var(--pa-primary);
   font-family: var(--font-title);
-  font-size: 2rem;
+  font-size: 1.5rem;
   line-height: 0.9;
 }
 
@@ -1023,7 +1023,7 @@ async function saveMotivo() {
 
 .month-coverage {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .month-row {
@@ -1031,8 +1031,8 @@ async function saveMotivo() {
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
   gap: 12px;
-  grid-template-columns: 118px minmax(0, 1fr) 76px;
-  padding-top: 10px;
+  grid-template-columns: 102px minmax(0, 1fr) 68px;
+  padding-top: 8px;
 }
 
 .month-label strong,
@@ -1061,7 +1061,7 @@ async function saveMotivo() {
 
 .action-column {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .pending-card {
@@ -1092,7 +1092,7 @@ async function saveMotivo() {
   border-radius: 16px;
   display: grid;
   gap: 3px;
-  padding: 12px;
+  padding: 10px;
 }
 
 .pending-date span {
@@ -1103,18 +1103,18 @@ async function saveMotivo() {
 
 .summary-stack {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: 1fr;
 }
 
 .summary-pill {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 5px;
-  padding: 14px 16px;
+  padding: 10px 12px;
 }
 
 .summary-pill span {
@@ -1128,7 +1128,7 @@ async function saveMotivo() {
 .summary-pill strong {
   color: var(--color-ink);
   font-family: var(--font-title);
-  font-size: 2rem;
+  font-size: 1.5rem;
   line-height: 0.9;
 }
 
@@ -1144,7 +1144,7 @@ async function saveMotivo() {
 }
 
 .records-hub {
-  padding: clamp(16px, 2.4vw, 24px);
+  padding: clamp(12px, 2vw, 18px);
 }
 
 .records-range,
@@ -1197,7 +1197,7 @@ async function saveMotivo() {
 
 .expediente-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .expediente-row,
@@ -1212,7 +1212,7 @@ async function saveMotivo() {
   display: grid;
   gap: 12px;
   grid-template-columns: 62px minmax(0, 1fr);
-  padding: 12px;
+  padding: 10px;
 }
 
 .expediente-row[data-state='missing'],
@@ -1234,13 +1234,13 @@ async function saveMotivo() {
   color: var(--pa-primary);
   display: grid;
   justify-items: center;
-  min-height: 62px;
+  min-height: 54px;
   text-transform: uppercase;
 }
 
 .date-tile strong {
   font-family: var(--font-title);
-  font-size: 1.65rem;
+  font-size: 1.35rem;
   line-height: 0.9;
 }
 
@@ -1381,7 +1381,7 @@ async function saveMotivo() {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
 }
 
 .access-photo-shell {
@@ -1423,20 +1423,20 @@ async function saveMotivo() {
 
 .detail-grid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .compact-list,
 .access-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .compact-record {
   align-items: center;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 10px 12px;
 }
@@ -1463,14 +1463,14 @@ async function saveMotivo() {
 }
 
 .access-panel {
-  padding: clamp(16px, 2.4vw, 24px);
+  padding: clamp(12px, 2vw, 18px);
 }
 
 .access-day-card {
   display: grid;
   gap: 12px;
   grid-template-columns: 62px minmax(0, 1fr);
-  padding: 12px;
+  padding: 10px;
 }
 
 .access-student {
@@ -1480,7 +1480,7 @@ async function saveMotivo() {
 
 .access-pair {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 10px;
 }
@@ -1491,17 +1491,17 @@ async function saveMotivo() {
 
 .motivo-form {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .motivo-form textarea {
-  min-height: 150px;
+  min-height: 92px;
 }
 
 .form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -1518,7 +1518,7 @@ async function saveMotivo() {
 
 @media (max-width: 860px) {
   .attendance-page {
-    gap: 14px;
+    gap: 10px;
   }
 
   .expediente-header,
@@ -1566,7 +1566,7 @@ async function saveMotivo() {
   }
 
   .pending-card {
-    gap: 10px;
+    gap: 8px;
   }
 
   .pending-card h2 {
@@ -1626,7 +1626,7 @@ async function saveMotivo() {
   .records-hub,
   .detail-card,
   .access-panel {
-    border-radius: 22px;
+    border-radius: 18px;
   }
 
   .identity-row {

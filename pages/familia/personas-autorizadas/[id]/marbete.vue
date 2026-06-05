@@ -90,12 +90,12 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: clamp(14px, 2.4vw, 20px);
+  padding: clamp(12px, 2vw, 16px);
 }
 
 .marbete-head h1 {
   color: var(--pa-gray);
-  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
   margin-bottom: 6px;
 }
 
@@ -109,7 +109,7 @@ const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readine
   align-items: center;
   display: flex;
   gap: 12px;
-  padding: 16px;
+  padding: 12px;
 }
 
 .preview-state.unavailable {
@@ -142,7 +142,8 @@ iframe {
   background: #f8f8f7;
   border: 1px solid var(--pa-border);
   border-radius: 14px;
-  min-height: 560px;
+  height: min(540px, calc(100vh - 220px));
+  min-height: 360px;
   width: 100%;
 }
 
@@ -181,12 +182,13 @@ iframe {
   }
 
   .head-actions {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
   }
 
   iframe {
-    min-height: 420px;
+    height: min(420px, calc(100vh - 190px));
+    min-height: 320px;
   }
 }
 </style>

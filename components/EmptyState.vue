@@ -16,7 +16,7 @@ defineProps<{
 <style scoped>
 .empty {
   text-align: center;
-  padding: 22px 18px;
+  padding: 16px 14px;
 }
 
 .empty h3 {
