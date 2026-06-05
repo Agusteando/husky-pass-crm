@@ -30,6 +30,7 @@ const items = computed(() => familyNavItems(props.session?.user))
 const homeTo = computed(() => defaultFamilyRoute(props.session?.user))
 const activeProduct = computed(() => {
   if (route.path.startsWith('/familia/personas-autorizadas')) return 'personasAutorizadas'
+  if (route.path.startsWith('/familia/asistencia')) return 'attendance'
   if (route.path.startsWith('/familia/daycare')) return 'daycare'
   if (hasFamilyScope(props.session?.user, 'daycare') && !hasFamilyScope(props.session?.user, 'personasAutorizadas')) return 'daycare'
   if (hasFamilyScope(props.session?.user, 'personasAutorizadas') && !hasFamilyScope(props.session?.user, 'daycare')) return 'personasAutorizadas'
@@ -38,6 +39,7 @@ const activeProduct = computed(() => {
 const contextLabel = computed(() => {
   if (activeProduct.value === 'daycare') return 'Guardería'
   if (activeProduct.value === 'personasAutorizadas') return 'Personas Autorizadas'
+  if (activeProduct.value === 'attendance') return 'Asistencia'
   return 'Familia'
 })
 const primaryName = computed(() => props.session?.user?.displayName || props.session?.user?.username || props.session?.user?.email || 'Husky Pass')

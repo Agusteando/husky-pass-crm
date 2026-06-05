@@ -23,6 +23,18 @@ export default defineNuxtConfig({
       database: process.env.MYSQL_DATABASE || 'casitaiedis',
       connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10)
     },
+    attendanceMysql: {
+      host: process.env.ATTENDANCE_MYSQL_HOST || process.env.DB_ATTENDANCE_HOST || process.env.MYSQL_HOST || '127.0.0.1',
+      port: Number(process.env.ATTENDANCE_MYSQL_PORT || process.env.DB_ATTENDANCE_PORT || process.env.MYSQL_PORT || 3306),
+      user: process.env.ATTENDANCE_MYSQL_USER || process.env.DB_ATTENDANCE_USER || process.env.MYSQL_USER || 'root',
+      password: process.env.ATTENDANCE_MYSQL_PASSWORD || process.env.DB_ATTENDANCE_PASSWORD || process.env.MYSQL_PASSWORD || '',
+      database: process.env.ATTENDANCE_MYSQL_DATABASE || process.env.DB_ATTENDANCE_NAME || 'control_coordinaciones',
+      connectionLimit: Number(process.env.ATTENDANCE_MYSQL_CONNECTION_LIMIT || process.env.MYSQL_CONNECTION_LIMIT || 5)
+    },
+    sipae: {
+      apiBaseUrl: process.env.SIPAE_API_BASE_URL || 'https://the-sipae-api.casitaapps.com',
+      timeoutMs: Number(process.env.SIPAE_API_TIMEOUT_MS || 10000)
+    },
     sessionSecret: process.env.SESSION_SECRET || 'change-me-before-production',
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     public: {

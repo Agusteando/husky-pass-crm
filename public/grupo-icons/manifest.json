@@ -1,0 +1,652 @@
+{
+  "description": "Grupo icon assets extracted from asistencia-docente group sprite mask. Use manifest.entries[*].grupoValue for matching current grupo values. Icons are provided as mask PNGs and green preview PNGs.",
+  "source": "asistencia-docente-roster-freshness-telemetry/public/group-spritesheet-mask.png",
+  "cell": {
+    "width": 256,
+    "height": 256,
+    "columns": 6,
+    "rows": 7
+  },
+  "fallbackGrupo": "OCEANÍA",
+  "aliases": {
+    "AFRICA": "ÁFRICA",
+    "AMERICA": "AMÉRICA",
+    "ANTARTIDA": "ANTÁRTIDA",
+    "OCEANIA": "OCEANÍA",
+    "BUHO": "BUHOS",
+    "BUHOS": "BUHOS",
+    "BÚHO": "BUHOS",
+    "BÚHOS": "BUHOS",
+    "ABEJA": "ABEJAS",
+    "BORREGO": "BORREGOS",
+    "CANGURO": "CANGUROS",
+    "CEBRA": "CEBRAS",
+    "COCODRILO": "COCODRILOS",
+    "CONEJO": "CONEJOS",
+    "DINO": "DINOS",
+    "DINOSAURIO": "DINOS",
+    "ELEFANTE": "ELEFANTES",
+    "FOCA": "FOCAS",
+    "JIRAFA": "JIRAFAS",
+    "KOALA": "KOALAS",
+    "LEON": "LEONES",
+    "LEÓN": "LEONES",
+    "LEOPARDO": "LEOPARDOS",
+    "OSO": "OSOS",
+    "PANDA": "PANDAS",
+    "PANTERA": "PANTERAS",
+    "PATO": "PATOS",
+    "TIGRE": "TIGRES",
+    "UNICORNIO": "UNICORNIOS"
+  },
+  "entries": [
+    {
+      "grupoValue": "MATERNAL A",
+      "normalizedKey": "MATERNAL A",
+      "slug": "maternal-a",
+      "index": 0,
+      "sprite": {
+        "column": 0,
+        "row": 0,
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/01-maternal-a.png",
+      "previewGreenPng": "icons/preview-green/01-maternal-a.png"
+    },
+    {
+      "grupoValue": "MATERNAL B",
+      "normalizedKey": "MATERNAL B",
+      "slug": "maternal-b",
+      "index": 1,
+      "sprite": {
+        "column": 1,
+        "row": 0,
+        "x": 256,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/02-maternal-b.png",
+      "previewGreenPng": "icons/preview-green/02-maternal-b.png"
+    },
+    {
+      "grupoValue": "LACTANTES B",
+      "normalizedKey": "LACTANTES B",
+      "slug": "lactantes-b",
+      "index": 2,
+      "sprite": {
+        "column": 2,
+        "row": 0,
+        "x": 512,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/03-lactantes-b.png",
+      "previewGreenPng": "icons/preview-green/03-lactantes-b.png"
+    },
+    {
+      "grupoValue": "LACTANTES C",
+      "normalizedKey": "LACTANTES C",
+      "slug": "lactantes-c",
+      "index": 3,
+      "sprite": {
+        "column": 3,
+        "row": 0,
+        "x": 768,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/04-lactantes-c.png",
+      "previewGreenPng": "icons/preview-green/04-lactantes-c.png"
+    },
+    {
+      "grupoValue": "A",
+      "normalizedKey": "A",
+      "slug": "a",
+      "index": 4,
+      "sprite": {
+        "column": 4,
+        "row": 0,
+        "x": 1024,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/05-a.png",
+      "previewGreenPng": "icons/preview-green/05-a.png"
+    },
+    {
+      "grupoValue": "B",
+      "normalizedKey": "B",
+      "slug": "b",
+      "index": 5,
+      "sprite": {
+        "column": 5,
+        "row": 0,
+        "x": 1280,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/06-b.png",
+      "previewGreenPng": "icons/preview-green/06-b.png"
+    },
+    {
+      "grupoValue": "C",
+      "normalizedKey": "C",
+      "slug": "c",
+      "index": 6,
+      "sprite": {
+        "column": 0,
+        "row": 1,
+        "x": 0,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/07-c.png",
+      "previewGreenPng": "icons/preview-green/07-c.png"
+    },
+    {
+      "grupoValue": "D",
+      "normalizedKey": "D",
+      "slug": "d",
+      "index": 7,
+      "sprite": {
+        "column": 1,
+        "row": 1,
+        "x": 256,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/08-d.png",
+      "previewGreenPng": "icons/preview-green/08-d.png"
+    },
+    {
+      "grupoValue": "E",
+      "normalizedKey": "E",
+      "slug": "e",
+      "index": 8,
+      "sprite": {
+        "column": 2,
+        "row": 1,
+        "x": 512,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/09-e.png",
+      "previewGreenPng": "icons/preview-green/09-e.png"
+    },
+    {
+      "grupoValue": "F",
+      "normalizedKey": "F",
+      "slug": "f",
+      "index": 9,
+      "sprite": {
+        "column": 3,
+        "row": 1,
+        "x": 768,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/10-f.png",
+      "previewGreenPng": "icons/preview-green/10-f.png"
+    },
+    {
+      "grupoValue": "G",
+      "normalizedKey": "G",
+      "slug": "g",
+      "index": 10,
+      "sprite": {
+        "column": 4,
+        "row": 1,
+        "x": 1024,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/11-g.png",
+      "previewGreenPng": "icons/preview-green/11-g.png"
+    },
+    {
+      "grupoValue": "H",
+      "normalizedKey": "H",
+      "slug": "h",
+      "index": 11,
+      "sprite": {
+        "column": 5,
+        "row": 1,
+        "x": 1280,
+        "y": 256,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/12-h.png",
+      "previewGreenPng": "icons/preview-green/12-h.png"
+    },
+    {
+      "grupoValue": "ÁFRICA",
+      "normalizedKey": "AFRICA",
+      "slug": "africa",
+      "index": 12,
+      "sprite": {
+        "column": 0,
+        "row": 2,
+        "x": 0,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/13-africa.png",
+      "previewGreenPng": "icons/preview-green/13-africa.png"
+    },
+    {
+      "grupoValue": "AMÉRICA",
+      "normalizedKey": "AMERICA",
+      "slug": "america",
+      "index": 13,
+      "sprite": {
+        "column": 1,
+        "row": 2,
+        "x": 256,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/14-america.png",
+      "previewGreenPng": "icons/preview-green/14-america.png"
+    },
+    {
+      "grupoValue": "ANTÁRTIDA",
+      "normalizedKey": "ANTARTIDA",
+      "slug": "antartida",
+      "index": 14,
+      "sprite": {
+        "column": 2,
+        "row": 2,
+        "x": 512,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/15-antartida.png",
+      "previewGreenPng": "icons/preview-green/15-antartida.png"
+    },
+    {
+      "grupoValue": "ASIA",
+      "normalizedKey": "ASIA",
+      "slug": "asia",
+      "index": 15,
+      "sprite": {
+        "column": 3,
+        "row": 2,
+        "x": 768,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/16-asia.png",
+      "previewGreenPng": "icons/preview-green/16-asia.png"
+    },
+    {
+      "grupoValue": "EUROPA",
+      "normalizedKey": "EUROPA",
+      "slug": "europa",
+      "index": 16,
+      "sprite": {
+        "column": 4,
+        "row": 2,
+        "x": 1024,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/17-europa.png",
+      "previewGreenPng": "icons/preview-green/17-europa.png"
+    },
+    {
+      "grupoValue": "OCEANÍA",
+      "normalizedKey": "OCEANIA",
+      "slug": "oceania",
+      "index": 17,
+      "sprite": {
+        "column": 5,
+        "row": 2,
+        "x": 1280,
+        "y": 512,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/18-oceania.png",
+      "previewGreenPng": "icons/preview-green/18-oceania.png"
+    },
+    {
+      "grupoValue": "ABEJAS",
+      "normalizedKey": "ABEJAS",
+      "slug": "abejas",
+      "index": 18,
+      "sprite": {
+        "column": 0,
+        "row": 3,
+        "x": 0,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/19-abejas.png",
+      "previewGreenPng": "icons/preview-green/19-abejas.png"
+    },
+    {
+      "grupoValue": "BORREGOS",
+      "normalizedKey": "BORREGOS",
+      "slug": "borregos",
+      "index": 19,
+      "sprite": {
+        "column": 1,
+        "row": 3,
+        "x": 256,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/20-borregos.png",
+      "previewGreenPng": "icons/preview-green/20-borregos.png"
+    },
+    {
+      "grupoValue": "BUHOS",
+      "normalizedKey": "BUHOS",
+      "slug": "buhos",
+      "index": 20,
+      "sprite": {
+        "column": 2,
+        "row": 3,
+        "x": 512,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/21-buhos.png",
+      "previewGreenPng": "icons/preview-green/21-buhos.png"
+    },
+    {
+      "grupoValue": "CANGUROS",
+      "normalizedKey": "CANGUROS",
+      "slug": "canguros",
+      "index": 21,
+      "sprite": {
+        "column": 3,
+        "row": 3,
+        "x": 768,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/22-canguros.png",
+      "previewGreenPng": "icons/preview-green/22-canguros.png"
+    },
+    {
+      "grupoValue": "CEBRAS",
+      "normalizedKey": "CEBRAS",
+      "slug": "cebras",
+      "index": 22,
+      "sprite": {
+        "column": 4,
+        "row": 3,
+        "x": 1024,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/23-cebras.png",
+      "previewGreenPng": "icons/preview-green/23-cebras.png"
+    },
+    {
+      "grupoValue": "COCODRILOS",
+      "normalizedKey": "COCODRILOS",
+      "slug": "cocodrilos",
+      "index": 23,
+      "sprite": {
+        "column": 5,
+        "row": 3,
+        "x": 1280,
+        "y": 768,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/24-cocodrilos.png",
+      "previewGreenPng": "icons/preview-green/24-cocodrilos.png"
+    },
+    {
+      "grupoValue": "CONEJOS",
+      "normalizedKey": "CONEJOS",
+      "slug": "conejos",
+      "index": 24,
+      "sprite": {
+        "column": 0,
+        "row": 4,
+        "x": 0,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/25-conejos.png",
+      "previewGreenPng": "icons/preview-green/25-conejos.png"
+    },
+    {
+      "grupoValue": "DINOS",
+      "normalizedKey": "DINOS",
+      "slug": "dinos",
+      "index": 25,
+      "sprite": {
+        "column": 1,
+        "row": 4,
+        "x": 256,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/26-dinos.png",
+      "previewGreenPng": "icons/preview-green/26-dinos.png"
+    },
+    {
+      "grupoValue": "ELEFANTES",
+      "normalizedKey": "ELEFANTES",
+      "slug": "elefantes",
+      "index": 26,
+      "sprite": {
+        "column": 2,
+        "row": 4,
+        "x": 512,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/27-elefantes.png",
+      "previewGreenPng": "icons/preview-green/27-elefantes.png"
+    },
+    {
+      "grupoValue": "FOCAS",
+      "normalizedKey": "FOCAS",
+      "slug": "focas",
+      "index": 27,
+      "sprite": {
+        "column": 3,
+        "row": 4,
+        "x": 768,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/28-focas.png",
+      "previewGreenPng": "icons/preview-green/28-focas.png"
+    },
+    {
+      "grupoValue": "JIRAFAS",
+      "normalizedKey": "JIRAFAS",
+      "slug": "jirafas",
+      "index": 28,
+      "sprite": {
+        "column": 4,
+        "row": 4,
+        "x": 1024,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/29-jirafas.png",
+      "previewGreenPng": "icons/preview-green/29-jirafas.png"
+    },
+    {
+      "grupoValue": "KOALAS",
+      "normalizedKey": "KOALAS",
+      "slug": "koalas",
+      "index": 29,
+      "sprite": {
+        "column": 5,
+        "row": 4,
+        "x": 1280,
+        "y": 1024,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/30-koalas.png",
+      "previewGreenPng": "icons/preview-green/30-koalas.png"
+    },
+    {
+      "grupoValue": "LEONES",
+      "normalizedKey": "LEONES",
+      "slug": "leones",
+      "index": 30,
+      "sprite": {
+        "column": 0,
+        "row": 5,
+        "x": 0,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/31-leones.png",
+      "previewGreenPng": "icons/preview-green/31-leones.png"
+    },
+    {
+      "grupoValue": "LEOPARDOS",
+      "normalizedKey": "LEOPARDOS",
+      "slug": "leopardos",
+      "index": 31,
+      "sprite": {
+        "column": 1,
+        "row": 5,
+        "x": 256,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/32-leopardos.png",
+      "previewGreenPng": "icons/preview-green/32-leopardos.png"
+    },
+    {
+      "grupoValue": "OSOS",
+      "normalizedKey": "OSOS",
+      "slug": "osos",
+      "index": 32,
+      "sprite": {
+        "column": 2,
+        "row": 5,
+        "x": 512,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/33-osos.png",
+      "previewGreenPng": "icons/preview-green/33-osos.png"
+    },
+    {
+      "grupoValue": "PANDAS",
+      "normalizedKey": "PANDAS",
+      "slug": "pandas",
+      "index": 33,
+      "sprite": {
+        "column": 3,
+        "row": 5,
+        "x": 768,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/34-pandas.png",
+      "previewGreenPng": "icons/preview-green/34-pandas.png"
+    },
+    {
+      "grupoValue": "PANTERAS",
+      "normalizedKey": "PANTERAS",
+      "slug": "panteras",
+      "index": 34,
+      "sprite": {
+        "column": 4,
+        "row": 5,
+        "x": 1024,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/35-panteras.png",
+      "previewGreenPng": "icons/preview-green/35-panteras.png"
+    },
+    {
+      "grupoValue": "PATOS",
+      "normalizedKey": "PATOS",
+      "slug": "patos",
+      "index": 35,
+      "sprite": {
+        "column": 5,
+        "row": 5,
+        "x": 1280,
+        "y": 1280,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/36-patos.png",
+      "previewGreenPng": "icons/preview-green/36-patos.png"
+    },
+    {
+      "grupoValue": "TIGRES",
+      "normalizedKey": "TIGRES",
+      "slug": "tigres",
+      "index": 36,
+      "sprite": {
+        "column": 0,
+        "row": 6,
+        "x": 0,
+        "y": 1536,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/37-tigres.png",
+      "previewGreenPng": "icons/preview-green/37-tigres.png"
+    },
+    {
+      "grupoValue": "UNICORNIOS",
+      "normalizedKey": "UNICORNIOS",
+      "slug": "unicornios",
+      "index": 37,
+      "sprite": {
+        "column": 1,
+        "row": 6,
+        "x": 256,
+        "y": 1536,
+        "width": 256,
+        "height": 256
+      },
+      "maskPng": "icons/mask/38-unicornios.png",
+      "previewGreenPng": "icons/preview-green/38-unicornios.png"
+    }
+  ]
+}

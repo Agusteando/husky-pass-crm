@@ -21,6 +21,12 @@
         <p>Personas, fotos y marbetes.</p>
         <strong>Entrar</strong>
       </NuxtLink>
+      <NuxtLink v-if="canPa" class="choice-card attendance-choice" to="/familia/asistencia">
+        <span><FamilyPersonasIcon name="calendar" /></span>
+        <h2>Asistencia</h2>
+        <p>Faltas, retardos y motivos por ciclo escolar.</p>
+        <strong>Entrar</strong>
+      </NuxtLink>
     </section>
   </section>
 </template>
@@ -84,6 +90,12 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
   background: #eaf4fb;
   border-color: #d2e7f5;
   color: var(--color-blue);
+}
+
+.choice-card.attendance-choice span {
+  background: #fff3db;
+  border-color: #f6d997;
+  color: #8a5a12;
 }
 
 .choice-card h2 {

@@ -1,29 +1,68 @@
 <template>
-  <svg class="pa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path v-if="name === 'daycare'" d="M4 10.2 12 4l8 6.2v8.3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-8.3Zm2 1v6.8h4v-4h4v4h4v-6.8l-6-4.7-6 4.7Zm7 6.8v-2h-2v2h2Z" />
-    <path v-else-if="name === 'people'" d="M8.8 11.6a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm6.8-.8a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6ZM3.2 18.9c.5-3.1 2.6-5.2 5.6-5.2s5.1 2.1 5.6 5.2c.1.5-.3.9-.8.9H4c-.5 0-.9-.4-.8-.9Zm10.2-4.6c.7-.5 1.4-.7 2.2-.7 2.5 0 4.3 1.8 4.7 4.6.1.5-.3.9-.8.9h-3.6a7.2 7.2 0 0 0-2.5-4.8Z" />
-    <path v-else-if="name === 'edit'" d="M5 18.6h3.5L18.8 8.3a1.8 1.8 0 0 0 0-2.5l-.6-.6a1.8 1.8 0 0 0-2.5 0L5.4 15.5 5 18.6Zm2.1-2.3 9.8-9.8.6.6-9.8 9.8H7l.1-.6ZM4.2 21h15.6a1 1 0 1 0 0-2H4.2a1 1 0 1 0 0 2Z" />
-    <path v-else-if="name === 'camera'" d="M8.5 5.2 7.4 7H5a2 2 0 0 0-2 2v8.1a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2.4l-1.1-1.8a1.8 1.8 0 0 0-1.5-.8h-4a1.8 1.8 0 0 0-1.5.8ZM12 16.8a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Zm0-2a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Z" />
-    <path v-else-if="name === 'siblings'" d="M7.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm9 1a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4ZM2.8 20c.4-3.4 2.1-5.6 4.7-5.6s4.3 2.2 4.7 5.6H2.8Zm8.1-6.1c1-.9 2-1.4 3.2-1.4 2.9 0 5 2.6 5.4 6.5h-5.4a8.1 8.1 0 0 0-3.2-5.1Z" />
-    <path v-else-if="name === 'calendar'" d="M7 3a1 1 0 0 1 1 1v1h8V4a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1Zm12 7H5v8h14v-8ZM5 8h14V7H5v1Zm3 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm4 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm4 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
-    <path v-else-if="name === 'survey'" d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2.2 5.1 1.5 1.5 3-3a1 1 0 0 0-1.4-1.4L9.7 6.8l-.1-.1a1 1 0 1 0-1.4 1.4Zm6.1.9h2.5a1 1 0 1 0 0-2h-2.5a1 1 0 1 0 0 2Zm-6.1 5 1.5 1.5 3-3a1 1 0 0 0-1.4-1.4l-1.6 1.6-.1-.1a1 1 0 0 0-1.4 1.4Zm6.1.9h2.5a1 1 0 1 0 0-2h-2.5a1 1 0 1 0 0 2Z" />
-    <path v-else-if="name === 'help'" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-.1-6.3c-.6 0-1-.4-1-1 0-1.7 1.2-2.4 2-2.9.7-.4 1.1-.7 1.1-1.3 0-.7-.6-1.2-1.7-1.2-.8 0-1.5.3-2 .8a1 1 0 1 1-1.4-1.4 4.7 4.7 0 0 1 3.4-1.4c2.2 0 3.7 1.3 3.7 3.2 0 1.8-1.2 2.5-2.1 3-.7.4-1 .7-1 1.2 0 .6-.4 1-1 1Zm0 3.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z" />
-    <path v-else-if="name === 'play'" d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm-1.9 5.2c0-.8.8-1.3 1.5-.9l4.2 2.4c.7.4.7 1.4 0 1.8l-4.2 2.4c-.7.4-1.5-.1-1.5-.9V8.7Z" />
-    <path v-else-if="name === 'handshake'" d="M8.6 6.3 4.2 10l3.4 4.1 1.1-.9 2.4 2.5a2 2 0 0 0 2.8.1l4-3.6 1.1.9 2.8-3.3-4.4-3.7-1 1.2-.8-.7a3.3 3.3 0 0 0-4.1-.2l-.4.3-.4-.3a3.1 3.1 0 0 0-2.1-.1Zm2.4 2.7 1.4-1a1.3 1.3 0 0 1 1.6.1l2.4 2.1-3.8 3.5-2.6-2.7-1.1.9-1.8-2.1 2.2-1.8c.5-.4 1.2-.4 1.7 0Z" />
-    <path v-else-if="name === 'download'" d="M11 4a1 1 0 1 1 2 0v8.2l2.1-2.1a1 1 0 0 1 1.4 1.4l-3.8 3.8a1 1 0 0 1-1.4 0l-3.8-3.8A1 1 0 1 1 8.9 10l2.1 2.1V4ZM5 17a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" />
-    <path v-else d="M12 2.8 20 7v10l-8 4.2L4 17V7l8-4.2Zm0 2.3L6 8.2v7.6l6 3.1 6-3.1V8.2l-6-3.1Z" />
-  </svg>
+  <component
+    :is="iconComponent"
+    class="pa-icon"
+    aria-hidden="true"
+    focusable="false"
+    :stroke-width="2.2"
+  />
 </template>
 
 <script setup lang="ts">
-defineProps<{ name: string }>()
+import { computed } from 'vue'
+import type { FunctionalComponent } from 'vue'
+import {
+  Baby,
+  BadgeCheck,
+  CalendarDays,
+  Camera,
+  CircleHelp,
+  CirclePlay,
+  ClipboardCheck,
+  Download,
+  FileCheck,
+  Handshake,
+  House,
+  ImageUp,
+  PencilLine,
+  School,
+  Sparkles,
+  UserRound,
+  UserRoundCheck,
+  UsersRound
+} from '@lucide/vue'
+
+const props = defineProps<{ name: string }>()
+
+const iconMap: Record<string, FunctionalComponent> = {
+  daycare: School,
+  home: House,
+  people: UsersRound,
+  person: UserRound,
+  authorized: UserRoundCheck,
+  edit: PencilLine,
+  camera: Camera,
+  upload: ImageUp,
+  siblings: Baby,
+  calendar: CalendarDays,
+  survey: ClipboardCheck,
+  help: CircleHelp,
+  play: CirclePlay,
+  handshake: Handshake,
+  download: Download,
+  marbete: BadgeCheck,
+  document: FileCheck
+}
+
+const iconComponent = computed(() => iconMap[props.name] || Sparkles)
 </script>
 
 <style scoped>
 .pa-icon {
   display: block;
-  fill: currentColor;
+  fill: none;
   height: 1.15rem;
+  stroke: currentColor;
   width: 1.15rem;
 }
 </style>

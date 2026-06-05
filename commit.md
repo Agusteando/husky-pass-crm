@@ -1,1 +1,1 @@
-Corrige procesamiento progresivo de fotos con Vision API y aplica tipografía institucional
+refactor: reemplazar iconografía manual por Lucide y consolidar tipografía oficial
