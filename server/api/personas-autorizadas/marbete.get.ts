@@ -14,7 +14,7 @@ const schema = z.object({
 })
 
 function firstIssue(issues: string[]) {
-  return issues[0] || 'El marbete no tiene todos los datos requeridos.'
+  return issues[0] || 'Completa los datos solicitados para descargar el Husky Pass.'
 }
 
 export default defineEventHandler(async (event) => {
@@ -23,10 +23,10 @@ export default defineEventHandler(async (event) => {
   const query = schema.parse(getQuery(event))
   const data = await getCredentialAuthorizedPersona(user, query.id)
   const templates = await listMarbeteTemplates()
-  if (!templates.length) throw createError({ statusCode: 503, statusMessage: 'No hay plantillas de marbete configuradas.' })
+  if (!templates.length) throw createError({ statusCode: 503, statusMessage: 'El Husky Pass no está disponible en este momento. Solicita apoyo a la escuela.' })
 
   const template = selectMarbeteTemplate(templates, { matricula: data.matricula, plantel: data.plantel, nivelEdu: data.nivelEdu })
-  if (!template) throw createError({ statusCode: 503, statusMessage: 'No hay plantilla compatible para este alumno.' })
+  if (!template) throw createError({ statusCode: 503, statusMessage: 'El Husky Pass no está disponible para este alumno. Solicita apoyo a la escuela.' })
 
   const origin = getRequestURL(event).origin
   const templateSvg = await readMarbeteTemplateSvg(template)
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       } catch (error) {
         const failure = error as { statusMessage?: string; message?: string; data?: { statusMessage?: string } }
         response.ok = false
-        response.issues = [failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cargar una imagen requerida para generar el marbete.']
+        response.issues = [failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.']
       }
     }
 

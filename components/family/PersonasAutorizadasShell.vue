@@ -1,8 +1,12 @@
 <template>
   <main class="pa-shell-app" :style="themeVars" data-product-area="personas-autorizadas">
     <header class="pa-product-topbar">
-      <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Personas Autorizadas`">
-        <img :src="institutionLogo" :alt="institution" />
+      <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Husky Pass Personas Autorizadas`">
+        <span class="pa-product-lockup">
+          <img class="pa-institution-logo" :src="institutionLogo" :alt="institution" />
+          <span class="pa-lockup-divider" aria-hidden="true"></span>
+          <img class="pa-husky-pass-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+        </span>
       </NuxtLink>
 
       <div class="pa-top-copy">
@@ -126,9 +130,9 @@ async function logout() {
   border-bottom: 1px solid rgba(222, 226, 216, 0.9);
   display: grid;
   gap: 12px;
-  grid-template-columns: 148px minmax(0, 1fr) minmax(220px, 300px) auto;
-  min-height: 64px;
-  padding: 6px clamp(12px, 2.2vw, 24px);
+  grid-template-columns: 220px minmax(0, 1fr) minmax(220px, 300px) auto;
+  min-height: 62px;
+  padding: 6px clamp(12px, 2.2vw, 24px) 6px 12px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -144,7 +148,22 @@ async function logout() {
   width: 100%;
 }
 
-.pa-brand img { display: block; max-height: 44px; object-fit: contain; object-position: left center; width: 92px; }
+.pa-brand {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  min-width: 0;
+}
+.pa-product-lockup {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+}
+.pa-brand img { display: block; object-fit: contain; object-position: left center; }
+.pa-institution-logo { max-height: 42px; width: 76px; }
+.pa-lockup-divider { background: rgba(var(--pa-primary-rgb), .28); height: 28px; width: 1px; }
+.pa-husky-pass-logo { max-height: 38px; width: 84px; }
 .pa-top-copy { display: grid; gap: 2px; min-width: 0; }
 .pa-top-copy span { color: var(--pa-primary); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .pa-top-copy strong { color: #50535a; font-size: clamp(1.05rem, 1.6vw, 1.36rem); letter-spacing: -0.02em; line-height: 1.02; }
@@ -172,7 +191,7 @@ async function logout() {
 .pa-top-ambassador { display: none; } 
 
 .pa-product-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
-.pa-product-nav { background: rgba(255, 255, 255, 0.96); border-right: 1px solid rgba(222, 226, 216, 0.9); min-height: calc(100vh - 64px); padding: 12px 0 18px; position: sticky; top: 64px; }
+.pa-product-nav { background: rgba(255, 255, 255, 0.96); border-right: 1px solid rgba(222, 226, 216, 0.9); min-height: calc(100vh - 62px); padding: 12px 0 18px; position: sticky; top: 62px; }
 .pa-nav-mark { align-items: center; background: linear-gradient(180deg, #fff, rgba(var(--pa-primary-rgb), .07)); border: 1px solid var(--pa-border); border-radius: 14px; display: grid; gap: 4px; margin: 0 12px 12px; padding: 12px; }
 .pa-nav-mascot { display: block; filter: drop-shadow(0 10px 16px rgba(0,0,0,.12)); height: 56px; justify-self: center; object-fit: contain; width: 72px; }
 .pa-nav-mark span { color: var(--pa-primary); font-size: 0.82rem; font-weight: 800; letter-spacing: .08em; line-height: 1.1; text-align: center; text-transform: uppercase; }
@@ -201,20 +220,25 @@ async function logout() {
 }
 
 @media (max-width: 1060px) {
-  .pa-product-topbar { grid-template-columns: 92px minmax(0, 1fr) auto; }
+  .pa-product-topbar { grid-template-columns: minmax(154px, 190px) minmax(0, 1fr) auto; }
   .pa-student-chip { display: none; }
+  .pa-institution-logo { width: 64px; }
+  .pa-husky-pass-logo { width: 72px; }
 }
 @media (max-width: 920px) {
   .pa-product-layout { grid-template-columns: 1fr; }
   .pa-product-nav { display: none; }
   .pa-route-content { padding-top: 10px; }
-  .pa-mobile-nav { background: rgba(255,255,255,.96); border: 1px solid #e7e7e7; border-radius: 14px; display: flex; gap: 6px; overflow-x: auto; padding: 6px; position: sticky; top: 64px; z-index: 10; }
+  .pa-mobile-nav { background: rgba(255,255,255,.96); border: 1px solid #e7e7e7; border-radius: 14px; display: flex; gap: 6px; overflow-x: auto; padding: 6px; position: sticky; top: 62px; z-index: 10; }
   .pa-mobile-nav a { align-items: center; border: 1px solid transparent; border-radius: 10px; color: var(--pa-muted); display: inline-flex; flex: 0 0 auto; gap: 6px; font-size: .8rem; font-weight: 700; min-height: 34px; padding: 7px 9px; }
   .pa-mobile-nav a.active { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
 }
 @media (max-width: 640px) {
-  .pa-product-topbar { gap: 8px; grid-template-columns: 64px minmax(0, 1fr) auto; }
-  .pa-brand img { width: 58px; }
+  .pa-product-topbar { gap: 8px; grid-template-columns: minmax(126px, auto) minmax(0, 1fr) auto; padding-left: 10px; }
+  .pa-product-lockup { gap: 6px; }
+  .pa-institution-logo { max-height: 31px; width: 46px; }
+  .pa-husky-pass-logo { max-height: 30px; width: 58px; }
+  .pa-lockup-divider { height: 20px; }
   .pa-logout { min-height: 32px; padding: 0 9px; }
   .pa-top-copy small { display: none; }
 }

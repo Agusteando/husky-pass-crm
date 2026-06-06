@@ -10,18 +10,21 @@
       <div class="head-action-card" :data-state="primaryPassPerson ? 'ready' : expedienteState">
         <span>{{ primaryPassPerson ? 'Husky Pass listo' : expedienteStatus }}</span>
         <strong>{{ primaryPassPerson ? fullName(primaryPassPerson) : nextAction }}</strong>
-        <a
+        <button
           v-if="primaryPassPerson"
           class="btn btn-primary pa-primary"
-          :href="`/api/personas-autorizadas/marbete?id=${primaryPassPerson.id}&download=1`"
-          data-diagnostic-link="descargar-husky-pass-principal"
+          type="button"
+          :disabled="downloadingId === primaryPassPerson.id"
+          data-diagnostic-action="descargar-husky-pass-principal"
+          @click="downloadHuskyPass(primaryPassPerson)"
         >
-          Descargar Husky Pass
-        </a>
+          {{ downloadingId === primaryPassPerson.id ? 'Preparando...' : 'Descargar Husky Pass' }}
+        </button>
         <button v-else class="btn btn-secondary" type="button" disabled>{{ nextAction }}</button>
       </div>
     </section>
 
+    <p v-if="downloadError" class="alert" data-state="error">{{ downloadError }}</p>
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
     <div v-else-if="pending" class="card loading-row" data-product-loading data-state="loading">Cargando...</div>
 
@@ -86,11 +89,11 @@
             </div>
           </div>
 
-          <div class="person-list">
+          <div class="person-slots">
             <button
               v-for="person in people"
               :key="person.indice"
-              class="person-row"
+              class="person-slot-card"
               :class="{ selected: selected?.indice === person.indice, empty: !person.id, express: person.indice === 4 }"
               type="button"
               :aria-pressed="selected?.indice === person.indice"
@@ -149,14 +152,16 @@
             <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="editar-persona-autorizada" @click="edit(selected)">
               {{ selected.id ? 'Editar' : selected.indice === 4 ? 'Capturar Pase Express' : 'Capturar' }}
             </button>
-            <a
+            <button
               v-if="marbeteReady(selected)"
               class="btn btn-primary pa-primary"
-              :href="`/api/personas-autorizadas/marbete?id=${selected.id}&download=1`"
-              data-diagnostic-link="descargar-husky-pass-seleccionado"
+              type="button"
+              :disabled="downloadingId === selected.id"
+              data-diagnostic-action="descargar-husky-pass-seleccionado"
+              @click="downloadHuskyPass(selected)"
             >
-              Descargar Husky Pass
-            </a>
+              {{ downloadingId === selected.id ? 'Preparando...' : 'Descargar Husky Pass' }}
+            </button>
             <button v-else-if="selected.id" class="btn btn-secondary" type="button" disabled>{{ marbeteState(selected) }}</button>
             <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="confirmar-eliminar-persona-autorizada" @click="deleteTarget = selected">
               Eliminar
@@ -269,6 +274,8 @@ const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
 const openFaq = ref<number | null>(0)
 const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
+const downloadingId = ref<number | null>(null)
+const downloadError = ref('')
 const editingKey = computed(() => editing.value ? `edit-${editing.value.id || 'slot'}-${editing.value.indice}` : 'edit-none')
 
 const people = computed(() => data.value || [])
@@ -353,6 +360,49 @@ function marbeteStatus(person: AuthorizedPerson) {
 function marbeteReady(person: AuthorizedPerson) {
   return Boolean(localMarbeteReady(person) && marbeteStatus(person)?.ok)
 }
+
+function friendlyReadinessMessage(message?: string | null) {
+  const value = String(message || '').toLowerCase()
+  if (value.includes('imagen') || value.includes('foto') || value.includes('image')) return 'Actualiza la foto para descargar'
+  if (value.includes('dato') || value.includes('text') || value.includes('required')) return 'Completa los datos para descargar'
+  return 'Husky Pass no disponible'
+}
+
+function friendlyDownloadMessage(message?: string | null) {
+  const value = String(message || '').toLowerCase()
+  if (value.includes('foto') || value.includes('imagen') || value.includes('image')) return 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.'
+  if (value.includes('dato') || value.includes('nombre') || value.includes('parentesco') || value.includes('matr')) return 'Completa los datos solicitados para descargar el Husky Pass.'
+  return 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+}
+
+async function downloadHuskyPass(person: AuthorizedPerson | null) {
+  if (!person?.id || downloadingId.value) return
+  downloadError.value = ''
+  downloadingId.value = person.id
+  try {
+    const response = await fetch(`/api/personas-autorizadas/marbete?id=${person.id}&download=1`, { credentials: 'include' })
+    if (!response.ok) {
+      const message = await response.text().catch(() => '')
+      throw new Error(friendlyDownloadMessage(message))
+    }
+    const blob = await response.blob()
+    if (!blob.size || !response.headers.get('content-type')?.toLowerCase().includes('pdf')) {
+      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.')
+    }
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = `husky-pass-${String(person.indice || person.id).padStart(2, '0')}.pdf`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+  } catch (err: unknown) {
+    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+  } finally {
+    downloadingId.value = null
+  }
+}
 function marbeteState(person: AuthorizedPerson) {
   if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
   if (!photoUrl(person)) return 'Falta foto'
@@ -360,7 +410,7 @@ function marbeteState(person: AuthorizedPerson) {
   if (!person.parenP) return 'Falta parentesco'
   const status = marbeteStatus(person)
   if (!status || status.pending) return 'Validando Husky Pass'
-  if (!status.ok) return status.issues[0] || 'Husky Pass no disponible'
+  if (!status.ok) return friendlyReadinessMessage(status.issues[0])
   return 'Listo'
 }
 async function refreshMarbeteReadiness() {
@@ -377,7 +427,7 @@ async function refreshMarbeteReadiness() {
       marbeteReadiness.value[id] = { ...result, pending: false }
     } catch (err: unknown) {
       const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-      marbeteReadiness.value[id] = { ok: false, issues: [failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible validar el Husky Pass.'], pending: false }
+      marbeteReadiness.value[id] = { ok: false, issues: [friendlyReadinessMessage(failure?.data?.statusMessage || failure?.statusMessage || failure?.message)], pending: false }
     }
   }))
 }
@@ -615,30 +665,37 @@ function normalizeIndice(value: unknown) {
   font-size: .82rem;
   font-weight: 700;
 }
-.person-list {
-  display: grid;
-  gap: 8px;
-}
-.person-row {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #ecece7;
-  border-radius: 12px;
-  cursor: pointer;
+.person-slots {
   display: grid;
   gap: 10px;
-  grid-template-columns: 54px minmax(0, 1fr) minmax(110px, auto);
-  padding: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.person-slot-card {
+  align-content: start;
+  background: #fff;
+  border: 1px solid #ecece7;
+  border-radius: 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  min-height: 138px;
+  padding: 10px;
   text-align: left;
   width: 100%;
 }
-.person-row:hover,
-.person-row.selected {
+.person-slot-card:hover,
+.person-slot-card.selected {
   background: var(--pa-soft);
   border-color: var(--pa-border);
+  box-shadow: inset 0 0 0 1px var(--pa-border);
 }
-.person-row.empty {
-  background: #fbfbf9;
+.person-slot-card.empty {
+  background: linear-gradient(180deg, #fff, #fbfbf9);
+  border-style: dashed;
+}
+.person-slot-card.express {
+  background: linear-gradient(180deg, #fff, rgba(var(--pa-primary-rgb), .05));
 }
 .person-photo,
 .selected-photo {
@@ -686,11 +743,13 @@ function normalizeIndice(value: unknown) {
   font-weight: 700;
 }
 .pass-state {
+  align-self: end;
   background: #f7f7f5;
   border: 1px solid #e9e9e3;
   border-radius: 10px;
   color: var(--pa-muted);
-  justify-self: end;
+  grid-column: 1 / -1;
+  justify-self: start;
   padding: 6px 8px;
   text-align: center;
 }
@@ -810,6 +869,9 @@ function normalizeIndice(value: unknown) {
   .support-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .person-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .pa-workspace {
     grid-template-columns: 1fr;
   }
@@ -826,15 +888,15 @@ function normalizeIndice(value: unknown) {
   .home-ambassador {
     justify-self: start;
   }
-  .person-row {
+  .person-slots {
+    grid-template-columns: 1fr;
+  }
+  .person-slot-card {
+    min-height: 112px;
     grid-template-columns: 48px minmax(0, 1fr);
   }
   .person-photo {
     width: 48px;
-  }
-  .pass-state {
-    grid-column: 2;
-    justify-self: start;
   }
   .section-head,
   .selected-identity {

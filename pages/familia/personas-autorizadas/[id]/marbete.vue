@@ -10,11 +10,21 @@
         <FamilyPersonasAmbassador class="pass-ambassador" :theme="theme" variant="preview" compact decorative />
         <div class="head-actions">
           <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-          <a v-if="downloadAvailable" class="btn btn-primary pa-primary" :href="downloadUrl" data-diagnostic-link="descargar-husky-pass">Descargar Husky Pass</a>
+          <button
+            v-if="downloadAvailable"
+            class="btn btn-primary pa-primary"
+            type="button"
+            :disabled="downloading"
+            data-diagnostic-action="descargar-husky-pass"
+            @click="downloadHuskyPass"
+          >
+            {{ downloading ? 'Preparando...' : 'Descargar Husky Pass' }}
+          </button>
           <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
         </div>
       </header>
 
+      <p v-if="downloadError" class="alert" data-state="error">{{ downloadError }}</p>
       <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el Husky Pass.' }}</p>
       <div v-else-if="pending || readinessPending" class="preview-state" data-product-loading data-state="loading">
         <span></span>
@@ -41,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { MarbeteReadinessResponse, PrintableAuthorizedPerson } from '~/types/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
@@ -66,8 +76,47 @@ const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data
 const passContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Datos escolares')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
+const downloading = ref(false)
+const downloadError = ref('')
 const downloadAvailable = computed(() => Boolean(readiness.value?.ok))
-const readinessMessage = computed(() => readiness.value?.issues?.[0] || (readinessError.value ? 'No fue posible validar los datos e imagenes del Husky Pass.' : 'Validando datos e imagenes del Husky Pass...'))
+const readinessMessage = computed(() => friendlyReadinessMessage(readiness.value?.issues?.[0], Boolean(readinessError.value)))
+
+function friendlyReadinessMessage(message?: string | null, hasError = false) {
+  const value = String(message || '').toLowerCase()
+  if (value.includes('foto') || value.includes('imagen') || value.includes('image')) return 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.'
+  if (value.includes('dato') || value.includes('nombre') || value.includes('parentesco') || value.includes('matr')) return 'Completa los datos solicitados para descargar el Husky Pass.'
+  if (hasError) return 'No pudimos validar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+  return 'Validando datos del Husky Pass...'
+}
+
+async function downloadHuskyPass() {
+  if (downloading.value || !downloadAvailable.value) return
+  downloadError.value = ''
+  downloading.value = true
+  try {
+    const response = await fetch(downloadUrl.value, { credentials: 'include' })
+    if (!response.ok) {
+      const message = await response.text().catch(() => '')
+      throw new Error(friendlyReadinessMessage(message, true))
+    }
+    const blob = await response.blob()
+    if (!blob.size || !response.headers.get('content-type')?.toLowerCase().includes('pdf')) {
+      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.')
+    }
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = `husky-pass-${String(route.params.id)}.pdf`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+  } catch (err: unknown) {
+    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <style scoped>

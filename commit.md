@@ -1,1 +1,1 @@
-Corrige la generación PDF de Husky Pass con datos e imágenes dinámicas reales
+Corrige identidad superior, slots de Personas Autorizadas y PDF de Husky Pass
