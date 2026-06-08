@@ -1,84 +1,40 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Personas autorizadas">
-    <section class="pa-home-head" data-product-panel="personas-home">
-      <div>
-        <p class="eyebrow">Registro familiar</p>
-        <h1>Personas autorizadas</h1>
-        <p>{{ nextAction }}</p>
-      </div>
-      <FamilyPersonasAmbassador class="home-ambassador" :theme="theme" variant="hero" compact decorative />
-      <div class="head-action-card" :data-state="primaryPassPerson ? 'ready' : expedienteState">
-        <span>{{ primaryPassPerson ? 'Husky Pass listo' : expedienteStatus }}</span>
-        <strong>{{ primaryPassPerson ? fullName(primaryPassPerson) : nextAction }}</strong>
-        <button
-          v-if="primaryPassPerson"
-          class="btn btn-primary pa-primary"
-          type="button"
-          :disabled="downloadingId === primaryPassPerson.id"
-          data-diagnostic-action="descargar-husky-pass-principal"
-          @click="downloadHuskyPass(primaryPassPerson)"
-        >
-          {{ downloadingId === primaryPassPerson.id ? 'Preparando...' : 'Descargar Husky Pass' }}
-        </button>
-        <button v-else class="btn btn-secondary" type="button" disabled>{{ nextAction }}</button>
-      </div>
-    </section>
-
-    <p v-if="downloadError" class="alert" data-state="error">{{ downloadError }}</p>
+    <p v-if="downloadError" class="alert pa-download-alert" data-state="error">{{ downloadError }}</p>
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
     <div v-else-if="pending" class="card loading-row" data-product-loading data-state="loading">Cargando...</div>
 
     <template v-else>
-      <section class="pa-status-strip" data-product-panel="personas-status">
-        <article class="status-card" :data-state="expedienteState">
-          <FamilyPersonasIcon name="people" />
-          <span>
-            <b>{{ expedienteStatus }}</b>
-            <small>{{ nextAction }}</small>
-          </span>
-        </article>
-        <article class="status-card">
-          <FamilyPersonasIcon name="people" />
-          <span>
-            <b>{{ completedRegularCount }}</b>
-            <small>{{ completedRegularCount === 1 ? 'Persona registrada' : 'Personas registradas' }}</small>
-          </span>
-        </article>
-        <article class="status-card">
-          <FamilyPersonasIcon name="download" />
-          <span>
-            <b>{{ downloadableCount }}</b>
-            <small>Husky Pass listos</small>
-          </span>
-        </article>
-        <NuxtLink class="status-card actionable student-photo-status" to="/familia/personas-autorizadas/credencializacion">
-          <span class="student-photo-mini">
-            <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" alt="Foto del alumno" namespace="pa-home-student-photo" />
-            <FamilyPersonasIcon v-else name="camera" />
-          </span>
-          <span>
-            <b>{{ studentPhoto ? 'Lista' : 'Pendiente' }}</b>
-            <small>Foto alumno</small>
-          </span>
-        </NuxtLink>
-      </section>
-
-      <section id="marbetes" class="pa-workspace" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
-        <article class="card people-panel">
-          <header class="section-head">
+      <section class="pa-home-screen" data-product-panel="personas-home">
+        <header class="pa-page-hero">
+          <div class="pa-title-block">
+            <span class="hero-shield" aria-hidden="true">
+              <FamilyPersonasIcon name="authorized" />
+            </span>
             <div>
-              <p class="eyebrow">Personas</p>
-              <h2>{{ completedRegularCount }} registradas</h2>
+              <p class="eyebrow">{{ levelLabel }}</p>
+              <h1>Personas autorizadas</h1>
+              <p>Administra las personas que pueden recoger a {{ studentFirstName }}.</p>
             </div>
-            <button
-              v-if="firstAvailablePerson"
-              class="btn btn-secondary"
-              type="button"
-              data-diagnostic-action="capturar-persona-disponible"
-              @click="edit(firstAvailablePerson)"
-            >
-              Capturar
-            </button>
+          </div>
+
+          <NuxtLink v-if="!studentPhoto" class="student-photo-callout" to="/familia/personas-autorizadas/credencializacion">
+            <span class="callout-icon" aria-hidden="true">i</span>
+            <span class="callout-copy">
+              <strong>Foto del alumno pendiente</strong>
+              <small>Sube la foto de {{ studentFirstName }} para generar los Husky Pass.</small>
+            </span>
+            <span class="callout-action">Subir foto</span>
+          </NuxtLink>
+        </header>
+
+        <section class="authorized-section" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
+          <header class="section-label-row">
+            <span class="section-icon" aria-hidden="true">
+              <FamilyPersonasIcon name="people" />
+            </span>
+            <h2>Personas autorizadas</h2>
+            <small>{{ completedRegularCount }} de 3 personas capturadas</small>
           </header>
 
           <div v-if="!completedCount" class="empty-guidance" data-state="empty">
@@ -89,85 +45,114 @@
             </div>
           </div>
 
-          <div class="person-slots">
-            <button
+          <div class="person-slots" aria-label="Espacios de personas autorizadas">
+            <article
               v-for="person in people"
               :key="person.indice"
               class="person-slot-card"
               :class="{ selected: selected?.indice === person.indice, empty: !person.id, express: person.indice === 4 }"
-              type="button"
-              :aria-pressed="selected?.indice === person.indice"
-              data-diagnostic-action="seleccionar-persona-autorizada"
+              :data-state="person.id ? 'registered' : 'available'"
+              :data-slot="person.indice"
               @click="selectPerson(person)"
             >
-              <span class="person-photo">
+              <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo">✓</span>
+
+              <span class="person-photo" :data-empty="!person.id">
                 <FamilyPersonasProcessedPhoto
                   v-if="photoUrl(person)"
                   :src="person.foto"
                   :processed-src="person.compressed_foto"
                   :auto-process="false"
                   :namespace="`pa-person-${person.id || person.indice}`"
+                  :alt="fullName(person)"
                 />
                 <strong v-else-if="person.id">{{ initials(person) }}</strong>
-                <FamilyPersonasIcon v-else name="people" />
+                <FamilyPersonasIcon v-else :name="person.indice === 4 ? 'marbete' : 'authorized'" />
               </span>
-              <span class="person-meta">
-                <b>{{ person.id ? fullName(person) || authorizedPersonLabel(person.indice) : authorizedPersonLabel(person.indice) }}</b>
-                <small>{{ personState(person) }}</small>
-              </span>
-              <span class="pass-state" :data-state="marbeteReady(person) ? 'ready' : person.id ? 'pending' : 'available'">
-                {{ marbeteState(person) }}
-              </span>
-            </button>
-          </div>
-        </article>
 
-        <aside v-if="selected" class="card selected-panel" data-product-panel="selected-authorized-person" :data-state="selected.id ? 'content' : 'empty'">
-          <div class="selected-identity">
-            <span class="selected-photo">
-              <FamilyPersonasProcessedPhoto
-                v-if="photoUrl(selected)"
-                :src="selected.foto"
-                :processed-src="selected.compressed_foto"
-                :auto-process="false"
-                :namespace="`pa-selected-${selected.id || selected.indice}`"
-              />
-              <strong v-else-if="selected.id">{{ initials(selected) }}</strong>
-              <FamilyPersonasIcon v-else name="people" />
-            </span>
-            <div>
-              <p class="eyebrow">{{ authorizedPersonLabel(selected.indice) }}</p>
-              <h3>{{ fullName(selected) || (selected.indice === 4 ? 'Pase Express opcional' : 'Espacio disponible') }}</h3>
-              <p>{{ selected.id ? selected.parenP || 'Sin parentesco' : 'Listo para capturar cuando lo necesites.' }}</p>
+              <div class="person-meta">
+                <h3>{{ slotTitle(person) }}</h3>
+                <p>{{ slotSubtitle(person) }}</p>
+              </div>
+
+              <div class="slot-actions" @click.stop>
+                <button
+                  v-if="person.id && marbeteReady(person)"
+                  class="slot-btn slot-btn-primary"
+                  type="button"
+                  :disabled="downloadingId === person.id"
+                  data-diagnostic-action="descargar-husky-pass-persona"
+                  @click="downloadHuskyPass(person)"
+                >
+                  <FamilyPersonasIcon name="download" />
+                  {{ downloadingId === person.id ? 'Preparando...' : 'Descargar Husky Pass' }}
+                </button>
+                <button v-else-if="person.id" class="slot-btn slot-btn-muted" type="button" disabled>{{ marbeteState(person) }}</button>
+                <button
+                  v-else
+                  class="slot-btn slot-btn-outline"
+                  type="button"
+                  :data-diagnostic-action="person.indice === 4 ? 'agregar-pase-express' : 'capturar-persona-autorizada'"
+                  @click="edit(person)"
+                >
+                  <span aria-hidden="true">+</span>
+                  {{ person.indice === 4 ? 'Agregar pase' : 'Capturar' }}
+                </button>
+
+                <button
+                  v-if="person.id"
+                  class="slot-btn slot-btn-outline"
+                  type="button"
+                  data-diagnostic-action="editar-persona-autorizada"
+                  @click="edit(person)"
+                >
+                  <FamilyPersonasIcon name="edit" />
+                  Editar
+                </button>
+              </div>
+
+              <button
+                v-if="person.id"
+                class="slot-menu"
+                type="button"
+                aria-label="Eliminar registro"
+                data-diagnostic-action="confirmar-eliminar-persona-autorizada"
+                @click.stop="deleteTarget = person"
+              >
+                ⋮
+              </button>
+            </article>
+          </div>
+        </section>
+
+        <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
+          <article class="card tutorial-card">
+            <header class="section-head branded-head">
+              <div class="section-title-inline">
+                <FamilyPersonasIcon name="document" />
+                <h2>Tutorial</h2>
+              </div>
+              <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
+            </header>
+            <div class="video-frame">
+              <iframe src="https://www.youtube.com/embed/PMBQolTRysg" title="Tutorial Personas Autorizadas" allowfullscreen loading="lazy"></iframe>
             </div>
-          </div>
+          </article>
 
-          <div class="selected-readiness">
-            <span :data-state="selected.id ? 'ok' : 'idle'">Registro</span>
-            <span :data-state="photoUrl(selected) ? 'ok' : selected.id ? 'pending' : 'idle'">Foto</span>
-            <span :data-state="marbeteReady(selected) ? 'ok' : selected.id ? 'pending' : 'idle'">Husky Pass</span>
-          </div>
-
-          <div class="actions selected-actions">
-            <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="editar-persona-autorizada" @click="edit(selected)">
-              {{ selected.id ? 'Editar' : selected.indice === 4 ? 'Capturar Pase Express' : 'Capturar' }}
+          <article class="card faq-card" data-product-panel="faq" data-state="content">
+            <header class="section-title-inline">
+              <FamilyPersonasIcon name="help" />
+              <h2>Preguntas frecuentes</h2>
+            </header>
+            <button v-for="(item, index) in faqItems" :key="item.question" class="faq-item" type="button" :aria-expanded="openFaq === index" @click="openFaq = openFaq === index ? null : index">
+              <span>
+                <strong>{{ item.question }}</strong>
+                <em v-if="openFaq === index">{{ item.answer }}</em>
+              </span>
+              <b>{{ openFaq === index ? '−' : '⌄' }}</b>
             </button>
-            <button
-              v-if="marbeteReady(selected)"
-              class="btn btn-primary pa-primary"
-              type="button"
-              :disabled="downloadingId === selected.id"
-              data-diagnostic-action="descargar-husky-pass-seleccionado"
-              @click="downloadHuskyPass(selected)"
-            >
-              {{ downloadingId === selected.id ? 'Preparando...' : 'Descargar Husky Pass' }}
-            </button>
-            <button v-else-if="selected.id" class="btn btn-secondary" type="button" disabled>{{ marbeteState(selected) }}</button>
-            <button v-if="selected.id" class="btn btn-danger" type="button" data-diagnostic-action="confirmar-eliminar-persona-autorizada" @click="deleteTarget = selected">
-              Eliminar
-            </button>
-          </div>
-        </aside>
+          </article>
+        </section>
       </section>
 
       <FamilyPersonasModal
@@ -197,7 +182,7 @@
       >
         <section class="delete-confirm">
           <p>{{ fullName(deleteTarget) || 'Este registro' }}</p>
-          <small>Tambien dejara de estar disponible para el Husky Pass.</small>
+          <small>También dejará de estar disponible para el Husky Pass.</small>
           <div class="actions form-actions">
             <button
               class="btn btn-danger"
@@ -212,35 +197,6 @@
           </div>
         </section>
       </FamilyPersonasModal>
-
-      <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
-        <article class="card tutorial-card">
-          <header class="section-head branded-head">
-            <div>
-              <p class="eyebrow">Tutorial</p>
-              <h2>Uso rapido</h2>
-            </div>
-            <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
-          </header>
-          <div class="video-frame">
-            <iframe src="https://www.youtube.com/embed/PMBQolTRysg" title="Tutorial Personas Autorizadas" allowfullscreen loading="lazy"></iframe>
-          </div>
-        </article>
-
-        <article class="card faq-card" data-product-panel="faq" data-state="content">
-          <header>
-            <p class="eyebrow">FAQ</p>
-            <h2>Dudas frecuentes</h2>
-          </header>
-          <button v-for="(item, index) in faqItems" :key="item.question" class="faq-item" type="button" :aria-expanded="openFaq === index" @click="openFaq = openFaq === index ? null : index">
-            <span>
-              <strong>{{ item.question }}</strong>
-              <em v-if="openFaq === index">{{ item.answer }}</em>
-            </span>
-            <b>{{ openFaq === index ? '-' : '+' }}</b>
-          </button>
-        </article>
-      </section>
     </template>
 
     <p v-if="error" class="alert">{{ error }}</p>
@@ -255,13 +211,13 @@ import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
-
-definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
+import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const route = useRoute()
 const router = useRouter()
 const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000 })
+
+definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
 const editorError = ref('')
@@ -287,37 +243,19 @@ const theme = computed(() => resolvePersonasTheme({
   nivelEdu: primaryChild.value?.nivelEdu,
   campus: primaryChild.value?.campus
 }))
+const levelLabel = computed(() => personasLevelName(theme.value).spanish)
 const studentPhoto = computed(() => normalizeVirtualAssetUrl(primaryChild.value?.foto || ''))
+const studentName = computed(() => [primaryChild.value?.nombreA, primaryChild.value?.paternoA, primaryChild.value?.maternoA].filter(Boolean).join(' ') || 'tu alumno')
+const studentFirstName = computed(() => String(primaryChild.value?.nombreA || studentName.value || 'tu alumno').split(/\s+/)[0] || 'tu alumno')
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
-const downloadableCount = computed(() => people.value.filter((person) => marbeteReady(person)).length)
-const missingPhotoCount = computed(() => people.value.filter((person) => person.id && !photoUrl(person)).length)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
-const registeredPeople = computed(() => people.value.filter((person) => person.id))
-const primaryPassPerson = computed(() => {
-  if (selected.value && marbeteReady(selected.value)) return selected.value
-  return people.value.find((person) => marbeteReady(person)) || null
-})
-const firstAvailablePerson = computed(() => people.value.find((person) => !person.id && person.indice < 4) || null)
-const actionableIssues = computed(() => {
-  const issues: string[] = []
-  if (!registeredPeople.value.length) issues.push('Agrega tu primera persona autorizada')
-  const missingRequired = registeredPeople.value.filter((person) => !fullName(person) || !person.parenP)
-  if (missingRequired.length) issues.push(`${missingRequired.length} ${missingRequired.length === 1 ? 'registro necesita datos' : 'registros necesitan datos'}`)
-  if (missingPhotoCount.value) issues.push(`${missingPhotoCount.value} ${missingPhotoCount.value === 1 ? 'foto pendiente' : 'fotos pendientes'}`)
-  if (!studentPhoto.value) issues.push('Foto del alumno pendiente')
-  if (registeredPeople.value.length && !downloadableCount.value) issues.push('Husky Pass sin datos suficientes')
-  return issues
-})
-const expedienteState = computed(() => actionableIssues.value.length ? 'action' : 'complete')
-const expedienteStatus = computed(() => expedienteState.value === 'complete' ? 'Listo' : 'Requiere accion')
-const nextAction = computed(() => actionableIssues.value[0] || 'Husky Pass listo para descargar')
 
 const faqItems = [
-  { question: 'Cuantas personas puedo registrar?', answer: 'Tres personas y un Pase Express opcional.' },
-  { question: 'Que foto debo usar?', answer: 'Una foto frontal, clara y reciente.' },
-  { question: 'Donde descargo el Husky Pass?', answer: 'Selecciona una persona lista y usa Descargar Husky Pass.' },
-  { question: 'Puedo cambiar grado o grupo?', answer: 'No. La escuela administra esos datos.' }
+  { question: '¿Cuántas personas puedo registrar?', answer: 'Tres personas y un Pase Express opcional.' },
+  { question: '¿Qué foto debo usar?', answer: 'Una foto frontal, clara y reciente.' },
+  { question: '¿Dónde descargo el Husky Pass?', answer: 'Cada persona lista muestra su botón Descargar Husky Pass.' },
+  { question: '¿Puedo cambiar grado o grupo?', answer: 'No. La escuela administra esos datos.' }
 ]
 
 watch(() => route.query.persona, (value) => {
@@ -344,11 +282,13 @@ function photoUrl(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
   const processed = normalizeVirtualAssetUrl(person.compressed_foto || '')
   return original || (isValidatedVisionPhotoUrl(processed) ? processed : '')
 }
-function personState(person: AuthorizedPerson) {
-  if (!person.id) return person.indice === 4 ? 'Pase Express opcional' : 'Espacio disponible'
-  if (!photoUrl(person)) return 'Falta foto'
-  if (!person.parenP) return 'Falta parentesco'
-  return 'Listo'
+function slotTitle(person: AuthorizedPerson) {
+  if (person.id) return fullName(person) || authorizedPersonLabel(person.indice)
+  return person.indice === 4 ? 'Pase Express' : 'Registrar persona'
+}
+function slotSubtitle(person: AuthorizedPerson) {
+  if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
+  return person.parenP || 'Datos pendientes'
 }
 function localMarbeteReady(person: AuthorizedPerson) {
   return Boolean(person.id && photoUrl(person) && fullName(person) && person.parenP)
@@ -360,21 +300,18 @@ function marbeteStatus(person: AuthorizedPerson) {
 function marbeteReady(person: AuthorizedPerson) {
   return Boolean(localMarbeteReady(person) && marbeteStatus(person)?.ok)
 }
-
 function friendlyReadinessMessage(message?: string | null) {
   const value = String(message || '').toLowerCase()
-  if (value.includes('imagen') || value.includes('foto') || value.includes('image')) return 'Actualiza la foto para descargar'
-  if (value.includes('dato') || value.includes('text') || value.includes('required')) return 'Completa los datos para descargar'
-  return 'Husky Pass no disponible'
+  if (value.includes('imagen') || value.includes('foto') || value.includes('image')) return 'Actualiza la foto'
+  if (value.includes('dato') || value.includes('text') || value.includes('required')) return 'Completa los datos'
+  return 'No disponible'
 }
-
 function friendlyDownloadMessage(message?: string | null) {
   const value = String(message || '').toLowerCase()
   if (value.includes('foto') || value.includes('imagen') || value.includes('image')) return 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.'
   if (value.includes('dato') || value.includes('nombre') || value.includes('parentesco') || value.includes('matr')) return 'Completa los datos solicitados para descargar el Husky Pass.'
   return 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
 }
-
 async function downloadHuskyPass(person: AuthorizedPerson | null) {
   if (!person?.id || downloadingId.value) return
   downloadError.value = ''
@@ -405,9 +342,9 @@ async function downloadHuskyPass(person: AuthorizedPerson | null) {
 }
 function marbeteState(person: AuthorizedPerson) {
   if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
-  if (!photoUrl(person)) return 'Falta foto'
-  if (!fullName(person)) return 'Falta nombre'
-  if (!person.parenP) return 'Falta parentesco'
+  if (!photoUrl(person)) return 'Actualiza la foto'
+  if (!fullName(person)) return 'Completa el nombre'
+  if (!person.parenP) return 'Completa parentesco'
   const status = marbeteStatus(person)
   if (!status || status.pending) return 'Validando Husky Pass'
   if (!status.ok) return friendlyReadinessMessage(status.issues[0])
@@ -496,6 +433,7 @@ async function remove(id: number | null | undefined) {
     await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
     deleteTarget.value = null
     await refresh()
+    await refreshMarbeteReadiness()
     notice.value = 'Registro eliminado.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
@@ -511,403 +449,613 @@ function normalizeIndice(value: unknown) {
 </script>
 
 <style scoped>
-.pa-home-head {
-  align-items: stretch;
-  background: linear-gradient(135deg, #fff, rgba(var(--pa-primary-rgb), .08));
-  border: 1px solid var(--pa-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-soft);
+.pa-home-screen {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) 104px minmax(260px, 340px);
-  padding: clamp(14px, 2vw, 18px);
+  gap: 16px;
 }
-.pa-home-head h1,
-.pa-home-head p,
-.section-head h2,
-.selected-panel h3 {
+
+.pa-page-hero {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 410px);
+}
+
+.pa-title-block {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.hero-shield {
+  align-items: center;
+  background: linear-gradient(145deg, #5da2dc, #2d67a8);
+  border-radius: 18px;
+  box-shadow: 0 14px 30px rgba(42, 101, 166, 0.22);
+  color: #fff;
+  display: inline-grid;
+  height: 58px;
+  justify-content: center;
+  position: relative;
+  width: 58px;
+}
+
+.hero-shield::after {
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 15px;
+  content: '';
+  inset: 7px;
+  position: absolute;
+}
+
+.pa-title-block h1,
+.pa-title-block p,
+.section-label-row h2,
+.section-title-inline h2 {
   margin-bottom: 0;
 }
-.pa-home-head h1 {
-  color: var(--pa-gray);
-  font-size: clamp(1.55rem, 2.6vw, 2.25rem);
+
+.pa-title-block h1 {
+  color: #26324a;
+  font-size: clamp(1.8rem, 3vw, 2.32rem);
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
-.home-ambassador {
-  align-self: center;
-  justify-self: center;
+
+.pa-title-block p:not(.eyebrow) {
+  color: #727987;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 6px;
 }
-.head-action-card {
-  background: #fff;
-  border: 1px solid var(--pa-border);
-  border-radius: 12px;
+
+.student-photo-callout {
+  align-items: center;
+  background: linear-gradient(135deg, #fffaf2, #fffdf8);
+  border: 1px solid #f0bf86;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(196, 128, 56, 0.09);
+  color: #844f12;
   display: grid;
-  gap: 7px;
-  padding: 12px;
+  gap: 12px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  min-height: 78px;
+  padding: 14px;
 }
-.head-action-card span,
-.pass-state,
-.selected-readiness span {
-  font-size: .72rem;
+
+.callout-icon {
+  align-items: center;
+  border: 2px solid #ff7a25;
+  border-radius: 999px;
+  color: #ff7a25;
+  display: inline-grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
+
+.callout-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.callout-copy strong,
+.callout-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callout-copy strong {
+  color: #b35c16;
+  font-size: 0.92rem;
+}
+
+.callout-copy small {
+  color: #7a634c;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.callout-action {
+  background: #2f78bd;
+  border-radius: 9px;
+  box-shadow: 0 8px 18px rgba(47, 120, 189, 0.22);
+  color: #fff;
+  font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  padding: 10px 14px;
+  white-space: nowrap;
 }
-.head-action-card span {
+
+.authorized-section {
+  display: grid;
+  gap: 14px;
+}
+
+.section-label-row,
+.section-title-inline {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.section-label-row h2,
+.section-title-inline h2 {
+  color: #28324a;
+  font-family: var(--font-body);
+  font-size: 1.06rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.section-label-row small {
+  color: #7a8190;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+.section-icon,
+.section-title-inline :deep(.pa-icon) {
   color: var(--pa-primary);
 }
-.head-action-card strong {
-  color: var(--pa-gray);
-  line-height: 1.18;
+
+.section-icon {
+  align-items: center;
+  display: inline-grid;
+  justify-content: center;
 }
-.pa-primary {
-  background: var(--pa-primary);
-  color: var(--pa-contrast);
+
+.empty-guidance {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff);
+  border: 1px dashed var(--pa-border);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 82px minmax(0, 1fr);
+  padding: 12px 14px;
 }
+
+.empty-guidance strong,
+.empty-guidance span {
+  display: block;
+}
+
+.empty-guidance strong {
+  color: #28324a;
+}
+
+.empty-guidance span {
+  color: #6f7785;
+  font-size: .84rem;
+  font-weight: 700;
+}
+
+.person-slots {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(4, minmax(168px, 1fr));
+}
+
+.person-slot-card {
+  background: linear-gradient(180deg, #ffffff, #fbfcff);
+  border: 1px solid #dfe8f2;
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(40, 65, 100, 0.09);
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  min-height: 318px;
+  padding: 22px 14px 14px;
+  position: relative;
+  text-align: center;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.person-slot-card:hover,
+.person-slot-card.selected {
+  border-color: #b6d6f3;
+  box-shadow: 0 20px 42px rgba(40, 93, 151, 0.15);
+  transform: translateY(-2px);
+}
+
+.person-slot-card.empty {
+  background: linear-gradient(180deg, #fbfdff, #f7fbff);
+  border: 1px dashed #b9d8f1;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 12px 28px rgba(40, 65, 100, 0.06);
+  justify-content: center;
+}
+
+.person-slot-card.express {
+  background: linear-gradient(180deg, #fbfff8, #f4fbef);
+  border-color: #c5dfb8;
+}
+
+.person-slot-card.express.empty {
+  border-style: solid;
+}
+
+.slot-check {
+  align-items: center;
+  background: #61a734;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(61, 126, 42, 0.24);
+  color: #fff;
+  display: inline-grid;
+  font-size: 0.84rem;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 28px;
+  z-index: 2;
+}
+
+.person-photo {
+  align-items: center;
+  aspect-ratio: 1;
+  background: linear-gradient(145deg, rgba(var(--pa-primary-rgb), .12), #fff);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  display: inline-grid;
+  font-size: 1.3rem;
+  font-weight: 900;
+  justify-self: center;
+  overflow: hidden;
+  place-items: center;
+  width: 96px;
+}
+
+.person-photo[data-empty='true'] {
+  border-color: #b7d8f3;
+  color: #1f7cc2;
+  width: 76px;
+}
+
+.person-slot-card.express .person-photo[data-empty='true'] {
+  border-color: #c5dfb8;
+  color: #4d8c33;
+}
+
+.person-photo img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.person-meta {
+  align-self: start;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.person-meta h3,
+.person-meta p {
+  margin-bottom: 0;
+}
+
+.person-meta h3 {
+  color: #29334d;
+  font-family: var(--font-title);
+  font-size: 1.08rem;
+  line-height: 1.08;
+  min-height: 2.2em;
+}
+
+.person-slot-card.empty .person-meta h3 {
+  color: #0b68ad;
+  min-height: auto;
+}
+
+.person-slot-card.express.empty .person-meta h3 {
+  color: #315d24;
+}
+
+.person-meta p {
+  color: #6f7785;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.slot-actions {
+  align-self: end;
+  display: grid;
+  gap: 8px;
+}
+
+.person-slot-card[data-state='registered'] .slot-actions {
+  padding-bottom: 14px;
+}
+
+.slot-btn {
+  align-items: center;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 7px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 10px;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  width: 100%;
+}
+
+.slot-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.slot-btn:disabled {
+  cursor: not-allowed;
+  opacity: .72;
+}
+
+.slot-btn-primary {
+  background: #1877bf;
+  border: 1px solid #1877bf;
+  box-shadow: 0 8px 18px rgba(24, 119, 191, 0.22);
+  color: #fff;
+}
+
+.slot-btn-outline {
+  background: #fff;
+  border: 1px solid #b8d4ee;
+  color: #0b68ad;
+}
+
+.person-slot-card.express .slot-btn-outline {
+  border-color: #a9cf99;
+  color: #3f7c2e;
+}
+
+.slot-btn-muted {
+  background: #f5f8fb;
+  border: 1px solid #dfe8f2;
+  color: #6f7785;
+}
+
+.slot-menu {
+  background: transparent;
+  border: 0;
+  bottom: 12px;
+  color: #142b45;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 6px;
+  position: absolute;
+  right: 12px;
+}
+
 .loading-row,
-.notice {
+.notice,
+.pa-download-alert {
   border: 1px solid var(--pa-border);
   color: var(--pa-gray);
-  font-weight: 600;
+  font-weight: 700;
 }
+
 .notice {
   background: var(--pa-soft);
   border-radius: 12px;
   margin: 0;
   padding: 10px 12px;
 }
-.pa-status-strip {
+
+.support-panel {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.03fr) minmax(300px, .97fr);
 }
-.status-card {
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--pa-border);
-  border-radius: 12px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 30px minmax(0, 1fr);
-  min-height: 58px;
-  padding: 10px;
-}
-.status-card :deep(.pa-icon) {
-  color: var(--pa-primary);
-}
-.status-card b,
-.status-card small {
-  display: block;
-}
-.status-card b {
-  color: var(--pa-gray);
-}
-.status-card small {
-  color: var(--pa-muted);
-  font-size: .78rem;
-  font-weight: 700;
-}
-.status-card[data-state='complete'],
-.status-card[data-state='action'] {
-  background: var(--pa-soft);
-}
-.status-card.actionable:hover {
-  transform: translateY(-1px);
-}
-.student-photo-mini {
-  aspect-ratio: 1;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 10px;
-  display: grid;
-  overflow: hidden;
-  place-items: center;
-}
-.pa-workspace {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-}
-.people-panel,
-.selected-panel,
+
 .tutorial-card,
 .faq-card {
+  border-color: #e2ebf4;
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(40, 65, 100, 0.08);
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
+
 .section-head {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: space-between;
 }
+
 .branded-head :deep(.pa-ambassador-card) {
   flex: 0 0 auto;
 }
-.empty-guidance {
-  align-items: center;
-  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff);
-  border: 1px solid var(--pa-border);
-  border-radius: 12px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 88px minmax(0, 1fr);
-  padding: 10px;
-}
-.empty-guidance strong,
-.empty-guidance span {
-  display: block;
-}
-.empty-guidance strong {
-  color: var(--pa-gray);
-}
-.empty-guidance span {
-  color: var(--pa-muted);
-  font-size: .82rem;
-  font-weight: 700;
-}
-.person-slots {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.person-slot-card {
-  align-content: start;
-  background: #fff;
-  border: 1px solid #ecece7;
-  border-radius: 14px;
-  cursor: pointer;
-  display: grid;
-  gap: 9px;
-  grid-template-columns: 54px minmax(0, 1fr);
-  min-height: 138px;
-  padding: 10px;
-  text-align: left;
-  width: 100%;
-}
-.person-slot-card:hover,
-.person-slot-card.selected {
-  background: var(--pa-soft);
-  border-color: var(--pa-border);
-  box-shadow: inset 0 0 0 1px var(--pa-border);
-}
-.person-slot-card.empty {
-  background: linear-gradient(180deg, #fff, #fbfbf9);
-  border-style: dashed;
-}
-.person-slot-card.express {
-  background: linear-gradient(180deg, #fff, rgba(var(--pa-primary-rgb), .05));
-}
-.person-photo,
-.selected-photo {
-  aspect-ratio: 1;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  color: var(--pa-primary);
-  display: grid;
-  font-weight: 800;
-  overflow: hidden;
-  place-items: center;
-}
-.person-photo {
-  border-radius: 10px;
-  width: 54px;
-}
-.selected-photo {
-  border-radius: 12px;
-  width: 78px;
-}
-.person-photo img,
-.selected-photo img {
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-.person-meta {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.person-meta b,
-.person-meta small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.person-meta b {
-  color: var(--pa-gray);
-  font-size: .92rem;
-}
-.person-meta small {
-  color: var(--pa-muted);
-  font-size: .78rem;
-  font-weight: 700;
-}
-.pass-state {
-  align-self: end;
-  background: #f7f7f5;
-  border: 1px solid #e9e9e3;
-  border-radius: 10px;
-  color: var(--pa-muted);
-  grid-column: 1 / -1;
-  justify-self: start;
-  padding: 6px 8px;
-  text-align: center;
-}
-.pass-state[data-state='ready'] {
-  background: var(--pa-soft);
-  border-color: var(--pa-border);
-  color: var(--pa-primary);
-}
-.pass-state[data-state='available'] {
-  background: #fff;
-}
-.selected-panel {
-  align-self: start;
-  position: sticky;
-  top: 82px;
-}
-.selected-identity {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-.selected-identity p {
-  margin-bottom: 0;
-}
-.selected-readiness {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.selected-readiness span {
-  background: #f7f7f5;
-  border: 1px solid #e9e9e3;
-  border-radius: 10px;
-  color: var(--pa-muted);
-  padding: 6px 8px;
-}
-.selected-readiness span[data-state='ok'] {
-  background: var(--pa-soft);
-  border-color: var(--pa-border);
-  color: var(--pa-primary);
-}
-.selected-readiness span[data-state='pending'] {
-  background: #fff8ea;
-  border-color: #f0d9a5;
-  color: #795b1c;
-}
-.actions,
-.form-actions,
-.selected-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.selected-actions .btn {
-  flex: 1 1 auto;
-}
-.form-actions {
-  justify-content: flex-end;
-}
-.delete-confirm {
-  display: grid;
-  gap: 12px;
-}
-.delete-confirm small {
-  color: var(--pa-muted);
-  font-weight: 700;
-}
-.support-panel {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, .9fr) minmax(300px, 1fr);
-}
+
 .video-frame {
   aspect-ratio: 16 / 9;
   background: #111;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
+  position: relative;
 }
+
+.video-frame::after {
+  background: linear-gradient(to right, #65b640 0 18%, #ef4b4b 18% 36%, #f0ca45 36% 55%, #55a4d6 55% 74%, #4d4597 74% 100%);
+  bottom: 0;
+  content: '';
+  height: 5px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}
+
 .video-frame iframe {
   border: 0;
   height: 100%;
   width: 100%;
 }
-.faq-card header h2 {
-  margin-bottom: 0;
-}
+
 .faq-item {
-  align-items: start;
-  background: #f8f8f6;
-  border: 1px solid #ecece7;
-  border-radius: 10px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2ebf4;
+  border-radius: 13px;
+  box-shadow: 0 6px 16px rgba(40, 65, 100, 0.04);
   cursor: pointer;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px;
+  min-height: 48px;
+  padding: 12px 14px;
   text-align: left;
   width: 100%;
 }
+
 .faq-item strong,
 .faq-item em {
   display: block;
 }
+
+.faq-item strong {
+  color: #313b52;
+  font-size: 0.88rem;
+}
+
 .faq-item em {
-  color: var(--pa-muted);
+  color: #6f7785;
+  font-size: 0.82rem;
   font-style: normal;
   font-weight: 700;
   margin-top: 8px;
 }
+
 .faq-item b {
-  color: var(--pa-primary);
-  font-size: 1.2rem;
+  color: #173a62;
+  font-size: 1rem;
   line-height: 1;
 }
-@media (max-width: 1080px) {
-  .pa-status-strip,
-  .support-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+
+.actions,
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.form-actions {
+  justify-content: flex-end;
+}
+
+.delete-confirm {
+  display: grid;
+  gap: 12px;
+}
+
+.delete-confirm small {
+  color: var(--pa-muted);
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
   .person-slots {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .pa-workspace {
-    grid-template-columns: 1fr;
-  }
-  .selected-panel {
-    position: static;
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
   }
 }
-@media (max-width: 720px) {
-  .pa-home-head,
-  .pa-status-strip,
+
+@media (max-width: 920px) {
+  .pa-page-hero,
   .support-panel {
-    grid-template-columns: 1fr;
-  }
-  .home-ambassador {
-    justify-self: start;
-  }
-  .person-slots {
     grid-template-columns: 1fr;
   }
   .person-slot-card {
-    min-height: 112px;
-    grid-template-columns: 48px minmax(0, 1fr);
+    min-height: 250px;
   }
-  .person-photo {
-    width: 48px;
+}
+
+@media (max-width: 640px) {
+  .pa-home-screen {
+    gap: 14px;
   }
-  .section-head,
-  .selected-identity {
+  .pa-page-hero {
+    gap: 12px;
+  }
+  .pa-title-block {
+    gap: 12px;
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+  .hero-shield {
+    border-radius: 15px;
+    height: 46px;
+    width: 46px;
+  }
+  .pa-title-block h1 {
+    font-size: clamp(1.38rem, 8vw, 1.72rem);
+  }
+  .pa-title-block p:not(.eyebrow) {
+    font-size: 0.8rem;
+  }
+  .student-photo-callout {
     align-items: start;
+    grid-template-columns: 22px minmax(0, 1fr);
+    min-height: 0;
+  }
+  .callout-action {
+    grid-column: 2;
+    justify-self: start;
+    padding: 9px 12px;
+  }
+  .section-label-row {
+    align-items: flex-start;
+    display: grid;
+    gap: 4px 8px;
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+  .section-label-row small {
+    grid-column: 2;
+    margin-left: 0;
+  }
+  .person-slots {
+    gap: 12px;
     grid-template-columns: 1fr;
   }
-  .empty-guidance {
-    grid-template-columns: 64px minmax(0, 1fr);
+  .person-slot-card {
+    align-items: center;
+    gap: 12px;
+    grid-template-columns: 68px minmax(0, 1fr);
+    min-height: 0;
+    padding: 14px;
+    text-align: left;
   }
-  .selected-photo {
-    width: 72px;
+  .person-slot-card.empty {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+  .person-photo,
+  .person-photo[data-empty='true'] {
+    width: 64px;
+  }
+  .person-meta h3 {
+    font-size: 0.98rem;
+    min-height: 0;
+  }
+  .slot-actions {
+    grid-column: 1 / -1;
+  }
+  .slot-menu {
+    bottom: auto;
+    top: 14px;
+  }
+  .empty-guidance {
+    grid-template-columns: 62px minmax(0, 1fr);
   }
 }
 </style>

@@ -1,1 +1,1 @@
-Corrige alineación compacta del topbar de Personas Autorizadas
+Rediseña Personas Autorizadas con layout premium Husky Pass
