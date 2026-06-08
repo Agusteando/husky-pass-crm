@@ -1,1 +1,1 @@
-Refina la calidad visual de Personas Autorizadas y Datos del alumno
+Rediseña asistencia familiar como bitácora visual de asistencia y accesos
