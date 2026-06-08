@@ -34,7 +34,7 @@
               <FamilyPersonasIcon name="people" />
             </span>
             <h2>Personas autorizadas</h2>
-            <small>{{ completedRegularCount }} de 3 personas capturadas</small>
+            <small>{{ registeredPeopleLabel }}</small>
           </header>
 
           <div v-if="!completedCount" class="empty-guidance" data-state="empty">
@@ -55,7 +55,7 @@
               :data-slot="person.indice"
               @click="selectPerson(person)"
             >
-              <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo">✓</span>
+              <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo"><FamilyPersonasIcon name="check" /></span>
 
               <span class="person-photo" :data-empty="!person.id">
                 <FamilyPersonasProcessedPhoto
@@ -95,7 +95,7 @@
                   :data-diagnostic-action="person.indice === 4 ? 'agregar-pase-express' : 'capturar-persona-autorizada'"
                   @click="edit(person)"
                 >
-                  <span aria-hidden="true">+</span>
+                  <FamilyPersonasIcon name="plus" />
                   {{ person.indice === 4 ? 'Agregar pase' : 'Capturar' }}
                 </button>
 
@@ -119,7 +119,7 @@
                 data-diagnostic-action="confirmar-eliminar-persona-autorizada"
                 @click.stop="deleteTarget = person"
               >
-                ⋮
+                <FamilyPersonasIcon name="more" />
               </button>
             </article>
           </div>
@@ -149,7 +149,7 @@
                 <strong>{{ item.question }}</strong>
                 <em v-if="openFaq === index">{{ item.answer }}</em>
               </span>
-              <b>{{ openFaq === index ? '−' : '⌄' }}</b>
+              <span class="faq-chevron" aria-hidden="true"><FamilyPersonasIcon name="chevron" /></span>
             </button>
           </article>
         </section>
@@ -228,7 +228,7 @@ const deleting = ref(false)
 const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
-const openFaq = ref<number | null>(0)
+const openFaq = ref<number | null>(null)
 const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
 const downloadingId = ref<number | null>(null)
 const downloadError = ref('')
@@ -249,6 +249,7 @@ const studentName = computed(() => [primaryChild.value?.nombreA, primaryChild.va
 const studentFirstName = computed(() => String(primaryChild.value?.nombreA || studentName.value || 'tu alumno').split(/\s+/)[0] || 'tu alumno')
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
+const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
 
 const faqItems = [
@@ -645,6 +646,7 @@ function normalizeIndice(value: unknown) {
 }
 
 .person-slot-card {
+  align-content: center;
   background: linear-gradient(180deg, #ffffff, #fbfcff);
   border: 1px solid #dfe8f2;
   border-radius: 18px;
@@ -652,8 +654,10 @@ function normalizeIndice(value: unknown) {
   cursor: pointer;
   display: grid;
   gap: 12px;
-  min-height: 318px;
-  padding: 22px 14px 14px;
+  grid-template-rows: auto minmax(58px, auto) auto;
+  justify-items: center;
+  min-height: 292px;
+  padding: 22px 14px 18px;
   position: relative;
   text-align: center;
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
@@ -667,10 +671,10 @@ function normalizeIndice(value: unknown) {
 }
 
 .person-slot-card.empty {
+  align-content: center;
   background: linear-gradient(180deg, #fbfdff, #f7fbff);
   border: 1px dashed #b9d8f1;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 12px 28px rgba(40, 65, 100, 0.06);
-  justify-content: center;
 }
 
 .person-slot-card.express {
@@ -690,8 +694,6 @@ function normalizeIndice(value: unknown) {
   box-shadow: 0 8px 18px rgba(61, 126, 42, 0.24);
   color: #fff;
   display: inline-grid;
-  font-size: 0.84rem;
-  font-weight: 900;
   height: 28px;
   justify-content: center;
   position: absolute;
@@ -699,6 +701,12 @@ function normalizeIndice(value: unknown) {
   top: 14px;
   width: 28px;
   z-index: 2;
+}
+
+.slot-check :deep(.pa-icon) {
+  height: .9rem;
+  stroke-width: 3;
+  width: .9rem;
 }
 
 .person-photo {
@@ -735,10 +743,11 @@ function normalizeIndice(value: unknown) {
 }
 
 .person-meta {
-  align-self: start;
+  align-self: center;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
+  place-items: center;
 }
 
 .person-meta h3,
@@ -770,13 +779,14 @@ function normalizeIndice(value: unknown) {
 }
 
 .slot-actions {
-  align-self: end;
+  align-self: center;
   display: grid;
   gap: 8px;
+  width: min(100%, 178px);
 }
 
 .person-slot-card[data-state='registered'] .slot-actions {
-  padding-bottom: 14px;
+  padding-bottom: 0;
 }
 
 .slot-btn {
@@ -828,16 +838,25 @@ function normalizeIndice(value: unknown) {
 }
 
 .slot-menu {
+  align-items: center;
   background: transparent;
   border: 0;
+  border-radius: 999px;
   bottom: 12px;
-  color: #142b45;
+  color: #50627a;
   cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0 6px;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
   position: absolute;
   right: 12px;
+  width: 30px;
+}
+
+.slot-menu:hover {
+  background: rgba(23, 58, 98, .07);
+  color: #142b45;
 }
 
 .loading-row,
@@ -863,11 +882,12 @@ function normalizeIndice(value: unknown) {
 
 .tutorial-card,
 .faq-card {
+  align-content: start;
   border-color: #e2ebf4;
   border-radius: 18px;
   box-shadow: 0 14px 34px rgba(40, 65, 100, 0.08);
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .section-head {
@@ -914,11 +934,19 @@ function normalizeIndice(value: unknown) {
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 32px;
   min-height: 48px;
-  padding: 12px 14px;
+  padding: 12px 10px 12px 14px;
   text-align: left;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
   width: 100%;
+}
+
+.faq-item:hover,
+.faq-item[aria-expanded='true'] {
+  background: linear-gradient(180deg, #fff, #fbfdff);
+  border-color: #cbddec;
+  box-shadow: 0 10px 22px rgba(40, 65, 100, 0.08);
 }
 
 .faq-item strong,
@@ -939,10 +967,23 @@ function normalizeIndice(value: unknown) {
   margin-top: 8px;
 }
 
-.faq-item b {
+.faq-chevron {
+  align-items: center;
+  background: #f4f8fc;
+  border: 1px solid #dfe8f2;
+  border-radius: 999px;
   color: #173a62;
-  font-size: 1rem;
-  line-height: 1;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  transition: transform .18s ease, background .18s ease;
+  width: 30px;
+}
+
+.faq-item[aria-expanded='true'] .faq-chevron {
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  transform: rotate(180deg);
 }
 
 .actions,
@@ -978,7 +1019,7 @@ function normalizeIndice(value: unknown) {
     grid-template-columns: 1fr;
   }
   .person-slot-card {
-    min-height: 250px;
+    min-height: 240px;
   }
 }
 
@@ -1032,6 +1073,8 @@ function normalizeIndice(value: unknown) {
     align-items: center;
     gap: 12px;
     grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    justify-items: stretch;
     min-height: 0;
     padding: 14px;
     text-align: left;
@@ -1049,6 +1092,8 @@ function normalizeIndice(value: unknown) {
   }
   .slot-actions {
     grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
   }
   .slot-menu {
     bottom: auto;

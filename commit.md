@@ -1,1 +1,1 @@
-Rediseña datos del alumno con layout institucional y restaura barra de identidad original
+Refina la calidad visual de Personas Autorizadas y Datos del alumno

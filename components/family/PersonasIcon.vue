@@ -15,6 +15,9 @@ import {
   Baby,
   BadgeCheck,
   CalendarDays,
+  Check,
+  ChevronDown,
+  EllipsisVertical,
   Camera,
   CircleHelp,
   CirclePlay,
@@ -29,6 +32,7 @@ import {
   LogOut,
   PencilLine,
   School,
+  Plus,
   Sparkles,
   UserRound,
   UserRoundCheck,
@@ -57,6 +61,10 @@ const iconMap: Record<string, FunctionalComponent> = {
   handshake: Handshake,
   download: Download,
   marbete: BadgeCheck,
+  check: Check,
+  chevron: ChevronDown,
+  more: EllipsisVertical,
+  plus: Plus,
   document: FileCheck
 }
 

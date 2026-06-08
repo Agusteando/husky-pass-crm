@@ -404,7 +404,7 @@ async function saveActiveGroup() {
 .student-data-screen {
   display: grid;
   gap: clamp(14px, 1.8vw, 20px);
-  max-width: 1050px;
+  max-width: 1120px;
 }
 
 .student-data-header {
@@ -425,12 +425,12 @@ async function saveActiveGroup() {
 }
 
 .student-title-icon {
-  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .16), rgba(var(--pa-primary-rgb), .06));
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .14), rgba(var(--pa-primary-rgb), .05));
   border: 1px solid var(--pa-border);
-  border-radius: 16px;
+  border-radius: 14px;
   color: var(--pa-primary);
-  height: 58px;
-  width: 58px;
+  height: 54px;
+  width: 54px;
 }
 
 .student-title-icon :deep(.pa-icon) {
@@ -446,9 +446,9 @@ async function saveActiveGroup() {
 
 .student-title-copy h1 {
   color: #14284d;
-  font-size: clamp(1.9rem, 3vw, 2.75rem);
-  letter-spacing: -0.035em;
-  line-height: 0.98;
+  font-size: clamp(1.72rem, 2.5vw, 2.35rem);
+  letter-spacing: -0.032em;
+  line-height: 1;
   margin: 0;
 }
 
@@ -493,9 +493,9 @@ async function saveActiveGroup() {
 .student-profile-card {
   align-items: center;
   display: grid;
-  gap: clamp(18px, 2.4vw, 28px);
-  grid-template-columns: 146px minmax(0, 1fr);
-  padding: clamp(18px, 2.7vw, 30px);
+  gap: clamp(16px, 2vw, 24px);
+  grid-template-columns: 132px minmax(0, 1fr);
+  padding: clamp(16px, 2.2vw, 24px);
 }
 
 .student-portrait {
@@ -506,10 +506,10 @@ async function saveActiveGroup() {
   box-shadow: inset 0 0 0 8px rgba(255, 255, 255, .72), 0 12px 26px rgba(46, 86, 130, .14);
   color: var(--pa-primary);
   display: grid;
-  height: 124px;
+  height: 112px;
   place-items: center;
   position: relative;
-  width: 124px;
+  width: 112px;
 }
 
 .student-portrait :deep(img),
@@ -548,7 +548,7 @@ async function saveActiveGroup() {
 
 .student-profile-main {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -578,10 +578,10 @@ async function saveActiveGroup() {
   align-items: center;
   background: rgba(255, 255, 255, .72);
   display: grid;
-  gap: 2px 12px;
-  grid-template-columns: 38px minmax(0, 1fr);
-  min-height: 82px;
-  padding: 12px 16px;
+  gap: 2px 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-height: 74px;
+  padding: 11px 14px;
   position: relative;
 }
 
@@ -620,13 +620,13 @@ async function saveActiveGroup() {
 .fact-icon {
   color: #2f7bd2;
   grid-row: span 2;
-  height: 38px;
-  width: 38px;
+  height: 34px;
+  width: 34px;
 }
 
 .fact-icon :deep(.pa-icon) {
-  height: 1.8rem;
-  width: 1.8rem;
+  height: 1.55rem;
+  width: 1.55rem;
 }
 
 .group-fact {
@@ -636,19 +636,19 @@ async function saveActiveGroup() {
 .group-token {
   align-items: center;
   background: #ffffff;
-  border: 3px solid rgba(var(--pa-primary-rgb), .34);
-  border-radius: 14px;
+  border: 2px solid rgba(var(--pa-primary-rgb), .34);
+  border-radius: 13px;
   color: var(--pa-primary);
   display: inline-flex;
   font-family: var(--font-title);
-  font-size: 1.5rem;
+  font-size: 1.28rem;
   font-weight: 900;
   grid-row: span 2;
-  height: 48px;
+  height: 42px;
   justify-content: center;
   line-height: 1;
-  min-width: 58px;
-  padding: 0 12px;
+  min-width: 50px;
+  padding: 0 11px;
 }
 
 .compact-fact {
@@ -673,13 +673,13 @@ async function saveActiveGroup() {
 .student-info-card {
   align-items: center;
   display: grid;
-  gap: 16px;
-  min-height: 110px;
-  padding: clamp(16px, 2.2vw, 24px);
+  gap: 14px;
+  min-height: 94px;
+  padding: clamp(14px, 1.7vw, 20px);
 }
 
 .compact-info-card {
-  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
 }
 
 .family-info-card {
@@ -690,19 +690,19 @@ async function saveActiveGroup() {
 .card-section-head {
   align-items: center;
   display: grid;
-  gap: 16px;
-  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 14px;
+  grid-template-columns: 58px minmax(0, 1fr);
 }
 
 .section-avatar {
   border-radius: 999px;
-  height: 64px;
-  width: 64px;
+  height: 52px;
+  width: 52px;
 }
 
 .section-avatar :deep(.pa-icon) {
-  height: 1.75rem;
-  width: 1.75rem;
+  height: 1.45rem;
+  width: 1.45rem;
 }
 
 .section-avatar.health {
@@ -742,14 +742,14 @@ async function saveActiveGroup() {
   align-items: center;
   background: #ffffff;
   border: 1px solid rgba(48, 123, 210, .48);
-  border-radius: 12px;
+  border-radius: 11px;
   color: #1d71cc;
   display: inline-flex;
   font-weight: 850;
   gap: 8px;
   justify-content: center;
-  min-height: 46px;
-  padding: 0 20px;
+  min-height: 40px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 
@@ -778,10 +778,10 @@ async function saveActiveGroup() {
   color: inherit;
   cursor: pointer;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  min-height: 74px;
-  padding: 12px 14px 12px 16px;
+  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 10px 12px 10px 14px;
   text-align: left;
   width: 100%;
 }
@@ -792,13 +792,13 @@ async function saveActiveGroup() {
 
 .family-row-icon {
   color: var(--pa-primary);
-  height: 38px;
-  width: 38px;
+  height: 34px;
+  width: 34px;
 }
 
 .family-row-icon :deep(.pa-icon) {
-  height: 1.55rem;
-  width: 1.55rem;
+  height: 1.35rem;
+  width: 1.35rem;
 }
 
 .family-row-copy {
