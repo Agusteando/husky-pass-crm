@@ -1,1 +1,1 @@
-Corrige identidad superior, slots de Personas Autorizadas y PDF de Husky Pass
+Corrige alineación compacta del topbar de Personas Autorizadas

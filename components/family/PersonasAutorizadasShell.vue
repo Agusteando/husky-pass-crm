@@ -130,9 +130,9 @@ async function logout() {
   border-bottom: 1px solid rgba(222, 226, 216, 0.9);
   display: grid;
   gap: 12px;
-  grid-template-columns: 220px minmax(0, 1fr) minmax(220px, 300px) auto;
+  grid-template-columns: max-content minmax(0, 1fr) minmax(220px, 300px) auto;
   min-height: 62px;
-  padding: 6px clamp(12px, 2.2vw, 24px) 6px 12px;
+  padding: 6px clamp(12px, 2.2vw, 24px) 6px clamp(10px, 1.4vw, 16px);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -152,18 +152,23 @@ async function logout() {
   align-items: center;
   align-self: stretch;
   display: flex;
+  justify-self: start;
   min-width: 0;
+  width: max-content;
 }
 .pa-product-lockup {
   align-items: center;
-  display: flex;
-  gap: 9px;
+  display: inline-grid;
+  gap: 10px;
+  grid-template-columns: max-content 1px max-content;
+  justify-content: start;
   min-width: 0;
+  width: max-content;
 }
-.pa-brand img { display: block; object-fit: contain; object-position: left center; }
-.pa-institution-logo { max-height: 42px; width: 76px; }
-.pa-lockup-divider { background: rgba(var(--pa-primary-rgb), .28); height: 28px; width: 1px; }
-.pa-husky-pass-logo { max-height: 38px; width: 84px; }
+.pa-brand img { display: block; object-fit: contain; object-position: center; }
+.pa-institution-logo { height: 44px; max-width: 52px; width: auto; }
+.pa-lockup-divider { background: rgba(var(--pa-primary-rgb), .28); height: 30px; width: 1px; }
+.pa-husky-pass-logo { height: 38px; max-width: 82px; width: auto; }
 .pa-top-copy { display: grid; gap: 2px; min-width: 0; }
 .pa-top-copy span { color: var(--pa-primary); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .pa-top-copy strong { color: #50535a; font-size: clamp(1.05rem, 1.6vw, 1.36rem); letter-spacing: -0.02em; line-height: 1.02; }
@@ -220,10 +225,10 @@ async function logout() {
 }
 
 @media (max-width: 1060px) {
-  .pa-product-topbar { grid-template-columns: minmax(154px, 190px) minmax(0, 1fr) auto; }
+  .pa-product-topbar { grid-template-columns: max-content minmax(0, 1fr) auto; }
   .pa-student-chip { display: none; }
-  .pa-institution-logo { width: 64px; }
-  .pa-husky-pass-logo { width: 72px; }
+  .pa-institution-logo { height: 40px; max-width: 48px; }
+  .pa-husky-pass-logo { height: 34px; max-width: 74px; }
 }
 @media (max-width: 920px) {
   .pa-product-layout { grid-template-columns: 1fr; }
@@ -234,12 +239,13 @@ async function logout() {
   .pa-mobile-nav a.active { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
 }
 @media (max-width: 640px) {
-  .pa-product-topbar { gap: 8px; grid-template-columns: minmax(126px, auto) minmax(0, 1fr) auto; padding-left: 10px; }
+  .pa-product-topbar { gap: 8px; grid-template-columns: max-content minmax(0, 1fr) auto; padding-left: 10px; }
   .pa-product-lockup { gap: 6px; }
-  .pa-institution-logo { max-height: 31px; width: 46px; }
-  .pa-husky-pass-logo { max-height: 30px; width: 58px; }
+  .pa-institution-logo { height: 32px; max-width: 38px; }
+  .pa-husky-pass-logo { height: 28px; max-width: 58px; }
   .pa-lockup-divider { height: 20px; }
   .pa-logout { min-height: 32px; padding: 0 9px; }
-  .pa-top-copy small { display: none; }
+  .pa-top-copy span, .pa-top-copy small { display: none; }
+  .pa-top-copy strong { font-size: 0.94rem; line-height: 1.05; }
 }
 </style>
