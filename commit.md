@@ -1,1 +1,1 @@
-Rediseña Personas Autorizadas con layout premium Husky Pass
+Rediseña datos del alumno con layout institucional y restaura barra de identidad original

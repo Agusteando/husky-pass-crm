@@ -1,56 +1,132 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Datos del alumno">
-    <section class="card section-hero" data-product-panel="student-data-intro">
-      <div>
-        <p class="eyebrow">Datos familiares</p>
-        <h1>Datos del alumno</h1>
-        <p>{{ lastUpdateLabel }}</p>
-      </div>
-      <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
-    </section>
-
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
     <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando…</div>
 
     <template v-else-if="profile">
-      <section class="card readonly-card" data-product-panel="academic-readonly">
-        <header class="school-summary">
-          <p class="eyebrow">Escuela</p>
-          <h2>{{ academicSummary }}</h2>
-          <dl class="school-facts">
-            <div v-if="profile.readonly.matricula">
-              <dt>Matrícula</dt>
-              <dd>{{ displayMatricula(profile.readonly.matricula) }}</dd>
-            </div>
-            <div v-if="profile.readonly.plantel">
-              <dt>Plantel</dt>
-              <dd>{{ profile.readonly.plantel }}</dd>
-            </div>
-            <div v-if="profile.readonly.ciclo">
-              <dt>Ciclo</dt>
-              <dd>{{ profile.readonly.ciclo }}</dd>
-            </div>
-          </dl>
+      <section class="student-data-screen" data-product-panel="student-data-home">
+        <header class="student-data-header">
+          <span class="student-title-icon" aria-hidden="true">
+            <FamilyPersonasIcon name="person" />
+          </span>
+          <div class="student-title-copy">
+            <h1>Datos del alumno</h1>
+            <p>Alumno activo: <strong>{{ studentDisplayName }}</strong></p>
+            <span class="student-update-line">
+              <FamilyPersonasIcon name="calendar" />
+              Última actualización: <strong>{{ lastUpdateLabel }}</strong>
+            </span>
+          </div>
         </header>
 
-        <aside v-if="grupoSigil.image || grupoSigil.label" class="grupo-sigil-card" data-testid="student-data-grupo-sigil">
-          <img v-if="grupoSigil.image" :src="grupoSigil.image" :alt="`Imagen del grupo ${grupoSigil.label}`" />
-          <div>
-            <span>Grupo</span>
-            <strong>{{ grupoSigil.label }}</strong>
+        <section class="student-profile-card" data-product-panel="academic-readonly">
+          <div class="student-portrait" :data-has-photo="Boolean(studentPhoto)">
+            <FamilyPersonasProcessedPhoto
+              v-if="studentPhoto"
+              :src="studentPhoto"
+              namespace="pa-student-data-photo"
+              :alt="studentDisplayName"
+            />
+            <strong v-else>{{ studentInitials }}</strong>
+            <span class="student-verified" aria-hidden="true">✓</span>
           </div>
-        </aside>
-      </section>
 
-      <section class="data-section-grid" data-product-panel="student-data-sections">
-        <article v-for="group in visibleGroups" :key="group.title" class="card data-section-card">
-          <div>
-            <p class="eyebrow">{{ group.eyebrow }}</p>
-            <h2>{{ group.title }}</h2>
-            <p>{{ completedFields(group) }}/{{ group.fields.length }}</p>
+          <div class="student-profile-main">
+            <div class="student-profile-title">
+              <h2>{{ studentDisplayName }}</h2>
+              <p>{{ academicSummary }}</p>
+            </div>
+
+            <dl class="academic-facts" aria-label="Datos escolares del alumno">
+              <div class="academic-fact feature-fact">
+                <span class="fact-icon" aria-hidden="true"><FamilyPersonasIcon name="daycare" /></span>
+                <dt>Nivel</dt>
+                <dd>{{ academicNivel }}</dd>
+              </div>
+              <div class="academic-fact feature-fact">
+                <span class="fact-icon" aria-hidden="true"><FamilyPersonasIcon name="document" /></span>
+                <dt>Grado</dt>
+                <dd>{{ academicGrado }}</dd>
+              </div>
+              <div class="academic-fact group-fact">
+                <span class="group-token" aria-hidden="true">{{ academicGrupo }}</span>
+                <dt>Grupo</dt>
+                <dd>{{ academicGrupo }}</dd>
+              </div>
+              <div class="academic-fact compact-fact">
+                <dt>Matrícula</dt>
+                <dd>{{ academicMatricula }}</dd>
+              </div>
+              <div class="academic-fact compact-fact">
+                <dt>Plantel</dt>
+                <dd>{{ academicPlantel }}</dd>
+              </div>
+            </dl>
           </div>
-          <button class="btn btn-primary pa-primary" type="button" data-diagnostic-action="editar-seccion-datos" @click="openGroup(group)">Editar</button>
-        </article>
+        </section>
+
+        <section class="student-section-stack" data-product-panel="student-data-sections">
+          <article v-if="identityGroup" class="student-info-card compact-info-card">
+            <span class="section-avatar health" aria-hidden="true">
+              <FamilyPersonasIcon name="authorized" />
+            </span>
+            <div class="section-copy">
+              <h2>Identidad y salud</h2>
+              <p>Información personal y datos de salud.</p>
+            </div>
+            <button class="section-action" type="button" data-diagnostic-action="editar-seccion-identidad" @click="openGroup(identityGroup)">
+              <FamilyPersonasIcon name="edit" />
+              Actualizar
+            </button>
+          </article>
+
+          <article v-if="familyGroups.length" class="student-info-card family-info-card">
+            <header class="card-section-head">
+              <span class="section-avatar family" aria-hidden="true">
+                <FamilyPersonasIcon name="people" />
+              </span>
+              <div class="section-copy">
+                <h2>Familia</h2>
+                <p>Información de padre, madre o tutores.</p>
+              </div>
+            </header>
+
+            <div class="family-row-list">
+              <button
+                v-for="group in familyGroups"
+                :key="group.title"
+                class="family-edit-row"
+                type="button"
+                :data-diagnostic-action="`editar-seccion-${group.title.toLowerCase()}`"
+                @click="openGroup(group)"
+              >
+                <span class="family-row-icon" aria-hidden="true"><FamilyPersonasIcon name="person" /></span>
+                <span class="family-row-copy">
+                  <strong>{{ familyRowTitle(group) }}</strong>
+                  <small>{{ familyRowSubtitle(group) }}</small>
+                </span>
+                <span class="row-action-mark" aria-hidden="true">
+                  <FamilyPersonasIcon name="edit" />
+                  <b>Actualizar</b>
+                </span>
+              </button>
+            </div>
+          </article>
+
+          <article v-if="addressGroup" class="student-info-card compact-info-card">
+            <span class="section-avatar address" aria-hidden="true">
+              <FamilyPersonasIcon name="home" />
+            </span>
+            <div class="section-copy">
+              <h2>Dirección</h2>
+              <p>Información de domicilio.</p>
+            </div>
+            <button class="section-action" type="button" data-diagnostic-action="editar-seccion-direccion" @click="openGroup(addressGroup)">
+              <FamilyPersonasIcon name="edit" />
+              Actualizar
+            </button>
+          </article>
+        </section>
       </section>
 
       <FamilyPersonasModal
@@ -106,7 +182,6 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
-import { normalizeAttendanceText } from '~/utils/attendance'
 import { displayMatricula } from '~/utils/matricula'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
 
@@ -115,12 +190,7 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 type FieldKey = keyof PersonasStudentEditable
 type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
-type GrupoManifestEntry = { grupoValue: string; normalizedKey?: string; previewGreenPng?: string }
-type GrupoManifest = { fallbackGrupo: string; aliases?: Record<string, string>; entries: GrupoManifestEntry[] }
-
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000 })
-const { data: grupoManifest } = useFetch<GrupoManifest>('/grupo-icons/manifest.json', { key: 'student-data-grupo-icons', server: false })
-
 const form = reactive<Record<string, string>>({})
 const original = ref<Record<string, string>>({})
 const fieldErrors = reactive<Record<string, string>>({})
@@ -134,9 +204,20 @@ const theme = computed(() => resolvePersonasTheme({
   plantel: profile.value?.readonly.plantel,
   nivelEdu: profile.value?.readonly.nivel
 }))
-const academicSummary = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / ') || 'Datos escolares')
-const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? `Actualizado ${formatDate(profile.value.meta.updatedAt)}` : 'Actualización familiar')
-const grupoSigil = computed(() => resolveGrupoSigil(profile.value?.readonly.grupo))
+const studentPhoto = computed(() => String(profile.value?.readonly.foto || '').trim())
+const studentDisplayName = computed(() => compactText([
+  profile.value?.editable.nombres,
+  profile.value?.editable.apellido_paterno,
+  profile.value?.editable.apellido_materno
+]) || 'Alumno')
+const studentInitials = computed(() => studentDisplayName.value.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'A')
+const academicNivel = computed(() => String(profile.value?.readonly.nivel || theme.value.shortLabel || 'Nivel').trim())
+const academicGrado = computed(() => String(profile.value?.readonly.grado || 'Grado').trim())
+const academicGrupo = computed(() => String(profile.value?.readonly.grupo || 'Grupo').trim())
+const academicMatricula = computed(() => profile.value?.readonly.matricula ? displayMatricula(profile.value.readonly.matricula) : '—')
+const academicPlantel = computed(() => String(profile.value?.readonly.plantel || '—').trim())
+const academicSummary = computed(() => [academicNivel.value, academicGrado.value, academicGrupo.value].filter(Boolean).join(' / ') || 'Datos escolares')
+const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? formatDate(profile.value.meta.updatedAt) : 'Sin fecha reciente')
 
 const groups: FieldGroup[] = [
   {
@@ -207,6 +288,11 @@ const allowedFieldSet = computed(() => new Set(profile.value?.allowedFields || [
 const visibleGroups = computed<FieldGroup[]>(() => groups
   .map((group) => ({ ...group, fields: group.fields.filter((field) => allowedFieldSet.value.has(field.key)) }))
   .filter((group) => group.fields.length))
+const identityGroup = computed(() => visibleGroups.value.find((group) => group.eyebrow === 'Alumno') || null)
+const fatherGroup = computed(() => visibleGroups.value.find((group) => group.title === 'Padre') || null)
+const motherGroup = computed(() => visibleGroups.value.find((group) => group.title === 'Madre') || null)
+const familyGroups = computed(() => [fatherGroup.value, motherGroup.value].filter(Boolean) as FieldGroup[])
+const addressGroup = computed(() => visibleGroups.value.find((group) => group.title === 'Dirección') || null)
 const changedFields = computed(() => activeGroup.value?.fields.filter((field) => String(form[field.key] || '') !== String(original.value[field.key] || '')) || [])
 const hasActiveGroupChanges = computed(() => changedFields.value.length > 0)
 
@@ -215,6 +301,23 @@ watch(profile, (value) => {
   for (const field of value.allowedFields) form[field] = formatEditableValue(value.editable[field as FieldKey])
   original.value = Object.fromEntries(value.allowedFields.map((field) => [field, form[field] || '']))
 }, { immediate: true })
+
+function compactText(parts: Array<unknown>) {
+  return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ')
+}
+
+function familyRowTitle(group: FieldGroup) {
+  if (group.title === 'Padre') return 'Padre / Tutor'
+  if (group.title === 'Madre') return 'Madre / Tutora'
+  return group.title
+}
+
+function familyRowSubtitle(group: FieldGroup) {
+  const keys = group.title === 'Padre'
+    ? ['nombre_padre', 'apellido_paterno_padre', 'apellido_materno_padre']
+    : ['nombre_madre', 'apellido_paterno_madre', 'apellido_materno_madre']
+  return compactText(keys.map((key) => form[key])) || (group.title === 'Padre' ? 'Padre' : 'Madre')
+}
 
 function formatEditableValue(value: unknown) {
   const source = String(value ?? '')
@@ -226,44 +329,6 @@ function formatDate(value: string) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return 'recientemente'
   return parsed.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function repairMojibake(value: string) {
-  if (!/[\u00c3\u00c2\ufffd\u0080-\u009f]/.test(value)) return value
-  try {
-    const bytes = Uint8Array.from(Array.from(value, (char) => char.charCodeAt(0) & 0xff))
-    return new TextDecoder('utf-8').decode(bytes)
-  } catch {
-    return value
-  }
-}
-
-function resolveGrupoSigil(grupo?: string | null) {
-  const manifest = grupoManifest.value
-  const fallbackLabel = repairMojibake(manifest?.fallbackGrupo || 'Grupo')
-  if (!manifest?.entries?.length) return { label: String(grupo || fallbackLabel).trim() || fallbackLabel, image: '' }
-
-  const normalizedAliases = Object.fromEntries(Object.entries(manifest.aliases || {})
-    .map(([key, value]) => [normalizeAttendanceText(repairMojibake(key)), normalizeAttendanceText(repairMojibake(value))]))
-  const requested = normalizeAttendanceText(repairMojibake(String(grupo || '')))
-  const alias = requested ? (normalizedAliases[requested] || requested) : ''
-  const entries = manifest.entries.map((entry) => ({
-    ...entry,
-    grupoValue: repairMojibake(entry.grupoValue),
-    normalizedKey: normalizeAttendanceText(repairMojibake(entry.normalizedKey || entry.grupoValue))
-  }))
-  const exact = entries.find((entry) => entry.normalizedKey === alias || normalizeAttendanceText(entry.grupoValue) === alias)
-  const fallback = entries.find((entry) => entry.normalizedKey === normalizeAttendanceText(fallbackLabel)) || entries[0]
-  const entry = exact || fallback
-
-  return {
-    label: entry?.grupoValue || fallbackLabel,
-    image: entry?.previewGreenPng ? `/grupo-icons/${entry.previewGreenPng}` : ''
-  }
-}
-
-function completedFields(group: FieldGroup) {
-  return group.fields.filter((field) => String(form[field.key] || '').trim()).length
 }
 
 function openGroup(group: FieldGroup) {
@@ -336,85 +401,729 @@ async function saveActiveGroup() {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; }
-.pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
-.loading-row, .notice { border: 1px solid var(--pa-border); color: var(--pa-gray); font-weight: 600; }
-.notice { background: var(--pa-soft); border-radius: 12px; margin: 0; padding: 10px 12px; }
-.readonly-card {
+.student-data-screen {
+  display: grid;
+  gap: clamp(14px, 1.8vw, 20px);
+  max-width: 1050px;
+}
+
+.student-data-header {
   align-items: center;
-  background:
-    radial-gradient(circle at 90% 12%, rgba(var(--pa-primary-rgb), .14), transparent 32%),
-    #fff;
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(130px, 170px);
-  overflow: hidden;
+  grid-template-columns: 64px minmax(0, 1fr);
+  padding: 2px 0 4px;
 }
-.readonly-card header h2 { margin-bottom: 0; }
-.school-summary { display: grid; gap: 8px; min-width: 0; }
-.school-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+
+.student-title-icon,
+.section-avatar,
+.fact-icon,
+.family-row-icon {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.student-title-icon {
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .16), rgba(var(--pa-primary-rgb), .06));
+  border: 1px solid var(--pa-border);
+  border-radius: 16px;
+  color: var(--pa-primary);
+  height: 58px;
+  width: 58px;
+}
+
+.student-title-icon :deep(.pa-icon) {
+  height: 1.75rem;
+  width: 1.75rem;
+}
+
+.student-title-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.student-title-copy h1 {
+  color: #14284d;
+  font-size: clamp(1.9rem, 3vw, 2.75rem);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
   margin: 0;
 }
-.school-facts div {
+
+.student-title-copy p {
+  color: #536079;
+  font-size: .96rem;
+  font-weight: 650;
+}
+
+.student-title-copy strong,
+.student-update-line strong {
+  color: #1c70c9;
+  font-weight: 850;
+}
+
+.student-update-line {
+  align-items: center;
+  color: #65728b;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: .9rem;
+  font-weight: 750;
+  gap: 7px;
+}
+
+.student-update-line :deep(.pa-icon) {
+  color: #314766;
+  height: 1rem;
+  width: 1rem;
+}
+
+.student-profile-card,
+.student-info-card {
+  background:
+    radial-gradient(circle at 96% 8%, rgba(var(--pa-primary-rgb), .08), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(250, 253, 255, .9));
+  border: 1px solid rgba(213, 228, 239, .96);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(27, 62, 96, .08);
+}
+
+.student-profile-card {
+  align-items: center;
+  display: grid;
+  gap: clamp(18px, 2.4vw, 28px);
+  grid-template-columns: 146px minmax(0, 1fr);
+  padding: clamp(18px, 2.7vw, 30px);
+}
+
+.student-portrait {
+  align-self: start;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .9), rgba(var(--pa-primary-rgb), .12));
+  border: 1px solid rgba(199, 220, 236, .92);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, .72), 0 12px 26px rgba(46, 86, 130, .14);
+  color: var(--pa-primary);
+  display: grid;
+  height: 124px;
+  place-items: center;
+  position: relative;
+  width: 124px;
+}
+
+.student-portrait :deep(img),
+.student-portrait :deep(.processed-photo),
+.student-portrait :deep(.personas-processed-photo),
+.student-portrait :deep(picture) {
+  border-radius: 999px;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.student-portrait strong {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.student-verified {
+  align-items: center;
+  background: #62a637;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 8px 16px rgba(44, 118, 46, .2);
+  color: #fff;
+  display: inline-flex;
+  font-size: .85rem;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  width: 28px;
+}
+
+.student-profile-main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.student-profile-title h2 {
+  color: #14284d;
+  font-size: clamp(1.35rem, 2.1vw, 1.85rem);
+  letter-spacing: -0.025em;
+  margin: 0 0 4px;
+}
+
+.student-profile-title p {
+  color: #1d71cc;
+  font-size: clamp(.98rem, 1.45vw, 1.2rem);
+  font-weight: 800;
+}
+
+.academic-facts {
+  border: 1px solid rgba(211, 226, 239, .92);
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  overflow: hidden;
+}
+
+.academic-fact {
+  align-items: center;
+  background: rgba(255, 255, 255, .72);
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-height: 82px;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.academic-fact:not(:nth-child(3n)) {
+  border-right: 1px solid rgba(211, 226, 239, .92);
+}
+
+.academic-fact:nth-child(n + 4) {
+  border-top: 1px solid rgba(211, 226, 239, .92);
+}
+
+.academic-fact dt,
+.academic-fact dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.academic-fact dt {
+  align-self: end;
+  color: #647089;
+  font-size: .73rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.academic-fact dd {
+  align-self: start;
+  color: #1c3158;
+  font-size: .95rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fact-icon {
+  color: #2f7bd2;
+  grid-row: span 2;
+  height: 38px;
+  width: 38px;
+}
+
+.fact-icon :deep(.pa-icon) {
+  height: 1.8rem;
+  width: 1.8rem;
+}
+
+.group-fact {
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), rgba(255, 255, 255, .76));
+}
+
+.group-token {
+  align-items: center;
+  background: #ffffff;
+  border: 3px solid rgba(var(--pa-primary-rgb), .34);
+  border-radius: 14px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 900;
+  grid-row: span 2;
+  height: 48px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 58px;
+  padding: 0 12px;
+}
+
+.compact-fact {
+  grid-column: span 1;
+  grid-template-columns: 1fr;
+  min-height: 66px;
+}
+
+.compact-fact dt {
+  align-self: end;
+}
+
+.compact-fact dd {
+  color: #1d71cc;
+}
+
+.student-section-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.student-info-card {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  min-height: 110px;
+  padding: clamp(16px, 2.2vw, 24px);
+}
+
+.compact-info-card {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+
+.family-info-card {
+  align-items: stretch;
+  grid-template-columns: 1fr;
+}
+
+.card-section-head {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.section-avatar {
+  border-radius: 999px;
+  height: 64px;
+  width: 64px;
+}
+
+.section-avatar :deep(.pa-icon) {
+  height: 1.75rem;
+  width: 1.75rem;
+}
+
+.section-avatar.health {
+  background: #e9f2ff;
+  color: #2a75c7;
+}
+
+.section-avatar.family {
+  background: rgba(var(--pa-primary-rgb), .12);
+  color: var(--pa-primary);
+}
+
+.section-avatar.address {
+  background: #e9f2ff;
+  color: #2a75c7;
+}
+
+.section-copy {
+  min-width: 0;
+}
+
+.section-copy h2 {
+  color: #14284d;
+  font-size: clamp(1.22rem, 1.8vw, 1.55rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.section-copy p {
+  color: #617089;
+  font-size: .92rem;
+  font-weight: 600;
+}
+
+.section-action,
+.row-action-mark {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(48, 123, 210, .48);
+  border-radius: 12px;
+  color: #1d71cc;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 8px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 20px;
+  white-space: nowrap;
+}
+
+.section-action {
+  cursor: pointer;
+}
+
+.section-action:hover,
+.family-edit-row:hover .row-action-mark {
+  border-color: #1d71cc;
+  box-shadow: 0 10px 20px rgba(48, 123, 210, .12);
+  transform: translateY(-1px);
+}
+
+.family-row-list {
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(211, 226, 239, .9);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.family-edit-row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  min-height: 74px;
+  padding: 12px 14px 12px 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.family-edit-row + .family-edit-row {
+  border-top: 1px solid rgba(211, 226, 239, .9);
+}
+
+.family-row-icon {
+  color: var(--pa-primary);
+  height: 38px;
+  width: 38px;
+}
+
+.family-row-icon :deep(.pa-icon) {
+  height: 1.55rem;
+  width: 1.55rem;
+}
+
+.family-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.family-row-copy strong {
+  color: #1c3158;
+  font-size: .98rem;
+  font-weight: 900;
+}
+
+.family-row-copy small {
+  color: #65728b;
+  font-size: .84rem;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-action-mark b {
+  font-size: .92rem;
+}
+
+.pa-primary {
+  background: var(--pa-primary);
+  color: var(--pa-contrast);
+}
+
+.loading-row,
+.notice {
+  border: 1px solid var(--pa-border);
+  color: var(--pa-gray);
+  font-weight: 600;
+}
+
+.notice {
   background: var(--pa-soft);
+  border-radius: 12px;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.student-form {
+  display: grid;
+  gap: 10px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field-error {
+  color: #8d2d25;
+  font-weight: 600;
+}
+
+.input[aria-invalid='true'],
+.select[aria-invalid='true'] {
+  border-color: #d35a4e;
+  box-shadow: 0 0 0 3px rgba(211, 90, 78, .12);
+}
+
+.change-summary {
+  align-items: center;
+  background: #fff;
   border: 1px solid var(--pa-border);
   border-radius: 10px;
   color: var(--pa-primary);
   display: inline-flex;
+  font-weight: 600;
   gap: 6px;
-  padding: 6px 9px;
+  justify-self: start;
+  padding: 8px 12px;
 }
-.school-facts dt,
-.school-facts dd {
-  font-size: .76rem;
-  font-weight: 800;
-  margin: 0;
-}
-.school-facts dt {
-  color: var(--pa-muted);
-  text-transform: uppercase;
-}
-.grupo-sigil-card {
+
+.save-row {
   align-items: center;
-  background: rgba(255, 255, 255, .78);
+  background: var(--pa-soft);
   border: 1px solid var(--pa-border);
   border-radius: 14px;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
   padding: 10px;
-  text-align: center;
 }
-.grupo-sigil-card img {
-  max-height: 78px;
-  max-width: 100%;
-  object-fit: contain;
+
+@media (max-width: 1020px) {
+  .student-data-screen {
+    max-width: none;
+  }
+
+  .student-profile-card {
+    grid-template-columns: 118px minmax(0, 1fr);
+  }
+
+  .student-portrait {
+    height: 104px;
+    width: 104px;
+  }
 }
-.grupo-sigil-card span {
-  color: var(--pa-muted);
-  display: block;
-  font-size: .72rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+
+@media (max-width: 760px) {
+  .student-data-screen {
+    gap: 12px;
+  }
+
+  .student-data-header {
+    gap: 10px;
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .student-title-icon {
+    border-radius: 12px;
+    height: 38px;
+    width: 38px;
+  }
+
+  .student-title-icon :deep(.pa-icon) {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+
+  .student-title-copy h1 {
+    font-size: 1.55rem;
+  }
+
+  .student-title-copy p,
+  .student-update-line {
+    font-size: .77rem;
+  }
+
+  .student-profile-card {
+    align-items: start;
+    border-radius: 15px;
+    gap: 12px;
+    grid-template-columns: 70px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .student-portrait {
+    box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .72), 0 10px 20px rgba(46, 86, 130, .12);
+    height: 66px;
+    width: 66px;
+  }
+
+  .student-portrait strong {
+    font-size: 1.15rem;
+  }
+
+  .student-verified {
+    border-width: 2px;
+    font-size: .64rem;
+    height: 19px;
+    right: -1px;
+    top: 0;
+    width: 19px;
+  }
+
+  .student-profile-main {
+    gap: 10px;
+  }
+
+  .student-profile-title h2 {
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .student-profile-title p {
+    font-size: .78rem;
+  }
+
+  .academic-facts {
+    border-radius: 12px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .academic-fact {
+    gap: 3px;
+    grid-template-columns: 1fr;
+    justify-items: start;
+    min-height: 68px;
+    padding: 10px;
+  }
+
+  .academic-fact:not(:nth-child(3n)) {
+    border-right: 1px solid rgba(211, 226, 239, .92);
+  }
+
+  .academic-fact:nth-child(n + 4) {
+    border-top: 1px solid rgba(211, 226, 239, .92);
+  }
+
+  .academic-fact dt {
+    font-size: .62rem;
+  }
+
+  .academic-fact dd {
+    font-size: .72rem;
+  }
+
+  .fact-icon {
+    height: 24px;
+    width: 24px;
+  }
+
+  .fact-icon :deep(.pa-icon) {
+    height: 1.1rem;
+    width: 1.1rem;
+  }
+
+  .group-token {
+    border-width: 2px;
+    border-radius: 999px;
+    font-size: .86rem;
+    height: 30px;
+    min-width: 30px;
+    padding: 0 8px;
+  }
+
+  .compact-info-card,
+  .card-section-head {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+  }
+
+  .student-info-card {
+    border-radius: 15px;
+    gap: 10px;
+    min-height: 76px;
+    padding: 12px;
+  }
+
+  .card-section-head {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .section-avatar {
+    height: 42px;
+    width: 42px;
+  }
+
+  .section-avatar :deep(.pa-icon) {
+    height: 1.2rem;
+    width: 1.2rem;
+  }
+
+  .section-copy h2 {
+    font-size: 1rem;
+    margin-bottom: 2px;
+  }
+
+  .section-copy p {
+    font-size: .72rem;
+    line-height: 1.25;
+  }
+
+  .section-action {
+    border-radius: 10px;
+    min-height: 38px;
+    padding: 0 10px;
+  }
+
+  .section-action :deep(.pa-icon) {
+    height: 1rem;
+    width: 1rem;
+  }
+
+  .section-action {
+    font-size: 0;
+  }
+
+  .family-edit-row {
+    gap: 10px;
+    grid-template-columns: 34px minmax(0, 1fr) 38px;
+    min-height: 62px;
+    padding: 10px;
+  }
+
+  .family-row-icon {
+    height: 32px;
+    width: 32px;
+  }
+
+  .family-row-copy strong {
+    font-size: .86rem;
+  }
+
+  .family-row-copy small {
+    font-size: .7rem;
+  }
+
+  .row-action-mark {
+    border-radius: 10px;
+    min-height: 36px;
+    padding: 0;
+    width: 36px;
+  }
+
+  .row-action-mark b {
+    display: none;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
-.grupo-sigil-card strong {
-  color: var(--pa-primary);
-  letter-spacing: .06em;
-  text-transform: uppercase;
+
+@media (max-width: 430px) {
+  .academic-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compact-fact {
+    min-height: 58px;
+  }
+
+  .academic-fact {
+    padding: 8px;
+  }
 }
-.data-section-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.data-section-card { align-items: end; border-radius: 14px; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; }
-.data-section-card h2, .data-section-card p { margin-bottom: 0; }
-.data-section-card p:not(.eyebrow) { color: var(--pa-muted); font-weight: 600; }
-.student-form { display: grid; gap: 10px; }
-.form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.field-error { color: #8d2d25; font-weight: 600; }
-.input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: #d35a4e; box-shadow: 0 0 0 3px rgba(211, 90, 78, .12); }
-.change-summary { align-items: center; background: #fff; border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-primary); display: inline-flex; font-weight: 600; gap: 6px; justify-self: start; padding: 8px 12px; }
-.save-row { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 14px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px; }
-@media (max-width: 760px) { .section-hero, .readonly-card, .data-section-grid, .data-section-card, .form-grid { grid-template-columns: 1fr; } .grupo-sigil-card { grid-template-columns: 82px minmax(0, 1fr); justify-items: start; text-align: left; } .grupo-sigil-card img { max-height: 82px; } }
 </style>
