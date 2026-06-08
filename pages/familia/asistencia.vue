@@ -1,21 +1,39 @@
 <template>
-  <FamilyPersonasAutorizadasShell title="Asistencia">
+  <FamilyPersonasAutorizadasShell title="Asistencia y accesos">
     <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-bitacora">
       <header class="attendance-hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Bitácora de asistencia y accesos</p>
-          <h1>Asistencia</h1>
-          <p class="cycle-line">{{ currentCycleLabel }}</p>
+        <div class="student-heading">
+          <div class="student-avatar" :data-has-photo="Boolean(selectedChildPhoto)">
+            <FamilyPersonasProcessedPhoto
+              v-if="selectedChildPhoto"
+              :src="selectedChildPhoto"
+              namespace="attendance-student-photo"
+              :alt="data?.selectedChild.name || 'Alumno'"
+              loading="eager"
+            />
+            <span v-else>{{ data ? initials(data.selectedChild.name) : 'JB' }}</span>
+          </div>
+          <div class="student-title-copy">
+            <p class="eyebrow">Asistencia y accesos</p>
+            <h1>{{ data?.selectedChild.name || 'Asistencia y accesos' }}</h1>
+            <p>{{ selectedChildLine || displayMatricula(data?.selectedChild.matricula || '') }}</p>
+          </div>
         </div>
 
-        <div v-if="data" class="hero-context" aria-label="Contexto del alumno">
-          <div class="student-chip">
-            <span>{{ initials(data.selectedChild.name) }}</span>
-            <div>
-              <strong>{{ data.selectedChild.name }}</strong>
-              <small>{{ selectedChildLine || displayMatricula(data.selectedChild.matricula) }}</small>
-            </div>
-          </div>
+        <div v-if="data" class="hero-controls" aria-label="Contexto de asistencia">
+          <button class="cycle-pill" type="button" data-testid="attendance-open-cycles" @click="cycleDrawerOpen = true">
+            <FamilyPersonasIcon name="calendar" />
+            <span>
+              <small>Este ciclo escolar</small>
+              <strong>{{ selectedSchoolYearLabel }}</strong>
+            </span>
+            <FamilyPersonasIcon name="chevron" />
+          </button>
+
+          <button class="btn btn-secondary history-button" type="button" @click="cycleDrawerOpen = true">
+            Ciclos anteriores
+            <FamilyPersonasIcon name="arrow" />
+          </button>
 
           <label v-if="children.length > 1" class="compact-select">
             <span>Alumno</span>
@@ -25,11 +43,6 @@
               </option>
             </select>
           </label>
-
-          <button class="btn btn-secondary cycle-button" type="button" data-testid="attendance-open-cycles" @click="cycleDrawerOpen = true">
-            <FamilyPersonasIcon name="calendar" />
-            Ciclos anteriores
-          </button>
         </div>
       </header>
 
@@ -54,107 +67,170 @@
         </section>
 
         <template v-else>
-          <section class="attendance-first-view" aria-label="Resumen visual del expediente">
+          <section class="priority-grid" aria-label="Estado principal de asistencia">
             <article class="attention-card card" :data-state="missingAbsences.length ? 'pending' : 'clear'">
-              <header class="section-head compact">
-                <div>
-                  <p class="eyebrow">Requiere tu atención</p>
-                  <h2>{{ missingAbsences.length ? 'Ausencias sin motivo' : 'Todo en orden' }}</h2>
-                </div>
-                <span v-if="missingAbsences.length" class="count-badge danger">{{ missingAbsences.length }}</span>
-                <span v-else class="count-badge clear"><FamilyPersonasIcon name="check" /></span>
-              </header>
-
-              <div v-if="attentionAbsences.length" class="attention-list">
-                <article v-for="absence in attentionAbsences" :key="absence.id" class="attention-row">
-                  <div class="date-tile mini">
-                    <strong>{{ dayNumber(absence.date) }}</strong>
-                    <span>{{ monthShort(absence.date) }}</span>
-                  </div>
-                  <div class="attention-copy">
-                    <strong>{{ dateLabel(absence.date) }}</strong>
-                    <span>Ausencia sin motivo</span>
-                  </div>
-                  <button class="btn btn-secondary mini-action" type="button" @click="openMotivo(absence)">
-                    {{ failedAbsenceId === absence.id ? 'Reintentar' : 'Agregar motivo' }}
-                  </button>
-                </article>
+              <div class="attention-icon"><FamilyPersonasIcon :name="missingAbsences.length ? 'alert' : 'check'" /></div>
+              <div class="attention-copy-main">
+                <p class="eyebrow">{{ missingAbsences.length ? 'Por atender' : 'Todo en orden' }}</p>
+                <h2>{{ missingAbsences.length ? `${missingAbsences.length} ausencia${missingAbsences.length === 1 ? '' : 's'} por justificar` : 'Sin ausencias pendientes' }}</h2>
+                <p>{{ firstPendingAbsence ? `Próxima: ${dateLabel(firstPendingAbsence.date)}` : 'No hay motivos pendientes para este ciclo.' }}</p>
+                <button v-if="firstPendingAbsence" class="btn btn-primary attention-primary" type="button" @click="openMotivo(firstPendingAbsence)">
+                  <FamilyPersonasIcon name="edit" />
+                  Agregar motivo
+                </button>
               </div>
 
-              <p v-else class="quiet-copy">No hay motivos pendientes para este ciclo.</p>
+              <div v-if="attentionAbsences.length" class="attention-preview-list">
+                <button
+                  v-for="absence in attentionAbsences"
+                  :key="absence.id"
+                  class="attention-preview-row"
+                  type="button"
+                  @click="openMotivo(absence)"
+                >
+                  <span class="date-tile soft-danger">
+                    <strong>{{ dayNumber(absence.date) }}</strong>
+                    <small>{{ monthShort(absence.date) }}</small>
+                  </span>
+                  <span>
+                    <strong>Ausencia</strong>
+                    <small>{{ absence.motivo || 'sin motivo' }}</small>
+                  </span>
+                  <FamilyPersonasIcon name="chevron" />
+                </button>
+              </div>
             </article>
 
-            <article class="context-strip card">
-              <div>
-                <p class="eyebrow">Alumno</p>
-                <strong>{{ data.selectedChild.name }}</strong>
-                <span>{{ displayMatricula(data.selectedChild.matricula) }}</span>
+            <article class="latest-access-card card" :data-state="latestAccessAction ? 'ready' : 'empty'">
+              <div class="latest-copy">
+                <div class="latest-title-row">
+                  <span class="latest-icon"><FamilyPersonasIcon name="check" /></span>
+                  <div>
+                    <p class="eyebrow">Último acceso registrado</p>
+                    <h2 v-if="latestAccessAction">{{ latestAccessAction.label }} · {{ dateLabel(latestAccessAction.action.date) }}</h2>
+                    <h2 v-else>Sin accesos recientes</h2>
+                  </div>
+                </div>
+
+                <template v-if="latestAccessAction">
+                  <strong class="latest-time">{{ latestAccessAction.action.time }}</strong>
+                  <div class="latest-person">
+                    <span class="person-thumb">
+                      <FamilyPersonasProcessedPhoto
+                        v-if="latestAccessAction.action.person.photoUrl"
+                        :src="latestAccessAction.action.person.photoUrl"
+                        :auto-process="false"
+                        :namespace="`latest-access-${latestAccessAction.action.id}`"
+                        :alt="latestAccessAction.action.person.name"
+                      />
+                      <FamilyPersonasIcon v-else name="person" />
+                    </span>
+                    <span>
+                      <strong>{{ latestAccessAction.action.person.name }}</strong>
+                      <small>{{ latestAccessAction.action.person.parentesco || 'Persona autorizada' }}</small>
+                    </span>
+                  </div>
+                </template>
+
+                <p v-else class="quiet-copy">Cuando haya entrada o salida registrada, aparecerá aquí.</p>
               </div>
-              <div>
-                <p class="eyebrow">Grupo</p>
-                <strong>{{ [data.selectedChild.grado, data.selectedChild.grupo].filter(Boolean).join(' / ') || 'Sin grupo' }}</strong>
-                <span>{{ data.selectedChild.nivelEdu || data.selectedChild.plantelCode || 'Husky Pass' }}</span>
-              </div>
-              <div>
-                <p class="eyebrow">Registro</p>
-                <strong>{{ accessSummary.days }} día{{ accessSummary.days === 1 ? '' : 's' }}</strong>
-                <span>con entrada o salida</span>
-              </div>
+
+              <button
+                v-if="latestAccessAction"
+                class="btn btn-secondary latest-action"
+                type="button"
+                @click="openAccessDetail(latestAccessAction.action, latestAccessAction.label)"
+              >
+                Ver registro
+              </button>
             </article>
           </section>
 
           <section class="bitacora-panel card" data-product-panel="attendance-day-records">
-            <header class="section-head bitacora-head">
+            <header class="bitacora-header">
               <div>
                 <p class="eyebrow">Bitácora reciente</p>
-                <h2>Asistencia y accesos por día</h2>
+                <h2>Asistencia y accesos</h2>
               </div>
-              <span class="records-range">{{ currentCycleLabel }}</span>
+              <div class="legend-row" aria-label="Estados de asistencia">
+                <span><i class="legend-dot clear"><FamilyPersonasIcon name="check" /></i>Presente</span>
+                <span><i class="legend-dot tardy"><FamilyPersonasIcon name="clock" /></i>Retardo</span>
+                <span><i class="legend-dot missing"><FamilyPersonasIcon name="alert" /></i>Ausencia</span>
+                <span><i class="legend-dot entry"><FamilyPersonasIcon name="entry" /></i>Entrada</span>
+                <span><i class="legend-dot exit"><FamilyPersonasIcon name="exit" /></i>Salida</span>
+              </div>
+              <button class="btn btn-secondary full-history-button" type="button" @click="historyExpanded = !historyExpanded">
+                {{ historyExpanded ? 'Ocultar historial' : 'Ver historial completo' }}
+                <FamilyPersonasIcon name="arrow" />
+              </button>
             </header>
 
-            <div v-if="recentRecords.length" class="day-card-grid">
-              <article v-for="record in recentRecords" :key="record.key" class="day-card" :data-state="record.tone">
-                <header class="day-card-head">
-                  <div class="date-stack">
-                    <span>{{ weekDay(record.date) }}</span>
-                    <strong>{{ dayNumber(record.date) }}</strong>
-                    <small>{{ monthShort(record.date) }}</small>
-                  </div>
-                  <div class="day-status">
-                    <span class="status-chip" :class="record.tone">{{ record.label }}</span>
-                    <small>{{ dateLabel(record.date) }}</small>
-                  </div>
-                </header>
+            <div v-if="recentRecords.length" class="bitacora-list">
+              <article v-for="record in recentRecords" :key="record.key" class="bitacora-row" :data-state="record.tone">
+                <div class="date-tile" :class="record.tone">
+                  <span>{{ weekDay(record.date) }}</span>
+                  <strong>{{ dayNumber(record.date) }}</strong>
+                  <small>{{ monthShort(record.date) }}</small>
+                </div>
 
-                <div class="day-events">
-                  <div v-if="record.absence" class="event-line absence" :data-state="record.absence.motivoState">
-                    <FamilyPersonasIcon name="alert" />
-                    <div>
-                      <strong>{{ record.absence.motivoState === 'provided' ? 'Motivo registrado' : 'Ausencia sin motivo' }}</strong>
-                      <span>{{ record.absence.motivo || 'Pendiente de motivo' }}</span>
-                    </div>
-                    <button class="text-action" type="button" @click="openMotivo(record.absence)">
-                      {{ record.absence.motivo ? 'Actualizar' : 'Agregar motivo' }}
-                    </button>
-                  </div>
+                <div class="status-cell">
+                  <span class="status-symbol" :class="record.tone">
+                    <FamilyPersonasIcon :name="record.tone === 'tardy' || record.tone === 'combined' ? 'clock' : record.tone === 'missing' || record.tone === 'provided' ? 'alert' : 'check'" />
+                  </span>
+                  <span>
+                    <strong>{{ record.label }}</strong>
+                    <small>{{ recordStatusDetail(record) }}</small>
+                  </span>
+                </div>
 
-                  <div v-for="tardy in record.tardies" :key="`${tardy.id}-${tardy.time}`" class="event-line tardy">
-                    <FamilyPersonasIcon name="clock" />
-                    <div>
-                      <strong>Retardo · {{ tardy.minutesLate }} min</strong>
-                      <span>Entrada {{ tardy.time }} / límite {{ tardy.thresholdTime }}</span>
-                    </div>
-                  </div>
+                <div class="access-cell" :data-state="record.accessDay?.entrada ? 'ready' : 'missing'">
+                  <span class="access-symbol entry"><FamilyPersonasIcon name="entry" /></span>
+                  <span>
+                    <strong>Entrada</strong>
+                    <small>{{ record.accessDay?.entrada?.time || 'Sin registro' }}</small>
+                  </span>
+                </div>
 
-                  <div v-if="record.accessDay" class="access-pair">
-                    <AccessActionChip label="Entrada" :action="record.accessDay.entrada" compact :on-open="openAccessDetail" />
-                    <AccessActionChip label="Salida" :action="record.accessDay.salida" compact :on-open="openAccessDetail" />
-                  </div>
+                <div class="access-cell" :data-state="record.accessDay?.salida ? 'ready' : 'missing'">
+                  <span class="access-symbol exit"><FamilyPersonasIcon name="exit" /></span>
+                  <span>
+                    <strong>Salida</strong>
+                    <small>{{ record.accessDay?.salida?.time || 'Sin registro' }}</small>
+                  </span>
+                </div>
 
-                  <p v-if="record.status === 'clear' && !record.accessDay" class="present-line">
-                    <FamilyPersonasIcon name="check" />
-                    Día presente sin incidencias registradas.
-                  </p>
+                <div v-if="primaryAccessAction(record)" class="pickup-cell">
+                  <span class="person-thumb">
+                    <FamilyPersonasProcessedPhoto
+                      v-if="primaryAccessAction(record)?.person.photoUrl"
+                      :src="primaryAccessAction(record)?.person.photoUrl || ''"
+                      :auto-process="false"
+                      :namespace="`record-access-${primaryAccessAction(record)?.id}`"
+                      :alt="primaryAccessAction(record)?.person.name || 'Persona autorizada'"
+                    />
+                    <FamilyPersonasIcon v-else name="person" />
+                  </span>
+                  <span>
+                    <strong>{{ primaryAccessAction(record)?.person.name }}</strong>
+                    <small>{{ primaryAccessAction(record)?.person.parentesco || 'Persona autorizada' }}</small>
+                  </span>
+                </div>
+                <div v-else class="pickup-cell empty">
+                  <span class="person-thumb"><FamilyPersonasIcon name="person" /></span>
+                  <span>
+                    <strong>Sin persona</strong>
+                    <small>Sin acceso registrado</small>
+                  </span>
+                </div>
+
+                <div class="row-actions">
+                  <button v-if="record.absence" class="btn btn-secondary row-action danger" type="button" @click="openMotivo(record.absence)">
+                    <FamilyPersonasIcon name="edit" />
+                    {{ record.absence.motivo ? 'Actualizar motivo' : 'Agregar motivo' }}
+                  </button>
+                  <button v-else-if="primaryAccessAction(record)" class="btn btn-secondary row-action" type="button" @click="openPrimaryAccessDetail(record)">
+                    Ver registro
+                  </button>
                 </div>
               </article>
             </div>
@@ -162,10 +238,10 @@
             <p v-else class="quiet-empty">Sin registros recientes para este ciclo.</p>
           </section>
 
-          <section class="history-panel card" data-product-panel="attendance-history">
+          <section v-if="historyExpanded" class="history-panel card" data-product-panel="attendance-history">
             <header class="section-head history-head">
               <div>
-                <p class="eyebrow">Historial</p>
+                <p class="eyebrow">Historial completo</p>
                 <h2>{{ filteredRecords.length }} registro{{ filteredRecords.length === 1 ? '' : 's' }}</h2>
               </div>
             </header>
@@ -207,7 +283,7 @@
 
             <div v-if="visibleRecords.length" class="history-list">
               <article v-for="record in visibleRecords" :key="`history-${record.key}`" class="history-row" :data-state="record.tone">
-                <div class="date-tile mini">
+                <div class="date-tile mini" :class="record.tone">
                   <strong>{{ dayNumber(record.date) }}</strong>
                   <span>{{ monthShort(record.date) }}</span>
                 </div>
@@ -248,7 +324,7 @@
       >
         <form class="motivo-form" data-testid="motivo-form" @submit.prevent="saveMotivo">
           <div class="modal-record-summary">
-            <div class="date-tile mini">
+            <div class="date-tile mini soft-danger">
               <strong>{{ dayNumber(editingAbsence.date) }}</strong>
               <span>{{ monthShort(editingAbsence.date) }}</span>
             </div>
@@ -343,8 +419,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, reactive, ref, resolveComponent, watch } from 'vue'
-import type { PropType } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type {
   AttendanceAbsenceRecord,
@@ -378,44 +453,6 @@ interface SelectedAccessAction {
   label: string
 }
 
-const AccessActionChip = defineComponent({
-  props: {
-    label: { type: String, required: true },
-    action: { type: Object as () => AccessHistoryAction | null | undefined, default: null },
-    compact: { type: Boolean, default: false },
-    onOpen: { type: Function as PropType<(action: AccessHistoryAction, label: string) => void>, default: undefined }
-  },
-  setup(props) {
-    return () => h('div', { class: ['access-chip', props.action?.type || 'missing', props.compact ? 'compact' : ''] }, [
-      h('span', { class: 'access-chip-label' }, props.label),
-      props.action
-        ? h('div', { class: 'access-chip-body' }, [
-            h('div', { class: 'access-photo-shell' }, props.action.person.photoUrl
-              ? h(resolveComponent('FamilyPersonasProcessedPhoto'), {
-                  src: props.action.person.photoUrl,
-                  autoProcess: false,
-                  namespace: `access-${props.action.person.id}-${props.action.id}`,
-                  alt: props.action.person.name
-                })
-              : h(resolveComponent('FamilyPersonasIcon'), { name: props.action.type === 'entrada' ? 'entry' : 'exit' })),
-            h('div', { class: 'access-chip-copy' }, [
-              h('strong', props.action.time),
-              h('span', props.action.person.name),
-              h('small', props.action.person.parentesco || 'Persona autorizada')
-            ]),
-            props.onOpen
-              ? h('button', {
-                  class: 'access-chip-detail',
-                  type: 'button',
-                  onClick: () => props.action && props.onOpen?.(props.action, props.label)
-                }, 'Ver registro')
-              : null
-          ])
-        : h('div', { class: 'access-chip-empty' }, 'Sin registro')
-    ])
-  }
-})
-
 const route = useRoute()
 const router = useRouter()
 const selectedMatricula = ref(normalizeMatricula(queryValue(route.query.matricula)))
@@ -423,6 +460,7 @@ const selectedSchoolYear = ref(queryValue(route.query.schoolYear))
 const editingAbsence = ref<AttendanceAbsenceRecord | null>(null)
 const selectedAccessAction = ref<SelectedAccessAction | null>(null)
 const cycleDrawerOpen = ref(false)
+const historyExpanded = ref(false)
 const motivoDraft = ref('')
 const motivoError = ref('')
 const notice = ref('')
@@ -449,13 +487,23 @@ const { data, pending, error: loadError, refresh } = useFetch<ParentAttendanceRe
 
 const children = computed(() => data.value?.children || [])
 const schoolYears = computed(() => data.value?.schoolYears || [])
-const accessSummary = computed(() => data.value?.accessHistory.summary || { days: 0, entries: 0, exits: 0, uniquePeople: 0, students: 0 })
 const absences = computed(() => [...(data.value?.absences || [])].sort((a, b) => b.date.localeCompare(a.date)))
 const missingAbsences = computed(() => absences.value.filter((absence) => absence.motivoState === 'missing'))
 const attentionAbsences = computed(() => missingAbsences.value.slice(0, 2))
 const selectedChildLine = computed(() => [data.value?.selectedChild.nivelEdu, data.value?.selectedChild.grado, data.value?.selectedChild.grupo].filter(Boolean).join(' / ') || data.value?.selectedChild.plantelCode || '')
 const selectedSchoolYearLabel = computed(() => data.value?.selectedSchoolYear.label || selectedSchoolYear.value || '')
-const currentCycleLabel = computed(() => selectedSchoolYearLabel.value ? `Este ciclo escolar · ${selectedSchoolYearLabel.value}` : 'Este ciclo escolar')
+
+const selectedChildPhoto = computed(() => String(data.value?.selectedChild.foto || '').trim())
+const latestAccessAction = computed<SelectedAccessAction | null>(() => {
+  const actions = (data.value?.accessHistory.days || [])
+    .flatMap((day) => day.actions || [])
+    .slice()
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+  const action = actions[0]
+  if (!action) return null
+  return { action, label: accessLabel(action) }
+})
+const firstPendingAbsence = computed(() => missingAbsences.value[0] || null)
 const emptyState = computed(() => Boolean(data.value && !data.value.calendarDays.length && !data.value.accessHistory.days.length && data.value.status !== 'unavailable'))
 const pageState = computed(() => {
   if (loadError.value) return 'error'
@@ -670,6 +718,30 @@ function openAccessDetail(action: AccessHistoryAction, label: string) {
   selectedAccessAction.value = { action, label }
 }
 
+function accessLabel(action: AccessHistoryAction) {
+  return action.type === 'salida' ? 'Salida' : 'Entrada'
+}
+
+function primaryAccessAction(record: ExpRecord) {
+  return record.accessDay?.salida || record.accessDay?.entrada || null
+}
+
+function openPrimaryAccessDetail(record: ExpRecord) {
+  const action = primaryAccessAction(record)
+  if (!action) return
+  openAccessDetail(action, accessLabel(action))
+}
+
+function recordStatusDetail(record: ExpRecord) {
+  if (record.absence) return record.absence.motivo || 'Sin motivo'
+  if (record.tardies.length) {
+    const tardy = record.tardies[0]
+    return `${tardy.minutesLate} min tarde${tardy.time ? ` · Entrada ${tardy.time}` : ''}`
+  }
+  if (record.accessDay && record.status === 'access-only') return 'Acceso registrado'
+  return 'Sin incidencias'
+}
+
 async function saveMotivo() {
   if (!editingAbsence.value || !data.value) return
   savingMotivo.value = true
@@ -703,42 +775,94 @@ async function saveMotivo() {
 <style scoped>
 .attendance-page {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   margin: 0 auto;
   max-width: 1320px;
   width: 100%;
 }
 
 .attendance-page .btn-primary {
-  background: var(--pa-primary);
-  color: var(--pa-contrast);
+  background: #dc2626;
+  border-color: #dc2626;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.18);
+  color: #fff;
+}
+
+.attendance-page .btn-secondary {
+  background: #fff;
+  border-color: #cfdce9;
+  color: #0f6b52;
 }
 
 .attendance-hero {
   align-items: center;
   display: grid;
-  gap: 14px;
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 4px 2px 8px;
+  padding: 2px 0 4px;
 }
 
-.hero-copy {
+.student-heading {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 72px minmax(0, 1fr);
   min-width: 0;
 }
 
-.hero-copy h1 {
-  color: #15233d;
-  font-size: clamp(1.8rem, 3vw, 2.55rem);
-  line-height: 1;
-  margin-bottom: 4px;
+.student-avatar,
+.person-thumb,
+.access-detail-photo {
+  overflow: hidden;
+  position: relative;
 }
 
-.cycle-line {
-  color: #7d8797;
-  font-weight: 800;
+.student-avatar {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #eef6ff;
+  border: 1px solid #d4e2f0;
+  border-radius: 999px;
+  box-shadow: 0 12px 26px rgba(23, 42, 74, 0.12);
+  color: var(--pa-primary);
+  display: grid;
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  font-weight: 900;
+  justify-items: center;
 }
 
-.hero-context {
+.student-avatar :deep(.processed-photo),
+.student-avatar :deep(img),
+.person-thumb :deep(.processed-photo),
+.person-thumb :deep(img) {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.student-title-copy {
+  min-width: 0;
+}
+
+.student-title-copy h1 {
+  color: #141c2f;
+  font-family: var(--font-title);
+  font-size: clamp(1.72rem, 3vw, 2.4rem);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  margin: 0 0 4px;
+}
+
+.student-title-copy p:not(.eyebrow) {
+  color: #697386;
+  font-size: 1rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.hero-controls {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
@@ -746,78 +870,64 @@ async function saveMotivo() {
   justify-content: flex-end;
 }
 
-.student-chip {
+.cycle-pill {
   align-items: center;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(198, 215, 235, 0.78);
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(33, 72, 122, 0.08);
+  background: linear-gradient(180deg, #fff, #f8fffb);
+  border: 1px solid #bdd8ce;
+  border-radius: 14px;
+  color: #0f6b52;
+  cursor: pointer;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 38px minmax(0, 1fr);
-  min-width: min(280px, 100%);
-  padding: 7px 12px 7px 7px;
+  gap: 11px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 64px;
+  min-width: 250px;
+  padding: 10px 14px;
+  text-align: left;
 }
 
-.student-chip > span {
-  align-items: center;
-  aspect-ratio: 1;
-  background: #eef6ff;
-  border: 1px solid #cfe3ff;
-  border-radius: 999px;
-  color: var(--pa-primary);
-  display: inline-flex;
-  font-weight: 900;
-  justify-content: center;
+.cycle-pill > .pa-icon:first-child {
+  height: 1.45rem;
+  width: 1.45rem;
 }
 
-.student-chip div {
+.cycle-pill span {
   display: grid;
   gap: 1px;
-  min-width: 0;
 }
 
-.student-chip strong,
-.student-chip small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.student-chip small,
+.cycle-pill small,
+.eyebrow,
 .compact-select span,
-.context-strip span,
-.records-range,
-.quiet-copy,
-.quiet-empty,
-.access-chip-copy small,
-.access-chip-copy span,
-.history-events,
-.counter {
+.control-label span {
   color: #6f7b8f;
-  font-size: 0.78rem;
-  font-weight: 750;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.cycle-pill strong {
+  color: #0f7a5b;
+  font-family: var(--font-title);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.history-button {
+  min-height: 52px;
+  white-space: nowrap;
 }
 
 .compact-select {
   display: grid;
-  gap: 4px;
-  min-width: 190px;
-}
-
-.compact-select span,
-.control-label span {
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.cycle-button {
-  white-space: nowrap;
+  gap: 5px;
+  min-width: 200px;
 }
 
 .loading-layout {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -825,7 +935,7 @@ async function saveMotivo() {
   animation: pulse 1.1s ease-in-out infinite alternate;
   background: linear-gradient(90deg, rgba(255,255,255,.7), rgba(var(--pa-primary-rgb), .14), rgba(255,255,255,.7));
   border: 1px solid var(--pa-border);
-  border-radius: 18px;
+  border-radius: 20px;
   min-height: 132px;
 }
 
@@ -873,33 +983,438 @@ async function saveMotivo() {
   justify-content: center;
 }
 
-.empty-mark :deep(.pa-icon) {
-  height: 1.8rem;
-  width: 1.8rem;
-}
-
-.attendance-first-view {
+.priority-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1.22fr) minmax(360px, 0.78fr);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
 }
 
 .attention-card,
-.context-strip,
+.latest-access-card,
 .bitacora-panel,
 .history-panel {
-  border-color: rgba(206, 219, 236, 0.82);
-  box-shadow: 0 16px 42px rgba(27, 55, 96, 0.08);
+  border: 1px solid rgba(204, 217, 230, 0.92);
+  border-radius: 18px;
+  box-shadow: 0 16px 38px rgba(27, 55, 96, 0.08);
 }
 
 .attention-card {
-  background: linear-gradient(135deg, #fff, #fffafa);
+  align-items: center;
+  background: linear-gradient(135deg, #fff, #fff7f6);
+  border-color: #efb9b4;
   display: grid;
+  gap: 18px;
+  grid-template-columns: 58px minmax(0, 0.85fr) minmax(280px, 1fr);
+}
+
+.attention-card[data-state='clear'] {
+  background: linear-gradient(135deg, #fff, #f8fff9);
+  border-color: #c9e5d0;
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.attention-icon,
+.latest-icon,
+.status-symbol,
+.legend-dot,
+.access-symbol {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.attention-icon {
+  background: #fff0ee;
+  color: #dc2626;
+  height: 52px;
+  width: 52px;
+}
+
+.attention-card[data-state='clear'] .attention-icon {
+  background: #ecf8ef;
+  color: #168048;
+}
+
+.attention-copy-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attention-copy-main h2,
+.latest-copy h2,
+.bitacora-header h2,
+.history-head h2 {
+  color: #151d31;
+  font-family: var(--font-title);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.attention-copy-main h2 {
+  font-size: clamp(1.18rem, 2vw, 1.55rem);
+}
+
+.attention-copy-main p:not(.eyebrow),
+.quiet-copy,
+.quiet-empty {
+  color: #687386;
+  font-weight: 750;
+  margin: 0;
+}
+
+.attention-primary {
+  justify-self: start;
+  min-height: 42px;
+}
+
+.attention-preview-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attention-preview-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #eed7d4;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.06);
+  color: #161f33;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  min-height: 66px;
+  padding: 7px 10px;
+  text-align: left;
+}
+
+.attention-preview-row span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.attention-preview-row small {
+  color: #6f7b8f;
+  font-weight: 800;
+}
+
+.latest-access-card {
+  align-items: center;
+  background: linear-gradient(135deg, #fff, #f4fff9);
+  border-color: #bdded1;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.latest-copy {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.latest-title-row {
+  align-items: center;
+  display: flex;
   gap: 12px;
 }
 
-.attention-card[data-state='pending'] {
-  border-color: #f3c9c1;
+.latest-icon {
+  background: #e6f6ec;
+  color: #198754;
+  flex: 0 0 auto;
+  height: 52px;
+  width: 52px;
+}
+
+.latest-copy h2 {
+  color: #0f6b52;
+  font-size: 1rem;
+}
+
+.latest-time {
+  color: #151d31;
+  font-family: var(--font-title);
+  font-size: 2rem;
+  line-height: .95;
+}
+
+.latest-person,
+.pickup-cell {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.person-thumb {
+  aspect-ratio: 1;
+  background: #eef6ff;
+  border: 1px solid #cfe0f0;
+  border-radius: 999px;
+  color: var(--pa-primary);
+  display: grid;
+  height: 44px;
+  place-items: center;
+  width: 44px;
+}
+
+.latest-person span:last-child,
+.pickup-cell span:last-child {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.latest-person strong,
+.pickup-cell strong,
+.status-cell strong,
+.access-cell strong {
+  color: #151d31;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latest-person small,
+.pickup-cell small,
+.status-cell small,
+.access-cell small,
+.history-events,
+.counter {
+  color: #687386;
+  font-size: 0.82rem;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latest-action {
+  align-self: end;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.bitacora-panel,
+.history-panel {
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  gap: 12px;
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.bitacora-header {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
+}
+
+.bitacora-header h2 {
+  font-size: clamp(1.28rem, 2vw, 1.65rem);
+}
+
+.legend-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 13px;
+  justify-content: center;
+}
+
+.legend-row span {
+  align-items: center;
+  color: #2f3c52;
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  height: 28px;
+  width: 28px;
+}
+
+.legend-dot.clear,
+.status-symbol.clear,
+.status-symbol.access {
+  background: #e8f7ed;
+  color: #15814b;
+}
+
+.legend-dot.tardy,
+.status-symbol.tardy,
+.status-symbol.combined {
+  background: #fff1df;
+  color: #f08a00;
+}
+
+.legend-dot.missing,
+.status-symbol.missing,
+.status-symbol.provided {
+  background: #ffe9e9;
+  color: #dc2626;
+}
+
+.legend-dot.entry,
+.access-symbol.entry {
+  background: #eaf1ff;
+  color: #1d5dcc;
+}
+
+.legend-dot.exit,
+.access-symbol.exit {
+  background: #f2eaff;
+  color: #7a3ee6;
+}
+
+.full-history-button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.bitacora-list {
+  display: grid;
+  gap: 0;
+}
+
+.bitacora-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dce5ee;
+  border-radius: 15px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 72px minmax(150px, .95fr) minmax(110px, .55fr) minmax(110px, .55fr) minmax(170px, .9fr) auto;
+  min-height: 82px;
+  padding: 7px 14px 7px 8px;
+}
+
+.bitacora-row + .bitacora-row {
+  margin-top: -1px;
+}
+
+.bitacora-row[data-state='missing'],
+.bitacora-row[data-state='provided'],
+.bitacora-row[data-state='combined'] {
+  border-color: #f1cac6;
+}
+
+.date-tile {
+  align-content: center;
+  background: #eef8f2;
+  border: 1px solid #cce7d6;
+  border-radius: 12px;
+  color: #168048;
+  display: grid;
+  justify-items: center;
+  min-height: 62px;
+  text-transform: uppercase;
+}
+
+.date-tile.missing,
+.date-tile.provided,
+.date-tile.combined,
+.date-tile.soft-danger {
+  background: #fff0f0;
+  border-color: #ffd4d4;
+  color: #dc2626;
+}
+
+.date-tile.tardy {
+  background: #fff4e6;
+  border-color: #ffd9a1;
+  color: #f08a00;
+}
+
+.date-tile.access {
+  background: #eef5ff;
+  border-color: #d4e3ff;
+  color: #1d5dcc;
+}
+
+.date-tile strong {
+  font-family: var(--font-title);
+  font-size: 1.6rem;
+  line-height: .9;
+}
+
+.date-tile span,
+.date-tile small {
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .06em;
+}
+
+.date-tile.mini {
+  border-radius: 12px;
+  min-height: 46px;
+}
+
+.date-tile.mini strong {
+  font-size: 1.15rem;
+}
+
+.status-cell,
+.access-cell {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.status-symbol,
+.access-symbol {
+  height: 34px;
+  width: 34px;
+}
+
+.access-cell {
+  border-left: 1px solid #dce5ee;
+  padding-left: 14px;
+}
+
+.access-cell[data-state='missing'] {
+  opacity: .82;
+}
+
+.access-cell[data-state='missing'] strong,
+.access-cell[data-state='missing'] small {
+  color: #7e8796;
+}
+
+.pickup-cell {
+  border-left: 1px solid #dce5ee;
+  padding-left: 14px;
+}
+
+.pickup-cell.empty {
+  opacity: .72;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.row-action {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.row-action.danger {
+  border-color: #efb9b4;
+  color: #dc2626;
 }
 
 .section-head {
@@ -910,195 +1425,11 @@ async function saveMotivo() {
   min-width: 0;
 }
 
-.section-head.compact h2,
-.section-head h2,
-.section-head p {
-  margin-bottom: 0;
-}
-
-.section-head h2 {
-  color: #172542;
-  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
-}
-
-.count-badge,
 .status-chip,
 .filter-chip,
 .records-range {
   border-radius: 999px;
   font-weight: 900;
-}
-
-.count-badge {
-  align-items: center;
-  background: #fff1ef;
-  border: 1px solid #ffcfc6;
-  color: #c84134;
-  display: inline-flex;
-  justify-content: center;
-  min-height: 28px;
-  min-width: 28px;
-  padding: 4px 8px;
-}
-
-.count-badge.clear {
-  background: #edf8ee;
-  border-color: #c8e8cc;
-  color: #4c9a45;
-}
-
-.attention-list {
-  display: grid;
-  gap: 8px;
-}
-
-.attention-row {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid #f1d6cf;
-  border-radius: 16px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
-  padding: 8px;
-}
-
-.attention-copy,
-.context-strip > div,
-.history-main,
-.access-chip-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.attention-copy span {
-  color: #c84134;
-  font-size: 0.76rem;
-  font-weight: 900;
-}
-
-.mini-action {
-  min-height: 32px;
-  padding: 0 11px;
-}
-
-.context-strip {
-  align-content: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.context-strip > div {
-  background: linear-gradient(180deg, #fff, #f8fbff);
-  border: 1px solid #d9e5f5;
-  border-radius: 16px;
-  padding: 12px;
-}
-
-.context-strip strong {
-  color: #172542;
-  font-family: var(--font-title);
-  font-size: 1.05rem;
-}
-
-.bitacora-panel,
-.history-panel {
-  display: grid;
-  gap: 12px;
-  padding: clamp(13px, 2vw, 18px);
-}
-
-.bitacora-head,
-.history-head {
-  align-items: end;
-}
-
-.day-card-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.day-card {
-  background: linear-gradient(180deg, #fff, #fbfdff);
-  border: 1px solid #dfe7f2;
-  border-radius: 20px;
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  padding: 12px;
-}
-
-.day-card[data-state='missing'],
-.day-card[data-state='combined'] {
-  background: linear-gradient(180deg, #fff, #fff9f7);
-  border-color: #f0cdc6;
-}
-
-.day-card[data-state='tardy'] {
-  background: linear-gradient(180deg, #fff, #fffaf4);
-  border-color: #f3d7b5;
-}
-
-.day-card-head {
-  align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 56px minmax(0, 1fr);
-}
-
-.date-stack,
-.date-tile {
-  align-content: center;
-  background: #eef6ff;
-  border: 1px solid #cfe3ff;
-  border-radius: 16px;
-  color: var(--pa-primary);
-  display: grid;
-  justify-items: center;
-  min-height: 62px;
-  text-transform: uppercase;
-}
-
-.date-stack strong,
-.date-tile strong {
-  font-family: var(--font-title);
-  font-size: 1.45rem;
-  line-height: 0.9;
-}
-
-.date-stack span,
-.date-stack small,
-.date-tile span {
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.date-tile.mini {
-  border-radius: 14px;
-  min-height: 46px;
-}
-
-.date-tile.mini strong {
-  font-size: 1.15rem;
-}
-
-.day-status {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.day-status small {
-  color: #7d8797;
-  font-size: 0.76rem;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .status-chip {
@@ -1127,167 +1458,6 @@ async function saveMotivo() {
 .status-chip.access {
   background: #edf6ff;
   color: #2066aa;
-}
-
-.day-events {
-  display: grid;
-  gap: 8px;
-}
-
-.event-line {
-  align-items: center;
-  border-radius: 15px;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  padding: 9px 10px;
-}
-
-.event-line.absence {
-  background: #fff6f4;
-  border: 1px solid #f2d8d1;
-  color: #bf3d31;
-}
-
-.event-line.tardy {
-  background: #fff8ed;
-  border: 1px solid #f2d9b7;
-  color: #bf6a10;
-  grid-template-columns: 28px minmax(0, 1fr);
-}
-
-.event-line strong,
-.event-line span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.event-line span {
-  color: #7d695f;
-  font-size: 0.78rem;
-  font-weight: 750;
-}
-
-.text-action {
-  background: transparent;
-  border: 0;
-  color: var(--pa-primary);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 900;
-  padding: 0;
-  white-space: nowrap;
-}
-
-.access-pair {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.access-chip {
-  --access-photo-size: 42px;
-  background: #fff;
-  border: 1px solid #dfe7f2;
-  border-radius: 16px;
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-  padding: 10px;
-}
-
-.access-chip.compact {
-  --access-photo-size: 34px;
-  padding: 8px;
-}
-
-.access-chip.entrada {
-  border-color: rgba(61, 145, 102, 0.28);
-}
-
-.access-chip.salida {
-  border-color: rgba(64, 105, 172, 0.28);
-}
-
-.access-chip-label {
-  color: #718093;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.access-chip-body {
-  align-items: center;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: var(--access-photo-size) minmax(0, 1fr);
-}
-
-.access-photo-shell {
-  aspect-ratio: 1;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 999px;
-  display: grid;
-  height: var(--access-photo-size);
-  max-height: var(--access-photo-size);
-  max-width: var(--access-photo-size);
-  overflow: hidden;
-  place-items: center;
-  width: var(--access-photo-size);
-}
-
-.access-photo-shell :deep(.processed-photo),
-.access-photo-shell :deep(img) {
-  display: block;
-  height: 100%;
-  max-height: 100%;
-  max-width: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-
-.access-chip-copy strong,
-.access-chip-copy span,
-.access-chip-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.access-chip-copy strong {
-  color: #172542;
-}
-
-.access-chip-detail {
-  background: transparent;
-  border: 0;
-  color: var(--pa-primary);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.74rem;
-  font-weight: 900;
-  grid-column: 2;
-  justify-self: start;
-  padding: 0;
-}
-
-.access-chip-empty,
-.present-line {
-  align-items: center;
-  background: #f7faff;
-  border: 1px solid #dfe7f2;
-  border-radius: 14px;
-  color: #718093;
-  display: flex;
-  font-size: 0.78rem;
-  font-weight: 800;
-  gap: 7px;
-  padding: 9px 10px;
 }
 
 .record-filters {
@@ -1349,6 +1519,12 @@ async function saveMotivo() {
   border-color: #f0cdc6;
 }
 
+.history-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .history-title {
   align-items: center;
   display: flex;
@@ -1365,11 +1541,6 @@ async function saveMotivo() {
 .history-events span:not(:last-child)::after {
   content: '·';
   margin-left: 7px;
-}
-
-.row-action {
-  min-height: 34px;
-  white-space: nowrap;
 }
 
 .show-more {
@@ -1471,7 +1642,6 @@ async function saveMotivo() {
   border-radius: 20px;
   display: grid;
   min-height: 230px;
-  overflow: hidden;
   place-items: center;
 }
 
@@ -1517,43 +1687,122 @@ async function saveMotivo() {
 }
 
 @media (max-width: 1180px) {
-  .day-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .attendance-first-view,
+  .priority-grid,
+  .attendance-hero,
   .record-filters {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 860px) {
-  .attendance-page {
-    gap: 10px;
+  .hero-controls {
+    justify-content: flex-start;
   }
 
-  .attendance-hero,
-  .history-row,
-  .access-detail-modal {
+  .bitacora-header {
     grid-template-columns: 1fr;
   }
 
-  .hero-context {
-    justify-content: stretch;
+  .legend-row {
+    justify-content: flex-start;
   }
 
-  .student-chip,
-  .compact-select,
-  .cycle-button {
+  .bitacora-row {
+    grid-template-columns: 70px minmax(130px, 1fr) minmax(110px, .7fr) minmax(110px, .7fr);
+  }
+
+  .pickup-cell,
+  .row-actions {
+    grid-column: 2 / -1;
+  }
+
+  .pickup-cell {
+    border-left: 0;
+    border-top: 1px solid #dce5ee;
+    padding-left: 0;
+    padding-top: 10px;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .attendance-page {
+    gap: 12px;
+  }
+
+  .student-heading {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .student-avatar {
+    font-size: .95rem;
+  }
+
+  .student-title-copy h1 {
+    font-size: clamp(1.4rem, 8vw, 1.86rem);
+  }
+
+  .hero-controls,
+  .cycle-pill,
+  .history-button,
+  .compact-select {
     width: 100%;
   }
 
-  .context-strip {
+  .attention-card,
+  .latest-access-card {
     grid-template-columns: 1fr;
   }
 
-  .day-card-grid {
-    grid-template-columns: 1fr;
+  .attention-card {
+    align-items: start;
+  }
+
+  .attention-icon,
+  .latest-icon {
+    height: 44px;
+    width: 44px;
+  }
+
+  .attention-preview-row {
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+  }
+
+  .bitacora-row {
+    gap: 10px;
+    grid-template-columns: 58px minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .access-cell,
+  .pickup-cell,
+  .row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .access-cell,
+  .pickup-cell {
+    border-left: 0;
+    border-top: 1px solid #e3ebf2;
+    padding-left: 0;
+    padding-top: 9px;
+  }
+
+  .access-cell {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .row-action {
+    width: 100%;
+  }
+
+  .legend-row {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin-right: -4px;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .filter-chips {
@@ -1567,8 +1816,9 @@ async function saveMotivo() {
     flex: 0 0 auto;
   }
 
-  .row-action {
-    justify-self: stretch;
+  .history-row,
+  .access-detail-modal {
+    grid-template-columns: 1fr;
   }
 
   .access-detail-photo {
@@ -1576,50 +1826,18 @@ async function saveMotivo() {
   }
 }
 
-@media (max-width: 560px) {
-  .attendance-hero {
-    padding-top: 0;
-  }
-
-  .hero-copy h1 {
-    font-size: clamp(1.65rem, 9vw, 2.1rem);
-  }
-
-  .attention-row {
-    grid-template-columns: 44px minmax(0, 1fr);
-  }
-
-  .attention-row .mini-action {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-  }
-
+@media (max-width: 480px) {
+  .attendance-page .card,
   .bitacora-panel,
-  .history-panel,
-  .attention-card,
-  .context-strip {
-    border-radius: 18px;
+  .history-panel {
+    border-radius: 16px;
   }
 
-  .day-card {
-    border-radius: 18px;
-    padding: 10px;
+  .attention-preview-row {
+    grid-template-columns: 50px minmax(0, 1fr);
   }
 
-  .access-pair,
-  .event-line {
-    grid-template-columns: 1fr;
-  }
-
-  .event-line {
-    align-items: start;
-  }
-
-  .event-line .text-action {
-    justify-self: start;
-  }
-
-  .history-events span:not(:last-child)::after {
+  .attention-preview-row > .pa-icon {
     display: none;
   }
 

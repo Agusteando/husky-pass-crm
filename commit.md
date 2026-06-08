@@ -1,1 +1,1 @@
-Rediseña asistencia familiar como bitácora visual de asistencia y accesos
+Rediseña la bitácora de asistencia y accesos con una presentación visual, clara y familiar.
