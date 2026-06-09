@@ -185,41 +185,49 @@
 
                 <div class="access-cell" :data-state="record.accessDay?.entrada ? 'ready' : 'missing'">
                   <span class="access-symbol entry"><FamilyPersonasIcon name="entry" /></span>
-                  <span>
+                  <span class="access-copy">
                     <strong>Entrada</strong>
                     <small>{{ record.accessDay?.entrada?.time || 'Sin registro' }}</small>
+                    <span v-if="record.accessDay?.entrada" class="access-person-inline">
+                      <span class="person-thumb mini">
+                        <FamilyPersonasProcessedPhoto
+                          v-if="record.accessDay.entrada.person.photoUrl"
+                          :src="record.accessDay.entrada.person.photoUrl"
+                          :auto-process="false"
+                          :namespace="`record-entry-${record.accessDay.entrada.id}`"
+                          :alt="record.accessDay.entrada.person.name"
+                        />
+                        <FamilyPersonasIcon v-else name="person" />
+                      </span>
+                      <span>
+                        <b>{{ record.accessDay.entrada.person.name }}</b>
+                        <em>{{ record.accessDay.entrada.person.parentesco || 'Persona autorizada' }}</em>
+                      </span>
+                    </span>
                   </span>
                 </div>
 
                 <div class="access-cell" :data-state="record.accessDay?.salida ? 'ready' : 'missing'">
                   <span class="access-symbol exit"><FamilyPersonasIcon name="exit" /></span>
-                  <span>
+                  <span class="access-copy">
                     <strong>Salida</strong>
                     <small>{{ record.accessDay?.salida?.time || 'Sin registro' }}</small>
-                  </span>
-                </div>
-
-                <div v-if="primaryAccessAction(record)" class="pickup-cell">
-                  <span class="person-thumb">
-                    <FamilyPersonasProcessedPhoto
-                      v-if="primaryAccessAction(record)?.person.photoUrl"
-                      :src="primaryAccessAction(record)?.person.photoUrl || ''"
-                      :auto-process="false"
-                      :namespace="`record-access-${primaryAccessAction(record)?.id}`"
-                      :alt="primaryAccessAction(record)?.person.name || 'Persona autorizada'"
-                    />
-                    <FamilyPersonasIcon v-else name="person" />
-                  </span>
-                  <span>
-                    <strong>{{ primaryAccessAction(record)?.person.name }}</strong>
-                    <small>{{ primaryAccessAction(record)?.person.parentesco || 'Persona autorizada' }}</small>
-                  </span>
-                </div>
-                <div v-else class="pickup-cell empty">
-                  <span class="person-thumb"><FamilyPersonasIcon name="person" /></span>
-                  <span>
-                    <strong>Sin persona</strong>
-                    <small>Sin acceso registrado</small>
+                    <span v-if="record.accessDay?.salida" class="access-person-inline">
+                      <span class="person-thumb mini">
+                        <FamilyPersonasProcessedPhoto
+                          v-if="record.accessDay.salida.person.photoUrl"
+                          :src="record.accessDay.salida.person.photoUrl"
+                          :auto-process="false"
+                          :namespace="`record-exit-${record.accessDay.salida.id}`"
+                          :alt="record.accessDay.salida.person.name"
+                        />
+                        <FamilyPersonasIcon v-else name="person" />
+                      </span>
+                      <span>
+                        <b>{{ record.accessDay.salida.person.name }}</b>
+                        <em>{{ record.accessDay.salida.person.parentesco || 'Persona autorizada' }}</em>
+                      </span>
+                    </span>
                   </span>
                 </div>
 
@@ -775,9 +783,9 @@ async function saveMotivo() {
 <style scoped>
 .attendance-page {
   display: grid;
-  gap: 16px;
+  gap: 13px;
   margin: 0 auto;
-  max-width: 1320px;
+  max-width: 1240px;
   width: 100%;
 }
 
@@ -805,8 +813,8 @@ async function saveMotivo() {
 .student-heading {
   align-items: center;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr);
   min-width: 0;
 }
 
@@ -849,7 +857,7 @@ async function saveMotivo() {
 .student-title-copy h1 {
   color: #141c2f;
   font-family: var(--font-title);
-  font-size: clamp(1.72rem, 3vw, 2.4rem);
+  font-size: clamp(1.45rem, 2.4vw, 2.02rem);
   letter-spacing: -0.035em;
   line-height: 1.02;
   margin: 0 0 4px;
@@ -857,7 +865,7 @@ async function saveMotivo() {
 
 .student-title-copy p:not(.eyebrow) {
   color: #697386;
-  font-size: 1rem;
+  font-size: .92rem;
   font-weight: 850;
   margin: 0;
 }
@@ -880,9 +888,9 @@ async function saveMotivo() {
   display: grid;
   gap: 11px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 64px;
-  min-width: 250px;
-  padding: 10px 14px;
+  min-height: 56px;
+  min-width: 230px;
+  padding: 9px 12px;
   text-align: left;
 }
 
@@ -910,12 +918,12 @@ async function saveMotivo() {
 .cycle-pill strong {
   color: #0f7a5b;
   font-family: var(--font-title);
-  font-size: 1.35rem;
+  font-size: 1.18rem;
   line-height: 1;
 }
 
 .history-button {
-  min-height: 52px;
+  min-height: 44px;
   white-space: nowrap;
 }
 
@@ -985,8 +993,8 @@ async function saveMotivo() {
 
 .priority-grid {
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.88fr);
 }
 
 .attention-card,
@@ -994,8 +1002,8 @@ async function saveMotivo() {
 .bitacora-panel,
 .history-panel {
   border: 1px solid rgba(204, 217, 230, 0.92);
-  border-radius: 18px;
-  box-shadow: 0 16px 38px rgba(27, 55, 96, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(27, 55, 96, 0.07);
 }
 
 .attention-card {
@@ -1003,14 +1011,14 @@ async function saveMotivo() {
   background: linear-gradient(135deg, #fff, #fff7f6);
   border-color: #efb9b4;
   display: grid;
-  gap: 18px;
-  grid-template-columns: 58px minmax(0, 0.85fr) minmax(280px, 1fr);
+  gap: 14px;
+  grid-template-columns: 48px minmax(0, 0.82fr) minmax(260px, 1fr);
 }
 
 .attention-card[data-state='clear'] {
   background: linear-gradient(135deg, #fff, #f8fff9);
   border-color: #c9e5d0;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
 }
 
 .attention-icon,
@@ -1027,8 +1035,8 @@ async function saveMotivo() {
 .attention-icon {
   background: #fff0ee;
   color: #dc2626;
-  height: 52px;
-  width: 52px;
+  height: 44px;
+  width: 44px;
 }
 
 .attention-card[data-state='clear'] .attention-icon {
@@ -1085,8 +1093,8 @@ async function saveMotivo() {
   display: grid;
   gap: 12px;
   grid-template-columns: 58px minmax(0, 1fr) auto;
-  min-height: 66px;
-  padding: 7px 10px;
+  min-height: 58px;
+  padding: 6px 9px;
   text-align: left;
 }
 
@@ -1106,7 +1114,7 @@ async function saveMotivo() {
   background: linear-gradient(135deg, #fff, #f4fff9);
   border-color: #bdded1;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
@@ -1126,19 +1134,19 @@ async function saveMotivo() {
   background: #e6f6ec;
   color: #198754;
   flex: 0 0 auto;
-  height: 52px;
-  width: 52px;
+  height: 44px;
+  width: 44px;
 }
 
 .latest-copy h2 {
   color: #0f6b52;
-  font-size: 1rem;
+  font-size: .92rem;
 }
 
 .latest-time {
   color: #151d31;
   font-family: var(--font-title);
-  font-size: 2rem;
+  font-size: 1.65rem;
   line-height: .95;
 }
 
@@ -1188,16 +1196,62 @@ async function saveMotivo() {
 .history-events,
 .counter {
   color: #687386;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 750;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.access-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.access-person-inline {
+  align-items: center;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.person-thumb.mini {
+  height: 28px;
+  width: 28px;
+}
+
+.access-person-inline span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.access-person-inline b,
+.access-person-inline em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.access-person-inline b {
+  color: #172542;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.access-person-inline em {
+  color: #687386;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
 .latest-action {
   align-self: end;
-  min-height: 40px;
+  min-height: 36px;
   white-space: nowrap;
 }
 
@@ -1212,12 +1266,12 @@ async function saveMotivo() {
 .bitacora-header {
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
+  gap: 10px;
+  grid-template-columns: minmax(170px, auto) minmax(0, 1fr) auto;
 }
 
 .bitacora-header h2 {
-  font-size: clamp(1.28rem, 2vw, 1.65rem);
+  font-size: clamp(1.12rem, 1.7vw, 1.42rem);
 }
 
 .legend-row {
@@ -1239,8 +1293,8 @@ async function saveMotivo() {
 }
 
 .legend-dot {
-  height: 28px;
-  width: 28px;
+  height: 24px;
+  width: 24px;
 }
 
 .legend-dot.clear,
@@ -1290,12 +1344,12 @@ async function saveMotivo() {
   align-items: center;
   background: #fff;
   border: 1px solid #dce5ee;
-  border-radius: 15px;
+  border-radius: 14px;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 72px minmax(150px, .95fr) minmax(110px, .55fr) minmax(110px, .55fr) minmax(170px, .9fr) auto;
-  min-height: 82px;
-  padding: 7px 14px 7px 8px;
+  gap: 12px;
+  grid-template-columns: 62px minmax(135px, .78fr) minmax(170px, 1fr) minmax(170px, 1fr) auto;
+  min-height: 72px;
+  padding: 6px 12px 6px 7px;
 }
 
 .bitacora-row + .bitacora-row {
@@ -1316,7 +1370,7 @@ async function saveMotivo() {
   color: #168048;
   display: grid;
   justify-items: center;
-  min-height: 62px;
+  min-height: 54px;
   text-transform: uppercase;
 }
 
@@ -1343,7 +1397,7 @@ async function saveMotivo() {
 
 .date-tile strong {
   font-family: var(--font-title);
-  font-size: 1.6rem;
+  font-size: 1.34rem;
   line-height: .9;
 }
 
@@ -1368,19 +1422,19 @@ async function saveMotivo() {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 32px minmax(0, 1fr);
   min-width: 0;
 }
 
 .status-symbol,
 .access-symbol {
-  height: 34px;
-  width: 34px;
+  height: 30px;
+  width: 30px;
 }
 
 .access-cell {
   border-left: 1px solid #dce5ee;
-  padding-left: 14px;
+  padding-left: 12px;
 }
 
 .access-cell[data-state='missing'] {
@@ -1394,7 +1448,7 @@ async function saveMotivo() {
 
 .pickup-cell {
   border-left: 1px solid #dce5ee;
-  padding-left: 14px;
+  padding-left: 12px;
 }
 
 .pickup-cell.empty {
@@ -1408,7 +1462,7 @@ async function saveMotivo() {
 }
 
 .row-action {
-  min-height: 40px;
+  min-height: 36px;
   white-space: nowrap;
 }
 
@@ -1511,7 +1565,7 @@ async function saveMotivo() {
   display: grid;
   gap: 10px;
   grid-template-columns: 48px minmax(0, 1fr) auto;
-  padding: 9px;
+  padding: 8px;
 }
 
 .history-row[data-state='missing'],
@@ -1706,19 +1760,7 @@ async function saveMotivo() {
   }
 
   .bitacora-row {
-    grid-template-columns: 70px minmax(130px, 1fr) minmax(110px, .7fr) minmax(110px, .7fr);
-  }
-
-  .pickup-cell,
-  .row-actions {
-    grid-column: 2 / -1;
-  }
-
-  .pickup-cell {
-    border-left: 0;
-    border-top: 1px solid #dce5ee;
-    padding-left: 0;
-    padding-top: 10px;
+    grid-template-columns: 62px minmax(120px, .85fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
   }
 
   .row-actions {
@@ -1732,7 +1774,7 @@ async function saveMotivo() {
   }
 
   .student-heading {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 48px minmax(0, 1fr);
   }
 
   .student-avatar {
@@ -1740,7 +1782,7 @@ async function saveMotivo() {
   }
 
   .student-title-copy h1 {
-    font-size: clamp(1.4rem, 8vw, 1.86rem);
+    font-size: clamp(1.28rem, 7vw, 1.62rem);
   }
 
   .hero-controls,
@@ -1770,23 +1812,21 @@ async function saveMotivo() {
   }
 
   .bitacora-row {
-    gap: 10px;
-    grid-template-columns: 58px minmax(0, 1fr);
-    padding: 10px;
+    gap: 9px;
+    grid-template-columns: 50px minmax(0, 1fr);
+    padding: 8px;
   }
 
   .access-cell,
-  .pickup-cell,
   .row-actions {
     grid-column: 1 / -1;
   }
 
-  .access-cell,
-  .pickup-cell {
+  .access-cell {
     border-left: 0;
     border-top: 1px solid #e3ebf2;
     padding-left: 0;
-    padding-top: 9px;
+    padding-top: 8px;
   }
 
   .access-cell {
