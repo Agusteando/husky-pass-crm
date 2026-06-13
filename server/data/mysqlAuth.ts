@@ -3,6 +3,7 @@ import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 

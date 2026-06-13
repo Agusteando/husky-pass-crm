@@ -1,1 +1,1 @@
-Ajusta bitácora de asistencia y accesos con datos completos por día
+Corrige la importación de matrícula en el directorio de usuarios
