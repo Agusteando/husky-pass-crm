@@ -3,6 +3,9 @@ import type { Serialize, Simplify } from "nitropack/types";
 declare module "nitropack/types" {
   type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T
   interface InternalApi {
+    '/api/__dev/password-recovery/latest-preview': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/__dev/password-recovery/latest-preview.get').default>>>>
+    }
     '/api/admin/access-history/export': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/access-history/export.get').default>>>>
     }
@@ -22,6 +25,12 @@ declare module "nitropack/types" {
     '/api/admin/personas-autorizadas/config': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/config.get').default>>>>
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/config.post').default>>>>
+    }
+    '/api/admin/personas-autorizadas/marbete': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/marbete.get').default>>>>
+    }
+    '/api/admin/personas-autorizadas/pass-search': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/pass-search.get').default>>>>
     }
     '/api/admin/personas-autorizadas/readiness': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/readiness.get').default>>>>
@@ -52,6 +61,16 @@ declare module "nitropack/types" {
     }
     '/api/auth/me': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/me.get').default>>>>
+    }
+    '/api/auth/password/change': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/password/change.post').default>>>>
+    }
+    '/api/auth/password/forgot': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/password/forgot.post').default>>>>
+    }
+    '/api/auth/password/reset': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/password/reset.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/password/reset.post').default>>>>
     }
     '/api/daycare/admin/family-accounts': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/family-accounts.get').default>>>>
@@ -94,6 +113,15 @@ declare module "nitropack/types" {
     }
     '/api/daycare/registration/options': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/registration/options.get').default>>>>
+    }
+    '/api/dev/husky-pass/options': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/dev/husky-pass/options.get').default>>>>
+    }
+    '/api/dev/husky-pass/pass': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/dev/husky-pass/pass.get').default>>>>
+    }
+    '/api/dev/husky-pass/photo': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/dev/husky-pass/photo.get').default>>>>
     }
     '/api/family/attendance': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/family/attendance/index.get').default>>>>

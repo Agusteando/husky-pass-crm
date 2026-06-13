@@ -55,5 +55,9 @@ export function familyNavItems(user: AppSessionUser | null | undefined) {
     items.push({ label: 'Asistencia', to: '/familia/asistencia', icon: 'calendar' })
   }
 
+  if (items.length) {
+    items.push({ label: 'Seguridad', to: '/familia/cuenta/seguridad', icon: 'security' })
+  }
+
   return items
 }

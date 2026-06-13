@@ -41,6 +41,7 @@
       title="Foto del alumno"
       eyebrow="Alumno"
       :description="pendingPhotoUrl ? 'Confirma para guardar.' : ''"
+      :theme="theme"
       @close="closePhotoModal"
     >
       <FamilyPersonasImageUpload
@@ -66,6 +67,7 @@
       v-if="currentPhotoModalOpen && currentPhoto"
       title="Foto actual"
       eyebrow="Alumno"
+      :theme="theme"
       @close="currentPhotoModalOpen = false"
     >
       <FamilyPersonasProcessedPhoto class="current-photo-large" :src="currentPhoto" alt="Foto actual del alumno" namespace="pa-student-photo" />

@@ -1,4 +1,8 @@
 declare global {
+  const DEV_HUSKY_PASS_SCENARIOS: typeof import('../../server/utils/devHuskyPassFixtures').DEV_HUSKY_PASS_SCENARIOS
+  const DEV_HUSKY_PASS_VARIANTS: typeof import('../../server/utils/devHuskyPassFixtures').DEV_HUSKY_PASS_VARIANTS
+  const PASSWORD_MAX_LENGTH: typeof import('../../server/utils/passwordPolicy').PASSWORD_MAX_LENGTH
+  const PASSWORD_MIN_LENGTH: typeof import('../../server/utils/passwordPolicy').PASSWORD_MIN_LENGTH
   const SURVEY_NIVEL_OPTIONS: typeof import('../../server/utils/personasConfig').SURVEY_NIVEL_OPTIONS
   const __buildAssetsURL: typeof import('../../node_modules/nuxt/dist/core/runtime/nitro/paths').buildAssetsURL
   const __publicAssetsURL: typeof import('../../node_modules/nuxt/dist/core/runtime/nitro/paths').publicAssetsURL
@@ -13,8 +17,10 @@ declare global {
   const assertAccessHistoryAdmin: typeof import('../../server/utils/authz').assertAccessHistoryAdmin
   const assertDaycareAdmin: typeof import('../../server/utils/authz').assertDaycareAdmin
   const assertDaycareFamily: typeof import('../../server/utils/authz').assertDaycareFamily
+  const assertDevOnly: typeof import('../../server/utils/devOnly').assertDevOnly
   const assertMarbetePdfAssets: typeof import('../../server/utils/marbetePdf').assertMarbetePdfAssets
   const assertMethod: typeof import('../../node_modules/h3').assertMethod
+  const assertPasswordConfirmation: typeof import('../../server/utils/passwordPolicy').assertPasswordConfirmation
   const assertPersonasAutorizadasFamily: typeof import('../../server/utils/authz').assertPersonasAutorizadasFamily
   const assertRateLimit: typeof import('../../server/utils/antibot').assertRateLimit
   const assertRegistrationAntibot: typeof import('../../server/utils/antibot').assertRegistrationAntibot
@@ -23,6 +29,7 @@ declare global {
   const attendanceOne: typeof import('../../server/utils/attendanceMysql').attendanceOne
   const attendanceQuery: typeof import('../../server/utils/attendanceMysql').attendanceQuery
   const attendanceWrite: typeof import('../../server/utils/attendanceMysql').attendanceWrite
+  const buildDevPrintableAuthorizedPerson: typeof import('../../server/utils/devHuskyPassFixtures').buildDevPrintableAuthorizedPerson
   const buildMarbeteRenderValues: typeof import('../../server/utils/marbeteTemplates').buildMarbeteRenderValues
   const cachedEventHandler: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').cachedEventHandler
   const cachedFunction: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').cachedFunction
@@ -58,6 +65,9 @@ declare global {
   const defineWebSocketHandler: typeof import('../../node_modules/h3').defineWebSocketHandler
   const deleteCookie: typeof import('../../node_modules/h3').deleteCookie
   const deriveSipaePlantelFromStudent: typeof import('../../server/utils/sipaePlantel').deriveSipaePlantelFromStudent
+  const devHuskyPassPhotoUrl: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassPhotoUrl
+  const devHuskyPassScenario: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassScenario
+  const devHuskyPassVariant: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassVariant
   const dynamicEventHandler: typeof import('../../node_modules/h3').dynamicEventHandler
   const eventHandler: typeof import('../../node_modules/h3').eventHandler
   const externalUploadFolder: typeof import('../../server/utils/externalUpload').externalUploadFolder
@@ -113,6 +123,8 @@ declare global {
   const listMarbeteTemplates: typeof import('../../server/utils/marbeteTemplates').listMarbeteTemplates
   const logPersonasDiagnostic: typeof import('../../server/utils/personasDiagnostics').logPersonasDiagnostic
   const logPersonasWarning: typeof import('../../server/utils/personasDiagnostics').logPersonasWarning
+  const logSecurityDiagnostic: typeof import('../../server/utils/securityDiagnostics').logSecurityDiagnostic
+  const logSecurityWarning: typeof import('../../server/utils/securityDiagnostics').logSecurityWarning
   const marbeteDownloadName: typeof import('../../server/utils/marbeteTemplates').marbeteDownloadName
   const marbeteTemplateThemes: typeof import('../../server/utils/marbeteTemplates').marbeteTemplateThemes
   const nitroPlugin: typeof import('../../node_modules/nitropack/dist/runtime/internal/plugin').nitroPlugin
@@ -125,6 +137,7 @@ declare global {
   const readBody: typeof import('../../node_modules/h3').readBody
   const readFormData: typeof import('../../node_modules/h3').readFormData
   const readLastAccessActions: typeof import('../../server/utils/personasConfig').readLastAccessActions
+  const readLatestRecoveryEmailPreview: typeof import('../../server/utils/recoveryEmail').readLatestRecoveryEmailPreview
   const readMarbeteTemplateSvg: typeof import('../../server/utils/marbeteTemplates').readMarbeteTemplateSvg
   const readMultipartFormData: typeof import('../../node_modules/h3').readMultipartFormData
   const readPersonasConfig: typeof import('../../server/utils/personasConfig').readPersonasConfig
@@ -143,11 +156,14 @@ declare global {
   const saveMarbeteTemplate: typeof import('../../server/utils/marbeteTemplates').saveMarbeteTemplate
   const savePersonasConfig: typeof import('../../server/utils/personasConfig').savePersonasConfig
   const sealSession: typeof import('../../node_modules/h3').sealSession
+  const securityHash: typeof import('../../server/utils/securityDiagnostics').securityHash
+  const selectDevHuskyPassTemplate: typeof import('../../server/utils/devHuskyPassFixtures').selectDevHuskyPassTemplate
   const selectMarbeteTemplate: typeof import('../../server/utils/marbeteTemplates').selectMarbeteTemplate
   const send: typeof import('../../node_modules/h3').send
   const sendError: typeof import('../../node_modules/h3').sendError
   const sendIterable: typeof import('../../node_modules/h3').sendIterable
   const sendNoContent: typeof import('../../node_modules/h3').sendNoContent
+  const sendPasswordRecoveryEmail: typeof import('../../server/utils/recoveryEmail').sendPasswordRecoveryEmail
   const sendProxy: typeof import('../../node_modules/h3').sendProxy
   const sendRedirect: typeof import('../../node_modules/h3').sendRedirect
   const sendStream: typeof import('../../node_modules/h3').sendStream
@@ -179,6 +195,7 @@ declare global {
   const useRuntimeConfig: typeof import('../../node_modules/nitropack/dist/runtime/internal/config').useRuntimeConfig
   const useSession: typeof import('../../node_modules/h3').useSession
   const useStorage: typeof import('../../node_modules/nitropack/dist/runtime/internal/storage').useStorage
+  const validateFamilyPassword: typeof import('../../server/utils/passwordPolicy').validateFamilyPassword
   const validateMarbeteRequirements: typeof import('../../server/utils/marbeteTemplates').validateMarbeteRequirements
   const verifyCaptchaChallenge: typeof import('../../server/utils/antibot').verifyCaptchaChallenge
   const writeEarlyHints: typeof import('../../node_modules/h3').writeEarlyHints
@@ -186,6 +203,9 @@ declare global {
 }
 // for type re-export
 declare global {
+  // @ts-ignore
+  export type { DevHuskyPassVariant, DevHuskyPassScenario } from '../../server/utils/devHuskyPassFixtures'
+  import('../../server/utils/devHuskyPassFixtures')
   // @ts-ignore
   export type { UploadInputFile, ExternalUploadResult } from '../../server/utils/externalUpload'
   import('../../server/utils/externalUpload')
@@ -216,14 +236,19 @@ export { defineAppConfig } from 'C:/Users/hp/husky-pass-crm/node_modules/nuxt/di
 export { createCaptchaChallenge, verifyCaptchaChallenge, assertRateLimit, assertRegistrationAntibot } from 'C:/Users/hp/husky-pass-crm/server/utils/antibot';
 export { attendanceQuery, attendanceOne, attendanceWrite } from 'C:/Users/hp/husky-pass-crm/server/utils/attendanceMysql';
 export { hasFamilyProductScope, isSuperAdmin, assertDaycareFamily, assertPersonasAutorizadasFamily, assertDaycareAdmin, assertAccessHistoryAdmin, assertUnidadAccess, assertSalaAccess } from 'C:/Users/hp/husky-pass-crm/server/utils/authz';
+export { DEV_HUSKY_PASS_VARIANTS, DEV_HUSKY_PASS_SCENARIOS, devHuskyPassVariant, devHuskyPassScenario, devHuskyPassPhotoUrl, buildDevPrintableAuthorizedPerson, selectDevHuskyPassTemplate } from 'C:/Users/hp/husky-pass-crm/server/utils/devHuskyPassFixtures';
+export { assertDevOnly } from 'C:/Users/hp/husky-pass-crm/server/utils/devOnly';
 export { externalUploadFolder, uploadToExternalService, dataUrlToUploadFile } from 'C:/Users/hp/husky-pass-crm/server/utils/externalUpload';
 export { resolveGrupoSigil } from 'C:/Users/hp/husky-pass-crm/server/utils/grupoIcons';
 export { adminOrigin } from 'C:/Users/hp/husky-pass-crm/server/utils/impersonation';
 export { prepareMarbeteSvgForPdf, assertMarbetePdfAssets, renderMarbetePdf } from 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf';
 export { listMarbeteTemplates, marbeteTemplateThemes, readMarbeteTemplateSvg, selectMarbeteTemplate, saveMarbeteTemplate, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
 export { legacyQuery, legacyOne, legacyWrite, csvToList } from 'C:/Users/hp/husky-pass-crm/server/utils/mysql';
+export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, validateFamilyPassword, assertPasswordConfirmation } from 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy';
 export { SURVEY_NIVEL_OPTIONS, normalizeGoogleFormEmbedUrl, readPersonasConfig, writePersonasConfig, savePersonasConfig, surveyNivelFromStudent, resolveSurveyForStudent, appendAccessActionLog, readLastAccessActions } from 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig';
 export { logPersonasDiagnostic, logPersonasWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics';
+export { sendPasswordRecoveryEmail, readLatestRecoveryEmailPreview } from 'C:/Users/hp/husky-pass-crm/server/utils/recoveryEmail';
+export { securityHash, logSecurityDiagnostic, logSecurityWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/securityDiagnostics';
 export { setAppSession, clearAppSession, getAppSession, requireSession } from 'C:/Users/hp/husky-pass-crm/server/utils/session';
 export { sipaeErrorMessage, sipaeErrorState, fetchSipaeAttendanceDetail, fetchSipaeTardies } from 'C:/Users/hp/husky-pass-crm/server/utils/sipaeAttendance';
 export { resolveSipaePlantel, deriveSipaePlantelFromStudent, plantelMatches } from 'C:/Users/hp/husky-pass-crm/server/utils/sipaePlantel';

@@ -52,7 +52,7 @@
 
           <label class="label">
             Fecha de alta
-            <input v-model="form.fechaP" class="input" type="date" />
+            <input v-model="form.fechaP" class="input readonly-input" type="date" readonly aria-readonly="true" />
           </label>
         </div>
       </div>
@@ -216,6 +216,13 @@ function cancel() {
   color: #b42318;
   font-weight: 600;
   margin-top: 6px;
+}
+
+.readonly-input {
+  background: #f7f8f6;
+  border-color: var(--pa-border, #dce7d0);
+  color: var(--pa-muted, #86888c);
+  cursor: default;
 }
 
 @media (max-width: 820px) {

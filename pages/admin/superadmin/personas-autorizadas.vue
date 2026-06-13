@@ -1,226 +1,227 @@
 <template>
-  <section class="pa-admin stack" data-product-area="superadmin" data-product-screen="personas-readiness">
-    <header class="workspace-head compact-head pa-admin-head">
+  <section class="pass-admin" data-product-area="superadmin" data-product-screen="husky-pass-desk">
+    <header class="workspace-head compact-head pass-head">
       <div>
         <p class="eyebrow">Superadmin</p>
-        <h1>Personas Autorizadas</h1>
-        <p>Revisa familias listas, registros con acción pendiente, marbetes PDF y encuestas por nivel.</p>
+        <h1>Husky Pass</h1>
+        <p>Busca un alumno o persona autorizada, confirma plantilla y genera el PDF correcto.</p>
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
-        <button class="btn btn-primary" type="button" :disabled="pending" data-diagnostic-action="actualizar-readiness" @click="refreshReadiness">
-          {{ isInitialReadinessLoad ? 'Actualizando...' : 'Actualizar' }}
-        </button>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
       </div>
     </header>
 
-    <section v-if="readiness" class="metric-grid">
-      <article><span>Total</span><strong>{{ readiness.metrics.total }}</strong></article>
-      <article class="ok"><span>Listas</span><strong>{{ readiness.metrics.complete }}</strong></article>
-      <article class="warn"><span>Requieren acción</span><strong>{{ readiness.metrics.incomplete }}</strong></article>
-      <article><span>Sin personas</span><strong>{{ readiness.metrics.missingAuthorizedPeople }}</strong></article>
-      <article><span>Datos alumno</span><strong>{{ readiness.metrics.missingRequiredStudentData }}</strong></article>
-      <article><span>Marbete/foto</span><strong>{{ readiness.metrics.missingPrintableReadiness }}</strong></article>
+    <section class="pass-search-strip">
+      <label class="search-box">
+        <span>Buscar</span>
+        <input v-model="search" class="input" type="search" placeholder="Alumno, persona, matricula, correo o ID" data-diagnostic-filter="pass-search" />
+      </label>
+      <label>
+        <span>Plantel</span>
+        <select v-model="selectedPlantel" class="select" data-diagnostic-filter="pass-plantel">
+          <option value="">Todos</option>
+          <option v-for="plantel in passSearch?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Nivel</span>
+        <select v-model="selectedNivel" class="select" data-diagnostic-filter="pass-nivel">
+          <option value="">Todos</option>
+          <option v-for="nivel in passSearch?.niveles || []" :key="nivel" :value="nivel">{{ nivel }}</option>
+        </select>
+      </label>
+      <button class="btn btn-primary" type="button" :disabled="passPending" data-diagnostic-action="pass-refresh" @click="refreshPassSearch">
+        {{ passPending ? 'Actualizando...' : 'Actualizar' }}
+      </button>
     </section>
 
-    <section class="filters-card card">
-      <label class="label">
-        Plantel
-        <select v-model="selectedPlantel" class="select" data-diagnostic-filter="pa-plantel">
-          <option value="">Todos</option>
-          <option v-for="plantel in readiness?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
-        </select>
-      </label>
-      <label class="label">
-        Nivel
-        <select v-model="selectedNivel" class="select" data-diagnostic-filter="pa-nivel">
-          <option value="">Todos</option>
-          <option v-for="nivel in readiness?.niveles || []" :key="nivel" :value="nivel">{{ nivel }}</option>
-        </select>
-      </label>
-      <label class="label">
-        Estado
-        <select v-model="selectedStatus" class="select" data-diagnostic-filter="pa-status">
-          <option value="all">Todos</option>
-          <option value="complete">Listas</option>
-          <option value="incomplete">Requieren acción</option>
-          <option value="missingAuthorizedPeople">Sin personas</option>
-          <option value="missingRequiredStudentData">Datos alumno</option>
-          <option value="missingPrintableReadiness">Marbete</option>
-        </select>
-      </label>
-      <label class="label search-label">
-        Buscar
-        <input v-model="search" class="input" type="search" placeholder="Nombre, matrícula, correo, grupo" data-diagnostic-filter="pa-search" />
-      </label>
-    </section>
+    <p v-if="actionError" class="alert">{{ actionError }}</p>
+    <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
 
-    <p v-if="loadError && !readiness" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
-    <div v-else-if="isInitialReadinessLoad" class="card loading-card" data-product-loading data-state="loading">Cargando estado...</div>
-
-    <section v-else-if="readiness" class="readiness-layout">
-      <article class="card readiness-card" data-product-panel="pa-readiness-table" :data-state="rows.length ? 'content' : 'empty'">
-        <div class="section-head">
+    <section class="pass-layout">
+      <article class="pass-results" data-product-panel="pass-results" :data-state="passState">
+        <header class="section-head">
           <div>
-            <p class="eyebrow">Familias y alumnos</p>
-            <h2>{{ rows.length }} familias</h2>
+            <p class="eyebrow">Resultados</p>
+            <h2>{{ passRows.length }} registros</h2>
           </div>
-          <span class="muted">Datos reales de users, alumno_pa, personas_autorizadas y plantillas</span>
-        </div>
+          <span class="muted">{{ passPending ? 'Consultando...' : 'Datos reales PA' }}</span>
+        </header>
 
-        <div v-if="rows.length" class="readiness-list">
-          <article
-            v-for="row in rows"
-            :key="row.userId"
-            class="readiness-row"
-            :class="row.status"
+        <div v-if="passPending && !passRows.length" class="loading-row" data-state="loading">Cargando Husky Pass...</div>
+        <p v-else-if="passError" class="alert">No fue posible cargar candidatos.</p>
+        <EmptyState v-else-if="!passRows.length" title="Sin resultados" description="Busca por nombre, matricula, correo o ID de persona autorizada." />
+
+        <div v-else class="result-list">
+          <button
+            v-for="row in passRows"
+            :key="`${row.personId}-${row.userId}`"
+            class="result-row"
+            :class="{ selected: selectedPass?.personId === row.personId }"
             :style="{ '--row-color': row.theme.primary }"
+            type="button"
+            data-diagnostic-action="select-pass-candidate"
+            @click="selectPass(row)"
           >
-            <button type="button" data-diagnostic-action="seleccionar-readiness" @click="selectRow(row)">
-              <span class="status-dot"></span>
-              <span class="family-copy">
-                <strong>{{ row.studentName }}</strong>
-                <small>{{ row.familyLabel }} / {{ displayMatricula(row.username, 'sin matrícula') }}</small>
-              </span>
-              <span class="scope-copy">
-                <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
-                <small>{{ [row.nivel, row.grado, row.grupo].filter(Boolean).join(' / ') || 'Datos pendientes' }}</small>
-              </span>
-              <span class="count-pill">{{ row.authorizedCount }} registradas</span>
-              <span class="status-pill">{{ statusLabel(row.status) }}</span>
-            </button>
-          </article>
+            <span class="row-status" :data-ready="row.readiness.ok"></span>
+            <span class="row-main">
+              <strong>{{ row.authorizedName }}</strong>
+              <small>{{ row.studentName }} / {{ displayMatriculaCandidate(row.matricula) || 'sin matricula' }}</small>
+            </span>
+            <span class="row-scope">
+              <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
+              <small>{{ [row.nivel, row.grado, row.grupo].filter(Boolean).join(' / ') || 'Datos pendientes' }}</small>
+            </span>
+            <span class="status-pill" :class="{ ok: row.readiness.ok }">{{ row.readiness.ok ? 'Listo' : 'Faltan datos' }}</span>
+          </button>
         </div>
-        <EmptyState v-else title="Sin registros" description="Ajusta filtros para ver familias de Personas Autorizadas." />
       </article>
 
-      <aside class="side-column">
-        <section class="card detail-card" data-product-panel="pa-readiness-detail" :data-state="selectedRow ? 'content' : 'empty'">
-          <template v-if="selectedRow">
-            <div class="detail-top" :style="{ '--detail-color': selectedRow.theme.primary }">
-              <span class="detail-avatar">{{ selectedRow.theme.label.slice(0, 2).toUpperCase() }}</span>
-              <div>
-                <p class="eyebrow">Detalle</p>
-                <h2>{{ selectedRow.studentName }}</h2>
-                <p>{{ selectedRow.familyLabel }}</p>
-              </div>
-            </div>
-
-            <dl>
-              <div><dt>Plantel / nivel</dt><dd>{{ selectedRow.plantel }} / {{ selectedRow.nivel }}</dd></div>
-              <div><dt>Grupo</dt><dd>{{ [selectedRow.grado, selectedRow.grupo].filter(Boolean).join(' / ') || 'Pendiente' }}</dd></div>
-              <div><dt>Contacto</dt><dd>{{ selectedRow.contact || 'Sin contacto' }}</dd></div>
-              <div><dt>Personas autorizadas</dt><dd>{{ selectedRow.authorizedCount }}</dd></div>
-              <div><dt>Plantilla</dt><dd>{{ selectedRow.templateName || 'Sin plantilla' }}</dd></div>
-              <div><dt>Último acceso preparado</dt><dd>{{ formatDate(selectedRow.lastAccessActionAt) }}</dd></div>
-            </dl>
-
-            <div class="issue-list">
-              <span v-for="issue in selectedRow.issues" :key="issue.key" class="issue-pill">{{ issue.label }}</span>
-              <span v-if="!selectedRow.issues.length" class="issue-pill ok">Completo</span>
-            </div>
-
-            <button class="btn btn-primary" type="button" :disabled="accessPreparingId === selectedRow.userId" data-diagnostic-action="preparar-acceso-husky" @click="prepareAccess(selectedRow)">
-              {{ accessPreparingId === selectedRow.userId ? 'Preparando...' : 'Preparar acceso familiar' }}
-            </button>
-          </template>
-          <EmptyState v-else title="Selecciona una familia" description="Verás faltantes accionables y el acceso preparado." />
-        </section>
-
-        <section v-if="preparedAccess" class="card access-card" data-product-panel="pa-access-prepared" data-state="prepared">
-          <p class="eyebrow">Acceso preparado</p>
-          <h2>{{ preparedAccess.displayName }}</h2>
-          <dl>
-            <div><dt>Login</dt><dd>{{ displayMatriculaCandidate(preparedAccess.login) }}</dd></div>
-            <div><dt>Contraseña</dt><dd>{{ preparedAccess.passwordAvailable ? preparedAccess.password : 'No visible' }}</dd></div>
-            <div><dt>Estado</dt><dd>{{ preparedAccess.message }}</dd></div>
-          </dl>
-        </section>
-
-        <form class="card config-card" data-product-panel="pa-config" @submit.prevent="saveConfig">
-          <div class="section-head">
+      <aside class="pass-detail" data-product-panel="pass-detail" :data-state="selectedPass ? 'content' : 'empty'">
+        <template v-if="selectedPass">
+          <section class="detail-identity" :style="{ '--theme-color': selectedPass.theme.primary }">
+            <span class="theme-mark">{{ selectedPass.theme.shortLabel?.slice(0, 2).toUpperCase() || selectedPass.theme.label.slice(0, 2).toUpperCase() }}</span>
             <div>
-              <p class="eyebrow">Configuración</p>
-              <h2>Encuestas por nivel</h2>
+              <p class="eyebrow">{{ selectedPass.theme.label }}</p>
+              <h2>{{ selectedPass.authorizedName }}</h2>
+              <p>{{ selectedPass.parentesco || 'Persona autorizada' }}</p>
             </div>
-          </div>
-          <div class="survey-level-list">
-            <article v-for="option in surveyLevelOptions" :key="option.key" class="survey-level-row">
-              <label class="switch-line">
-                <input v-model="configForm.surveysByNivel[option.key].enabled" type="checkbox" />
-                <span>{{ option.label }}</span>
-              </label>
-              <label class="label compact-label">
-                Título
-                <input v-model="configForm.surveysByNivel[option.key].title" class="input" />
-              </label>
-              <label class="label compact-label">
-                Google Form
-                <input v-model="configForm.surveysByNivel[option.key].embedUrl" class="input" placeholder="https://docs.google.com/forms/..." :data-diagnostic-field="`survey-url-${option.key}`" />
-              </label>
-            </article>
-          </div>
-          <section class="config-upload" data-product-panel="pa-convenios-upload" :data-state="conveniosUploadState">
-            <div>
-              <p class="eyebrow">Convenios</p>
-              <h3>Archivo para familias</h3>
-              <p>{{ configForm.conveniosUrl ? 'Archivo configurado.' : 'PDF, imagen o documento hasta 10 MB.' }}</p>
-            </div>
-            <input type="file" accept="image/*,application/pdf,.doc,.docx,.txt" data-diagnostic-field="convenios-file" @change="selectConveniosFile" />
-            <button class="btn btn-secondary" type="button" :disabled="!conveniosFile || conveniosUploading" data-diagnostic-action="subir-convenios" @click="uploadConveniosFile">
-              {{ conveniosUploading ? 'Subiendo...' : configForm.conveniosUrl && !conveniosFile ? 'Archivo listo' : 'Subir archivo' }}
-            </button>
-            <a v-if="configForm.conveniosUrl" class="btn btn-secondary" :href="configForm.conveniosUrl" target="_blank" rel="noopener">Abrir convenios</a>
           </section>
-          <button class="btn btn-primary" type="submit" :disabled="configSaving" data-diagnostic-action="guardar-config-pa">{{ configSaving ? 'Guardando...' : 'Guardar configuración' }}</button>
-          <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
-          <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-        </form>
+
+          <dl class="detail-facts">
+            <div><dt>Alumno</dt><dd>{{ selectedPass.studentName }}</dd></div>
+            <div><dt>Matricula</dt><dd>{{ displayMatriculaCandidate(selectedPass.matricula) || 'Pendiente' }}</dd></div>
+            <div><dt>Nivel / plantel</dt><dd>{{ selectedPass.nivel }} / {{ selectedPass.plantel }}</dd></div>
+            <div><dt>Grupo</dt><dd>{{ [selectedPass.grado, selectedPass.grupo].filter(Boolean).join(' / ') || 'Pendiente' }}</dd></div>
+            <div><dt>Plantilla</dt><dd>{{ selectedPass.template?.name || 'No disponible' }}</dd></div>
+          </dl>
+
+          <div class="issue-list">
+            <span v-for="issue in selectedPass.readiness.issues" :key="issue" class="issue-pill">{{ issue }}</span>
+            <span v-if="selectedPass.readiness.ok" class="issue-pill ok">PDF listo para generar</span>
+          </div>
+
+          <div class="pass-actions">
+            <a
+              class="btn btn-primary"
+              :href="selectedPass.readiness.ok ? adminPdfUrl(selectedPass, false) : undefined"
+              target="_blank"
+              rel="noopener"
+              :aria-disabled="!selectedPass.readiness.ok"
+              :data-unavailable-reason="!selectedPass.readiness.ok ? selectedPass.readiness.issues[0] : undefined"
+              data-diagnostic-action="preview-admin-husky-pass"
+              @click="guardUnavailable($event, selectedPass)"
+            >
+              Previsualizar PDF
+            </a>
+            <a
+              class="btn btn-secondary"
+              :href="selectedPass.readiness.ok ? adminPdfUrl(selectedPass, true) : undefined"
+              :aria-disabled="!selectedPass.readiness.ok"
+              :data-unavailable-reason="!selectedPass.readiness.ok ? selectedPass.readiness.issues[0] : undefined"
+              data-diagnostic-action="download-admin-husky-pass"
+              @click="guardUnavailable($event, selectedPass)"
+            >
+              Descargar
+            </a>
+            <button class="btn btn-secondary" type="button" :disabled="diagnosticsPending" data-diagnostic-action="diagnose-admin-husky-pass" @click="loadDiagnostics(selectedPass)">
+              {{ diagnosticsPending ? 'Diagnosticando...' : 'Diagnostico' }}
+            </button>
+            <button class="btn btn-secondary" type="button" :disabled="accessPreparingId === selectedPass.userId" data-diagnostic-action="prepare-pass-access" @click="prepareAccess(selectedPass)">
+              {{ accessPreparingId === selectedPass.userId ? 'Preparando...' : 'Preparar acceso' }}
+            </button>
+          </div>
+
+          <section class="preview-pair" :data-state="selectedPass.readiness.ok ? 'ready' : 'blocked'">
+            <iframe v-if="selectedPass.personId" :key="previewKey" :src="adminSvgUrl(selectedPass)" title="Vista SVG Husky Pass"></iframe>
+            <div v-if="selectedPass.readiness.ok" class="pdf-preview">
+              <iframe :key="pdfPreviewKey" :src="adminPdfUrl(selectedPass, false)" title="PDF Husky Pass"></iframe>
+            </div>
+            <div v-else class="blocked-preview">
+              <strong>PDF no disponible</strong>
+              <span>{{ selectedPass.readiness.issues[0] || 'Faltan datos para generar.' }}</span>
+            </div>
+          </section>
+
+          <pre v-if="diagnostics" class="diagnostics">{{ diagnostics }}</pre>
+        </template>
+        <EmptyState v-else title="Selecciona un registro" description="Veras la plantilla, faltantes y acciones de PDF." />
       </aside>
     </section>
-    <EmptyState v-else title="Sin estado disponible" description="Vuelve a actualizar para consultar familias de Personas Autorizadas." />
+
+    <section class="admin-config">
+      <article class="config-panel">
+        <header class="section-head">
+          <div>
+            <p class="eyebrow">Encuestas</p>
+            <h2>Por nivel</h2>
+          </div>
+          <button class="btn btn-primary compact" type="button" :disabled="configSaving" data-diagnostic-action="guardar-config-pa" @click="saveConfig">
+            {{ configSaving ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </header>
+        <div class="survey-list">
+          <article v-for="option in surveyLevelOptions" :key="option.key" class="survey-row">
+            <label class="switch-line">
+              <input v-model="configForm.surveysByNivel[option.key].enabled" type="checkbox" />
+              <span>{{ option.label }}</span>
+            </label>
+            <input v-model="configForm.surveysByNivel[option.key].title" class="input" :aria-label="`Titulo ${option.label}`" />
+            <input v-model="configForm.surveysByNivel[option.key].embedUrl" class="input" placeholder="https://docs.google.com/forms/..." :data-diagnostic-field="`survey-url-${option.key}`" />
+          </article>
+        </div>
+      </article>
+
+      <article class="config-panel">
+        <header class="section-head">
+          <div>
+            <p class="eyebrow">Convenios</p>
+            <h2>Archivo familiar</h2>
+          </div>
+          <a v-if="configForm.conveniosUrl" class="btn btn-secondary compact" :href="configForm.conveniosUrl" target="_blank" rel="noopener">Abrir</a>
+        </header>
+        <div class="upload-row">
+          <input type="file" accept="image/*,application/pdf,.doc,.docx,.txt" data-diagnostic-field="convenios-file" @change="selectConveniosFile" />
+          <button class="btn btn-secondary" type="button" :disabled="!conveniosFile || conveniosUploading" data-diagnostic-action="subir-convenios" @click="uploadConveniosFile">
+            {{ conveniosUploading ? 'Subiendo...' : configForm.conveniosUrl && !conveniosFile ? 'Archivo listo' : 'Subir archivo' }}
+          </button>
+        </div>
+      </article>
+    </section>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { PersonasAutorizadasConfig, PersonasReadinessResponse, PersonasReadinessRow, PersonasSurveyNivelKey } from '~/types/daycare'
-import { formatDate } from '~/utils/daycare'
-import { displayMatricula, displayMatriculaCandidate } from '~/utils/matricula'
+import type { PersonasAutorizadasConfig, PersonasSurveyNivelKey } from '~/types/daycare'
+import type { SuperAdminPassCandidate, SuperAdminPassSearchResponse } from '~/types/superadmin'
+import { displayMatriculaCandidate } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
 const route = useRoute()
 const router = useRouter()
-
+const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
 const selectedNivel = ref(typeof route.query.nivel === 'string' ? route.query.nivel : '')
-const selectedStatus = ref(typeof route.query.estado === 'string' ? route.query.estado : 'all')
-const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
-const selectedRow = ref<PersonasReadinessRow | null>(null)
-const accessPreparingId = ref<number | null>(null)
-const preparedAccess = ref<{
-  displayName: string
-  login: string
-  password: string | null
-  passwordAvailable: boolean
-  message: string
-} | null>(null)
+const selectedPass = ref<SuperAdminPassCandidate | null>(null)
 const actionError = ref('')
 const actionNotice = ref('')
+const diagnostics = ref('')
+const diagnosticsPending = ref(false)
+const accessPreparingId = ref<number | null>(null)
+const previewBump = ref(0)
 const configSaving = ref(false)
 const conveniosUploading = ref(false)
 const conveniosFile = ref<File | null>(null)
-const accessActionUrl = '/api/admin/personas-autorizadas/access-action' as string
-const configPostUrl = '/api/admin/personas-autorizadas/config' as string
 const surveyLevelOptions: Array<{ key: PersonasSurveyNivelKey; label: string; defaultTitle: string }> = [
   { key: 'preescolar', label: 'Preescolar', defaultTitle: 'Encuesta Preescolar' },
   { key: 'primaria', label: 'Primaria', defaultTitle: 'Encuesta Primaria' },
   { key: 'secundaria', label: 'Secundaria', defaultTitle: 'Encuesta Secundaria' },
-  { key: 'daycare', label: 'IECS / fallback', defaultTitle: 'Encuesta IECS' }
+  { key: 'daycare', label: 'IECS', defaultTitle: 'Encuesta IECS' }
 ]
 const configForm = reactive({
   surveyEnabled: false,
@@ -234,28 +235,24 @@ const configForm = reactive({
   helpUrl: ''
 })
 
-const query = computed(() => ({
+const passQuery = computed(() => ({
+  search: search.value,
   plantel: selectedPlantel.value,
   nivel: selectedNivel.value,
-  status: selectedStatus.value,
-  search: search.value,
-  limit: 180
+  fixture: route.query.fixture === '1' ? '1' : '',
+  limit: 120
 }))
-
-const { data: readiness, pending, error: loadError, refresh } = useFetch<PersonasReadinessResponse>('/api/admin/personas-autorizadas/readiness', {
-  query,
-  watch: [query],
-  timeout: 15000,
+const { data: passSearch, pending: passPending, error: passError, refresh: refreshPass } = useFetch<SuperAdminPassSearchResponse>('/api/admin/personas-autorizadas/pass-search', {
+  query: passQuery,
+  watch: [passQuery],
+  timeout: 20000,
   dedupe: 'cancel'
 })
 const { data: config, refresh: refreshConfig } = useFetch<PersonasAutorizadasConfig>('/api/admin/personas-autorizadas/config', { timeout: 15000 })
-const rows = computed(() => readiness.value?.rows || [])
-const isInitialReadinessLoad = computed(() => Boolean(pending.value && !readiness.value))
-const conveniosUploadState = computed(() => {
-  if (conveniosUploading.value) return 'loading'
-  if (configForm.conveniosUrl) return 'ready'
-  return conveniosFile.value ? 'selected' : 'empty'
-})
+const passRows = computed(() => passSearch.value?.rows || [])
+const passState = computed(() => passPending.value && !passRows.value.length ? 'loading' : passError.value ? 'error' : passRows.value.length ? 'content' : 'empty')
+const previewKey = computed(() => `svg-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
+const pdfPreviewKey = computed(() => `pdf-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
 
 watch(config, (value) => {
   if (!value) return
@@ -272,59 +269,89 @@ watch(config, (value) => {
   configForm.helpUrl = value.helpUrl || ''
 }, { immediate: true })
 
-watch(rows, (value) => {
-  if (!value.length) {
-    selectedRow.value = null
+watch(passRows, (rows) => {
+  if (!rows.length) {
+    selectedPass.value = null
     return
   }
-  if (!selectedRow.value || !value.some((row) => row.userId === selectedRow.value?.userId)) selectedRow.value = value[0]
+  const routeId = Number(route.query.persona || 0)
+  const fromRoute = rows.find((row) => Number(row.personId || 0) === routeId)
+  if (fromRoute) {
+    selectedPass.value = fromRoute
+    return
+  }
+  if (!selectedPass.value || !rows.some((row) => row.personId === selectedPass.value?.personId)) selectedPass.value = rows[0]
 }, { immediate: true })
 
-watch([selectedPlantel, selectedNivel, selectedStatus, search], syncQuery)
-
-function syncQuery() {
+watch([search, selectedPlantel, selectedNivel], () => {
   if (!import.meta.client) return
-  const next: Record<string, string> = {}
-  if (selectedPlantel.value) next.plantel = selectedPlantel.value
-  if (selectedNivel.value) next.nivel = selectedNivel.value
-  if (selectedStatus.value && selectedStatus.value !== 'all') next.estado = selectedStatus.value
-  if (search.value.trim()) next.buscar = search.value.trim()
-  const changed = Object.keys({ ...route.query, ...next }).some((key) => String(route.query[key] || '') !== String(next[key] || ''))
-  if (changed) router.replace({ path: route.path, query: next })
-}
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.buscar = search.value.trim()
+  if (selectedPlantel.value) query.plantel = selectedPlantel.value
+  if (selectedNivel.value) query.nivel = selectedNivel.value
+  if (route.query.fixture === '1') query.fixture = '1'
+  if (selectedPass.value?.personId) query.persona = String(selectedPass.value.personId)
+  router.replace({ path: route.path, query })
+})
 
-function selectRow(row: PersonasReadinessRow) {
-  selectedRow.value = row
-  preparedAccess.value = null
+function selectPass(row: SuperAdminPassCandidate) {
+  selectedPass.value = row
+  diagnostics.value = ''
   actionError.value = ''
   actionNotice.value = ''
+  previewBump.value += 1
 }
 
-function statusLabel(status: PersonasReadinessRow['status']) {
-  if (status === 'complete') return 'Lista'
-  if (status === 'blocked') return 'Revisión'
-  return 'Requiere acción'
-}
-
-async function refreshReadiness() {
+async function refreshPassSearch() {
   actionError.value = ''
   actionNotice.value = ''
-  await refresh()
-  actionNotice.value = 'Estado actualizado.'
+  diagnostics.value = ''
+  await refreshPass()
+  actionNotice.value = passError.value ? '' : 'Busqueda actualizada.'
 }
 
-async function prepareAccess(row: PersonasReadinessRow) {
+function adminPdfUrl(row: SuperAdminPassCandidate, download: boolean) {
+  if (!row.personId) return ''
+  return `/api/admin/personas-autorizadas/marbete?id=${row.personId}&format=pdf${download ? '&download=1' : ''}&v=${previewBump.value}`
+}
+
+function adminSvgUrl(row: SuperAdminPassCandidate) {
+  if (!row.personId) return ''
+  return `/api/admin/personas-autorizadas/marbete?id=${row.personId}&format=svg-preview&v=${previewBump.value}`
+}
+
+function guardUnavailable(event: MouseEvent, row: SuperAdminPassCandidate) {
+  if (row.readiness.ok) return
+  event.preventDefault()
+  actionError.value = row.readiness.issues[0] || 'Faltan datos para generar el Husky Pass.'
+}
+
+async function loadDiagnostics(row: SuperAdminPassCandidate) {
+  if (!row.personId) return
+  diagnosticsPending.value = true
+  actionError.value = ''
+  diagnostics.value = ''
+  try {
+    const result = await $fetch(`/api/admin/personas-autorizadas/marbete?id=${row.personId}&format=diagnostics`)
+    diagnostics.value = JSON.stringify(result, null, 2)
+  } catch (err: unknown) {
+    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible diagnosticar el PDF.'
+  } finally {
+    diagnosticsPending.value = false
+  }
+}
+
+async function prepareAccess(row: SuperAdminPassCandidate) {
   accessPreparingId.value = row.userId
   actionError.value = ''
   actionNotice.value = ''
-  preparedAccess.value = null
   try {
-    preparedAccess.value = await $fetch<NonNullable<typeof preparedAccess.value>>(accessActionUrl, {
+    await $fetch('/api/admin/personas-autorizadas/access-action', {
       method: 'POST',
       body: { userId: row.userId }
     })
-    actionNotice.value = 'Acceso preparado. No se marcó como enviado.'
-    await refresh()
+    actionNotice.value = 'Acceso familiar preparado.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar acceso.'
@@ -332,7 +359,6 @@ async function prepareAccess(row: PersonasReadinessRow) {
     accessPreparingId.value = null
   }
 }
-
 
 function selectConveniosFile(event: Event) {
   const input = event.target as HTMLInputElement
@@ -352,7 +378,7 @@ async function uploadConveniosFile() {
     const response = await $fetch<{ url: string }>('/api/admin/personas-autorizadas/uploads', { method: 'POST', body })
     configForm.conveniosUrl = response.url
     conveniosFile.value = null
-    actionNotice.value = 'Archivo de convenios cargado. Guarda la configuración para publicarlo.'
+    actionNotice.value = 'Archivo cargado. Guarda para publicarlo.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible subir convenios.'
@@ -366,15 +392,15 @@ async function saveConfig() {
   actionError.value = ''
   actionNotice.value = ''
   try {
-    await $fetch(configPostUrl, {
+    await $fetch('/api/admin/personas-autorizadas/config', {
       method: 'POST',
       body: { ...configForm }
     })
     await refreshConfig()
-    actionNotice.value = 'Configuración PA guardada.'
+    actionNotice.value = 'Configuracion guardada.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar configuración.'
+    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar configuracion.'
   } finally {
     configSaving.value = false
   }
@@ -382,154 +408,63 @@ async function saveConfig() {
 </script>
 
 <style scoped>
-.pa-admin {
-  gap: 10px;
+.pass-admin {
+  display: grid;
+  gap: 12px;
   min-width: 0;
 }
 
-.pa-admin > * {
-  min-width: 0;
-}
-
-.pa-admin-head {
+.pass-head {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding-block: 12px;
 }
 
-.pa-admin-head > div {
-  min-width: 0;
-}
-
-.pa-admin-head p {
-  overflow-wrap: anywhere;
-}
-
-.head-actions {
+.head-actions,
+.pass-actions,
+.upload-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.metric-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.metric-grid article {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-line);
-  display: grid;
-  gap: 5px;
-  padding: 8px 10px;
-}
-
-.metric-grid span {
-  color: var(--color-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.metric-grid strong {
-  color: var(--color-ink);
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.metric-grid .ok strong {
-  color: #618b2f;
-}
-
-.metric-grid .warn strong {
-  color: #9f7410;
-}
-
-.metric-grid .danger strong {
-  color: #b4473f;
-}
-
-.filters-card {
+.pass-search-strip {
   align-items: end;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(140px, 0.4fr) minmax(160px, 0.5fr) minmax(190px, 0.55fr) minmax(240px, 1fr);
-}
-
-.readiness-layout {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  min-width: 0;
-}
-
-.readiness-layout > * {
-  min-width: 0;
-}
-
-.readiness-card,
-.detail-card,
-.access-card,
-.config-card {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-
-.config-upload {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
   display: grid;
   gap: 10px;
-  min-width: 0;
+  grid-template-columns: minmax(260px, 1fr) minmax(130px, .28fr) minmax(150px, .36fr) auto;
   padding: 12px;
 }
 
-.survey-level-list {
+.pass-search-strip label {
+  color: var(--color-muted);
   display: grid;
-  gap: 10px;
+  font-size: .74rem;
+  font-weight: 700;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.pass-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
   min-width: 0;
 }
 
-.survey-level-row {
+.pass-results,
+.pass-detail,
+.config-panel {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(150px, 0.55fr) minmax(160px, 0.7fr) minmax(220px, 1fr);
+  gap: 12px;
   min-width: 0;
-  padding: 10px;
-}
-
-.survey-level-row > *,
-.config-card > *,
-.config-upload > * {
-  min-width: 0;
-}
-
-.compact-label {
-  gap: 5px;
-}
-
-.config-upload h3,
-.config-upload p {
-  margin-bottom: 0;
-}
-
-.config-upload p:not(.eyebrow) {
-  color: var(--color-muted);
-  font-weight: 600;
-}
-
-.config-upload[data-state='ready'] {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-200);
+  padding: 14px;
 }
 
 .section-head {
@@ -537,132 +472,117 @@ async function saveConfig() {
   display: flex;
   gap: 10px;
   justify-content: space-between;
-  min-width: 0;
-}
-
-.section-head > * {
-  min-width: 0;
 }
 
 .section-head h2,
-.detail-card h2,
-.access-card h2,
-.config-card h2 {
-  font-size: 1.25rem;
+.section-head p,
+.detail-identity h2,
+.detail-identity p {
   margin-bottom: 0;
 }
 
-.readiness-list {
+.result-list {
   display: grid;
   gap: 8px;
 }
 
-.readiness-row {
+.result-row {
   --row-color: var(--color-brand-700);
-}
-
-.readiness-row button {
   align-items: center;
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-line);
+  border-radius: 12px;
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 12px minmax(180px, 1fr) minmax(170px, 0.72fr) auto auto;
-  padding: 8px 10px;
+  grid-template-columns: 12px minmax(210px, 1fr) minmax(150px, .55fr) auto;
+  padding: 9px 10px;
   text-align: left;
-  width: 100%;
 }
 
-.readiness-row button:hover {
+.result-row:hover,
+.result-row.selected {
   border-color: var(--row-color);
+  box-shadow: 0 0 0 3px rgba(35, 97, 136, .08);
 }
 
-.status-dot {
-  background: var(--row-color);
+.row-status {
+  background: #d9a126;
   border-radius: 999px;
   height: 12px;
   width: 12px;
 }
 
-.readiness-row.blocked .status-dot {
-  background: #b4473f;
+.row-status[data-ready='true'] {
+  background: #4f8f32;
 }
 
-.readiness-row.incomplete .status-dot {
-  background: #fcbf2c;
-}
-
-.family-copy,
-.scope-copy {
+.row-main,
+.row-scope {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
-.family-copy strong,
-.family-copy small,
-.scope-copy strong,
-.scope-copy small {
+.row-main strong,
+.row-main small,
+.row-scope strong,
+.row-scope small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.family-copy small,
-.scope-copy small {
+.row-main small,
+.row-scope small {
   color: var(--color-muted);
-  font-size: 0.82rem;
+  font-size: .82rem;
 }
 
-.count-pill,
 .status-pill,
 .issue-pill {
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
+  background: #f8f4e8;
+  border: 1px solid #ead9a8;
   border-radius: 999px;
-  color: var(--color-brand-800);
-  font-size: 0.76rem;
-  font-weight: 600;
+  color: #7a590d;
+  font-size: .76rem;
+  font-weight: 700;
   padding: 5px 9px;
 }
 
-.side-column {
-  align-content: start;
-  display: grid;
-  gap: 10px;
+.status-pill.ok,
+.issue-pill.ok {
+  background: var(--color-brand-100);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-900);
 }
 
-.detail-top {
-  --detail-color: var(--color-brand-700);
+.detail-identity {
+  --theme-color: var(--color-brand-700);
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
 }
 
-.detail-avatar {
-  background: var(--detail-color);
-  border-radius: 18px;
+.theme-mark {
+  background: var(--theme-color);
+  border-radius: 13px;
   color: #fff;
   display: grid;
-  font-weight: 600;
-  height: 44px;
+  font-size: .82rem;
+  height: 46px;
   place-items: center;
-  width: 44px;
+  width: 46px;
 }
 
-.detail-card dl,
-.access-card dl {
+.detail-facts {
   display: grid;
   gap: 8px;
   margin: 0;
 }
 
-.detail-card dl div,
-.access-card dl div {
+.detail-facts div {
   border-bottom: 1px solid var(--color-border);
   display: grid;
   gap: 2px;
@@ -671,9 +591,8 @@ async function saveConfig() {
 
 dt {
   color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: .72rem;
+  letter-spacing: .08em;
   text-transform: uppercase;
 }
 
@@ -688,23 +607,84 @@ dd {
   gap: 6px;
 }
 
-.issue-pill {
-  background: #f5f5f4;
-  border-color: #e3e3df;
-  color: var(--color-muted);
+.pass-actions .btn[aria-disabled='true'] {
+  opacity: .55;
 }
 
-.issue-pill.ok {
+.preview-pair {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1fr);
+}
+
+.preview-pair iframe {
+  aspect-ratio: 612 / 792;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.pdf-preview iframe {
+  height: min(60vh, 620px);
+}
+
+.blocked-preview,
+.loading-row {
+  align-content: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-muted);
+  display: grid;
+  gap: 4px;
+  min-height: 190px;
+  padding: 14px;
+}
+
+.diagnostics {
+  background: #17202a;
+  border-radius: 8px;
+  color: #dce9f7;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.notice {
   background: #f0f8e7;
-  border-color: var(--color-brand-200);
+  border: 1px solid var(--color-brand-200);
+  border-radius: 12px;
   color: var(--color-brand-900);
+  font-weight: 700;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-config {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .5fr);
+}
+
+.survey-list {
+  display: grid;
+  gap: 8px;
+}
+
+.survey-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(130px, .4fr) minmax(160px, .55fr) minmax(240px, 1fr);
 }
 
 .switch-line {
   align-items: center;
   display: flex;
-  gap: 10px;
-  font-weight: 600;
+  gap: 8px;
+  font-weight: 700;
 }
 
 .switch-line input {
@@ -713,100 +693,38 @@ dd {
   width: 18px;
 }
 
-.notice {
-  background: #f0f8e7;
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
-  font-weight: 600;
-  margin: 0;
-  padding: 8px 10px;
-}
-
-.compact-alert {
-  margin: 0;
-}
-
-.loading-card {
-  color: var(--color-muted);
+.compact {
+  min-height: 34px;
+  padding-inline: 10px;
 }
 
 @media (max-width: 1180px) {
-  .metric-grid,
-  .filters-card {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .readiness-layout,
-  .pa-admin-head {
+  .pass-head,
+  .pass-search-strip,
+  .pass-layout,
+  .admin-config,
+  .survey-row {
     grid-template-columns: 1fr;
   }
 
-  .survey-level-row {
+  .preview-pair {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 760px) {
-  .filters-card {
-    grid-template-columns: 1fr;
-  }
-
-  .metric-grid {
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .metric-grid article {
-    min-height: 58px;
-    padding: 9px 10px;
-  }
-
-  .metric-grid strong {
-    font-size: 1.25rem;
-  }
-
-  .pa-admin-head {
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .pa-admin-head h1 {
-    font-size: 1.6rem;
-  }
-
-  .pa-admin-head p {
-    font-size: 0.92rem;
-    line-height: 1.42;
-  }
-
-  .section-head,
-  .head-actions {
-    align-items: stretch;
-  }
-
-  .section-head {
-    grid-template-columns: 1fr;
-  }
-
-  .head-actions {
+@media (max-width: 720px) {
+  .head-actions,
+  .pass-actions,
+  .upload-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
-  .head-actions .btn {
-    min-height: 38px;
-    padding-inline: 10px;
+  .result-row {
+    grid-template-columns: 12px minmax(0, 1fr);
   }
 
-  .readiness-row button {
-    grid-template-columns: 14px minmax(0, 1fr);
-    min-width: 0;
-    width: 100%;
-  }
-
-  .scope-copy,
-  .count-pill,
+  .row-scope,
   .status-pill {
     grid-column: 2;
     justify-self: start;

@@ -1,1 +1,1 @@
-Corrige la importación de matrícula en el directorio de usuarios
+Implementa generacion y verificacion visual de PDFs Husky Pass

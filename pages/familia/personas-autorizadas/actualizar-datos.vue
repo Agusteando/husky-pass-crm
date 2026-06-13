@@ -44,12 +44,15 @@
                 <dd>{{ academicNivel }}</dd>
               </div>
               <div class="academic-fact feature-fact">
-                <span class="fact-icon" aria-hidden="true"><FamilyPersonasIcon name="document" /></span>
+                <span class="grade-number" aria-hidden="true">{{ decorativeGrade }}</span>
                 <dt>Grado</dt>
                 <dd>{{ academicGrado }}</dd>
               </div>
-              <div class="academic-fact group-fact">
-                <span class="group-token" aria-hidden="true">{{ academicGrupo }}</span>
+              <div class="academic-fact group-fact" :class="{ 'has-group-mask': grupoIcon.maskImage }" :style="grupoMaskStyle">
+                <span class="group-token" :class="{ 'has-mask': grupoIcon.maskImage }" aria-hidden="true">
+                  <span v-if="grupoIcon.maskImage" class="group-mask"></span>
+                  <span v-else class="group-mask-fallback"></span>
+                </span>
                 <dt>Grupo</dt>
                 <dd>{{ academicGrupo }}</dd>
               </div>
@@ -62,6 +65,28 @@
                 <dd>{{ academicPlantel }}</dd>
               </div>
             </dl>
+
+            <div class="student-readonly-strip" aria-label="Resumen de identidad y servicios">
+              <div class="readonly-pill" :data-state="curpBirthState">
+                <span>Nacimiento CURP</span>
+                <strong>{{ derivedBirthDateLabel }}</strong>
+              </div>
+              <div class="readonly-pill">
+                <span>Edad actual</span>
+                <strong>{{ derivedAgeLabel }}</strong>
+              </div>
+              <div v-if="birthDateDiscrepancy" class="readonly-pill warning">
+                <span>Fecha registrada</span>
+                <strong>{{ storedBirthDateLabel }}</strong>
+              </div>
+              <div class="services-chip-row" aria-label="Talleres y servicios">
+                <span class="services-label">Talleres y servicios</span>
+                <template v-if="serviceLabels.length">
+                  <span v-for="service in serviceLabels" :key="service" class="service-chip">{{ service }}</span>
+                </template>
+                <span v-else class="empty-service-chip">Sin servicios activos</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -133,6 +158,7 @@
         v-if="activeGroup"
         :title="activeGroup.title"
         :eyebrow="activeGroup.eyebrow"
+        :theme="theme"
         @close="closeGroup"
       >
         <form class="student-form" data-product-panel="student-data-modal" @submit.prevent="saveActiveGroup">
@@ -184,6 +210,10 @@ import { useFetch } from 'nuxt/app'
 import type { PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import { displayMatricula } from '~/utils/matricula'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
+import type { GrupoIconManifest } from '~/utils/grupoIcons'
+import { resolveGrupoIcon } from '~/utils/grupoIcons'
+import { normalizeAttendanceText } from '~/utils/attendance'
+import { calculateAgeFromIsoDate, parseCurpBirthDate } from '~/utils/curp'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -191,6 +221,7 @@ type FieldKey = keyof PersonasStudentEditable
 type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000 })
+const { data: grupoManifest } = useFetch<GrupoIconManifest>('/grupo-icons/manifest.json', { key: 'pa-student-data-grupo-icons', timeout: 15000 })
 const form = reactive<Record<string, string>>({})
 const original = ref<Record<string, string>>({})
 const fieldErrors = reactive<Record<string, string>>({})
@@ -218,6 +249,18 @@ const academicMatricula = computed(() => profile.value?.readonly.matricula ? dis
 const academicPlantel = computed(() => String(profile.value?.readonly.plantel || '—').trim())
 const academicSummary = computed(() => [academicNivel.value, academicGrado.value, academicGrupo.value].filter(Boolean).join(' / ') || 'Datos escolares')
 const lastUpdateLabel = computed(() => profile.value?.meta?.updatedAt ? formatDate(profile.value.meta.updatedAt) : 'Sin fecha reciente')
+const grupoIcon = computed(() => resolveGrupoIcon(grupoManifest.value, academicGrupo.value))
+const grupoMaskStyle = computed(() => grupoIcon.value.maskImage ? { '--grupo-mask-url': `url("${grupoIcon.value.maskImage}")` } : {})
+const decorativeGrade = computed(() => gradeNumberLabel(academicGrado.value))
+const curpBirth = computed(() => parseCurpBirthDate(profile.value?.editable.curp))
+const storedBirthDate = computed(() => formatEditableValue(profile.value?.editable.fecha_nacimiento))
+const derivedBirthDateLabel = computed(() => curpBirth.value.birthDate ? formatDate(curpBirth.value.birthDate) : curpBirth.value.reason === 'empty' ? 'Sin CURP' : 'CURP no valida')
+const storedBirthDateLabel = computed(() => storedBirthDate.value ? formatDate(storedBirthDate.value) : 'Sin fecha')
+const derivedAge = computed(() => calculateAgeFromIsoDate(curpBirth.value.birthDate))
+const derivedAgeLabel = computed(() => derivedAge.value === null ? 'No disponible' : `${derivedAge.value} años`)
+const birthDateDiscrepancy = computed(() => Boolean(curpBirth.value.birthDate && storedBirthDate.value && curpBirth.value.birthDate !== storedBirthDate.value))
+const curpBirthState = computed(() => curpBirth.value.valid ? birthDateDiscrepancy.value ? 'warning' : 'ok' : curpBirth.value.reason === 'empty' ? 'empty' : 'invalid')
+const serviceLabels = computed(() => normalizeServices(profile.value?.readonly.servicio))
 
 const groups: FieldGroup[] = [
   {
@@ -306,6 +349,20 @@ function compactText(parts: Array<unknown>) {
   return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ')
 }
 
+function normalizeServices(value: unknown) {
+  const seen = new Set<string>()
+  return String(value || '')
+    .split(',')
+    .map((part) => part.trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .filter((part) => {
+      const key = normalizeAttendanceText(part)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
 function familyRowTitle(group: FieldGroup) {
   if (group.title === 'Padre') return 'Padre / Tutor'
   if (group.title === 'Madre') return 'Madre / Tutora'
@@ -326,9 +383,27 @@ function formatEditableValue(value: unknown) {
 }
 
 function formatDate(value: string) {
-  const parsed = new Date(value)
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  const parsed = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value)
   if (Number.isNaN(parsed.getTime())) return 'recientemente'
   return parsed.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function gradeNumberLabel(value: string) {
+  const normalized = normalizeAttendanceText(value)
+  const digit = normalized.match(/\d+/)?.[0]
+  if (digit) return digit
+  const names: Record<string, string> = {
+    PRIMERO: '1',
+    SEGUNDO: '2',
+    TERCERO: '3',
+    CUARTO: '4',
+    QUINTO: '5',
+    SEXTO: '6'
+  }
+  return names[normalized] || '°'
 }
 
 function openGroup(group: FieldGroup) {
@@ -370,7 +445,7 @@ function validateActiveGroup() {
     const value = String(form[key] || '').trim()
     if (!value) continue
     if (key.toString().includes('email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) fieldErrors[key] = 'Email inválido.'
-    if (key.toString().includes('curp') && !/^[A-Z0-9]{18}$/.test(value)) fieldErrors[key] = '18 caracteres.'
+    if (key.toString().includes('curp') && !parseCurpBirthDate(value).valid) fieldErrors[key] = 'CURP no valida.'
     if (key === 'domicilio_cp' && !/^\d{5}$/.test(value)) fieldErrors[key] = '5 dígitos.'
     if (key.toString().includes('telefono') && !/^\+?\d{7,15}$/.test(value)) fieldErrors[key] = 'Teléfono inválido.'
   }
@@ -460,7 +535,7 @@ async function saveActiveGroup() {
 
 .student-title-copy strong,
 .student-update-line strong {
-  color: #1c70c9;
+  color: var(--pa-primary);
   font-weight: 850;
 }
 
@@ -475,7 +550,7 @@ async function saveActiveGroup() {
 }
 
 .student-update-line :deep(.pa-icon) {
-  color: #314766;
+  color: var(--pa-primary);
   height: 1rem;
   width: 1rem;
 }
@@ -560,7 +635,7 @@ async function saveActiveGroup() {
 }
 
 .student-profile-title p {
-  color: #1d71cc;
+  color: var(--pa-primary);
   font-size: clamp(.98rem, 1.45vw, 1.2rem);
   font-weight: 800;
 }
@@ -618,7 +693,7 @@ async function saveActiveGroup() {
 }
 
 .fact-icon {
-  color: #2f7bd2;
+  color: var(--pa-primary);
   grid-row: span 2;
   height: 34px;
   width: 34px;
@@ -635,20 +710,63 @@ async function saveActiveGroup() {
 
 .group-token {
   align-items: center;
-  background: #ffffff;
+  background: rgba(var(--pa-primary-rgb), .1);
   border: 2px solid rgba(var(--pa-primary-rgb), .34);
   border-radius: 13px;
   color: var(--pa-primary);
   display: inline-flex;
-  font-family: var(--font-title);
-  font-size: 1.28rem;
-  font-weight: 900;
   grid-row: span 2;
-  height: 42px;
+  height: 44px;
   justify-content: center;
   line-height: 1;
   min-width: 50px;
-  padding: 0 11px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.group-token.has-mask {
+  background: rgba(var(--pa-primary-rgb), .08);
+}
+
+.group-mask {
+  background: var(--pa-primary);
+  inset: 7px;
+  mask-image: var(--grupo-mask-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  opacity: .92;
+  position: absolute;
+  -webkit-mask-image: var(--grupo-mask-url);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.group-mask-fallback {
+  background: rgba(var(--pa-primary-rgb), .28);
+  border-radius: 999px;
+  height: 12px;
+  width: 12px;
+}
+
+.grade-number {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(var(--pa-primary-rgb), .16), rgba(var(--pa-primary-rgb), .07));
+  border: 2px solid rgba(var(--pa-primary-rgb), .28);
+  border-radius: 14px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  font-family: var(--font-title);
+  font-size: 1.7rem;
+  font-weight: 950;
+  grid-row: span 2;
+  height: 44px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 44px;
+  padding: 0 10px;
 }
 
 .compact-fact {
@@ -662,7 +780,83 @@ async function saveActiveGroup() {
 }
 
 .compact-fact dd {
-  color: #1d71cc;
+  color: var(--pa-primary);
+}
+
+.student-readonly-strip {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.readonly-pill,
+.services-chip-row {
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(211, 226, 239, .92);
+  border-radius: 13px;
+  min-width: 0;
+  padding: 9px 11px;
+}
+
+.readonly-pill {
+  display: grid;
+  gap: 2px;
+}
+
+.readonly-pill span,
+.services-label {
+  color: #647089;
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.readonly-pill strong {
+  color: #1c3158;
+  font-size: .9rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readonly-pill[data-state='ok'] strong {
+  color: var(--pa-primary);
+}
+
+.readonly-pill[data-state='invalid'] strong,
+.readonly-pill.warning strong {
+  color: #a84b17;
+}
+
+.services-chip-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.service-chip,
+.empty-service-chip {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: .76rem;
+  font-weight: 850;
+  min-height: 26px;
+  padding: 5px 9px;
+}
+
+.service-chip {
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+}
+
+.empty-service-chip {
+  background: #f5f6f7;
+  color: #7a8392;
 }
 
 .student-section-stack {
@@ -706,8 +900,8 @@ async function saveActiveGroup() {
 }
 
 .section-avatar.health {
-  background: #e9f2ff;
-  color: #2a75c7;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
 }
 
 .section-avatar.family {
@@ -716,8 +910,8 @@ async function saveActiveGroup() {
 }
 
 .section-avatar.address {
-  background: #e9f2ff;
-  color: #2a75c7;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
 }
 
 .section-copy {
@@ -741,9 +935,9 @@ async function saveActiveGroup() {
 .row-action-mark {
   align-items: center;
   background: #ffffff;
-  border: 1px solid rgba(48, 123, 210, .48);
+  border: 1px solid var(--pa-border);
   border-radius: 11px;
-  color: #1d71cc;
+  color: var(--pa-primary);
   display: inline-flex;
   font-weight: 850;
   gap: 8px;
@@ -759,8 +953,8 @@ async function saveActiveGroup() {
 
 .section-action:hover,
 .family-edit-row:hover .row-action-mark {
-  border-color: #1d71cc;
-  box-shadow: 0 10px 20px rgba(48, 123, 210, .12);
+  border-color: var(--pa-primary);
+  box-shadow: 0 10px 20px rgba(var(--pa-primary-rgb), .12);
   transform: translateY(-1px);
 }
 
@@ -983,6 +1177,11 @@ async function saveActiveGroup() {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .student-readonly-strip {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+
   .academic-fact {
     gap: 3px;
     grid-template-columns: 1fr;
@@ -1017,7 +1216,8 @@ async function saveActiveGroup() {
     width: 1.1rem;
   }
 
-  .group-token {
+  .group-token,
+  .grade-number {
     border-width: 2px;
     border-radius: 999px;
     font-size: .86rem;

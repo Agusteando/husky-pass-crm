@@ -32,12 +32,13 @@ export default [
         ...globals.browser,
         ...globals.node,
         $fetch: 'readonly',
+        createError: 'readonly',
         definePageMeta: 'readonly'
       }
     }
   },
   {
-    files: ['**/*.{js,ts}'],
+    files: ['**/*.{js,mjs,ts}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

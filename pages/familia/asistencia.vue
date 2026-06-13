@@ -177,7 +177,7 @@
                   <span class="status-symbol" :class="record.tone">
                     <FamilyPersonasIcon :name="record.tone === 'tardy' || record.tone === 'combined' ? 'clock' : record.tone === 'missing' || record.tone === 'provided' ? 'alert' : 'check'" />
                   </span>
-                  <span>
+                  <span class="status-copy">
                     <strong>{{ record.label }}</strong>
                     <small>{{ recordStatusDetail(record) }}</small>
                   </span>
@@ -328,6 +328,7 @@
         v-if="editingAbsence"
         title="Agregar motivo de inasistencia"
         :eyebrow="dateLabel(editingAbsence.date)"
+        :theme="theme"
         @close="closeMotivo"
       >
         <form class="motivo-form" data-testid="motivo-form" @submit.prevent="saveMotivo">
@@ -368,6 +369,7 @@
         v-if="selectedAccessAction"
         :title="`Registro de ${selectedAccessAction.label.toLowerCase()}`"
         :eyebrow="dateLabel(selectedAccessAction.action.date)"
+        :theme="theme"
         @close="selectedAccessAction = null"
       >
         <section class="access-detail-modal">
@@ -403,6 +405,7 @@
         v-if="cycleDrawerOpen"
         title="Ciclos escolares"
         eyebrow="Historial"
+        :theme="theme"
         @close="cycleDrawerOpen = false"
       >
         <section class="cycle-list">
@@ -438,6 +441,7 @@ import type {
 import type { AccessHistoryAction, AccessHistoryDay } from '~/types/accessHistory'
 import { formatAttendanceDate, normalizeAttendanceText } from '~/utils/attendance'
 import { displayMatricula, normalizeMatricula } from '~/utils/matricula'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -500,6 +504,12 @@ const missingAbsences = computed(() => absences.value.filter((absence) => absenc
 const attentionAbsences = computed(() => missingAbsences.value.slice(0, 2))
 const selectedChildLine = computed(() => [data.value?.selectedChild.nivelEdu, data.value?.selectedChild.grado, data.value?.selectedChild.grupo].filter(Boolean).join(' / ') || data.value?.selectedChild.plantelCode || '')
 const selectedSchoolYearLabel = computed(() => data.value?.selectedSchoolYear.label || selectedSchoolYear.value || '')
+const theme = computed(() => resolvePersonasTheme({
+  matricula: data.value?.selectedChild.matricula || selectedMatricula.value,
+  plantel: data.value?.selectedChild.plantel || data.value?.selectedChild.plantelCode,
+  nivelEdu: data.value?.selectedChild.nivelEdu,
+  campus: data.value?.selectedChild.campus
+}))
 
 const selectedChildPhoto = computed(() => String(data.value?.selectedChild.foto || '').trim())
 const latestAccessAction = computed<SelectedAccessAction | null>(() => {
@@ -1183,6 +1193,7 @@ async function saveMotivo() {
 .status-cell strong,
 .access-cell strong {
   color: #151d31;
+  display: block;
   font-weight: 900;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1196,11 +1207,17 @@ async function saveMotivo() {
 .history-events,
 .counter {
   color: #687386;
+  display: block;
   font-size: 0.78rem;
   font-weight: 750;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.status-cell small {
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .access-copy {
@@ -1346,8 +1363,8 @@ async function saveMotivo() {
   border: 1px solid #dce5ee;
   border-radius: 14px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 62px minmax(135px, .78fr) minmax(170px, 1fr) minmax(170px, 1fr) auto;
+  gap: 10px;
+  grid-template-columns: 62px minmax(150px, .68fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(110px, auto);
   min-height: 72px;
   padding: 6px 12px 6px 7px;
 }
@@ -1422,7 +1439,13 @@ async function saveMotivo() {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.status-copy {
+  display: grid;
+  gap: 1px;
   min-width: 0;
 }
 
@@ -1760,7 +1783,7 @@ async function saveMotivo() {
   }
 
   .bitacora-row {
-    grid-template-columns: 62px minmax(120px, .85fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
+    grid-template-columns: 62px minmax(145px, .72fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(104px, auto);
   }
 
   .row-actions {

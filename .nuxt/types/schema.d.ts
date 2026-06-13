@@ -97,6 +97,26 @@ declare module 'nuxt/schema' {
       url: string,
    },
 
+   passwordRecovery: {
+      baseUrl: string,
+
+      tokenTtlMinutes: number,
+
+      emailMode: string,
+
+      fromEmail: string,
+
+      fromName: string,
+
+      googleServiceAccountEmail: string,
+
+      googleServiceAccountPrivateKey: string,
+
+      googleServiceAccountPrivateKeyBase64: string,
+
+      googleDelegatedUser: string,
+   },
+
    sessionSecret: string,
 
    googleClientId: string,

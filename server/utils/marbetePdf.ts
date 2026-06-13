@@ -3,8 +3,9 @@ import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
+import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
 const FRIENDLY_IMAGE_MESSAGE = 'Para descargar el Husky Pass, actualiza la foto de la persona autorizada o solicita apoyo a la escuela.'
@@ -20,6 +21,10 @@ const CHROMIUM_CANDIDATES = [
   process.env.HUSKY_PASS_CHROMIUM_PATH || '',
   process.env.CHROMIUM_PATH || '',
   process.env.PUPPETEER_EXECUTABLE_PATH || '',
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
   '/usr/bin/google-chrome',
@@ -37,6 +42,45 @@ export interface MarbetePdfInput {
 interface LoadedImage {
   bytes: Buffer
   mime: string
+}
+
+type MarbetePdfDiagnosticCode =
+  | 'missing-required-field'
+  | 'missing-required-image'
+  | 'invalid-image-url'
+  | 'image-fetch-failed'
+  | 'image-empty'
+  | 'unsupported-image-mime'
+  | 'unresolved-svg-token'
+  | 'font-not-found'
+  | 'chromium-not-found'
+  | 'chromium-render-failed'
+  | 'pdf-invalid'
+
+function diagnosticError(statusCode: number, statusMessage: string, code: MarbetePdfDiagnosticCode, details: Record<string, unknown> = {}) {
+  logPersonasWarning(`marbete-pdf-${code}`, details)
+  return createError({
+    statusCode,
+    statusMessage,
+    data: {
+      diagnostic: {
+        code,
+        ...details
+      }
+    }
+  })
+}
+
+function publicDiagnosticUrl(value: string) {
+  const target = decodeEntityUrl(value).trim()
+  if (!target) return ''
+  if (target.startsWith('data:')) return `${target.slice(0, 32)}...`
+  try {
+    const url = new URL(target)
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return target.slice(0, 180)
+  }
 }
 
 function decodeEntityUrl(value: string) {
@@ -69,7 +113,7 @@ function mimeFromContentType(contentType: string | null, url: string) {
 function assertRenderableImageMime(mime: string) {
   const normalized = mime === 'image/jpg' ? 'image/jpeg' : mime
   if (normalized.startsWith('image/')) return normalized
-  throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'unsupported-image-mime', { mime })
 }
 
 function isDataImage(value: string) {
@@ -108,7 +152,8 @@ function localPublicPathFromUrl(value: string, origin: string) {
   if (!pathname || pathname.includes('\0')) return ''
   const root = resolve(process.cwd(), 'public')
   const target = resolve(root, pathname.replace(/^\/+/, ''))
-  if (!target.startsWith(`${root}/`) && target !== root) return ''
+  const pathFromRoot = relative(root, target)
+  if (pathFromRoot.startsWith('..') || resolve(pathFromRoot) === pathFromRoot) return ''
   return target
 }
 
@@ -116,17 +161,17 @@ async function loadLocalPublicImage(value: string, origin: string): Promise<Load
   const localPath = localPublicPathFromUrl(value, origin)
   if (!localPath || !existsSync(localPath)) return null
   const bytes = await readFile(localPath)
-  if (!bytes.length) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { source: value, resolvedPath: localPath })
   return { bytes, mime: assertRenderableImageMime(mimeFromContentType(null, localPath)) }
 }
 
-async function loadImage(value: string, origin: string): Promise<LoadedImage> {
+async function loadImage(value: string, origin: string, key = 'image'): Promise<LoadedImage> {
   const target = decodeEntityUrl(value).trim()
-  if (!target) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  if (!target) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'invalid-image-url', { key, reason: 'empty' })
 
   if (isDataImage(target)) {
     const parsed = parseDataImage(target)
-    if (!parsed) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+    if (!parsed) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'invalid-image-url', { key, reason: 'invalid-data-image' })
     return parsed
   }
 
@@ -134,19 +179,30 @@ async function loadImage(value: string, origin: string): Promise<LoadedImage> {
   if (local) return local
 
   if (!/^https?:\/\//i.test(target)) {
-    throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+    throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'invalid-image-url', { key, url: publicDiagnosticUrl(target), reason: 'not-http-or-public' })
   }
 
   let response: Response
   try {
     response = await fetch(target, { signal: AbortSignal.timeout(15000) })
-  } catch {
-    throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  } catch (error) {
+    throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-fetch-failed', {
+      key,
+      url: publicDiagnosticUrl(target),
+      message: error instanceof Error ? error.message : String(error)
+    })
   }
 
-  if (!response.ok) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  if (!response.ok) {
+    throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-fetch-failed', {
+      key,
+      url: publicDiagnosticUrl(target),
+      status: response.status,
+      statusText: response.statusText
+    })
+  }
   const bytes = Buffer.from(await response.arrayBuffer())
-  if (!bytes.length) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { key, url: publicDiagnosticUrl(target) })
 
   return {
     bytes,
@@ -191,14 +247,26 @@ function unique(values: string[]) {
 }
 
 function requiredTextKeys(input: MarbetePdfInput) {
+  const optionalTemplateKeys = new Set([
+    'maternoP',
+    'fechaP',
+    'id',
+    'qr',
+    'validationUrl'
+  ])
   return unique([
-    ...dynamicTextTokens(input.templateSvg),
+    ...dynamicTextTokens(input.templateSvg).filter((key) => !optionalTemplateKeys.has(key)),
     'nombreP',
     'paternoP',
     'parenP',
     'fullnameP',
     'fullnameA',
-    'matricula'
+    'matricula',
+    'nivel',
+    'grado',
+    'grupo',
+    'plantel',
+    'validityLabel'
   ])
 }
 
@@ -212,7 +280,11 @@ function chromiumPath() {
 
 async function fontFaceCss() {
   const fontPath = LOCAL_MONTSERRAT_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
-  if (!fontPath) return ''
+  if (!fontPath) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
+      candidates: LOCAL_MONTSERRAT_CANDIDATES
+    })
+  }
   const bytes = await readFile(fontPath)
   const format = fontPath.endsWith('.woff2') ? 'woff2' : 'truetype'
   const mime = fontPath.endsWith('.woff2') ? 'font/woff2' : 'font/ttf'
@@ -223,17 +295,21 @@ async function fontFaceCss() {
 function supplementalDataLayer(values: Record<string, string>) {
   const studentLine = [values.fullnameA, values.matricula].filter(Boolean).join(' · ')
   const groupLine = [values.plantel, values.nivelEdu || values.nivel, values.gradoA || values.grado, values.grupoA || values.grupo].filter(Boolean).join(' / ')
-  if (!studentLine && !groupLine) return ''
+  const validityLine = [values.validityLabel, values.validationUrl].filter(Boolean).join(' / ')
+  if (!studentLine && !groupLine && !validityLine) return ''
   return `<section class="hp-pdf-context" aria-label="Datos escolares del Husky Pass">
     <strong>${encodeHtml(studentLine)}</strong>
     <span>${encodeHtml(groupLine)}</span>
+    <span>${encodeHtml(validityLine)}</span>
   </section>`
 }
 
 async function composeMarbeteHtml(input: MarbetePdfInput) {
   const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin)
   if (/{{\s*[^}]+\s*}}/.test(completeSvg)) {
-    throw createError({ statusCode: 422, statusMessage: FRIENDLY_TEXT_MESSAGE })
+    throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'unresolved-svg-token', {
+      tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)
+    })
   }
   const fontCss = await fontFaceCss()
   return `<!doctype html>
@@ -248,7 +324,7 @@ html, body { margin: 0; padding: 0; width: 8.5in; height: 11in; background: #fff
 body { font-family: 'Montserrat', Arial, sans-serif; font-weight: 600; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .hp-page { position: relative; width: 8.5in; height: 11in; overflow: hidden; background: #fff; }
 .hp-page svg { display: block; width: 8.5in; height: 11in; }
-.hp-pdf-context { position: absolute; left: 0.72in; right: 0.72in; bottom: 0.34in; display: grid; gap: 0.03in; color: #55585f; font-size: 8.5pt; line-height: 1.15; letter-spacing: 0.01em; }
+.hp-pdf-context { position: absolute; left: 0.72in; right: 0.72in; bottom: 0.06in; display: grid; gap: 0.01in; color: #55585f; font-size: 6pt; line-height: 1.05; letter-spacing: 0; }
 .hp-pdf-context strong, .hp-pdf-context span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 </head>
@@ -278,33 +354,52 @@ function runChromium(executable: string, htmlFile: string, pdfFile: string) {
     '--no-sandbox',
     '--run-all-compositor-stages-before-draw',
     '--virtual-time-budget=10000',
-    `--user-data-dir=${join(htmlFile, '..', 'chrome-profile')}`,
+    `--user-data-dir=${join(dirname(htmlFile), 'chrome-profile')}`,
     `--print-to-pdf=${pdfFile}`,
     `file://${htmlFile}`
   ]
 
   return new Promise<void>((resolveRun, rejectRun) => {
     const child = spawn(executable, args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    const stderr: Buffer[] = []
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
-      rejectRun(createError({ statusCode: 503, statusMessage: FRIENDLY_RENDER_MESSAGE }))
+      rejectRun(diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-render-failed', {
+        executable,
+        reason: 'timeout'
+      }))
     }, 30000)
+
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr.push(chunk)
+    })
 
     child.once('error', () => {
       clearTimeout(timer)
-      rejectRun(createError({ statusCode: 503, statusMessage: FRIENDLY_RENDER_MESSAGE }))
+      rejectRun(diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-render-failed', {
+        executable,
+        reason: 'spawn-error'
+      }))
     })
     child.once('exit', (code) => {
       clearTimeout(timer)
       if (code === 0) resolveRun()
-      else rejectRun(createError({ statusCode: 503, statusMessage: FRIENDLY_RENDER_MESSAGE }))
+      else rejectRun(diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-render-failed', {
+        executable,
+        exitCode: code,
+        stderr: Buffer.concat(stderr).toString('utf8').slice(-2000)
+      }))
     })
   })
 }
 
 async function renderHtmlToPdf(html: string) {
   const executable = chromiumPath()
-  if (!executable) throw createError({ statusCode: 503, statusMessage: FRIENDLY_RENDER_MESSAGE })
+  if (!executable) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-not-found', {
+      candidates: CHROMIUM_CANDIDATES.filter(Boolean)
+    })
+  }
 
   const workDir = join(tmpdir(), `husky-pass-${randomUUID()}`)
   await mkdir(workDir, { recursive: true })
@@ -315,7 +410,12 @@ async function renderHtmlToPdf(html: string) {
     await writeFile(htmlFile, html, 'utf8')
     await runChromium(executable, htmlFile, pdfFile)
     const pdf = await readFile(pdfFile)
-    if (pdf.length < 1024) throw createError({ statusCode: 503, statusMessage: FRIENDLY_RENDER_MESSAGE })
+    if (pdf.length < 1024 || pdf.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdf-invalid', {
+        bytes: pdf.length,
+        signature: pdf.subarray(0, 8).toString('ascii')
+      })
+    }
     return pdf
   } finally {
     await rm(workDir, { recursive: true, force: true }).catch(() => undefined)
@@ -333,12 +433,12 @@ export async function assertMarbetePdfAssets(input: string | MarbetePdfInput) {
   }
 
   const missingText = requiredTextKeys(input).filter((key) => !String(input.values[key] || '').trim())
-  if (missingText.length) throw createError({ statusCode: 422, statusMessage: FRIENDLY_TEXT_MESSAGE })
+  if (missingText.length) throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'missing-required-field', { fields: missingText })
 
   const missingImages = requiredImageKeys(input).filter((key) => !String(input.values[key] || '').trim())
-  if (missingImages.length) throw createError({ statusCode: 422, statusMessage: FRIENDLY_IMAGE_MESSAGE })
+  if (missingImages.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'missing-required-image', { fields: missingImages })
 
-  await Promise.all(requiredImageKeys(input).map((key) => loadImage(input.values[key], input.origin)))
+  await Promise.all(requiredImageKeys(input).map((key) => loadImage(input.values[key], input.origin, key)))
   await inlineSvgImages(input.renderedSvg, input.origin)
   return { ok: true }
 }

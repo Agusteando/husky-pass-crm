@@ -1,4 +1,5 @@
 import type { FamilyProductScope } from './session'
+import type { MarbeteTemplateMeta, PersonasTheme } from './daycare'
 
 export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
 
@@ -38,6 +39,40 @@ export interface SuperAdminDirectoryResponse {
     plantel: string
     search: string
     scope: SuperAdminDirectoryScope
+    limit: number
+  }
+}
+
+export interface SuperAdminPassCandidate {
+  personId: number | null
+  userId: number
+  indice: number | null
+  authorizedName: string
+  parentesco: string | null
+  authorizedPhoto: string | null
+  studentName: string
+  matricula: string | null
+  plantel: string
+  nivel: string
+  grado: string | null
+  grupo: string | null
+  contact: string | null
+  theme: PersonasTheme
+  template: MarbeteTemplateMeta | null
+  readiness: {
+    ok: boolean
+    issues: string[]
+  }
+}
+
+export interface SuperAdminPassSearchResponse {
+  rows: SuperAdminPassCandidate[]
+  planteles: string[]
+  niveles: string[]
+  filters: {
+    search: string
+    plantel: string
+    nivel: string
     limit: number
   }
 }

@@ -159,6 +159,7 @@
         v-if="editing"
         :title="authorizedPersonLabel(Number(editing.indice || 1))"
         eyebrow="Persona autorizada"
+        :theme="theme"
         :close-disabled="saving || editorBusy"
         @close="closeEditor"
       >
@@ -178,6 +179,7 @@
         v-if="deleteTarget"
         title="Eliminar registro"
         :eyebrow="authorizedPersonLabel(Number(deleteTarget.indice || 1))"
+        :theme="theme"
         @close="deleteTarget = null"
       >
         <section class="delete-confirm">

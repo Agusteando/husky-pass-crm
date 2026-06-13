@@ -18,6 +18,7 @@ declare global {
   const authorizedPersonQrPath: typeof import('../../utils/daycare')['authorizedPersonQrPath']
   const authorizedPersonValidationPath: typeof import('../../utils/daycare')['authorizedPersonValidationPath']
   const buildSchoolYearOptions: typeof import('../../utils/attendance')['buildSchoolYearOptions']
+  const calculateAgeFromIsoDate: typeof import('../../utils/curp')['calculateAgeFromIsoDate']
   const callOnce: typeof import('../../node_modules/nuxt/dist/app/composables/once')['callOnce']
   const canProcessWithVision: typeof import('../../utils/visionFace')['canProcessWithVision']
   const cancelIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['cancelIdleCallback']
@@ -91,6 +92,7 @@ declare global {
   const navigateTo: typeof import('../../node_modules/nuxt/dist/app/composables/router')['navigateTo']
   const nextTick: typeof import('../../node_modules/vue')['nextTick']
   const normalizeAttendanceText: typeof import('../../utils/attendance')['normalizeAttendanceText']
+  const normalizeCurp: typeof import('../../utils/curp')['normalizeCurp']
   const normalizeEmail: typeof import('../../utils/superAdmin')['normalizeEmail']
   const normalizeMatricula: typeof import('../../utils/matricula')['normalizeMatricula']
   const normalizeNivel: typeof import('../../utils/personasTheme')['normalizeNivel']
@@ -113,6 +115,7 @@ declare global {
   const onServerPrefetch: typeof import('../../node_modules/vue')['onServerPrefetch']
   const onUnmounted: typeof import('../../node_modules/vue')['onUnmounted']
   const onUpdated: typeof import('../../node_modules/vue')['onUpdated']
+  const parseCurpBirthDate: typeof import('../../utils/curp')['parseCurpBirthDate']
   const parseLegacyDate: typeof import('../../utils/daycare')['parseLegacyDate']
   const parseSchoolYearLabel: typeof import('../../utils/attendance')['parseSchoolYearLabel']
   const personasInstitutionLogo: typeof import('../../utils/personasTheme')['personasInstitutionLogo']
@@ -139,6 +142,7 @@ declare global {
   const reloadNuxtApp: typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']
   const resolveComponent: typeof import('../../node_modules/vue')['resolveComponent']
+  const resolveGrupoIcon: typeof import('../../utils/grupoIcons')['resolveGrupoIcon']
   const resolvePersonasTheme: typeof import('../../utils/personasTheme')['resolvePersonasTheme']
   const resolveSchoolYearOption: typeof import('../../utils/attendance')['resolveSchoolYearOption']
   const sameMatricula: typeof import('../../utils/matricula')['sameMatricula']
@@ -247,6 +251,12 @@ declare global {
   export type { AuthorizedPersonFormModel, AuthorizedPersonValidationState } from '../../utils/authorizedPersonForm'
   import('../../utils/authorizedPersonForm')
   // @ts-ignore
+  export type { CurpBirthDateResult } from '../../utils/curp'
+  import('../../utils/curp')
+  // @ts-ignore
+  export type { GrupoIconManifestEntry, GrupoIconManifest, ResolvedGrupoIcon } from '../../utils/grupoIcons'
+  import('../../utils/grupoIcons')
+  // @ts-ignore
   export type { PersonasMascotVariant } from '../../utils/personasTheme'
   import('../../utils/personasTheme')
   // @ts-ignore
@@ -274,6 +284,7 @@ declare module 'vue' {
     readonly authorizedPersonQrPath: UnwrapRef<typeof import('../../utils/daycare')['authorizedPersonQrPath']>
     readonly authorizedPersonValidationPath: UnwrapRef<typeof import('../../utils/daycare')['authorizedPersonValidationPath']>
     readonly buildSchoolYearOptions: UnwrapRef<typeof import('../../utils/attendance')['buildSchoolYearOptions']>
+    readonly calculateAgeFromIsoDate: UnwrapRef<typeof import('../../utils/curp')['calculateAgeFromIsoDate']>
     readonly callOnce: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/once')['callOnce']>
     readonly canProcessWithVision: UnwrapRef<typeof import('../../utils/visionFace')['canProcessWithVision']>
     readonly cancelIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['cancelIdleCallback']>
@@ -347,6 +358,7 @@ declare module 'vue' {
     readonly navigateTo: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['navigateTo']>
     readonly nextTick: UnwrapRef<typeof import('../../node_modules/vue')['nextTick']>
     readonly normalizeAttendanceText: UnwrapRef<typeof import('../../utils/attendance')['normalizeAttendanceText']>
+    readonly normalizeCurp: UnwrapRef<typeof import('../../utils/curp')['normalizeCurp']>
     readonly normalizeEmail: UnwrapRef<typeof import('../../utils/superAdmin')['normalizeEmail']>
     readonly normalizeMatricula: UnwrapRef<typeof import('../../utils/matricula')['normalizeMatricula']>
     readonly normalizeNivel: UnwrapRef<typeof import('../../utils/personasTheme')['normalizeNivel']>
@@ -369,6 +381,7 @@ declare module 'vue' {
     readonly onServerPrefetch: UnwrapRef<typeof import('../../node_modules/vue')['onServerPrefetch']>
     readonly onUnmounted: UnwrapRef<typeof import('../../node_modules/vue')['onUnmounted']>
     readonly onUpdated: UnwrapRef<typeof import('../../node_modules/vue')['onUpdated']>
+    readonly parseCurpBirthDate: UnwrapRef<typeof import('../../utils/curp')['parseCurpBirthDate']>
     readonly parseLegacyDate: UnwrapRef<typeof import('../../utils/daycare')['parseLegacyDate']>
     readonly parseSchoolYearLabel: UnwrapRef<typeof import('../../utils/attendance')['parseSchoolYearLabel']>
     readonly personasInstitutionLogo: UnwrapRef<typeof import('../../utils/personasTheme')['personasInstitutionLogo']>
@@ -395,6 +408,7 @@ declare module 'vue' {
     readonly reloadNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
     readonly resolveComponent: UnwrapRef<typeof import('../../node_modules/vue')['resolveComponent']>
+    readonly resolveGrupoIcon: UnwrapRef<typeof import('../../utils/grupoIcons')['resolveGrupoIcon']>
     readonly resolvePersonasTheme: UnwrapRef<typeof import('../../utils/personasTheme')['resolvePersonasTheme']>
     readonly resolveSchoolYearOption: UnwrapRef<typeof import('../../utils/attendance')['resolveSchoolYearOption']>
     readonly sameMatricula: UnwrapRef<typeof import('../../utils/matricula')['sameMatricula']>

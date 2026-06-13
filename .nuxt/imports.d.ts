@@ -31,7 +31,9 @@ export { injectHead, useHead, useSeoMeta, useHeadSafe, useServerHead, useServerS
 export { useResolvedPersonasTheme, usePersonasFamilyTheme } from '../composables/usePersonasTheme';
 export { normalizeAttendanceText, makeSchoolYearRange, parseSchoolYearLabel, currentSchoolYearStart, buildSchoolYearOptions, resolveSchoolYearOption, dateOnly, formatAttendanceDate, formatAttendanceTime } from '../utils/attendance';
 export { dateInputValue, createAuthorizedPersonForm, validateAuthorizedPersonForm, authorizedPersonFormIsValid, toAuthorizedPersonSavePayload, AuthorizedPersonFormModel, AuthorizedPersonValidationState } from '../utils/authorizedPersonForm';
+export { normalizeCurp, parseCurpBirthDate, calculateAgeFromIsoDate, CurpBirthDateResult } from '../utils/curp';
 export { parseLegacyDate, formatDate, formatCalendarDay, isImageResource, isPdfResource, stripHtml, publishedPdfViewerUrl, normalizeVirtualAssetUrl, authorizedPersonLabel, appAbsoluteUrl, authorizedPersonValidationPath, authorizedPersonQrPath, authorizedPersonCredentialPath, authorizedPersonPrintPath, authorizedPersonMarbetePath, isHiddenResource, daycareResourceTypeLabel, daycareResourceSection } from '../utils/daycare';
+export { resolveGrupoIcon, GrupoIconManifestEntry, GrupoIconManifest, ResolvedGrupoIcon } from '../utils/grupoIcons';
 export { normalizeMatricula, displayMatricula, isMatriculaLike, displayMatriculaCandidate, sameMatricula, matriculaSearchText } from '../utils/matricula';
 export { PA_COLORS, PERSONAS_THEMES, normalizePlantel, normalizeNivel, personasThemeKeyFromMatricula, resolvePersonasTheme, personasThemeStyle, allPersonasThemes, personasMascot, personasLevelName, personasInstitutionName, personasInstitutionLogo, PersonasMascotVariant } from '../utils/personasTheme';
 export { DAYCARE_FAMILY_ROLE, DAYCARE_ADMIN_ROLE, hasRoleToken, hasFamilyScope, hasDaycareAdminScope, defaultFamilyRoute, familyNavItems } from '../utils/sessionScopes';

@@ -38,6 +38,17 @@ export default defineNuxtConfig({
     externalUpload: {
       url: process.env.EXPEDIENTE_UPLOAD_URL || 'https://expediente.casitaapps.com'
     },
+    passwordRecovery: {
+      baseUrl: process.env.PASSWORD_RECOVERY_BASE_URL || '',
+      tokenTtlMinutes: Number(process.env.PASSWORD_RECOVERY_TOKEN_TTL_MINUTES || 30),
+      emailMode: process.env.PASSWORD_RECOVERY_EMAIL_MODE || 'gmail',
+      fromEmail: process.env.PASSWORD_RECOVERY_FROM_EMAIL || '',
+      fromName: process.env.PASSWORD_RECOVERY_FROM_NAME || 'Husky Pass',
+      googleServiceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
+      googleServiceAccountPrivateKey: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '',
+      googleServiceAccountPrivateKeyBase64: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 || '',
+      googleDelegatedUser: process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || ''
+    },
     sessionSecret: process.env.SESSION_SECRET || 'change-me-before-production',
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     public: {

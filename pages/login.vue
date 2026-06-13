@@ -17,6 +17,9 @@
         Contraseña
         <input v-model="form.password" class="input" type="password" autocomplete="current-password" required />
       </label>
+      <div class="form-link-row">
+        <NuxtLink to="/recuperar-contrasena">Olvidaste tu contraseña</NuxtLink>
+      </div>
       <p v-if="error" class="alert">{{ error }}</p>
       <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Validando…' : 'Ingresar' }}</button>
       <NuxtLink class="btn btn-secondary" to="/registro-guarderia">Crear acceso de guardería</NuxtLink>
@@ -47,3 +50,23 @@ async function submit() {
   }
 }
 </script>
+
+<style scoped>
+.form-link-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+
+.form-link-row a {
+  color: var(--color-brand-800);
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.form-link-row a:focus-visible {
+  border-radius: 6px;
+  outline: 3px solid rgba(97, 139, 47, .24);
+  outline-offset: 3px;
+}
+</style>

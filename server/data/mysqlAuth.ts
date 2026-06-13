@@ -102,14 +102,41 @@ export async function findLegacyFamilyByLogin(login: string) {
   return hydrateUserRows(rows)
 }
 
+export async function findLegacyFamilyByEmail(email: string) {
+  const normalized = normalizeEmail(email)
+  if (!normalized) return null
+  const rows = await legacyQuery<LegacyUserRow[]>(`${baseUserSql} WHERE LOWER(A.email) = ?`, [normalized])
+  const legacyUser = hydrateUserRows(rows)
+  if (!legacyUser) return null
+  const sessionUser = legacyUser.toSession('family')
+  return sessionUser.productScopes.length ? legacyUser : null
+}
+
+export async function findLegacyFamilyById(id: number) {
+  if (!Number.isFinite(id)) return null
+  const legacyUser = await findLegacyUserById(id)
+  if (!legacyUser) return null
+  const sessionUser = legacyUser.toSession('family')
+  return sessionUser.productScopes.length ? legacyUser : null
+}
+
 export async function validateLegacyPassword(candidate: string, user: { password?: string | null; pwd?: string | null }) {
   if (!candidate) return false
-  if (user.pwd && candidate === user.pwd) return true
-  if (user.password && user.password === candidate) return true
   if (user.password && /^\$2[ayb]\$/.test(user.password)) {
     return bcrypt.compare(candidate, user.password)
   }
+  if (user.password && user.password === candidate) return true
+  if (user.pwd && candidate === user.pwd) return true
   return false
+}
+
+export async function hashLegacyPassword(password: string) {
+  return bcrypt.hash(password, 12)
+}
+
+export async function updateLegacyFamilyPassword(userId: number, password: string) {
+  const passwordHash = await hashLegacyPassword(password)
+  await legacyWrite('UPDATE users SET password = ?, plaintext = NULL WHERE id = ?', [passwordHash, userId])
 }
 
 export async function updateLegacyDisplayName(userId: number, displayName: string) {

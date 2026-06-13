@@ -34,6 +34,7 @@ import {
   LogIn,
   LogOut,
   PencilLine,
+  ShieldCheck,
   School,
   Plus,
   Sparkles,
@@ -71,7 +72,8 @@ const iconMap: Record<string, FunctionalComponent> = {
   chevron: ChevronDown,
   more: EllipsisVertical,
   plus: Plus,
-  document: FileCheck
+  document: FileCheck,
+  security: ShieldCheck
 }
 
 const iconComponent = computed(() => iconMap[props.name] || Sparkles)

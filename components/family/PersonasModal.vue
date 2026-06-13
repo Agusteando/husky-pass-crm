@@ -1,8 +1,9 @@
 <template>
   <Teleport to="body">
     <div ref="backdropRef" class="pa-modal-backdrop" role="presentation" @click.self="close">
-      <section ref="modalRef" class="pa-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" :aria-busy="props.closeDisabled ? 'true' : 'false'" tabindex="-1">
+      <section ref="modalRef" class="pa-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" :aria-busy="props.closeDisabled ? 'true' : 'false'" :style="themeVars" tabindex="-1">
         <header class="pa-modal-head">
+          <img class="pa-modal-logo" :src="institutionLogo" :alt="institutionName" />
           <div>
             <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
             <h2 :id="titleId">{{ title }}</h2>
@@ -19,13 +20,16 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { PersonasTheme } from '~/types/daycare'
+import { personasInstitutionLogo, personasInstitutionName, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = withDefaults(defineProps<{
   title: string
   eyebrow?: string
   description?: string
   closeDisabled?: boolean
+  theme?: PersonasTheme | null
 }>(), {
   closeDisabled: false
 })
@@ -35,6 +39,10 @@ const modalRef = ref<HTMLElement | null>(null)
 const backdropRef = ref<HTMLElement | null>(null)
 const previousActive = ref<HTMLElement | null>(null)
 const titleId = `pa-modal-title-${Math.random().toString(36).slice(2, 9)}`
+const resolvedTheme = computed(() => props.theme || resolvePersonasTheme({}))
+const themeVars = computed(() => personasThemeStyle(resolvedTheme.value))
+const institutionLogo = computed(() => personasInstitutionLogo(resolvedTheme.value, 'logo'))
+const institutionName = computed(() => personasInstitutionName(resolvedTheme.value))
 
 function close() {
   if (props.closeDisabled) return
@@ -99,7 +107,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .pa-modal-backdrop {
   align-items: center;
-  background: rgba(25, 28, 32, 0.58);
+  background: #111827;
   display: grid;
   inset: 0;
   justify-items: center;
@@ -109,9 +117,9 @@ onBeforeUnmount(() => {
 }
 
 .pa-modal {
-  background: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--pa-border, rgba(255, 255, 255, 0.35));
+  border-radius: 14px;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
   display: grid;
   gap: 0;
@@ -127,11 +135,18 @@ onBeforeUnmount(() => {
 
 .pa-modal-head {
   align-items: start;
-  border-bottom: 1px solid #ecece7;
+  border-bottom: 1px solid var(--pa-border, #ecece7);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   padding: 14px 16px 12px;
+}
+
+.pa-modal-logo {
+  align-self: center;
+  height: 38px;
+  object-fit: contain;
+  width: 38px;
 }
 
 .pa-modal-head h2,
@@ -168,10 +183,15 @@ onBeforeUnmount(() => {
 
 
 .pa-modal-body {
+  background: linear-gradient(180deg, #ffffff, rgba(var(--pa-primary-rgb), .025));
   max-height: calc(90dvh - 98px);
   overflow: auto;
   overscroll-behavior: contain;
   padding: 18px 22px 22px;
+}
+
+:global(body.pa-modal-open) {
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
@@ -181,7 +201,7 @@ onBeforeUnmount(() => {
   }
 
   .pa-modal {
-    border-radius: 18px 18px 0 0;
+    border-radius: 14px 14px 0 0;
     max-height: 92dvh;
     max-width: 100vw;
   }
@@ -194,6 +214,15 @@ onBeforeUnmount(() => {
   .pa-modal-body {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .pa-modal-head {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .pa-modal-logo {
+    height: 34px;
+    width: 34px;
   }
 }
 </style>

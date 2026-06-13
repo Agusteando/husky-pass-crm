@@ -173,6 +173,28 @@ function fullName(parts: Array<string | null | undefined>) {
   return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
 }
 
+function currentSchoolYearLabel(date = new Date()) {
+  const year = date.getMonth() >= 7 ? date.getFullYear() : date.getFullYear() - 1
+  return `${year}-${year + 1}`
+}
+
+function normalizeDynamicPhotoFrames(svg: string) {
+  return svg.replace(/<image\b([^>]*\{\{\s*getTrustedUrl\(data\.(?:foto|fotoP|compressed_foto|studentPhoto|fotoA)\)\s*\}\}[^>]*?)(\s*\/?)>/g, (_match, attrs: string, close: string) => {
+    let nextAttrs = attrs.replace(/\s*\/\s*$/, '')
+    if (/\spreserveAspectRatio=/i.test(nextAttrs)) {
+      nextAttrs = nextAttrs.replace(/\spreserveAspectRatio=(["'])[^"']*\1/i, ' preserveAspectRatio="xMidYMid slice"')
+    } else {
+      nextAttrs += ' preserveAspectRatio="xMidYMid slice"'
+    }
+    if (/\soverflow=/i.test(nextAttrs)) {
+      nextAttrs = nextAttrs.replace(/\soverflow=(["'])[^"']*\1/i, ' overflow="hidden"')
+    } else {
+      nextAttrs += ' overflow="hidden"'
+    }
+    return `<image${nextAttrs}${close.includes('/') ? '/>' : '>'}`
+  })
+}
+
 export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin: string): MarbeteRenderValues {
   const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
   const trustedProcessedPhoto = isValidatedVisionPhotoUrl(data.compressed_foto) ? data.compressed_foto : ''
@@ -187,6 +209,9 @@ export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin
   const grado = String(data.gradoA || data.child?.grado || '')
   const grupo = String(data.grupoA || data.child?.grupo || '')
   const matricula = displayMatricula(data.matricula || data.child?.matricula)
+  const validityLabel = String(data.fechaP || '').trim()
+    ? `Vigente desde ${String(data.fechaP).slice(0, 10)}`
+    : `Vigente ciclo ${currentSchoolYearLabel()}`
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl)}`
 
   return {
@@ -218,6 +243,9 @@ export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin
       grado,
       grupoA: grupo,
       grupo,
+      validityLabel,
+      vigencia: validityLabel,
+      ciclo: currentSchoolYearLabel(),
       fotoA: studentPhoto,
       studentPhoto,
       validationUrl
@@ -242,6 +270,11 @@ function missingLabelFor(key: string) {
   if (['fotoA', 'studentPhoto'].includes(key)) return 'Foto del alumno pendiente o no disponible.'
   if (key === 'qrImage') return 'Código QR no disponible.'
   if (['matricula'].includes(key)) return 'Matrícula del alumno no disponible.'
+  if (['plantel'].includes(key)) return 'Plantel del alumno no disponible.'
+  if (['nivel', 'nivelEdu'].includes(key)) return 'Nivel del alumno no disponible.'
+  if (['grado', 'gradoA'].includes(key)) return 'Grado del alumno no disponible.'
+  if (['grupo', 'grupoA'].includes(key)) return 'Grupo del alumno no disponible.'
+  if (['validityLabel', 'vigencia', 'ciclo'].includes(key)) return 'Vigencia del Husky Pass no disponible.'
   if (['fullnameA', 'nombreAlumno', 'studentName', 'alumno'].includes(key)) return 'Nombre del alumno no disponible.'
   if (['fullnameP', 'nombreCompletoP', 'authorizedPersonName', 'nombreP'].includes(key)) return 'Nombre de la persona autorizada no disponible.'
   if (['parenP', 'parentesco'].includes(key)) return 'Parentesco de la persona autorizada no disponible.'
@@ -250,7 +283,8 @@ function missingLabelFor(key: string) {
 
 export function validateMarbeteRequirements(svg: string, data: PrintableAuthorizedPerson, origin: string): MarbeteRequirementStatus {
   const { values } = buildMarbeteRenderValues(data, origin)
-  const requiredTokens = unique([...dataTokens(svg), ...imageTokens(svg)])
+  const optionalTokens = new Set(['maternoP', 'fechaP', 'id', 'qr', 'validationUrl'])
+  const requiredTokens = unique([...dataTokens(svg).filter((key) => !optionalTokens.has(key)), ...imageTokens(svg)])
   const issues = requiredTokens
     .filter((key) => !String(values[key] || '').trim())
     .map(missingLabelFor)
@@ -260,6 +294,11 @@ export function validateMarbeteRequirements(svg: string, data: PrintableAuthoriz
   if (!String(values.fotoP || values.foto || '').trim()) issues.push(missingLabelFor('fotoP'))
   if (!String(values.fullnameA || '').trim()) issues.push(missingLabelFor('fullnameA'))
   if (!String(values.matricula || '').trim()) issues.push(missingLabelFor('matricula'))
+  if (!String(values.plantel || '').trim()) issues.push(missingLabelFor('plantel'))
+  if (!String(values.nivel || values.nivelEdu || '').trim()) issues.push(missingLabelFor('nivel'))
+  if (!String(values.grado || values.gradoA || '').trim()) issues.push(missingLabelFor('grado'))
+  if (!String(values.grupo || values.grupoA || '').trim()) issues.push(missingLabelFor('grupo'))
+  if (!String(values.validityLabel || '').trim()) issues.push(missingLabelFor('validityLabel'))
 
   return { ok: !unique(issues).length, issues: unique(issues) }
 }
@@ -267,7 +306,7 @@ export function validateMarbeteRequirements(svg: string, data: PrintableAuthoriz
 export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string) {
   const { values } = buildMarbeteRenderValues(data, origin)
 
-  return svg
+  return normalizeDynamicPhotoFrames(svg)
     .replace(/{{\s*getTrustedUrl\(data\.([A-Za-z0-9_]+)\)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
     .replace(/{{\s*data\.([A-Za-z0-9_]+)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
     .replace(/{{\s*[^}]+\s*}}/g, '')

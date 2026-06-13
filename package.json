@@ -10,7 +10,11 @@
     "generate": "nuxt generate",
     "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "verify:husky-pass": "node scripts/husky-pass-visual-verify.mjs",
+    "dev:password-recovery": "node scripts/password-recovery-dev.mjs",
+    "dev:account-security-fixtures": "node scripts/account-security-fixtures.mjs",
+    "dev:husky-pass": "nuxt dev --host 127.0.0.1 --port 3000"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.2.8",
@@ -26,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@types/pdfkit": "^0.17.6",
     "eslint": "^10.4.1",
     "eslint-plugin-vue": "^10.9.2",
