@@ -62,3 +62,4 @@ test-results/
 node_modules/
 .output/
 artifacts/
+.vercel

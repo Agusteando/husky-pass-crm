@@ -5,12 +5,20 @@ These shortcuts are development-only. Routes under `/__dev/*` and API fixture mo
 ## Commands
 
 - Install dependencies: `npm install`
+- Clean install for deployment verification: `npm ci`
 - Start local dev server: `npm run dev:husky-pass`
 - Generate PDFs, screenshots, diagnostics, and a report: `npm run verify:husky-pass -- --base-url http://127.0.0.1:3000`
 - Custom artifact folder: `npm run verify:husky-pass -- --base-url http://127.0.0.1:3000 --out artifacts/husky-pass-verification/manual-run`
 - Typecheck: `npm run typecheck`
 - Lint: `npm run lint`
 - Build: `npm run build`
+- Full local production gate: `npm run build:production`
+- Local Vercel build: `npx vercel build --yes --prod --debug`
+- Start generated Nuxt output locally: PowerShell `$env:HOST='127.0.0.1'; $env:PORT='3100'; npm run start:output`
+- Validate local env shape: `npm run validate:env -- .env local json`
+- Validate pulled Vercel env shape: `npm run validate:env -- .vercel/.env.production.local production allow-sensitive-placeholders json`
+- Check deployment readiness: `npm run check:deploy-readiness -- artifacts/vercel-deployment-verification/readiness.json`
+- Smoke-test a deployment or local output: `npm run smoke:deploy -- https://deployment-url artifacts/vercel-deployment-verification/manual-smoke`
 
 Expected verification output:
 
@@ -24,6 +32,73 @@ Expected verification output:
 - Run manifest: `artifacts/husky-pass-verification/<timestamp>/manifest.json`
 - Human report: `artifacts/husky-pass-verification/<timestamp>/verification-report.md`
 - Optional Nuxt dev server logs: `artifacts/husky-pass-verification/server-logs/nuxt-dev.out.log` and `artifacts/husky-pass-verification/server-logs/nuxt-dev.err.log`
+
+## Vercel Deployment
+
+Runtime/tooling versions:
+
+- Required Node for install and build: `24.x`; this repo includes `.nvmrc` and `.node-version`.
+- Required npm: `11.13.0` through `packageManager`.
+- Vercel project setting: Framework `Nuxt`, Node.js Version `24.x`, root directory `.`, inferred build command `npm run build`.
+- Nitro preset: `vercel` when `VERCEL` is set; local `npm run build` uses the standard Node server output.
+
+Clean local deployment check:
+
+1. `nvm use 24.16.0` if needed.
+2. `npm ci`.
+3. `npm run typecheck`.
+4. `npm run lint`.
+5. `npm run build`.
+6. `npx vercel build --yes --prod --debug`.
+7. `npm run check:deploy-readiness -- artifacts/vercel-deployment-verification/readiness.json`.
+
+Run generated output locally:
+
+1. Build first with `npm run build`.
+2. Start output in PowerShell: `$env:HOST='127.0.0.1'; $env:NITRO_HOST='127.0.0.1'; $env:PORT='3100'; $env:NITRO_PORT='3100'; npm run start:output`.
+3. In another shell, run `npm run smoke:deploy -- http://127.0.0.1:3100 artifacts/vercel-deployment-verification/local-output-smoke`.
+4. Stop the `node .output/server/index.mjs` process when finished.
+
+Create and verify a Production deployment:
+
+1. Pull production env placeholders: `npx vercel pull --yes --environment=production`.
+2. Validate shape without printing secrets: `npm run validate:env -- .vercel/.env.production.local production allow-sensitive-placeholders json`.
+3. Deploy with remote Vercel build logs: `npx vercel deploy --prod --yes --debug --logs`.
+4. Inspect deployment: `npx vercel inspect <deployment-url>`.
+5. Inspect runtime logs: `npx vercel logs <deployment-url> --since 15m`.
+6. Smoke-test the immutable URL: `npm run smoke:deploy -- <deployment-url> artifacts/vercel-deployment-verification/<timestamp>/smoke-deployed-public`.
+7. Also spot-check the production alias, for example `/login`, `/api/auth/me`, and `/brand/husky-pass-logo.png`.
+
+Deployment Protection:
+
+- The app must be reachable through its public deployment URL for verification.
+- If Vercel Authentication protects `.vercel.app` URLs, `npm run smoke:deploy` will fail with Vercel's own `Authentication Required` 401 page before Nuxt runs.
+- Check protection with `npx vercel project protection husky-pass-crm`.
+- Disable only Vercel SSO deployment protection when public verification is required: `npx vercel project protection disable husky-pass-crm --sso`.
+- This does not bypass Husky Pass login, sessions, role checks, or route authorization.
+
+Serverless constraints:
+
+- Do not write durable business data to the local project filesystem on Vercel. Runtime overlays use `/tmp/husky-pass-crm` unless `HUSKY_PASS_DATA_DIR` points somewhere else.
+- Packaged default marbete templates and Personas Autorizadas config are loaded through Nitro server assets.
+- Public logos, fonts, ambassadors, grupo icons, masks, and SVG-related assets must resolve by case-sensitive public paths.
+- PDF rendering must fetch same-origin public assets by absolute URL on Vercel and use packaged Chromium fallback through `@sparticuz/chromium`.
+- MySQL access must use pooled connections with limits and timeouts; build-time code must not connect to MySQL.
+
+Required Vercel environment variables:
+
+- Core runtime: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_CONNECTION_LIMIT`, `SESSION_SECRET`, `GOOGLE_CLIENT_ID`.
+- Attendance override when it uses a separate database: `ATTENDANCE_MYSQL_HOST`, `ATTENDANCE_MYSQL_PORT`, `ATTENDANCE_MYSQL_USER`, `ATTENDANCE_MYSQL_PASSWORD`, `ATTENDANCE_MYSQL_DATABASE`, `ATTENDANCE_MYSQL_CONNECTION_LIMIT`.
+- External services: `SIPAE_API_BASE_URL`, `SIPAE_API_TIMEOUT_MS`, `EXPEDIENTE_UPLOAD_URL`, `NUXT_PUBLIC_PASE_PLATFORM_URL`.
+- Password recovery email: all variables listed in the Password And Account Security section below.
+- Optional runtime writable overlay: `HUSKY_PASS_DATA_DIR`.
+
+Deployment smoke-test outputs:
+
+- JSON report: `artifacts/vercel-deployment-verification/<timestamp>/smoke-deployed-public/smoke-report.json`.
+- Markdown report: `artifacts/vercel-deployment-verification/<timestamp>/smoke-deployed-public/verification-report.md`.
+- Screenshots: `desktop-login.png`, `mobile-login.png`, and `desktop-recovery.png` in the same folder.
+- Build/deploy logs and inspect output should be saved next to the smoke folder.
 
 ## Dev Routes
 

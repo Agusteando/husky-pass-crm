@@ -708,6 +708,34 @@ async function saveActiveGroup() {
   background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), rgba(255, 255, 255, .76));
 }
 
+.group-fact.has-group-mask::after {
+  background: var(--pa-primary);
+  content: '';
+  height: 96px;
+  mask-image: var(--grupo-mask-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  opacity: .08;
+  pointer-events: none;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 96px;
+  -webkit-mask-image: var(--grupo-mask-url);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.group-fact dt,
+.group-fact dd,
+.group-token {
+  position: relative;
+  z-index: 1;
+}
+
 .group-token {
   align-items: center;
   background: rgba(var(--pa-primary-rgb), .1);
@@ -716,10 +744,10 @@ async function saveActiveGroup() {
   color: var(--pa-primary);
   display: inline-flex;
   grid-row: span 2;
-  height: 44px;
+  height: 48px;
   justify-content: center;
   line-height: 1;
-  min-width: 50px;
+  min-width: 56px;
   overflow: hidden;
   padding: 0;
   position: relative;
@@ -731,12 +759,12 @@ async function saveActiveGroup() {
 
 .group-mask {
   background: var(--pa-primary);
-  inset: 7px;
+  inset: 6px;
   mask-image: var(--grupo-mask-url);
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
-  opacity: .92;
+  opacity: .95;
   position: absolute;
   -webkit-mask-image: var(--grupo-mask-url);
   -webkit-mask-position: center;

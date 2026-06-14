@@ -1,7 +1,6 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { GrupoSigil } from '~/types/attendance'
 import { normalizeAttendanceText } from '~/utils/attendance'
+import bundledManifest from '../../public/grupo-icons/manifest.json'
 
 interface GrupoManifestEntry {
   grupoValue: string
@@ -28,8 +27,7 @@ function repairMojibake(value: string) {
 
 async function loadGrupoManifest() {
   if (manifestCache) return manifestCache
-  const raw = await readFile(join(process.cwd(), 'public', 'grupo-icons', 'manifest.json'), 'utf8')
-  const parsed = JSON.parse(raw) as GrupoManifest
+  const parsed = bundledManifest as GrupoManifest
   manifestCache = {
     ...parsed,
     fallbackGrupo: repairMojibake(parsed.fallbackGrupo),

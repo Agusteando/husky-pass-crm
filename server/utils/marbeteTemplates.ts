@@ -1,13 +1,16 @@
 import { createError } from 'h3'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { useStorage } from 'nitropack/runtime'
 import type { MarbeteTemplateMeta, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
 import { allPersonasThemes, normalizeNivel, normalizePlantel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
 import { displayMatricula } from '~/utils/matricula'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
+import { runtimeDataDir } from '~/server/utils/serverlessPaths'
+import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 
-const TEMPLATE_DIR = join(process.cwd(), 'data', 'marbete-templates')
+const TEMPLATE_DIR = runtimeDataDir('marbete-templates')
 const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
 const VALID_THEME_KEYS = new Set<PersonasThemeKey>(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis'])
 
@@ -71,14 +74,30 @@ async function writeTemplateIndex(templates: MarbeteTemplateMeta[]) {
   await writeFile(TEMPLATE_INDEX, `${JSON.stringify(templates, null, 2)}\n`, 'utf8')
 }
 
+async function readBundledTemplateIndex() {
+  const raw = await useStorage('assets:marbete-templates').getItem('templates.json')
+  if (!raw) return []
+  return JSON.parse(String(raw)) as Partial<MarbeteTemplateMeta>[]
+}
+
+async function readBundledTemplateSvg(filename: string) {
+  const raw = await useStorage('assets:marbete-templates').getItem(filename)
+  return raw ? String(raw) : ''
+}
+
 export async function listMarbeteTemplates() {
   await ensureTemplateDir()
   try {
     const raw = await readFile(TEMPLATE_INDEX, 'utf8')
     const parsed = JSON.parse(raw) as Partial<MarbeteTemplateMeta>[]
     return parsed.map(normalizeTemplate).filter(Boolean) as MarbeteTemplateMeta[]
-  } catch {
-    return []
+  } catch (error) {
+    const parsed = await readBundledTemplateIndex()
+    const templates = parsed.map(normalizeTemplate).filter(Boolean) as MarbeteTemplateMeta[]
+    if (!templates.length) {
+      logPersonasWarning('marbete-template-index-missing', { message: error instanceof Error ? error.message : String(error) })
+    }
+    return templates
   }
 }
 
@@ -87,7 +106,13 @@ export function marbeteTemplateThemes() {
 }
 
 export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
-  const svg = await readFile(join(TEMPLATE_DIR, template.filename), 'utf8')
+  let svg: string
+  try {
+    svg = await readFile(join(TEMPLATE_DIR, template.filename), 'utf8')
+  } catch {
+    svg = await readBundledTemplateSvg(template.filename)
+  }
+  if (!svg) throw createError({ statusCode: 404, statusMessage: `No se encontro la plantilla SVG ${template.filename}.` })
   if (!svg.includes('<svg')) throw createError({ statusCode: 422, statusMessage: 'La plantilla SVG no es valida.' })
   return svg
 }

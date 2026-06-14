@@ -82,9 +82,10 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
-    externals: {
-      trace: false,
-      external: ['pdfkit', 'svg-to-pdfkit', 'fontkit', '@fontsource/montserrat']
-    }
+    preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : undefined),
+    serverAssets: [
+      { baseName: 'marbete-templates', dir: './data/marbete-templates' },
+      { baseName: 'personas-config', dir: './data/personas-autorizadas' }
+    ]
   }
 })

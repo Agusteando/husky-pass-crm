@@ -8,8 +8,10 @@ export default [
   {
     ignores: [
       '.nuxt/**',
+      '.vercel/**',
       '127.0.0.1/**',
       '.output/**',
+      'artifacts/**',
       'node_modules/**',
       'dist/**',
       'coverage/**'

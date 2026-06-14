@@ -165,6 +165,11 @@ async function loadLocalPublicImage(value: string, origin: string): Promise<Load
   return { bytes, mime: assertRenderableImageMime(mimeFromContentType(null, localPath)) }
 }
 
+function absoluteSameOriginUrl(value: string, origin: string) {
+  if (!value.startsWith('/') || !origin) return value
+  return `${origin.replace(/\/$/, '')}${value}`
+}
+
 async function loadImage(value: string, origin: string, key = 'image'): Promise<LoadedImage> {
   const target = decodeEntityUrl(value).trim()
   if (!target) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'invalid-image-url', { key, reason: 'empty' })
@@ -178,17 +183,18 @@ async function loadImage(value: string, origin: string, key = 'image'): Promise<
   const local = await loadLocalPublicImage(target, origin)
   if (local) return local
 
-  if (!/^https?:\/\//i.test(target)) {
+  const fetchTarget = absoluteSameOriginUrl(target, origin)
+  if (!/^https?:\/\//i.test(fetchTarget)) {
     throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'invalid-image-url', { key, url: publicDiagnosticUrl(target), reason: 'not-http-or-public' })
   }
 
   let response: Response
   try {
-    response = await fetch(target, { signal: AbortSignal.timeout(15000) })
+    response = await fetch(fetchTarget, { signal: AbortSignal.timeout(15000) })
   } catch (error) {
     throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-fetch-failed', {
       key,
-      url: publicDiagnosticUrl(target),
+      url: publicDiagnosticUrl(fetchTarget),
       message: error instanceof Error ? error.message : String(error)
     })
   }
@@ -196,17 +202,17 @@ async function loadImage(value: string, origin: string, key = 'image'): Promise<
   if (!response.ok) {
     throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-fetch-failed', {
       key,
-      url: publicDiagnosticUrl(target),
+      url: publicDiagnosticUrl(fetchTarget),
       status: response.status,
       statusText: response.statusText
     })
   }
   const bytes = Buffer.from(await response.arrayBuffer())
-  if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { key, url: publicDiagnosticUrl(target) })
+  if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { key, url: publicDiagnosticUrl(fetchTarget) })
 
   return {
     bytes,
-    mime: assertRenderableImageMime(mimeFromContentType(response.headers.get('content-type'), target))
+    mime: assertRenderableImageMime(mimeFromContentType(response.headers.get('content-type'), fetchTarget))
   }
 }
 
@@ -278,16 +284,60 @@ function chromiumPath() {
   return CHROMIUM_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
 }
 
-async function fontFaceCss() {
-  const fontPath = LOCAL_MONTSERRAT_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
-  if (!fontPath) {
-    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
-      candidates: LOCAL_MONTSERRAT_CANDIDATES
+async function chromiumLaunchConfig() {
+  const localPath = chromiumPath()
+  if (localPath) return { executable: localPath, args: [] as string[] }
+
+  try {
+    const chromiumModule = await import('@sparticuz/chromium')
+    const chromium = (chromiumModule.default || chromiumModule) as {
+      args?: string[]
+      executablePath?: () => Promise<string>
+    }
+    const executable = await chromium.executablePath?.()
+    if (executable) return { executable, args: Array.isArray(chromium.args) ? chromium.args : [] }
+  } catch (error) {
+    logPersonasWarning('marbete-pdf-chromium-package-unavailable', {
+      message: error instanceof Error ? error.message : String(error)
     })
   }
-  const bytes = await readFile(fontPath)
-  const format = fontPath.endsWith('.woff2') ? 'woff2' : 'truetype'
-  const mime = fontPath.endsWith('.woff2') ? 'font/woff2' : 'font/ttf'
+
+  return null
+}
+
+async function readFontBytesFromOrigin(origin: string): Promise<{ bytes: Buffer; path: string } | null> {
+  if (!origin) return null
+  const url = `${origin.replace(/\/$/, '')}/fonts/Montserrat-SemiBold.woff2`
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    if (!response.ok) return null
+    const bytes = Buffer.from(await response.arrayBuffer())
+    return bytes.length ? { bytes, path: url } : null
+  } catch {
+    return null
+  }
+}
+
+async function fontFaceCss(origin = '') {
+  const fontPath = LOCAL_MONTSERRAT_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
+  let bytes: Buffer | null
+  let sourcePath = fontPath
+
+  if (fontPath) {
+    bytes = await readFile(fontPath)
+  } else {
+    const remoteFont = await readFontBytesFromOrigin(origin)
+    bytes = remoteFont?.bytes || null
+    sourcePath = remoteFont?.path || ''
+  }
+
+  if (!bytes) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
+      candidates: [...LOCAL_MONTSERRAT_CANDIDATES, origin ? `${origin.replace(/\/$/, '')}/fonts/Montserrat-SemiBold.woff2` : '']
+    })
+  }
+  const format = sourcePath.endsWith('.woff2') ? 'woff2' : 'truetype'
+  const mime = sourcePath.endsWith('.woff2') ? 'font/woff2' : 'font/ttf'
   const source = `url(data:${mime};base64,${bytes.toString('base64')}) format('${format}')`
   return `@font-face{font-family:'Montserrat';src:${source};font-weight:600;font-style:normal;font-display:block;}@font-face{font-family:'Montserrat SemiBold';src:${source};font-weight:600;font-style:normal;font-display:block;}@font-face{font-family:'Montserrat-SemiBold';src:${source};font-weight:600;font-style:normal;font-display:block;}`
 }
@@ -311,7 +361,7 @@ async function composeMarbeteHtml(input: MarbetePdfInput) {
       tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)
     })
   }
-  const fontCss = await fontFaceCss()
+  const fontCss = await fontFaceCss(input.origin)
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -337,8 +387,14 @@ body { font-family: 'Montserrat', Arial, sans-serif; font-weight: 600; print-col
 </html>`
 }
 
-function runChromium(executable: string, htmlFile: string, pdfFile: string) {
+function runChromium(executable: string, htmlFile: string, pdfFile: string, extraArgs: string[] = []) {
+  const filteredExtraArgs = extraArgs.filter((arg) => {
+    return !arg.startsWith('--headless')
+      && !arg.startsWith('--print-to-pdf')
+      && !arg.startsWith('--user-data-dir')
+  })
   const args = [
+    ...filteredExtraArgs,
     '--headless=new',
     '--disable-background-networking',
     '--disable-breakpad',
@@ -394,10 +450,10 @@ function runChromium(executable: string, htmlFile: string, pdfFile: string) {
 }
 
 async function renderHtmlToPdf(html: string) {
-  const executable = chromiumPath()
-  if (!executable) {
+  const chromium = await chromiumLaunchConfig()
+  if (!chromium?.executable) {
     throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-not-found', {
-      candidates: CHROMIUM_CANDIDATES.filter(Boolean)
+      candidates: [...CHROMIUM_CANDIDATES.filter(Boolean), '@sparticuz/chromium']
     })
   }
 
@@ -408,7 +464,7 @@ async function renderHtmlToPdf(html: string) {
 
   try {
     await writeFile(htmlFile, html, 'utf8')
-    await runChromium(executable, htmlFile, pdfFile)
+    await runChromium(chromium.executable, htmlFile, pdfFile, chromium.args)
     const pdf = await readFile(pdfFile)
     if (pdf.length < 1024 || pdf.subarray(0, 5).toString('ascii') !== '%PDF-') {
       throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdf-invalid', {

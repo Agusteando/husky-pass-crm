@@ -2,8 +2,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { PersonasAutorizadasConfig, PersonasSurveyConfig, PersonasSurveyNivelKey } from '~/types/daycare'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
+import { runtimeDataDir } from '~/server/utils/serverlessPaths'
+import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import bundledConfig from '../../data/personas-autorizadas/config.json'
+import bundledAccessActions from '../../data/personas-autorizadas/access-actions.json'
 
-const CONFIG_DIR = join(process.cwd(), 'data', 'personas-autorizadas')
+const CONFIG_DIR = runtimeDataDir('personas-autorizadas')
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 const ACCESS_ACTION_PATH = join(CONFIG_DIR, 'access-actions.json')
 export const SURVEY_NIVEL_OPTIONS: Array<{ key: PersonasSurveyNivelKey; label: string }> = [
@@ -86,9 +90,21 @@ export async function readPersonasConfig(): Promise<PersonasAutorizadasConfig> {
       conveniosUrl: normalizeUrl(parsed.conveniosUrl),
       helpUrl: normalizeUrl(parsed.helpUrl)
     }
-  } catch {
-    await writePersonasConfig(defaultConfig)
-    return defaultConfig
+  } catch (error) {
+    const parsed = bundledConfig as Partial<PersonasAutorizadasConfig>
+    if (!parsed || typeof parsed !== 'object') {
+      logPersonasWarning('config-bundled-default-missing', { message: error instanceof Error ? error.message : String(error) })
+      return defaultConfig
+    }
+    const legacySurvey = normalizeSurvey(parsed.survey, defaultConfig.survey.title)
+    return {
+      ...defaultConfig,
+      ...parsed,
+      survey: legacySurvey,
+      surveysByNivel: normalizeSurveysByNivel(parsed.surveysByNivel),
+      conveniosUrl: normalizeUrl(parsed.conveniosUrl),
+      helpUrl: normalizeUrl(parsed.helpUrl)
+    }
   }
 }
 
@@ -155,7 +171,7 @@ export async function appendAccessActionLog(entry: Record<string, unknown>) {
   try {
     rows = JSON.parse(await readFile(ACCESS_ACTION_PATH, 'utf8')) as Record<string, unknown>[]
   } catch {
-    rows = []
+    rows = Array.isArray(bundledAccessActions) ? bundledAccessActions as Record<string, unknown>[] : []
   }
   rows.unshift({ ...entry, createdAt: new Date().toISOString() })
   await writeFile(ACCESS_ACTION_PATH, `${JSON.stringify(rows.slice(0, 500), null, 2)}\n`, 'utf8')
