@@ -317,13 +317,6 @@ export function validateMarbeteRequirements(svg: string, data: PrintableAuthoriz
   if (!String(values.fullnameP || '').trim()) issues.push(missingLabelFor('fullnameP'))
   if (!String(values.parenP || '').trim()) issues.push(missingLabelFor('parenP'))
   if (!String(values.fotoP || values.foto || '').trim()) issues.push(missingLabelFor('fotoP'))
-  if (!String(values.fullnameA || '').trim()) issues.push(missingLabelFor('fullnameA'))
-  if (!String(values.matricula || '').trim()) issues.push(missingLabelFor('matricula'))
-  if (!String(values.plantel || '').trim()) issues.push(missingLabelFor('plantel'))
-  if (!String(values.nivel || values.nivelEdu || '').trim()) issues.push(missingLabelFor('nivel'))
-  if (!String(values.grado || values.gradoA || '').trim()) issues.push(missingLabelFor('grado'))
-  if (!String(values.grupo || values.grupoA || '').trim()) issues.push(missingLabelFor('grupo'))
-  if (!String(values.validityLabel || '').trim()) issues.push(missingLabelFor('validityLabel'))
 
   return { ok: !unique(issues).length, issues: unique(issues) }
 }
