@@ -84,8 +84,9 @@ export default defineNuxtConfig({
   nitro: {
     preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : undefined),
     serverAssets: [
-      { baseName: 'marbete-templates', dir: './data/marbete-templates' },
-      { baseName: 'personas-config', dir: './data/personas-autorizadas' }
+      { baseName: 'marbete-templates', dir: '../data/marbete-templates' },
+      { baseName: 'personas-config', dir: '../data/personas-autorizadas' },
+      { baseName: 'hp-fonts', dir: '../public/fonts' }
     ]
   }
 })

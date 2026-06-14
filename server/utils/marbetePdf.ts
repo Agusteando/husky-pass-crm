@@ -5,6 +5,9 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
+import PDFDocument from 'pdfkit'
+import SVGtoPDF from 'svg-to-pdfkit'
+import { useStorage } from 'nitropack/runtime'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
@@ -14,8 +17,14 @@ const LOCAL_MONTSERRAT_CANDIDATES = [
   resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.ttf'),
   resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.woff2'),
   resolve(process.cwd(), 'public/fonts/Montserrat.ttf'),
+  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-600-normal.woff'),
   resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-600-normal.woff2'),
+  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff'),
   resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff2')
+]
+const PUBLIC_MONTSERRAT_FILES = [
+  'Montserrat-SemiBold.ttf',
+  'Montserrat-SemiBold.woff2'
 ]
 const CHROMIUM_CANDIDATES = [
   process.env.HUSKY_PASS_CHROMIUM_PATH || '',
@@ -263,16 +272,8 @@ function requiredTextKeys(input: MarbetePdfInput) {
   return unique([
     ...dynamicTextTokens(input.templateSvg).filter((key) => !optionalTemplateKeys.has(key)),
     'nombreP',
-    'paternoP',
     'parenP',
-    'fullnameP',
-    'fullnameA',
-    'matricula',
-    'nivel',
-    'grado',
-    'grupo',
-    'plantel',
-    'validityLabel'
+    'fullnameP'
   ])
 }
 
@@ -307,15 +308,18 @@ async function chromiumLaunchConfig() {
 
 async function readFontBytesFromOrigin(origin: string): Promise<{ bytes: Buffer; path: string } | null> {
   if (!origin) return null
-  const url = `${origin.replace(/\/$/, '')}/fonts/Montserrat-SemiBold.woff2`
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
-    if (!response.ok) return null
-    const bytes = Buffer.from(await response.arrayBuffer())
-    return bytes.length ? { bytes, path: url } : null
-  } catch {
-    return null
+  for (const file of PUBLIC_MONTSERRAT_FILES) {
+    const url = `${origin.replace(/\/$/, '')}/fonts/${file}`
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+      if (!response.ok) continue
+      const bytes = Buffer.from(await response.arrayBuffer())
+      if (bytes.length) return { bytes, path: url }
+    } catch {
+      continue
+    }
   }
+  return null
 }
 
 async function fontFaceCss(origin = '') {
@@ -333,7 +337,10 @@ async function fontFaceCss(origin = '') {
 
   if (!bytes) {
     throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
-      candidates: [...LOCAL_MONTSERRAT_CANDIDATES, origin ? `${origin.replace(/\/$/, '')}/fonts/Montserrat-SemiBold.woff2` : '']
+      candidates: [
+        ...LOCAL_MONTSERRAT_CANDIDATES,
+        ...PUBLIC_MONTSERRAT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
+      ].filter(Boolean)
     })
   }
   const format = sourcePath.endsWith('.woff2') ? 'woff2' : 'truetype'
@@ -352,6 +359,14 @@ function supplementalDataLayer(values: Record<string, string>) {
     <span>${encodeHtml(groupLine)}</span>
     <span>${encodeHtml(validityLine)}</span>
   </section>`
+}
+
+function supplementalDataLines(values: Record<string, string>) {
+  return [
+    [values.fullnameA, values.matricula].filter(Boolean).join(' · '),
+    [values.plantel, values.nivelEdu || values.nivel, values.gradoA || values.grado, values.grupoA || values.grupo].filter(Boolean).join(' / '),
+    [values.validityLabel, values.validationUrl].filter(Boolean).join(' / ')
+  ].filter(Boolean)
 }
 
 async function composeMarbeteHtml(input: MarbetePdfInput) {
@@ -478,6 +493,153 @@ async function renderHtmlToPdf(html: string) {
   }
 }
 
+function collectPdfBuffer(doc: {
+  on: (event: 'data', listener: (chunk: Buffer) => void) => unknown
+  once: (event: 'error' | 'end', listener: (value?: unknown) => void) => unknown
+  end: () => void
+}) {
+  return new Promise<Buffer>((resolvePdf, rejectPdf) => {
+    const chunks: Buffer[] = []
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+    doc.once('error', rejectPdf)
+    doc.once('end', () => resolvePdf(Buffer.concat(chunks)))
+    doc.end()
+  })
+}
+
+function rawBytesToBuffer(raw: unknown) {
+  if (!raw) return null
+  if (Buffer.isBuffer(raw)) return raw
+  if (raw instanceof Uint8Array) return Buffer.from(raw)
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw)
+  if (typeof raw === 'string') return Buffer.from(raw, 'binary')
+  return null
+}
+
+async function readBundledFontBytes() {
+  for (const file of PUBLIC_MONTSERRAT_FILES) {
+    const raw = await useStorage('assets:hp-fonts').getItem(file)
+    const bytes = rawBytesToBuffer(raw)
+    if (bytes?.length) return { bytes, path: `assets:hp-fonts/${file}` }
+  }
+  return null
+}
+
+function tryRegisterPdfFont(
+  doc: { registerFont: (name: string, source: string | Buffer) => unknown; font: (name: string) => unknown },
+  fontName: string,
+  source: string | Buffer,
+  label: string
+) {
+  try {
+    doc.registerFont(fontName, source)
+    doc.font(fontName)
+    return true
+  } catch (error) {
+    logPersonasWarning('marbete-pdf-font-register-failed', {
+      source: label,
+      message: error instanceof Error ? error.message : String(error)
+    })
+    return false
+  }
+}
+
+async function registerPdfFont(
+  doc: { registerFont: (name: string, source: string | Buffer) => unknown; font: (name: string) => unknown },
+  origin: string
+) {
+  const fontName = 'Montserrat-SemiBold-Embedded'
+  const candidates = LOCAL_MONTSERRAT_CANDIDATES.filter((candidate) => candidate && existsSync(candidate))
+  for (const candidate of candidates) {
+    if (tryRegisterPdfFont(doc, fontName, candidate, candidate)) return fontName
+  }
+
+  const bundled = await readBundledFontBytes()
+  if (bundled?.bytes.length && tryRegisterPdfFont(doc, fontName, bundled.bytes, bundled.path)) {
+    return fontName
+  }
+
+  const remoteFont = await readFontBytesFromOrigin(origin)
+  if (remoteFont?.bytes.length && tryRegisterPdfFont(doc, fontName, remoteFont.bytes, remoteFont.path)) {
+    return fontName
+  }
+
+  throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
+    candidates: [
+      ...LOCAL_MONTSERRAT_CANDIDATES,
+      ...PUBLIC_MONTSERRAT_FILES.map((file) => `assets:hp-fonts/${file}`),
+      ...PUBLIC_MONTSERRAT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
+    ].filter(Boolean)
+  })
+}
+
+async function renderSvgToPdfKit(input: MarbetePdfInput) {
+  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin)
+  if (/{{\s*[^}]+\s*}}/.test(completeSvg)) {
+    throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'unresolved-svg-token', {
+      tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)
+    })
+  }
+
+  const doc = new PDFDocument({
+    autoFirstPage: false,
+    compress: true,
+    info: {
+      Title: 'Husky Pass',
+      Creator: 'Husky Pass CRM'
+    }
+  })
+  doc.addPage({ size: [612, 792], margin: 0 })
+  const fontName = await registerPdfFont(doc, input.origin)
+  const warnings: string[] = []
+
+  try {
+    SVGtoPDF(doc, completeSvg, 0, 0, {
+      width: 612,
+      height: 792,
+      assumePt: true,
+      preserveAspectRatio: 'xMidYMid meet',
+      fontCallback: (family: string) => /montserrat/i.test(String(family || '')) ? fontName : 'Helvetica-Bold',
+      warningCallback: (message: string) => warnings.push(String(message || '').slice(0, 300))
+    })
+
+    const lines = supplementalDataLines(input.values)
+    if (lines.length) {
+      doc.font(fontName)
+      doc.fontSize(6)
+      doc.fillColor('#55585f')
+      const lineHeight = 7
+      const startY = 792 - 4.32 - (lines.length * lineHeight)
+      lines.forEach((line, index) => {
+        doc.text(line, 51.84, startY + index * lineHeight, {
+          width: 508.32,
+          height: lineHeight,
+          lineBreak: false
+        })
+      })
+    }
+  } catch (error) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-render-failed', {
+      reason: 'pdfkit-render-error',
+      message: error instanceof Error ? error.message : String(error),
+      warnings: warnings.slice(0, 10)
+    })
+  }
+
+  const pdf = await collectPdfBuffer(doc)
+  if (pdf.length < 1024 || pdf.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdf-invalid', {
+      bytes: pdf.length,
+      signature: pdf.subarray(0, 8).toString('ascii'),
+      warnings: warnings.slice(0, 10)
+    })
+  }
+  if (warnings.some((warning) => /image|font|parse|invalid|not look like/i.test(warning))) {
+    logPersonasWarning('marbete-pdf-pdfkit-warnings', { warnings: warnings.slice(0, 10) })
+  }
+  return pdf
+}
+
 export async function prepareMarbeteSvgForPdf(svg: string, origin = '') {
   return inlineSvgImages(svg, origin)
 }
@@ -505,6 +667,9 @@ export async function renderMarbetePdf(input: string | MarbetePdfInput) {
     : input
 
   await assertMarbetePdfAssets(pdfInput)
-  const html = await composeMarbeteHtml(pdfInput)
-  return renderHtmlToPdf(html)
+  if (process.env.HUSKY_PASS_PDF_RENDERER === 'chromium') {
+    const html = await composeMarbeteHtml(pdfInput)
+    return renderHtmlToPdf(html)
+  }
+  return renderSvgToPdfKit(pdfInput)
 }

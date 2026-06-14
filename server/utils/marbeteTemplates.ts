@@ -77,12 +77,18 @@ async function writeTemplateIndex(templates: MarbeteTemplateMeta[]) {
 async function readBundledTemplateIndex() {
   const raw = await useStorage('assets:marbete-templates').getItem('templates.json')
   if (!raw) return []
-  return JSON.parse(String(raw)) as Partial<MarbeteTemplateMeta>[]
+  if (Array.isArray(raw)) return raw as Partial<MarbeteTemplateMeta>[]
+  if (typeof raw === 'string') return JSON.parse(raw) as Partial<MarbeteTemplateMeta>[]
+  return JSON.parse(JSON.stringify(raw)) as Partial<MarbeteTemplateMeta>[]
 }
 
 async function readBundledTemplateSvg(filename: string) {
   const raw = await useStorage('assets:marbete-templates').getItem(filename)
-  return raw ? String(raw) : ''
+  if (!raw) return ''
+  if (typeof raw === 'string') return raw
+  if (raw instanceof Uint8Array) return new TextDecoder('utf-8').decode(raw)
+  if (raw instanceof ArrayBuffer) return new TextDecoder('utf-8').decode(new Uint8Array(raw))
+  return String(raw)
 }
 
 export async function listMarbeteTemplates() {
