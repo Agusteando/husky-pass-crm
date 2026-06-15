@@ -19,6 +19,8 @@ These shortcuts are development-only. Routes under `/__dev/*` and API fixture mo
 - Validate pulled Vercel env shape: `npm run validate:env -- .vercel/.env.production.local production allow-sensitive-placeholders json`
 - Check deployment readiness: `npm run check:deploy-readiness -- artifacts/vercel-deployment-verification/readiness.json`
 - Smoke-test a deployment or local output: `npm run smoke:deploy -- https://deployment-url artifacts/vercel-deployment-verification/manual-smoke`
+- Verify the full local identity matrix: `npm run verify:identity -- --base-url http://127.0.0.1:3000`
+- Verify public identity routes on a Vercel deployment: `npm run verify:identity -- --base-url https://deployment-url --public-only --out artifacts/identity-verification/deployed-public`
 
 Expected verification output:
 
@@ -32,6 +34,10 @@ Expected verification output:
 - Run manifest: `artifacts/husky-pass-verification/<timestamp>/manifest.json`
 - Human report: `artifacts/husky-pass-verification/<timestamp>/verification-report.md`
 - Optional Nuxt dev server logs: `artifacts/husky-pass-verification/server-logs/nuxt-dev.out.log` and `artifacts/husky-pass-verification/server-logs/nuxt-dev.err.log`
+- Identity matrix screenshots: `artifacts/identity-verification/<timestamp>/screenshots/*.png`
+- Identity contact sheet: `artifacts/identity-verification/<timestamp>/screenshots/identity-contact-sheet.png`
+- Identity manifest: `artifacts/identity-verification/<timestamp>/manifest.json`
+- Identity verification report: `artifacts/identity-verification/<timestamp>/verification-report.md`
 
 ## Vercel Deployment
 
@@ -52,6 +58,8 @@ Clean local deployment check:
 6. `npx vercel build --yes --prod --debug`.
 7. `npm run check:deploy-readiness -- artifacts/vercel-deployment-verification/readiness.json`.
 
+For local prebuilt Vercel builds, `vercel pull` can write some configured values as empty placeholders in `.vercel/.env.production.local`. Before `npx vercel build --yes --prod --debug`, make sure direct runtime globals that are serialized into client config or reset links are present in the shell, especially `GOOGLE_CLIENT_ID` and `PASSWORD_RECOVERY_BASE_URL`. Do not use `_BASE64` variants for Google service-account keys; use `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` as a direct string with escaped `\n` newlines. Server-side recovery email also reads the direct `PASSWORD_RECOVERY_*` and `GOOGLE_SERVICE_ACCOUNT_*` environment variables at runtime on Vercel.
+
 Run generated output locally:
 
 1. Build first with `npm run build`.
@@ -67,7 +75,9 @@ Create and verify a Production deployment:
 4. Inspect deployment: `npx vercel inspect <deployment-url>`.
 5. Inspect runtime logs: `npx vercel logs <deployment-url> --since 15m`.
 6. Smoke-test the immutable URL: `npm run smoke:deploy -- <deployment-url> artifacts/vercel-deployment-verification/<timestamp>/smoke-deployed-public`.
-7. Also spot-check the production alias, for example `/login`, `/api/auth/me`, and `/brand/husky-pass-logo.png`.
+7. Verify public identity routes: `npm run verify:identity -- --base-url <deployment-url> --public-only --out artifacts/identity-verification/<timestamp>/deployed-public`.
+8. Confirm dev-only tools are closed in production: `/__dev/identity-matrix` and `/api/dev/husky-pass/options` must return 404.
+9. Also spot-check the production alias, for example `/login`, `/api/auth/me`, and `/brand/husky-pass-logo.png`.
 
 Deployment Protection:
 
@@ -103,6 +113,7 @@ Deployment smoke-test outputs:
 ## Dev Routes
 
 - PDF lab: `/__dev/husky-pass`
+- Identity matrix lab: `/__dev/identity-matrix`
 - Modal lab: `/__dev/personas-modals`
 - Dev pass API: `/api/dev/husky-pass/pass?variant=<variant>&scenario=<scenario>&format=<pdf|svg-preview|readiness|diagnostics>`
 - Dev image API: `/api/dev/husky-pass/photo?seed=<seed>&theme=<theme>&mode=<portrait|wide|tall|transparent|large|slow>`
@@ -116,8 +127,18 @@ PDF lab query options:
 
 Modal lab query options:
 
-- `theme`: `daycare`, `preescolar`, `primaria`, `secundaria`, `iedis`
+- `theme`: `escolar`, `daycare`, `iecs`, `preescolar`, `primaria`, `secundaria`, `iedis`, `admin`
 - `mode`: `edit`, `delete`, `busy`
+
+Identity matrix query options:
+
+- `experience`: `escolar`, `guarderia`, `admin`
+- `institution`: `iecs`, `iedis`, or blank for a neutral context inside the active experience.
+- `nivel`: `guarderia`, `preescolar`, `primaria`, `secundaria`, or a raw local value.
+- `plantel`: real plantel/campus value such as `CM`, `PREEM`, `PT`, `PM`, `ST`, `SM`.
+- `grupo`: real group label used to resolve grupo icons and masks.
+- `state`: `ready`, `loading`, `empty`, `error`.
+- `modal`: `1` opens the shared modal base with the resolved context.
 
 ## Adding New Isolated Cases
 
@@ -126,6 +147,68 @@ Modal lab query options:
 3. Add the case to `caseMatrix()` in `scripts/husky-pass-visual-verify.mjs`.
 4. Run `npm run verify:husky-pass -- --base-url http://127.0.0.1:3000`.
 5. Inspect the generated PDF and screenshots under the timestamped artifact folder.
+
+## Visual Identity Architecture
+
+The formal context is centralized in `types/identity.ts` and resolved in `utils/experienceIdentity.ts`:
+
+```ts
+type ExperienceContext = {
+  experience: 'escolar' | 'guarderia' | 'admin'
+  institution: 'iecs' | 'iedis' | null
+  nivel: string | null
+  plantel: string | null
+  grupo: string | null
+}
+```
+
+Official names are `Experiencia Escolar`, `Experiencia Guardería`, and `Experiencia Administrativa`. Do not introduce new labels such as default, normal, main, alternate, or non-guarderia in code, tests, or docs.
+
+Identity rules:
+
+- Screens consume a resolved context and visual identity. They must not reconstruct logos, colors, routes, or asset fallbacks locally.
+- Guardería is never a generic fallback. When data is insufficient, use neutral Escolar, neutral Guardería, neutral Administrativa, or block the flow with diagnostics.
+- `nivel` can choose level assets only after the experience is resolved; it must not decide whether an account is Escolar or Guardería by itself.
+- Super Admin uses the neutral administrative shell. Student, nivel, plantel, and grupo assets may appear only inside the selected work area.
+- Shared modals must receive or inherit the active Personas/identity theme. A modal must not hard-code IECS, IEDIS, Guardería, or admin styling.
+- Password recovery and reset links carry the requested experience in the URL for UX continuity, but the backend resolves the account and token experience securely.
+
+Login routes:
+
+- Neutral selector: `/login`
+- Experiencia Escolar families: `/login/escolar`
+- Experiencia Guardería families: `/login/guarderia`
+- Experiencia Administrativa: `/admin/login`
+
+Protected route redirects:
+
+- `/familia/daycare` without a family session redirects to `/login/guarderia`.
+- Shared family routes such as `/familia/personas-autorizadas` redirect to `/login` when no session exists because the route alone is not a reliable experience source.
+
+Identity verification:
+
+1. Start dev: `npm run dev:husky-pass`.
+2. Run the full local matrix: `npm run verify:identity -- --base-url http://127.0.0.1:3000`.
+3. Open `artifacts/identity-verification/<timestamp>/screenshots/identity-contact-sheet.png` and inspect logos, colors, modals, mobile, desktop, recovery, and protected redirects.
+4. Run production gates: `npm run typecheck`, `npm run lint`, `npm run build`, `npx vercel build --yes --prod --debug`.
+5. Deploy and verify public routes: `npm run verify:identity -- --base-url <deployment-url> --public-only --out artifacts/identity-verification/<timestamp>/deployed-public`.
+
+Leakage checks included in `npm run verify:identity`:
+
+- IECS screenshots must not contain IEDIS or Guardería asset markers.
+- IEDIS screenshots must not contain IECS or Guardería asset markers.
+- Guardería screenshots must not contain IECS, IEDIS, preescolar, primaria, or secundaria markers.
+- Administración screenshots must not contain family-level institution or nivel assets.
+- A stale localStorage value is injected before loading admin to detect SPA persistence leaks.
+- Public-only mode verifies real login/recovery routes and protected redirects without using `/__dev/*`.
+
+Adding new identity cases:
+
+1. Add the route or state to `contexts` or `loginRoutes` in `scripts/identity-visual-verify.mjs`.
+2. Include expected `experience`, expected `institution` when relevant, and forbidden asset markers.
+3. Add the same context to `/__dev/identity-matrix` only if it needs a new control or state.
+4. Run the local matrix and inspect the contact sheet before deploying.
+5. Run public-only verification after deployment for any route reachable in production.
 
 ## Backend Diagnostics
 

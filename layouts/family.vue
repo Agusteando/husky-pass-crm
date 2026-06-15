@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="family-experience-root" :style="identityVars" :data-experience="identity.context.experience">
     <AppTopbar :session="session" :home-to="homeTo" :items="[]" />
     <div class="page-shell workspace-shell">
       <FamilySidebar :session="session" />
@@ -12,15 +12,24 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useFetch } from 'nuxt/app'
+import { useFetch, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
+import { resolveVisualIdentity } from '~/utils/experienceIdentity'
 
+const route = useRoute()
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-family-session' })
 const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
+const identity = computed(() => resolveVisualIdentity({ routePath: route.path, user: session.value?.user }).identity)
+const identityVars = computed(() => resolveVisualIdentity({ routePath: route.path, user: session.value?.user }).vars)
 </script>
 
 <style scoped>
+.family-experience-root {
+  background: var(--color-page);
+  min-height: 100vh;
+}
+
 .workspace-shell {
   display: grid;
   gap: 12px;

@@ -11,10 +11,11 @@ const CONFIG_DIR = runtimeDataDir('personas-autorizadas')
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 const ACCESS_ACTION_PATH = join(CONFIG_DIR, 'access-actions.json')
 export const SURVEY_NIVEL_OPTIONS: Array<{ key: PersonasSurveyNivelKey; label: string }> = [
+  { key: 'escolar', label: 'Escolar sin nivel resuelto' },
   { key: 'preescolar', label: 'Preescolar' },
   { key: 'primaria', label: 'Primaria' },
   { key: 'secundaria', label: 'Secundaria' },
-  { key: 'daycare', label: 'IECS / fallback' }
+  { key: 'daycare', label: 'Guardería' }
 ]
 
 function defaultSurvey(title = 'Encuesta Personas Autorizadas'): PersonasSurveyConfig {
@@ -30,10 +31,11 @@ function defaultSurvey(title = 'Encuesta Personas Autorizadas'): PersonasSurveyC
 const defaultConfig: PersonasAutorizadasConfig = {
   survey: defaultSurvey(),
   surveysByNivel: {
+    escolar: defaultSurvey('Encuesta Escolar'),
     preescolar: defaultSurvey('Encuesta Preescolar'),
     primaria: defaultSurvey('Encuesta Primaria'),
     secundaria: defaultSurvey('Encuesta Secundaria'),
-    daycare: defaultSurvey('Encuesta IECS')
+    daycare: defaultSurvey('Encuesta Guardería')
   },
   conveniosUrl: '',
   helpUrl: '',
@@ -152,7 +154,9 @@ export async function savePersonasConfig(input: {
 
 export function surveyNivelFromStudent(input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null }) {
   const key = resolvePersonasTheme(input).key
-  return key === 'preescolar' || key === 'primaria' || key === 'secundaria' ? key : 'daycare'
+  if (key === 'daycare') return 'daycare'
+  if (key === 'preescolar' || key === 'primaria' || key === 'secundaria') return key
+  return 'escolar'
 }
 
 export function resolveSurveyForStudent(config: PersonasAutorizadasConfig, input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; campus?: string | null }) {

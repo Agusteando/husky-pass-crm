@@ -1,11 +1,11 @@
 <template>
-  <section class="security-page" data-product-panel="account-security">
+  <section class="security-page" :style="identityVars" :data-experience="identity.context.experience" data-product-panel="account-security">
     <header class="security-header">
       <span class="security-mark" aria-hidden="true">
         <FamilyPersonasIcon name="security" />
       </span>
       <div>
-        <p>Cuenta familiar</p>
+        <p>{{ identity.officialName }}</p>
         <h1>Cambiar contrase&ntilde;a</h1>
         <small>{{ accountLabel }}</small>
       </div>
@@ -64,17 +64,25 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { useFetch } from 'nuxt/app'
+import { useFetch, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { displayMatriculaCandidate } from '~/utils/matricula'
+import { experienceThemeVars, normalizeExperienceName, resolveVisualIdentity } from '~/utils/experienceIdentity'
 
 definePageMeta({ layout: 'family', middleware: 'family' })
 
+const route = useRoute()
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'account-security-session' })
 const form = reactive({ currentPassword: '', password: '', confirmation: '' })
 const loading = ref(false)
 const error = ref('')
 const notice = ref('')
+const identity = computed(() => resolveVisualIdentity({
+  routePath: route.path,
+  requestedExperience: normalizeExperienceName(String(route.query.experiencia || '')) || undefined,
+  user: session.value?.user
+}).identity)
+const identityVars = computed(() => experienceThemeVars(identity.value))
 
 const accountLabel = computed(() => {
   const user = session.value?.user

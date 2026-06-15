@@ -1,11 +1,11 @@
 <template>
-  <NuxtLink :to="to || '/'" class="brand-mark" aria-label="Husky Pass">
-    <img class="brand-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+  <NuxtLink :to="to || '/'" class="brand-mark" :aria-label="alt || 'Husky Pass'">
+    <img class="brand-logo" :src="logo || '/brand/husky-pass-logo.png'" :alt="alt || 'Husky Pass'" />
   </NuxtLink>
 </template>
 
 <script setup lang="ts">
-defineProps<{ to?: string }>()
+defineProps<{ to?: string; logo?: string; alt?: string }>()
 </script>
 
 <style scoped>

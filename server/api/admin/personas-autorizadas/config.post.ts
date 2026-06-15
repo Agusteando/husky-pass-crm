@@ -14,7 +14,7 @@ const schema = z.object({
   surveyEnabled: z.boolean().optional().default(false),
   surveyTitle: z.string().trim().optional().default('Encuesta Personas Autorizadas'),
   surveyEmbedUrl: z.string().trim().optional().default(''),
-  surveysByNivel: z.record(z.enum(['preescolar', 'primaria', 'secundaria', 'daycare']), surveySchema).optional(),
+  surveysByNivel: z.record(z.enum(['escolar', 'preescolar', 'primaria', 'secundaria', 'daycare']), surveySchema).optional(),
   conveniosUrl: z.string().trim().optional().default(''),
   helpUrl: z.string().trim().optional().default('')
 })

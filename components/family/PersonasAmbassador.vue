@@ -1,6 +1,12 @@
 <template>
-  <figure class="pa-ambassador-card" :data-variant="variant" :data-compact="compact ? 'true' : 'false'" :aria-label="decorative ? undefined : computedAlt">
-    <img :src="imageSrc" :alt="decorative ? '' : computedAlt" loading="lazy" decoding="async" />
+  <figure
+    v-if="imageSrc || title || text || $slots.default || !decorative"
+    class="pa-ambassador-card"
+    :data-variant="variant"
+    :data-compact="compact ? 'true' : 'false'"
+    :aria-label="decorative ? undefined : computedAlt"
+  >
+    <img v-if="imageSrc" :src="imageSrc" :alt="decorative ? '' : computedAlt" loading="lazy" decoding="async" />
     <figcaption v-if="title || text || $slots.default">
       <slot>
         <strong v-if="title">{{ title }}</strong>

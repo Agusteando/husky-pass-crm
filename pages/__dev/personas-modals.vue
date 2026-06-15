@@ -80,7 +80,7 @@ definePageMeta({ layout: false, middleware: 'dev-only' })
 const route = useRoute()
 const router = useRouter()
 const themes = allPersonasThemes()
-const themeKey = ref((typeof route.query.theme === 'string' ? route.query.theme : 'daycare') as PersonasThemeKey)
+const themeKey = ref((typeof route.query.theme === 'string' ? route.query.theme : 'escolar') as PersonasThemeKey)
 const mode = ref(typeof route.query.mode === 'string' ? route.query.mode : 'edit')
 const closed = ref(false)
 

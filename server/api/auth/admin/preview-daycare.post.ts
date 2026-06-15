@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   }
 
   setAppSession(event, familyPreview)
-  setCookie(event, 'user_segment', 'daycare', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  setCookie(event, 'user_segment', 'guarderia', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 
   return { user: familyPreview, loggedin: true }
 })

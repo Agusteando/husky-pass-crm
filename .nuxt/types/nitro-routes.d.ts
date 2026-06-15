@@ -38,6 +38,9 @@ declare module "nitropack/types" {
     '/api/admin/personas-autorizadas/uploads': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/personas-autorizadas/uploads.post').default>>>>
     }
+    '/api/admin/superadmin/env-check': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/superadmin/env-check.get').default>>>>
+    }
     '/api/admin/superadmin/users': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/superadmin/users.get').default>>>>
     }

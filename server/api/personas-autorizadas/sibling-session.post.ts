@@ -7,6 +7,7 @@ import { requireSession, setAppSession } from '~/server/utils/session'
 import { hasFamilyScope } from '~/utils/sessionScopes'
 import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
 import { normalizeMatricula } from '~/utils/matricula'
+import { resolveExperienceContext } from '~/utils/experienceIdentity'
 
 const schema = z.object({
   matricula: z.string().min(1)
@@ -36,7 +37,16 @@ export default defineEventHandler(async (event) => {
     }
 
     setAppSession(event, sessionUser)
-    setCookie(event, 'user_segment', hasFamilyScope(sessionUser, 'daycare') ? 'daycare' : 'premium', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    const resolved = resolveExperienceContext({
+      routePath: '/familia/personas-autorizadas',
+      user: sessionUser,
+      matricula: target.matricula,
+      plantel: target.plantel,
+      nivelEdu: target.nivelEdu,
+      campus: target.campus,
+      grupo: target.grupo
+    })
+    setCookie(event, 'user_segment', resolved.context.experience === 'guarderia' ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
     return { user: sessionUser, loggedin: true }
   } catch (error) {
     logPersonasDiagnostic('sibling-session-api-switch', error, { userId: user.id, username: user.username })

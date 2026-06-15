@@ -1,9 +1,10 @@
 <template>
   <LoginPanel
-    brand-to="/login"
-    eyebrow="Recuperaci&oacute;n"
+    :brand-to="loginTo"
+    :eyebrow="eyebrow"
     title="Restablecer contrase&ntilde;a"
     description="Recibe un enlace seguro en el correo de tu cuenta familiar."
+    :experience="experience"
   >
     <form v-if="!sent" class="stack" @submit.prevent="submit">
       <div>
@@ -24,7 +25,7 @@
       </label>
       <p v-if="error" id="recovery-message" class="alert">{{ error }}</p>
       <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Enviando...' : 'Enviar enlace' }}</button>
-      <NuxtLink class="btn btn-secondary" to="/login">Volver a iniciar sesi&oacute;n</NuxtLink>
+      <NuxtLink class="btn btn-secondary" :to="loginTo">Volver a iniciar sesi&oacute;n</NuxtLink>
     </form>
 
     <section v-else class="stack" aria-live="polite">
@@ -32,21 +33,30 @@
         <h2>Revisa tu correo</h2>
         <p class="quiet">{{ message }}</p>
       </div>
-      <NuxtLink class="btn btn-primary" to="/login">Volver a iniciar sesi&oacute;n</NuxtLink>
+      <NuxtLink class="btn btn-primary" :to="loginTo">Volver a iniciar sesi&oacute;n</NuxtLink>
     </section>
   </LoginPanel>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'nuxt/app'
+import { defaultLoginRouteForExperience, normalizeExperienceName } from '~/utils/experienceIdentity'
+import type { ExperienceName } from '~/types/identity'
 
 definePageMeta({ middleware: 'guest' })
 
+const route = useRoute()
 const email = ref('')
 const loading = ref(false)
 const sent = ref(false)
 const error = ref('')
 const message = ref('Si existe una cuenta familiar con ese correo, enviaremos un enlace para restablecer la contrasena.')
+const experience = computed<Extract<ExperienceName, 'escolar' | 'guarderia'>>(() => (
+  normalizeExperienceName(String(route.query.experiencia || '')) === 'guarderia' ? 'guarderia' : 'escolar'
+))
+const loginTo = computed(() => defaultLoginRouteForExperience(experience.value))
+const eyebrow = computed(() => experience.value === 'guarderia' ? 'Experiencia Guardería' : 'Experiencia Escolar')
 
 async function submit() {
   loading.value = true
@@ -54,7 +64,7 @@ async function submit() {
   try {
     const response = await $fetch<{ message?: string }>('/api/auth/password/forgot', {
       method: 'POST',
-      body: { email: email.value }
+      body: { email: email.value, experience: experience.value }
     })
     message.value = response.message || message.value
     sent.value = true

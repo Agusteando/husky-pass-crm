@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   }
 
   setAppSession(event, familyUser)
-  setCookie(event, 'user_segment', familyUser.productScopes.includes('daycare') ? 'daycare' : 'premium', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  setCookie(event, 'user_segment', familyUser.productScopes.includes('daycare') ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 
   return { user: familyUser, loggedin: true }
 })

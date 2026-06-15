@@ -34,13 +34,14 @@ const { data: config } = useFetch<PersonasAutorizadasConfig>('/api/personas-auto
 const emptySurvey: PersonasSurveyConfig = { enabled: false, title: 'Encuesta', embedUrl: '' }
 const activeSurvey = computed(() => config.value?.activeSurvey || emptySurvey)
 const surveyAvailable = computed(() => Boolean(activeSurvey.value.enabled && activeSurvey.value.embedUrl))
-const nivelLabel = computed(() => nivelLabels[config.value?.activeSurveyNivel || 'daycare'])
+const nivelLabel = computed(() => nivelLabels[config.value?.activeSurveyNivel || 'escolar'])
 
 const nivelLabels: Record<PersonasSurveyNivelKey, string> = {
+  escolar: 'Escolar',
   preescolar: 'Preescolar',
   primaria: 'Primaria',
   secundaria: 'Secundaria',
-  daycare: 'IECS'
+  daycare: 'Guardería'
 }
 </script>
 

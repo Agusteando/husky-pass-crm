@@ -33,11 +33,12 @@ async function defaultBaseUrl() {
 
 async function request(baseUrl) {
   const email = argValue('email')
+  const experience = argValue('experience', 'escolar')
   if (!email) throw new Error('Missing --email parent@example.com')
   const response = await fetch(`${baseUrl}/api/auth/password/forgot`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, experience })
   })
   const text = await response.text()
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${text}`)
@@ -60,7 +61,8 @@ async function main() {
     'Password recovery dev helper',
     '',
     'Commands:',
-    '  npm run dev:password-recovery -- request --email parent@example.com --base-url http://127.0.0.1:3000',
+    '  npm run dev:password-recovery -- request --email parent@example.com --experience escolar --base-url http://127.0.0.1:3000',
+    '  npm run dev:password-recovery -- request --email parent@example.com --experience guarderia --base-url http://127.0.0.1:3000',
     '  npm run dev:password-recovery -- latest --base-url http://127.0.0.1:3000',
     '',
     'Use PASSWORD_RECOVERY_EMAIL_MODE=preview in local .env to write preview files under artifacts/password-recovery-emails.'

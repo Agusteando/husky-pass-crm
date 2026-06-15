@@ -18,6 +18,13 @@
           Correo familiar
           <input v-model="email" type="email" required autocomplete="email" />
         </label>
+        <label>
+          Experiencia
+          <select v-model="experience">
+            <option value="escolar">Experiencia Escolar</option>
+            <option value="guarderia">Experiencia Guardería</option>
+          </select>
+        </label>
         <button type="submit" :disabled="loading">{{ loading ? 'Enviando...' : 'Enviar' }}</button>
         <p v-if="message" class="state">{{ message }}</p>
         <p v-if="error" class="state error">{{ error }}</p>
@@ -43,6 +50,7 @@ import { computed, ref } from 'vue'
 definePageMeta({ middleware: 'dev-only' })
 
 const email = ref('')
+const experience = ref<'escolar' | 'guarderia'>('escolar')
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
@@ -57,7 +65,7 @@ async function requestLink() {
   try {
     const response = await $fetch<{ message?: string }>('/api/auth/password/forgot', {
       method: 'POST',
-      body: { email: email.value }
+      body: { email: email.value, experience: experience.value }
     })
     message.value = response.message || 'Solicitud enviada.'
     await loadLatest()
@@ -156,7 +164,8 @@ async function loadLatest() {
   gap: 6px;
 }
 
-.dev-panel input {
+.dev-panel input,
+.dev-panel select {
   border: 1px solid #cad5e1;
   border-radius: 10px;
   font: inherit;

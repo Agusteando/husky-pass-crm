@@ -4,6 +4,7 @@
     eyebrow="Acceso interno"
     title="Administración Husky Pass"
     description="Ingresa con tu cuenta institucional."
+    experience="admin"
   >
     <div class="stack">
       <div>

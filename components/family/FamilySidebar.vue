@@ -27,7 +27,6 @@ import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sess
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
-const items = computed(() => familyNavItems(props.session?.user))
 const homeTo = computed(() => defaultFamilyRoute(props.session?.user))
 const activeProduct = computed(() => {
   if (route.path.startsWith('/familia/personas-autorizadas')) return 'personasAutorizadas'
@@ -37,6 +36,11 @@ const activeProduct = computed(() => {
   if (hasFamilyScope(props.session?.user, 'personasAutorizadas') && !hasFamilyScope(props.session?.user, 'daycare')) return 'personasAutorizadas'
   return 'chooser'
 })
+const items = computed(() => familyNavItems(props.session?.user).map((item) => {
+  if (item.icon !== 'security') return item
+  const experience = activeProduct.value === 'daycare' ? 'guarderia' : 'escolar'
+  return { ...item, to: `${item.to}?experiencia=${experience}` }
+}))
 const contextLabel = computed(() => {
   if (activeProduct.value === 'daycare') return 'Guardería'
   if (activeProduct.value === 'personasAutorizadas') return 'Personas Autorizadas'

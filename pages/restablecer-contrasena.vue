@@ -1,9 +1,10 @@
 <template>
   <LoginPanel
-    brand-to="/login"
-    eyebrow="Cuenta familiar"
+    :brand-to="loginTo"
+    :eyebrow="eyebrow"
     title="Nueva contrase&ntilde;a"
     description="Crea una contrase&ntilde;a para volver a entrar a Husky Pass."
+    :experience="pageExperience"
   >
     <div v-if="pending" class="stack">
       <div class="loading-row">Validando enlace...</div>
@@ -14,7 +15,7 @@
         <h2>Contrase&ntilde;a actualizada</h2>
         <p class="quiet">Ya puedes iniciar sesi&oacute;n con tu nueva contrase&ntilde;a.</p>
       </div>
-      <NuxtLink class="btn btn-primary" to="/login">Iniciar sesi&oacute;n</NuxtLink>
+      <NuxtLink class="btn btn-primary" :to="successLoginPath || loginTo">Iniciar sesi&oacute;n</NuxtLink>
     </section>
 
     <section v-else-if="!tokenState?.valid" class="stack" aria-live="polite">
@@ -22,8 +23,8 @@
         <h2>Enlace no disponible</h2>
         <p class="quiet">{{ tokenState?.message || 'Solicita un enlace nuevo.' }}</p>
       </div>
-      <NuxtLink class="btn btn-primary" to="/recuperar-contrasena">Solicitar enlace</NuxtLink>
-      <NuxtLink class="btn btn-secondary" to="/login">Volver a iniciar sesi&oacute;n</NuxtLink>
+      <NuxtLink class="btn btn-primary" :to="recoveryTo">Solicitar enlace</NuxtLink>
+      <NuxtLink class="btn btn-secondary" :to="loginTo">Volver a iniciar sesi&oacute;n</NuxtLink>
     </section>
 
     <form v-else class="stack" @submit.prevent="submit">
@@ -59,14 +60,16 @@
       </label>
       <p v-if="error" id="reset-message" class="alert">{{ error }}</p>
       <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Guardando...' : 'Actualizar contraseña' }}</button>
-      <NuxtLink class="btn btn-secondary" to="/login">Cancelar</NuxtLink>
+      <NuxtLink class="btn btn-secondary" :to="loginTo">Cancelar</NuxtLink>
     </form>
   </LoginPanel>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
+import type { ExperienceName } from '~/types/identity'
+import { defaultLoginRouteForExperience, normalizeExperienceName, recoveryRouteForExperience } from '~/utils/experienceIdentity'
 
 definePageMeta({ middleware: 'guest' })
 
@@ -76,20 +79,32 @@ const form = reactive({ password: '', confirmation: '' })
 const loading = ref(false)
 const success = ref(false)
 const error = ref('')
+const successLoginPath = ref('')
 
-const { data: tokenState, pending } = await useFetch<{ status: string; valid: boolean; message: string }>('/api/auth/password/reset', {
+const { data: tokenState, pending } = await useFetch<{ status: string; valid: boolean; message: string; experience?: 'escolar' | 'guarderia' | null; loginPath?: string; recoveryPath?: string }>('/api/auth/password/reset', {
   key: `password-reset-token-${token.slice(0, 8)}`,
   query: { token }
 })
+
+const pageExperience = computed<Extract<ExperienceName, 'escolar' | 'guarderia'>>(() => {
+  const fromToken = normalizeExperienceName(tokenState.value?.experience || '')
+  if (fromToken === 'guarderia') return 'guarderia'
+  if (fromToken === 'escolar') return 'escolar'
+  return normalizeExperienceName(String(route.query.experiencia || '')) === 'guarderia' ? 'guarderia' : 'escolar'
+})
+const loginTo = computed(() => tokenState.value?.loginPath || defaultLoginRouteForExperience(pageExperience.value))
+const recoveryTo = computed(() => tokenState.value?.recoveryPath || recoveryRouteForExperience(pageExperience.value))
+const eyebrow = computed(() => pageExperience.value === 'guarderia' ? 'Experiencia Guardería' : 'Experiencia Escolar')
 
 async function submit() {
   loading.value = true
   error.value = ''
   try {
-    await $fetch('/api/auth/password/reset', {
+    const response = await $fetch<{ loginPath?: string }>('/api/auth/password/reset', {
       method: 'POST',
       body: { token, password: form.password, confirmation: form.confirmation }
     })
+    successLoginPath.value = response.loginPath || loginTo.value
     success.value = true
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }

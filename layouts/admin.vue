@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="admin-experience-root" :style="adminVars" data-experience="admin">
     <AppTopbar :session="session" :home-to="homeTo" :items="topbarItems" />
     <div class="page-shell workspace-shell" :class="isDaycareWorkspace ? 'with-rail' : 'full-width'">
       <AdminDaycareSidebar v-if="isDaycareWorkspace" :session="session" />
@@ -14,9 +14,11 @@
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
+import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
 
 const route = useRoute()
 const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
+const adminVars = experienceThemeVars(visualIdentityForContext({ experience: 'admin', institution: null, nivel: null, plantel: null, grupo: null }))
 
 const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
 const canAccessHistory = computed(() => {
@@ -47,6 +49,11 @@ const isDaycareWorkspace = computed(() => route.path.startsWith('/admin/daycare'
 </script>
 
 <style scoped>
+.admin-experience-root {
+  background: var(--color-page);
+  min-height: 100vh;
+}
+
 .workspace-shell {
   display: grid;
   gap: 12px;

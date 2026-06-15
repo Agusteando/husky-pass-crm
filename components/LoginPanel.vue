@@ -1,7 +1,7 @@
 <template>
-  <main class="login-page">
+  <main class="login-page" :style="identityVars" :data-experience="identity.context.experience">
     <section class="login-hero">
-      <BrandMark :to="brandTo" />
+      <BrandMark :to="brandTo" :logo="identity.assets.logo" :alt="identity.label" />
       <div class="hero-copy">
         <p class="eyebrow">{{ eyebrow }}</p>
         <h1>{{ title }}</h1>
@@ -15,17 +15,38 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+import type { ExperienceName, InstitutionName } from '~/types/identity'
+import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
+
+const props = withDefaults(defineProps<{
   brandTo: string
   eyebrow: string
   title: string
   description: string
-}>()
+  experience?: ExperienceName
+  institution?: InstitutionName
+}>(), {
+  experience: 'escolar',
+  institution: null
+})
+
+const identity = computed(() => visualIdentityForContext({
+  experience: props.experience,
+  institution: props.experience === 'escolar' ? props.institution : null,
+  nivel: null,
+  plantel: null,
+  grupo: null
+}))
+const identityVars = computed(() => experienceThemeVars(identity.value))
 </script>
 
 <style scoped>
 .login-page {
   min-height: 100vh;
+  background: var(--color-page);
+  box-shadow: 0 0 0 100vmax var(--color-page);
+  clip-path: inset(0 -100vmax);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
   gap: clamp(14px, 3vw, 34px);

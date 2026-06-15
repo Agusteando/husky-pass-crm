@@ -112,8 +112,6 @@ declare module 'nuxt/schema' {
 
       googleServiceAccountPrivateKey: string,
 
-      googleServiceAccountPrivateKeyBase64: string,
-
       googleDelegatedUser: string,
    },
 

@@ -2,11 +2,14 @@ import { createError, defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
 import { findLegacyFamilyByLogin, validateLegacyPassword } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { defaultFamilyRoute, hasFamilyScope } from '~/utils/sessionScopes'
+import { hasFamilyScope } from '~/utils/sessionScopes'
+import { defaultRouteForExperience, normalizeExperienceName } from '~/utils/experienceIdentity'
+import { logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
 
 const schema = z.object({
   login: z.string().min(1),
-  password: z.string().min(1)
+  password: z.string().min(1),
+  experience: z.enum(['escolar', 'guarderia'])
 })
 
 export default defineEventHandler(async (event) => {
@@ -26,8 +29,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene un acceso familiar habilitado.' })
   }
 
+  const requestedExperience = normalizeExperienceName(body.experience)
+  const canUseRequestedExperience = requestedExperience === 'guarderia'
+    ? hasFamilyScope(sessionUser, 'daycare')
+    : requestedExperience === 'escolar' && hasFamilyScope(sessionUser, 'personasAutorizadas')
+
+  if (!requestedExperience || !canUseRequestedExperience) {
+    logSecurityWarning('identity-login-experience-mismatch', {
+      requestedExperience: body.experience,
+      resolvedScopes: sessionUser.productScopes,
+      userId: sessionUser.id,
+      loginHash: securityHash(body.login.trim().toLowerCase())
+    })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Este acceso no corresponde a la cuenta indicada. Revisa que estes entrando desde la experiencia correcta.'
+    })
+  }
+
   setAppSession(event, sessionUser)
-  setCookie(event, 'user_segment', hasFamilyScope(sessionUser, 'daycare') ? 'daycare' : 'premium', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  setCookie(event, 'user_segment', requestedExperience === 'guarderia' ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'last_login_type', 'php', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
-  return { user: sessionUser, loggedin: true, defaultPath: defaultFamilyRoute(sessionUser) }
+  return { user: sessionUser, loggedin: true, defaultPath: defaultRouteForExperience(sessionUser, requestedExperience) }
 })

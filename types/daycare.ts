@@ -109,7 +109,7 @@ export interface SalaOverview {
   latestFamilies: FamilyAccount[]
 }
 
-export type PersonasThemeKey = 'daycare' | 'preescolar' | 'primaria' | 'secundaria' | 'iedis'
+export type PersonasThemeKey = 'escolar' | 'daycare' | 'iecs' | 'preescolar' | 'primaria' | 'secundaria' | 'iedis' | 'admin'
 
 export interface PersonasTheme {
   key: PersonasThemeKey
@@ -235,7 +235,7 @@ export interface PersonasSurveyConfig {
   updatedBy?: string | null
 }
 
-export type PersonasSurveyNivelKey = 'preescolar' | 'primaria' | 'secundaria' | 'daycare'
+export type PersonasSurveyNivelKey = 'escolar' | 'preescolar' | 'primaria' | 'secundaria' | 'daycare'
 
 export interface PersonasAutorizadasConfig {
   survey: PersonasSurveyConfig

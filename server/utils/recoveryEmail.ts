@@ -10,6 +10,8 @@ interface RecoveryEmailInput {
   to: string
   displayName?: string | null
   resetUrl: string
+  loginUrl?: string | null
+  recoveryUrl?: string | null
   expiresAt: Date
   theme: PersonasTheme
 }
@@ -32,15 +34,16 @@ function decodePrivateKey(raw?: string | null) {
 function getRecoveryEmailConfig(): RecoveryEmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
-  const mode = String(recovery.emailMode || 'gmail').trim().toLowerCase() === 'preview' ? 'preview' : 'gmail'
-  const privateKey = decodePrivateKey(recovery.googleServiceAccountPrivateKey)
+  const modeValue = process.env.PASSWORD_RECOVERY_EMAIL_MODE || recovery.emailMode || 'gmail'
+  const mode = String(modeValue).trim().toLowerCase() === 'preview' ? 'preview' : 'gmail'
+  const privateKey = decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey)
   return {
     mode,
-    fromEmail: String(recovery.fromEmail || '').trim(),
-    fromName: String(recovery.fromName || 'Husky Pass').trim(),
-    serviceAccountEmail: String(recovery.googleServiceAccountEmail || '').trim(),
+    fromEmail: String(process.env.PASSWORD_RECOVERY_FROM_EMAIL || recovery.fromEmail || '').trim(),
+    fromName: String(process.env.PASSWORD_RECOVERY_FROM_NAME || recovery.fromName || 'Husky Pass').trim(),
+    serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
     privateKey,
-    delegatedUser: String(recovery.googleDelegatedUser || '').trim()
+    delegatedUser: String(process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || recovery.googleDelegatedUser || '').trim()
   }
 }
 
@@ -114,6 +117,7 @@ function buildEmail(input: RecoveryEmailInput, config: RecoveryEmailConfig) {
         <a href="${escapeHtml(input.resetUrl)}" style="background:${input.theme.primary};border-radius:10px;color:${escapeHtml(input.theme.contrast)};display:inline-block;font-weight:700;padding:12px 18px;text-decoration:none">Crear nueva contraseña</a>
       </p>
       <p style="color:#687085;font-size:14px">Disponible hasta ${escapeHtml(expires)}.</p>
+      ${input.loginUrl ? `<p style="color:#687085;font-size:14px">Al terminar, regresa a <a href="${escapeHtml(input.loginUrl)}" style="color:${input.theme.primary};font-weight:700">tu acceso correcto</a>.</p>` : ''}
       <p style="color:#687085;font-size:14px">Si no solicitaste este cambio, puedes ignorar este correo.</p>
     </div>
   `.trim()
@@ -184,6 +188,8 @@ async function writePreviewEmail(input: RecoveryEmailInput, email: ReturnType<ty
     toHash: securityHash(input.to),
     subject: email.subject,
     resetUrl: input.resetUrl,
+    loginUrl: input.loginUrl || null,
+    recoveryUrl: input.recoveryUrl || null,
     expiresAt: input.expiresAt.toISOString(),
     html: email.html,
     text: email.text,

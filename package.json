@@ -22,6 +22,7 @@
     "lint": "eslint .",
     "smoke:deploy": "node scripts/deployment-smoke-test.mjs",
     "validate:env": "node scripts/validate-env.mjs",
+    "verify:identity": "node scripts/identity-visual-verify.mjs",
     "verify:husky-pass": "node scripts/husky-pass-visual-verify.mjs",
     "dev:password-recovery": "node scripts/password-recovery-dev.mjs",
     "dev:account-security-fixtures": "node scripts/account-security-fixtures.mjs",
@@ -35,7 +36,7 @@
     "bcryptjs": "^2.4.3",
     "google-auth-library": "^9.15.1",
     "mysql2": "^3.11.5",
-    "nuxt": "3.15.4",
+    "nuxt": "^3.21.8",
     "pdfkit": "^0.18.0",
     "svg-to-pdfkit": "^0.1.8",
     "zod": "^3.24.1"

@@ -97,7 +97,7 @@ function validate(env, options) {
     warnings.push('ATTENDANCE_MYSQL_* no esta configurado; asistencia usara la configuracion MySQL principal o valores por defecto.')
   }
 
-  if (!hasValue(env, 'PASSWORD_RECOVERY_BASE_URL')) {
+  if (!hasRequiredValue(env, 'PASSWORD_RECOVERY_BASE_URL', options)) {
     warnings.push('PASSWORD_RECOVERY_BASE_URL falta; recuperacion de contrasena no podra generar enlaces publicos correctos.')
   }
 

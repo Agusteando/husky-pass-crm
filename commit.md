@@ -1,1 +1,1 @@
-Corrige despliegue en Vercel y verifica Husky Pass en produccion
+Centraliza identidad visual por experiencia y verifica despliegue en Vercel

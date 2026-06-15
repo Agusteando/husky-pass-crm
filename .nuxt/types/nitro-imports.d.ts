@@ -30,6 +30,7 @@ declare global {
   const attendanceQuery: typeof import('../../server/utils/attendanceMysql').attendanceQuery
   const attendanceWrite: typeof import('../../server/utils/attendanceMysql').attendanceWrite
   const buildDevPrintableAuthorizedPerson: typeof import('../../server/utils/devHuskyPassFixtures').buildDevPrintableAuthorizedPerson
+  const buildEnvChecklist: typeof import('../../server/utils/envChecklist').buildEnvChecklist
   const buildMarbeteRenderValues: typeof import('../../server/utils/marbeteTemplates').buildMarbeteRenderValues
   const cachedEventHandler: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').cachedEventHandler
   const cachedFunction: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').cachedFunction
@@ -113,6 +114,7 @@ declare global {
   const isEventHandler: typeof import('../../node_modules/h3').isEventHandler
   const isMethod: typeof import('../../node_modules/h3').isMethod
   const isPreflightRequest: typeof import('../../node_modules/h3').isPreflightRequest
+  const isServerlessRuntime: typeof import('../../server/utils/serverlessPaths').isServerlessRuntime
   const isStream: typeof import('../../node_modules/h3').isStream
   const isSuperAdmin: typeof import('../../server/utils/authz').isSuperAdmin
   const isWebResponse: typeof import('../../node_modules/h3').isWebResponse
@@ -151,6 +153,7 @@ declare global {
   const resolveSipaePlantel: typeof import('../../server/utils/sipaePlantel').resolveSipaePlantel
   const resolveSurveyForStudent: typeof import('../../server/utils/personasConfig').resolveSurveyForStudent
   const runTask: typeof import('../../node_modules/nitropack/dist/runtime/internal/task').runTask
+  const runtimeDataDir: typeof import('../../server/utils/serverlessPaths').runtimeDataDir
   const sanitizeStatusCode: typeof import('../../node_modules/h3').sanitizeStatusCode
   const sanitizeStatusMessage: typeof import('../../node_modules/h3').sanitizeStatusMessage
   const saveMarbeteTemplate: typeof import('../../server/utils/marbeteTemplates').saveMarbeteTemplate
@@ -238,6 +241,7 @@ export { attendanceQuery, attendanceOne, attendanceWrite } from 'C:/Users/hp/hus
 export { hasFamilyProductScope, isSuperAdmin, assertDaycareFamily, assertPersonasAutorizadasFamily, assertDaycareAdmin, assertAccessHistoryAdmin, assertUnidadAccess, assertSalaAccess } from 'C:/Users/hp/husky-pass-crm/server/utils/authz';
 export { DEV_HUSKY_PASS_VARIANTS, DEV_HUSKY_PASS_SCENARIOS, devHuskyPassVariant, devHuskyPassScenario, devHuskyPassPhotoUrl, buildDevPrintableAuthorizedPerson, selectDevHuskyPassTemplate } from 'C:/Users/hp/husky-pass-crm/server/utils/devHuskyPassFixtures';
 export { assertDevOnly } from 'C:/Users/hp/husky-pass-crm/server/utils/devOnly';
+export { buildEnvChecklist } from 'C:/Users/hp/husky-pass-crm/server/utils/envChecklist';
 export { externalUploadFolder, uploadToExternalService, dataUrlToUploadFile } from 'C:/Users/hp/husky-pass-crm/server/utils/externalUpload';
 export { resolveGrupoSigil } from 'C:/Users/hp/husky-pass-crm/server/utils/grupoIcons';
 export { adminOrigin } from 'C:/Users/hp/husky-pass-crm/server/utils/impersonation';
@@ -249,6 +253,7 @@ export { SURVEY_NIVEL_OPTIONS, normalizeGoogleFormEmbedUrl, readPersonasConfig, 
 export { logPersonasDiagnostic, logPersonasWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics';
 export { sendPasswordRecoveryEmail, readLatestRecoveryEmailPreview } from 'C:/Users/hp/husky-pass-crm/server/utils/recoveryEmail';
 export { securityHash, logSecurityDiagnostic, logSecurityWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/securityDiagnostics';
+export { isServerlessRuntime, runtimeDataDir } from 'C:/Users/hp/husky-pass-crm/server/utils/serverlessPaths';
 export { setAppSession, clearAppSession, getAppSession, requireSession } from 'C:/Users/hp/husky-pass-crm/server/utils/session';
 export { sipaeErrorMessage, sipaeErrorState, fetchSipaeAttendanceDetail, fetchSipaeTardies } from 'C:/Users/hp/husky-pass-crm/server/utils/sipaeAttendance';
 export { resolveSipaePlantel, deriveSipaePlantelFromStudent, plantelMatches } from 'C:/Users/hp/husky-pass-crm/server/utils/sipaePlantel';

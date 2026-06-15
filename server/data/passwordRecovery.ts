@@ -7,6 +7,8 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { findLegacyFamilyById, updateLegacyFamilyPassword } from '~/server/data/mysqlAuth'
 import { legacyOne, legacyWrite } from '~/server/utils/mysql'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
+import type { ExperienceName } from '~/types/identity'
+import { hasFamilyScope } from '~/utils/sessionScopes'
 
 type RecoveryStatus = 'valid' | 'invalid' | 'expired' | 'used' | 'superseded'
 
@@ -37,13 +39,14 @@ interface DevRecoveryTokenRow {
 export interface RecoveryTokenValidation {
   status: RecoveryStatus
   row?: RecoveryTokenRow
+  experience?: Extract<ExperienceName, 'escolar' | 'guarderia'> | null
 }
 
 let schemaReady = false
 let devFileStore = false
 
 const TOKEN_BYTES = 32
-const ACCOUNT_KIND = 'family'
+const LEGACY_ACCOUNT_KIND = 'family'
 const DEV_STORE_PATH = join(process.cwd(), 'artifacts', 'password-recovery-emails', 'dev-token-store.json')
 
 interface DevRecoveryStore {
@@ -53,6 +56,20 @@ interface DevRecoveryStore {
 
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex')
+}
+
+function accountKindForExperience(experience: Extract<ExperienceName, 'escolar' | 'guarderia'>) {
+  return `${LEGACY_ACCOUNT_KIND}:${experience}`
+}
+
+function experienceFromAccountKind(value?: string | null): Extract<ExperienceName, 'escolar' | 'guarderia'> | null {
+  if (value === 'family:escolar') return 'escolar'
+  if (value === 'family:guarderia') return 'guarderia'
+  return null
+}
+
+function isFamilyRecoveryKind(value?: string | null) {
+  return value === LEGACY_ACCOUNT_KIND || value === 'family:escolar' || value === 'family:guarderia'
 }
 
 function mysqlDateUtc(date: Date) {
@@ -73,13 +90,13 @@ function clientIp(event: H3Event) {
 
 function tokenTtlMs() {
   const config = useRuntimeConfig()
-  const minutes = Number(config.passwordRecovery?.tokenTtlMinutes || 30)
+  const minutes = Number(process.env.PASSWORD_RECOVERY_TOKEN_TTL_MINUTES || config.passwordRecovery?.tokenTtlMinutes || 30)
   return Math.max(5, Math.min(minutes, 24 * 60)) * 60 * 1000
 }
 
 function canUseDevFileStore() {
   const config = useRuntimeConfig()
-  return process.env.NODE_ENV !== 'production' && String(config.passwordRecovery?.emailMode || '').toLowerCase() === 'preview'
+  return process.env.NODE_ENV !== 'production' && String(process.env.PASSWORD_RECOVERY_EMAIL_MODE || config.passwordRecovery?.emailMode || '').toLowerCase() === 'preview'
 }
 
 function isTokenShape(token: string) {
@@ -139,12 +156,13 @@ export async function ensurePasswordRecoverySchema() {
   }
 }
 
-export async function createPasswordRecoveryToken(input: { event: H3Event; userId: number; email: string }) {
+export async function createPasswordRecoveryToken(input: { event: H3Event; userId: number; email: string; experience: Extract<ExperienceName, 'escolar' | 'guarderia'> }) {
   await ensurePasswordRecoverySchema()
   const expiresAt = new Date(Date.now() + tokenTtlMs())
   const token = randomBytes(TOKEN_BYTES).toString('base64url')
   const tokenHash = hashToken(token)
   const email = input.email.trim().toLowerCase()
+  const accountKind = accountKindForExperience(input.experience)
 
   try {
     if (devFileStore) {
@@ -152,7 +170,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
       const now = Date.now()
       store.rows = store.rows.map((row) => {
         const expires = parseMysqlUtc(row.expires_at)?.getTime() || 0
-        if (Number(row.user_id) === input.userId && row.account_kind === ACCOUNT_KIND && !row.used_at && !row.superseded_at && expires > now) {
+        if (Number(row.user_id) === input.userId && row.account_kind === accountKind && !row.used_at && !row.superseded_at && expires > now) {
           return { ...row, superseded_at: mysqlDateUtc(new Date()) }
         }
         return row
@@ -161,7 +179,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
         id: store.nextId,
         user_id: input.userId,
         email,
-        account_kind: ACCOUNT_KIND,
+        account_kind: accountKind,
         token_hash: tokenHash,
         expires_at: mysqlDateUtc(expiresAt),
         used_at: null,
@@ -177,7 +195,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
       `UPDATE password_recovery_tokens
        SET superseded_at = UTC_TIMESTAMP()
        WHERE user_id = ? AND account_kind = ? AND used_at IS NULL AND superseded_at IS NULL AND expires_at > UTC_TIMESTAMP()`,
-      [input.userId, ACCOUNT_KIND]
+      [input.userId, accountKind]
     )
     await legacyWrite(
       `INSERT INTO password_recovery_tokens
@@ -186,7 +204,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
       [
         input.userId,
         email,
-        ACCOUNT_KIND,
+        accountKind,
         tokenHash,
         securityHash(clientIp(input.event)),
         securityHash(getHeader(input.event, 'user-agent') || ''),
@@ -211,12 +229,13 @@ export async function validatePasswordRecoveryToken(rawToken: string): Promise<R
     if (devFileStore) {
       const store = await readDevStore()
       const row = store.rows.find((candidate) => candidate.token_hash === hashToken(token)) as RecoveryTokenRow | undefined
-      if (!row || row.account_kind !== ACCOUNT_KIND) return { status: 'invalid' }
-      if (row.used_at) return { status: 'used', row }
-      if (row.superseded_at) return { status: 'superseded', row }
+      if (!row || !isFamilyRecoveryKind(row.account_kind)) return { status: 'invalid' }
+      const experience = experienceFromAccountKind(row.account_kind)
+      if (row.used_at) return { status: 'used', row, experience }
+      if (row.superseded_at) return { status: 'superseded', row, experience }
       const expiresAt = parseMysqlUtc(row.expires_at)
-      if (!expiresAt || expiresAt.getTime() <= Date.now()) return { status: 'expired', row }
-      return { status: 'valid', row }
+      if (!expiresAt || expiresAt.getTime() <= Date.now()) return { status: 'expired', row, experience }
+      return { status: 'valid', row, experience }
     }
 
     const row = await legacyOne<RecoveryTokenRow>(
@@ -226,12 +245,13 @@ export async function validatePasswordRecoveryToken(rawToken: string): Promise<R
        LIMIT 1`,
       [hashToken(token)]
     )
-    if (!row || row.account_kind !== ACCOUNT_KIND) return { status: 'invalid' }
-    if (row.used_at) return { status: 'used', row }
-    if (row.superseded_at) return { status: 'superseded', row }
+    if (!row || !isFamilyRecoveryKind(row.account_kind)) return { status: 'invalid' }
+    const experience = experienceFromAccountKind(row.account_kind)
+    if (row.used_at) return { status: 'used', row, experience }
+    if (row.superseded_at) return { status: 'superseded', row, experience }
     const expiresAt = parseMysqlUtc(row.expires_at)
-    if (!expiresAt || expiresAt.getTime() <= Date.now()) return { status: 'expired', row }
-    return { status: 'valid', row }
+    if (!expiresAt || expiresAt.getTime() <= Date.now()) return { status: 'expired', row, experience }
+    return { status: 'valid', row, experience }
   } catch (error) {
     logSecurityDiagnostic('password-recovery-token-validate-failed', error, { tokenHash: securityHash(token) })
     throw createError({ statusCode: 500, statusMessage: 'No fue posible validar el enlace.' })
@@ -263,13 +283,33 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
     throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
   }
 
+  const sessionUser = familyUser.toSession('family')
+  if (validation.experience === 'escolar' && !hasFamilyScope(sessionUser, 'personasAutorizadas')) {
+    logSecurityWarning('password-recovery-experience-mismatch', {
+      tokenId: row.id,
+      userId: row.user_id,
+      tokenExperience: validation.experience,
+      scopes: sessionUser.productScopes
+    })
+    throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
+  }
+  if (validation.experience === 'guarderia' && !hasFamilyScope(sessionUser, 'daycare')) {
+    logSecurityWarning('password-recovery-experience-mismatch', {
+      tokenId: row.id,
+      userId: row.user_id,
+      tokenExperience: validation.experience,
+      scopes: sessionUser.productScopes
+    })
+    throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
+  }
+
   try {
     if (devFileStore) {
       const store = await readDevStore()
       let consumed = false
       const nowLabel = mysqlDateUtc(new Date())
       store.rows = store.rows.map((candidate) => {
-        if (Number(candidate.id) === Number(row.id) && candidate.account_kind === ACCOUNT_KIND && !candidate.used_at && !candidate.superseded_at) {
+        if (Number(candidate.id) === Number(row.id) && candidate.account_kind === row.account_kind && !candidate.used_at && !candidate.superseded_at) {
           const expiresAt = parseMysqlUtc(candidate.expires_at)
           if (expiresAt && expiresAt.getTime() > Date.now()) {
             consumed = true
@@ -285,7 +325,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
         `UPDATE password_recovery_tokens
          SET used_at = UTC_TIMESTAMP()
          WHERE id = ? AND account_kind = ? AND used_at IS NULL AND superseded_at IS NULL AND expires_at > UTC_TIMESTAMP()`,
-        [row.id, ACCOUNT_KIND]
+        [row.id, row.account_kind]
       )
       if (consumed.affectedRows !== 1) {
         throw createError({ statusCode: 400, statusMessage: 'El enlace ya no está disponible.' })
@@ -297,7 +337,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
       const store = await readDevStore()
       const nowLabel = mysqlDateUtc(new Date())
       store.rows = store.rows.map((candidate) => (
-        Number(candidate.user_id) === Number(row.user_id) && candidate.account_kind === ACCOUNT_KIND && Number(candidate.id) !== Number(row.id) && !candidate.used_at
+        Number(candidate.user_id) === Number(row.user_id) && candidate.account_kind === row.account_kind && Number(candidate.id) !== Number(row.id) && !candidate.used_at
           ? { ...candidate, superseded_at: candidate.superseded_at || nowLabel }
           : candidate
       ))
@@ -307,10 +347,10 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
         `UPDATE password_recovery_tokens
          SET superseded_at = COALESCE(superseded_at, UTC_TIMESTAMP())
          WHERE user_id = ? AND account_kind = ? AND id <> ? AND used_at IS NULL`,
-        [row.user_id, ACCOUNT_KIND, row.id]
+        [row.user_id, row.account_kind, row.id]
       )
     }
-    return { userId: Number(row.user_id), email: row.email }
+    return { userId: Number(row.user_id), email: row.email, experience: validation.experience }
   } catch (error) {
     logSecurityDiagnostic('password-recovery-password-update-failed', error, {
       tokenId: row.id,

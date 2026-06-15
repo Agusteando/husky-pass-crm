@@ -123,7 +123,7 @@ const form = reactive({
   name: '',
   nivel: '',
   planteles: '',
-  themeKey: 'daycare' as PersonasThemeKey
+  themeKey: 'preescolar' as PersonasThemeKey
 })
 
 const templates = computed(() => data.value?.templates || [])
@@ -157,7 +157,7 @@ function startCreate() {
     name: '',
     nivel: '',
     planteles: '',
-    themeKey: 'daycare'
+    themeKey: 'preescolar'
   })
   selectedFile.value = null
   fileName.value = ''

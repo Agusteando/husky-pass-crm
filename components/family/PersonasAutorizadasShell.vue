@@ -27,13 +27,13 @@
       </section>
 
       <button class="pa-logout" type="button" data-diagnostic-action="logout-personas-autorizadas" @click="logout">Salir</button>
-      <img class="pa-top-ambassador" :src="headerMascot" :alt="`${levelName.spanish} ambassador`" />
+      <img v-if="headerMascot" class="pa-top-ambassador" :src="headerMascot" :alt="`${levelName.spanish} ambassador`" />
     </header>
 
     <div class="pa-product-layout">
       <aside class="pa-product-nav" aria-label="Navegación Personas Autorizadas">
         <div class="pa-nav-mark">
-          <img class="pa-nav-mascot" :src="navMascot" alt="" loading="lazy" decoding="async" />
+          <img v-if="navMascot" class="pa-nav-mascot" :src="navMascot" alt="" loading="lazy" decoding="async" />
           <span>{{ levelName.spanish }}</span>
           <small>Husky Pass</small>
         </div>
@@ -76,6 +76,7 @@ import { computed } from 'vue'
 import { navigateTo, useRoute } from 'nuxt/app'
 import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot } from '~/utils/personasTheme'
 import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
+import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 
 const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
@@ -98,16 +99,17 @@ const navItems = [
   { key: 'asistencia', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'calendar', to: '/familia/asistencia' },
   { key: 'encuestas', label: 'Encuestas', shortLabel: 'Encuestas', icon: 'survey', to: '/familia/personas-autorizadas/encuestas' },
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
-  { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: '/familia/cuenta/seguridad' }
+  { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: '/familia/cuenta/seguridad?experiencia=escolar' }
 ]
 
 function isActive(item: { to: string }) {
-  return route.path === item.to || (item.to !== '/familia/personas-autorizadas' && route.path.startsWith(`${item.to}/`))
+  const target = item.to.split('?')[0] || item.to
+  return route.path === target || (target !== '/familia/personas-autorizadas' && route.path.startsWith(`${target}/`))
 }
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
-  await navigateTo('/login')
+  await navigateTo(defaultLoginRouteForExperience(theme.value.key === 'daycare' ? 'guarderia' : 'escolar'))
 }
 </script>
 

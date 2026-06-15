@@ -35,6 +35,8 @@ declare global {
   const daycareResourceSection: typeof import('../../utils/daycare')['daycareResourceSection']
   const daycareResourceTypeLabel: typeof import('../../utils/daycare')['daycareResourceTypeLabel']
   const defaultFamilyRoute: typeof import('../../utils/sessionScopes')['defaultFamilyRoute']
+  const defaultLoginRouteForExperience: typeof import('../../utils/experienceIdentity')['defaultLoginRouteForExperience']
+  const defaultRouteForExperience: typeof import('../../utils/experienceIdentity')['defaultRouteForExperience']
   const defineAppConfig: typeof import('../../node_modules/nuxt/dist/app/nuxt')['defineAppConfig']
   const defineAsyncComponent: typeof import('../../node_modules/vue')['defineAsyncComponent']
   const defineComponent: typeof import('../../node_modules/vue')['defineComponent']
@@ -51,6 +53,7 @@ declare global {
   const effect: typeof import('../../node_modules/vue')['effect']
   const effectScope: typeof import('../../node_modules/vue')['effectScope']
   const evaluateVisionFaceValidation: typeof import('../../utils/visionFace')['evaluateVisionFaceValidation']
+  const experienceThemeVars: typeof import('../../utils/experienceIdentity')['experienceThemeVars']
   const familyNavItems: typeof import('../../utils/sessionScopes')['familyNavItems']
   const formatAttendanceDate: typeof import('../../utils/attendance')['formatAttendanceDate']
   const formatAttendanceTime: typeof import('../../utils/attendance')['formatAttendanceTime']
@@ -66,8 +69,10 @@ declare global {
   const hasFamilyScope: typeof import('../../utils/sessionScopes')['hasFamilyScope']
   const hasInjectionContext: typeof import('../../node_modules/vue')['hasInjectionContext']
   const hasRoleToken: typeof import('../../utils/sessionScopes')['hasRoleToken']
+  const identityDiagnosticsPayload: typeof import('../../utils/experienceIdentity')['identityDiagnosticsPayload']
   const inject: typeof import('../../node_modules/vue')['inject']
   const injectHead: typeof import('../../node_modules/@unhead/vue')['injectHead']
+  const institutionFromContextData: typeof import('../../utils/experienceIdentity')['institutionFromContextData']
   const isConfiguredSuperAdminEmail: typeof import('../../utils/superAdmin')['isConfiguredSuperAdminEmail']
   const isHiddenResource: typeof import('../../utils/daycare')['isHiddenResource']
   const isImageResource: typeof import('../../utils/daycare')['isImageResource']
@@ -94,9 +99,13 @@ declare global {
   const normalizeAttendanceText: typeof import('../../utils/attendance')['normalizeAttendanceText']
   const normalizeCurp: typeof import('../../utils/curp')['normalizeCurp']
   const normalizeEmail: typeof import('../../utils/superAdmin')['normalizeEmail']
+  const normalizeExperienceName: typeof import('../../utils/experienceIdentity')['normalizeExperienceName']
+  const normalizeInstitutionName: typeof import('../../utils/experienceIdentity')['normalizeInstitutionName']
   const normalizeMatricula: typeof import('../../utils/matricula')['normalizeMatricula']
   const normalizeNivel: typeof import('../../utils/personasTheme')['normalizeNivel']
+  const normalizeNivelIdentity: typeof import('../../utils/experienceIdentity')['normalizeNivelIdentity']
   const normalizePlantel: typeof import('../../utils/personasTheme')['normalizePlantel']
+  const normalizePlantelIdentity: typeof import('../../utils/experienceIdentity')['normalizePlantelIdentity']
   const normalizeVirtualAssetUrl: typeof import('../../utils/daycare')['normalizeVirtualAssetUrl']
   const onActivated: typeof import('../../node_modules/vue')['onActivated']
   const onBeforeMount: typeof import('../../node_modules/vue')['onBeforeMount']
@@ -136,15 +145,18 @@ declare global {
   const publishedPdfViewerUrl: typeof import('../../utils/daycare')['publishedPdfViewerUrl']
   const reactive: typeof import('../../node_modules/vue')['reactive']
   const readonly: typeof import('../../node_modules/vue')['readonly']
+  const recoveryRouteForExperience: typeof import('../../utils/experienceIdentity')['recoveryRouteForExperience']
   const ref: typeof import('../../node_modules/vue')['ref']
   const refreshCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['refreshCookie']
   const refreshNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['refreshNuxtData']
   const reloadNuxtApp: typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']
   const resolveComponent: typeof import('../../node_modules/vue')['resolveComponent']
+  const resolveExperienceContext: typeof import('../../utils/experienceIdentity')['resolveExperienceContext']
   const resolveGrupoIcon: typeof import('../../utils/grupoIcons')['resolveGrupoIcon']
   const resolvePersonasTheme: typeof import('../../utils/personasTheme')['resolvePersonasTheme']
   const resolveSchoolYearOption: typeof import('../../utils/attendance')['resolveSchoolYearOption']
+  const resolveVisualIdentity: typeof import('../../utils/experienceIdentity')['resolveVisualIdentity']
   const sameMatricula: typeof import('../../utils/matricula')['sameMatricula']
   const setInterval: typeof import('../../node_modules/nuxt/dist/app/compat/interval')['setInterval']
   const setPageLayout: typeof import('../../node_modules/nuxt/dist/app/composables/router')['setPageLayout']
@@ -231,6 +243,7 @@ declare global {
   const useTemplateRef: typeof import('../../node_modules/vue')['useTemplateRef']
   const useTransitionState: typeof import('../../node_modules/vue')['useTransitionState']
   const validateAuthorizedPersonForm: typeof import('../../utils/authorizedPersonForm')['validateAuthorizedPersonForm']
+  const visualIdentityForContext: typeof import('../../utils/experienceIdentity')['visualIdentityForContext']
   const watch: typeof import('../../node_modules/vue')['watch']
   const watchEffect: typeof import('../../node_modules/vue')['watchEffect']
   const watchPostEffect: typeof import('../../node_modules/vue')['watchPostEffect']
@@ -301,6 +314,8 @@ declare module 'vue' {
     readonly daycareResourceSection: UnwrapRef<typeof import('../../utils/daycare')['daycareResourceSection']>
     readonly daycareResourceTypeLabel: UnwrapRef<typeof import('../../utils/daycare')['daycareResourceTypeLabel']>
     readonly defaultFamilyRoute: UnwrapRef<typeof import('../../utils/sessionScopes')['defaultFamilyRoute']>
+    readonly defaultLoginRouteForExperience: UnwrapRef<typeof import('../../utils/experienceIdentity')['defaultLoginRouteForExperience']>
+    readonly defaultRouteForExperience: UnwrapRef<typeof import('../../utils/experienceIdentity')['defaultRouteForExperience']>
     readonly defineAppConfig: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['defineAppConfig']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('../../node_modules/vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('../../node_modules/vue')['defineComponent']>
@@ -317,6 +332,7 @@ declare module 'vue' {
     readonly effect: UnwrapRef<typeof import('../../node_modules/vue')['effect']>
     readonly effectScope: UnwrapRef<typeof import('../../node_modules/vue')['effectScope']>
     readonly evaluateVisionFaceValidation: UnwrapRef<typeof import('../../utils/visionFace')['evaluateVisionFaceValidation']>
+    readonly experienceThemeVars: UnwrapRef<typeof import('../../utils/experienceIdentity')['experienceThemeVars']>
     readonly familyNavItems: UnwrapRef<typeof import('../../utils/sessionScopes')['familyNavItems']>
     readonly formatAttendanceDate: UnwrapRef<typeof import('../../utils/attendance')['formatAttendanceDate']>
     readonly formatAttendanceTime: UnwrapRef<typeof import('../../utils/attendance')['formatAttendanceTime']>
@@ -332,8 +348,10 @@ declare module 'vue' {
     readonly hasFamilyScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasFamilyScope']>
     readonly hasInjectionContext: UnwrapRef<typeof import('../../node_modules/vue')['hasInjectionContext']>
     readonly hasRoleToken: UnwrapRef<typeof import('../../utils/sessionScopes')['hasRoleToken']>
+    readonly identityDiagnosticsPayload: UnwrapRef<typeof import('../../utils/experienceIdentity')['identityDiagnosticsPayload']>
     readonly inject: UnwrapRef<typeof import('../../node_modules/vue')['inject']>
     readonly injectHead: UnwrapRef<typeof import('../../node_modules/@unhead/vue')['injectHead']>
+    readonly institutionFromContextData: UnwrapRef<typeof import('../../utils/experienceIdentity')['institutionFromContextData']>
     readonly isConfiguredSuperAdminEmail: UnwrapRef<typeof import('../../utils/superAdmin')['isConfiguredSuperAdminEmail']>
     readonly isHiddenResource: UnwrapRef<typeof import('../../utils/daycare')['isHiddenResource']>
     readonly isImageResource: UnwrapRef<typeof import('../../utils/daycare')['isImageResource']>
@@ -360,9 +378,13 @@ declare module 'vue' {
     readonly normalizeAttendanceText: UnwrapRef<typeof import('../../utils/attendance')['normalizeAttendanceText']>
     readonly normalizeCurp: UnwrapRef<typeof import('../../utils/curp')['normalizeCurp']>
     readonly normalizeEmail: UnwrapRef<typeof import('../../utils/superAdmin')['normalizeEmail']>
+    readonly normalizeExperienceName: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizeExperienceName']>
+    readonly normalizeInstitutionName: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizeInstitutionName']>
     readonly normalizeMatricula: UnwrapRef<typeof import('../../utils/matricula')['normalizeMatricula']>
     readonly normalizeNivel: UnwrapRef<typeof import('../../utils/personasTheme')['normalizeNivel']>
+    readonly normalizeNivelIdentity: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizeNivelIdentity']>
     readonly normalizePlantel: UnwrapRef<typeof import('../../utils/personasTheme')['normalizePlantel']>
+    readonly normalizePlantelIdentity: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizePlantelIdentity']>
     readonly normalizeVirtualAssetUrl: UnwrapRef<typeof import('../../utils/daycare')['normalizeVirtualAssetUrl']>
     readonly onActivated: UnwrapRef<typeof import('../../node_modules/vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('../../node_modules/vue')['onBeforeMount']>
@@ -402,15 +424,18 @@ declare module 'vue' {
     readonly publishedPdfViewerUrl: UnwrapRef<typeof import('../../utils/daycare')['publishedPdfViewerUrl']>
     readonly reactive: UnwrapRef<typeof import('../../node_modules/vue')['reactive']>
     readonly readonly: UnwrapRef<typeof import('../../node_modules/vue')['readonly']>
+    readonly recoveryRouteForExperience: UnwrapRef<typeof import('../../utils/experienceIdentity')['recoveryRouteForExperience']>
     readonly ref: UnwrapRef<typeof import('../../node_modules/vue')['ref']>
     readonly refreshCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['refreshCookie']>
     readonly refreshNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['refreshNuxtData']>
     readonly reloadNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
     readonly resolveComponent: UnwrapRef<typeof import('../../node_modules/vue')['resolveComponent']>
+    readonly resolveExperienceContext: UnwrapRef<typeof import('../../utils/experienceIdentity')['resolveExperienceContext']>
     readonly resolveGrupoIcon: UnwrapRef<typeof import('../../utils/grupoIcons')['resolveGrupoIcon']>
     readonly resolvePersonasTheme: UnwrapRef<typeof import('../../utils/personasTheme')['resolvePersonasTheme']>
     readonly resolveSchoolYearOption: UnwrapRef<typeof import('../../utils/attendance')['resolveSchoolYearOption']>
+    readonly resolveVisualIdentity: UnwrapRef<typeof import('../../utils/experienceIdentity')['resolveVisualIdentity']>
     readonly sameMatricula: UnwrapRef<typeof import('../../utils/matricula')['sameMatricula']>
     readonly setInterval: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/interval')['setInterval']>
     readonly setPageLayout: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['setPageLayout']>
@@ -497,6 +522,7 @@ declare module 'vue' {
     readonly useTemplateRef: UnwrapRef<typeof import('../../node_modules/vue')['useTemplateRef']>
     readonly useTransitionState: UnwrapRef<typeof import('../../node_modules/vue')['useTransitionState']>
     readonly validateAuthorizedPersonForm: UnwrapRef<typeof import('../../utils/authorizedPersonForm')['validateAuthorizedPersonForm']>
+    readonly visualIdentityForContext: UnwrapRef<typeof import('../../utils/experienceIdentity')['visualIdentityForContext']>
     readonly watch: UnwrapRef<typeof import('../../node_modules/vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchEffect']>
     readonly watchPostEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchPostEffect']>

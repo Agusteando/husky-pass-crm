@@ -44,6 +44,7 @@ import { computed } from 'vue'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
+import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -106,7 +107,14 @@ async function exitImpersonation() {
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
-  await navigateTo(props.session?.user?.kind === 'admin' ? '/admin/login' : '/login')
+  const target = props.session?.user?.kind === 'admin'
+    ? defaultLoginRouteForExperience('admin')
+    : route.path.startsWith('/familia/daycare')
+      ? defaultLoginRouteForExperience('guarderia')
+      : route.path.startsWith('/familia/personas-autorizadas') || route.path.startsWith('/familia/asistencia')
+        ? defaultLoginRouteForExperience('escolar')
+        : '/login'
+  await navigateTo(target)
 }
 </script>
 

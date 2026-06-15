@@ -5,7 +5,7 @@ import { assertDevOnly } from '~/server/utils/devOnly'
 const schema = z.object({
   seed: z.string().optional().default('husky-pass'),
   label: z.string().optional().default('PA'),
-  theme: z.string().optional().default('daycare'),
+  theme: z.string().optional().default('escolar'),
   mode: z.enum(['portrait', 'wide', 'tall', 'transparent', 'large', 'slow']).optional().default('portrait'),
   transparent: z.string().optional().default(''),
   large: z.string().optional().default(''),
@@ -13,6 +13,7 @@ const schema = z.object({
 })
 
 const themeColors: Record<string, { primary: string; soft: string }> = {
+  escolar: { primary: '#236188', soft: '#EEF7FB' },
   daycare: { primary: '#618B2F', soft: '#EDF6E5' },
   preescolar: { primary: '#E83F4B', soft: '#FFF1F2' },
   primaria: { primary: '#D99A08', soft: '#FFF7D7' },
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
   if (query.delay) await new Promise((resolve) => setTimeout(resolve, query.delay))
 
   const { width, height } = dimensions(query.mode)
-  const colors = themeColors[query.theme] || themeColors.daycare
+  const colors = themeColors[query.theme] || themeColors.escolar
   const transparent = Boolean(query.transparent || query.mode === 'transparent')
   const seed = escapeXml(query.seed)
   const label = escapeXml(query.label.slice(0, 4).toUpperCase())

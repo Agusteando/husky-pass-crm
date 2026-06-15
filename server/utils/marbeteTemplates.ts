@@ -49,7 +49,8 @@ function filenameFor(id: string) {
 
 function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMeta | null {
   if (!row.id || !row.filename) return null
-  const themeKey = VALID_THEME_KEYS.has(row.themeKey as PersonasThemeKey) ? row.themeKey as PersonasThemeKey : 'daycare'
+  if (!VALID_THEME_KEYS.has(row.themeKey as PersonasThemeKey)) return null
+  const themeKey = row.themeKey as PersonasThemeKey
   const theme = resolvePersonasTheme({ themeKey })
   return {
     id: String(row.id),
@@ -108,7 +109,7 @@ export async function listMarbeteTemplates() {
 }
 
 export function marbeteTemplateThemes() {
-  return allPersonasThemes()
+  return allPersonasThemes().filter((theme) => VALID_THEME_KEYS.has(theme.key))
 }
 
 export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
@@ -137,7 +138,10 @@ export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: {
   const byTheme = templates.find((template) => template.themeKey === theme.key)
   if (byTheme) return byTheme
 
-  return templates.find((template) => template.themeKey === 'daycare') || templates[0]
+  throw createError({
+    statusCode: 422,
+    statusMessage: `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`
+  })
 }
 
 export async function saveMarbeteTemplate(input: {
