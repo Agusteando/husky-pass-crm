@@ -112,7 +112,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in directory.users" :key="user.id" :class="{ selected: selectedUser?.id === user.id }">
+              <tr v-for="user in directory.users" :key="user.id" :class="{ selected: clientReady && selectedUser?.id === user.id }">
                 <td data-label="Usuario">
                   <div class="user-cell">
                     <span class="user-avatar">{{ initials(user) }}</span>
@@ -177,7 +177,7 @@
       </article>
 
       <aside class="card detail-card">
-        <template v-if="selectedUser">
+        <template v-if="clientReady && selectedUser">
           <p class="eyebrow">Detalle de usuario</p>
           <h2>{{ displayName(selectedUser) }}</h2>
           <dl>
@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
@@ -222,6 +222,7 @@ const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; desc
 const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
 const selectedScope = ref<SuperAdminDirectoryScope>(normalizeScope(route.query.scope))
 const selectedUser = ref<SuperAdminUserSummary | null>(null)
+const clientReady = ref(false)
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const limit = ref(normalizeLimit(route.query.limite))
 const actionError = ref('')
@@ -274,6 +275,10 @@ watch(loadError, (value) => {
 
 onUnmounted(() => {
   if (directoryTimer) clearTimeout(directoryTimer)
+})
+
+onMounted(() => {
+  clientReady.value = true
 })
 
 watch([selectedPlantel, selectedScope, search, limit], () => {

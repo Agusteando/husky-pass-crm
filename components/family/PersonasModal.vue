@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import type { PersonasTheme } from '~/types/daycare'
 import { personasInstitutionLogo, personasInstitutionName, personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 
@@ -38,7 +38,7 @@ const emit = defineEmits<{ close: [] }>()
 const modalRef = ref<HTMLElement | null>(null)
 const backdropRef = ref<HTMLElement | null>(null)
 const previousActive = ref<HTMLElement | null>(null)
-const titleId = `pa-modal-title-${Math.random().toString(36).slice(2, 9)}`
+const titleId = `pa-modal-title-${useId()}`
 const resolvedTheme = computed(() => props.theme || resolvePersonasTheme({}))
 const themeVars = computed(() => personasThemeStyle(resolvedTheme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(resolvedTheme.value, 'logo'))

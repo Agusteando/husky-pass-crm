@@ -65,6 +65,7 @@ declare global {
   const getCurrentInstance: typeof import('../../node_modules/vue').getCurrentInstance
   const getCurrentScope: typeof import('../../node_modules/vue').getCurrentScope
   const getRouteRules: typeof import('../../node_modules/nuxt/dist/app/composables/manifest').getRouteRules
+  const getRouteSession: typeof import('../../utils/routeSession').getRouteSession
   const h: typeof import('../../node_modules/vue').h
   const hasDaycareAdminScope: typeof import('../../utils/sessionScopes').hasDaycareAdminScope
   const hasFamilyScope: typeof import('../../utils/sessionScopes').hasFamilyScope
@@ -364,6 +365,7 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('../../node_modules/vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('../../node_modules/vue')['getCurrentScope']>
     readonly getRouteRules: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/manifest')['getRouteRules']>
+    readonly getRouteSession: UnwrapRef<typeof import('../../utils/routeSession')['getRouteSession']>
     readonly h: UnwrapRef<typeof import('../../node_modules/vue')['h']>
     readonly hasDaycareAdminScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasDaycareAdminScope']>
     readonly hasFamilyScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasFamilyScope']>

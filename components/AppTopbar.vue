@@ -107,12 +107,17 @@ async function exitImpersonation() {
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
+  const user = props.session?.user
   const target = props.session?.user?.kind === 'admin'
     ? defaultLoginRouteForExperience('admin')
     : route.path.startsWith('/familia/daycare')
       ? defaultLoginRouteForExperience('guarderia')
       : route.path.startsWith('/familia/personas-autorizadas') || route.path.startsWith('/familia/asistencia')
         ? defaultLoginRouteForExperience('escolar')
+        : user?.productScopes.includes('daycare') && !user.productScopes.includes('personasAutorizadas')
+          ? defaultLoginRouteForExperience('guarderia')
+          : user?.productScopes.includes('personasAutorizadas') && !user.productScopes.includes('daycare')
+            ? defaultLoginRouteForExperience('escolar')
         : '/login'
   await navigateTo(target)
 }

@@ -125,7 +125,7 @@
         "./imports"
       ],
       "#app-manifest": [
-        "./manifest/meta/dev.json"
+        "./manifest/meta/cdef1a7f-b978-4daa-9242-d322c83fe555.json"
       ],
       "#components": [
         "./components"
@@ -179,6 +179,6 @@
     "../.data",
     "../node_modules/runtime/server",
     "../node_modules/dist/runtime/server",
-    "dev"
+    "../.vercel/output"
   ]
 }

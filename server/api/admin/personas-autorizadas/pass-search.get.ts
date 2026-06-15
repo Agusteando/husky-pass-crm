@@ -25,14 +25,21 @@ export default defineEventHandler(async (event) => {
     const templates = await listMarbeteTemplates()
     const rows = await Promise.all(DEV_HUSKY_PASS_VARIANTS.map(async (variant) => {
       const fixture = buildDevPrintableAuthorizedPerson({ origin, variantId: variant.id, scenarioId: 'default' })
-      const template = selectDevHuskyPassTemplate(templates, fixture.variant)
+      let template: ReturnType<typeof selectDevHuskyPassTemplate> | null = null
+      let templateIssue = 'Plantilla de Husky Pass no disponible.'
+      try {
+        template = selectDevHuskyPassTemplate(templates, fixture.variant)
+        templateIssue = ''
+      } catch (error) {
+        templateIssue = error instanceof Error ? error.message : templateIssue
+      }
       const theme = resolvePersonasTheme({
         matricula: fixture.data.matricula,
         plantel: fixture.data.plantel,
         nivelEdu: fixture.data.nivelEdu,
         themeKey: fixture.variant.themeKey
       })
-      let readiness = { ok: false, issues: ['Plantilla de Husky Pass no disponible.'] }
+      let readiness = { ok: false, issues: [templateIssue] }
       if (template) {
         const svg = await readMarbeteTemplateSvg(template)
         readiness = validateMarbeteRequirements(svg, fixture.data, origin)

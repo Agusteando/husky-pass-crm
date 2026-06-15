@@ -1,10 +1,9 @@
-import { defineNuxtRouteMiddleware, navigateTo, useRequestFetch } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { defineNuxtRouteMiddleware, navigateTo } from 'nuxt/app'
+import { getRouteSession } from '~/utils/routeSession'
 import { defaultFamilyRoute, hasFamilyScope } from '~/utils/sessionScopes'
 
 export default defineNuxtRouteMiddleware(async () => {
-  const requestFetch = useRequestFetch()
-  const session = await requestFetch<PublicSession>('/api/auth/me')
+  const session = await getRouteSession()
   if (!session.user || session.user.kind !== 'family') return navigateTo('/login/guarderia')
   if (!hasFamilyScope(session.user, 'daycare')) return navigateTo(defaultFamilyRoute(session.user))
 })

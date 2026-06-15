@@ -76,6 +76,11 @@ export default defineNuxtConfig({
     typeCheck: true
   },
   vite: {
+    server: {
+      watch: {
+        ignored: ['**/artifacts/**', '**/.output/**', '**/.vercel/**']
+      }
+    },
     build: {
       reportCompressedSize: false
     }

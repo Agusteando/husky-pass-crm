@@ -7,6 +7,11 @@ These shortcuts are development-only. Routes under `/__dev/*` and API fixture mo
 - Install dependencies: `npm install`
 - Clean install for deployment verification: `npm ci`
 - Start local dev server: `npm run dev:husky-pass`
+- Verify product launch only: `npm run verify:launch -- --base-url http://localhost:3000`
+- Verify full product journeys, mobile, modals, and route audit: `npm run verify:visual -- --base-url http://localhost:3000`
+- Verify authenticated product journeys only: `npm run verify:journeys -- --base-url http://localhost:3000`
+- Verify generated product routes only: `npm run verify:routes -- --base-url http://localhost:3000`
+- Verify local production output: `npm run verify:prod -- --base-url http://localhost:3100 --production`
 - Generate PDFs, screenshots, diagnostics, and a report: `npm run verify:husky-pass -- --base-url http://127.0.0.1:3000`
 - Custom artifact folder: `npm run verify:husky-pass -- --base-url http://127.0.0.1:3000 --out artifacts/husky-pass-verification/manual-run`
 - Typecheck: `npm run typecheck`
@@ -21,6 +26,49 @@ These shortcuts are development-only. Routes under `/__dev/*` and API fixture mo
 - Smoke-test a deployment or local output: `npm run smoke:deploy -- https://deployment-url artifacts/vercel-deployment-verification/manual-smoke`
 - Verify the full local identity matrix: `npm run verify:identity -- --base-url http://127.0.0.1:3000`
 - Verify public identity routes on a Vercel deployment: `npm run verify:identity -- --base-url https://deployment-url --public-only --out artifacts/identity-verification/deployed-public`
+
+## Product Launch Verification
+
+Use `scripts/product-visual-verify.mjs` when the question is whether the product actually launches and remains usable in a browser. It uses Playwright against a real Chromium browser, waits for Husky Pass selectors rather than HTTP 200 alone, rejects Nuxt starter content, rejects blank bodies, captures browser console output, captures failed requests, detects repeated redirects, checks for stuck loading states, audits visible controls, and saves screenshots plus JSON event logs.
+
+Recommended clean local launch check:
+
+1. `npm ci`.
+2. `npm run dev`.
+3. `npm run verify:launch -- --base-url http://localhost:3000 --out artifacts/product-verification/<timestamp>-launch`.
+4. `npm run verify:visual -- --base-url http://localhost:3000 --out artifacts/product-verification/<timestamp>-full`.
+5. Open and inspect the saved screenshots before declaring the launch verified.
+
+Recommended local production check:
+
+1. `npm run typecheck`.
+2. `npm run lint`.
+3. `npm run build`.
+4. Start output in PowerShell: `$env:HOST='127.0.0.1'; $env:NITRO_HOST='127.0.0.1'; $env:PORT='3100'; $env:NITRO_PORT='3100'; npm run start:output`.
+5. `npm run verify:prod -- --base-url http://localhost:3100 --out artifacts/product-verification/<timestamp>-prod --production`.
+
+Vercel preview launch check:
+
+1. `npx vercel build --yes --prod --debug`.
+2. `npx vercel deploy --prebuilt --yes --debug`.
+3. `npm run verify:launch -- --base-url <preview-url> --out artifacts/product-verification/<timestamp>-vercel-preview`.
+4. Save `npx vercel inspect <preview-url>` and `npx vercel logs <preview-url> --since 15m` beside the evidence.
+
+Fixture-backed authenticated journeys require safe local accounts. Seed them with `npm run dev:account-security-fixtures -- up`; the verifier uses `codex.pa.parent@example.test` and `codex.daycare.parent@example.test` with `CodexPass2026`. Super Admin checks use a signed development-only cookie in local verification. Do not make these shortcuts available in production.
+
+Product verification output:
+
+- Screenshots: `artifacts/product-verification/<timestamp>/{launch,escolar,guarderia,admin,mobile,modals,errors}/*.png`
+- Browser console, request, response, and control logs: `artifacts/product-verification/<timestamp>/playwright/*.json`
+- Route audit: `artifacts/product-verification/<timestamp>/routes/route-audit.json`
+- Manifest: `artifacts/product-verification/<timestamp>/manifest.json`
+- Human report: `artifacts/product-verification/<timestamp>/verification-report.md`
+
+Troubleshooting launch failures:
+
+- If the browser shows the Nuxt welcome screen, inspect `app.vue`, recognized pages, layout usage, route middleware, plugin startup, runtime config, and generated routes before adding redirects.
+- If Playwright hangs on startup, check server output for SSR middleware self-fetches, unresolved authentication initialization, missing runtime configuration, hydration errors, and imports that Vite externalizes for the browser.
+- Prefer `http://localhost:3000` for `npm run dev` visual checks because Google Sign-In local origins may reject `127.0.0.1` unless that origin is explicitly configured.
 
 Expected verification output:
 

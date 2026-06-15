@@ -48,7 +48,7 @@
             <p class="eyebrow">Resultados</p>
             <h2>{{ passRows.length }} registros</h2>
           </div>
-          <span class="muted">{{ passPending ? 'Consultando...' : 'Datos reales PA' }}</span>
+          <span class="muted">{{ passStatusLabel }}</span>
         </header>
 
         <div v-if="passPending && !passRows.length" class="loading-row" data-state="loading">Cargando Husky Pass...</div>
@@ -136,7 +136,7 @@
           </div>
 
           <section class="preview-pair" :data-state="selectedPass.readiness.ok ? 'ready' : 'blocked'">
-            <iframe v-if="selectedPass.personId" :key="previewKey" :src="adminSvgUrl(selectedPass)" title="Vista SVG Husky Pass"></iframe>
+            <iframe v-if="selectedPass.readiness.ok && selectedPass.personId" :key="previewKey" :src="adminSvgUrl(selectedPass)" title="Vista SVG Husky Pass"></iframe>
             <div v-if="selectedPass.readiness.ok" class="pdf-preview">
               <iframe :key="pdfPreviewKey" :src="adminPdfUrl(selectedPass, false)" title="PDF Husky Pass"></iframe>
             </div>
@@ -195,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { PersonasAutorizadasConfig, PersonasSurveyNivelKey } from '~/types/daycare'
 import type { SuperAdminPassCandidate, SuperAdminPassSearchResponse } from '~/types/superadmin'
@@ -209,6 +209,7 @@ const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar :
 const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
 const selectedNivel = ref(typeof route.query.nivel === 'string' ? route.query.nivel : '')
 const selectedPass = ref<SuperAdminPassCandidate | null>(null)
+const clientReady = ref(false)
 const actionError = ref('')
 const actionNotice = ref('')
 const diagnostics = ref('')
@@ -252,6 +253,8 @@ const { data: passSearch, pending: passPending, error: passError, refresh: refre
 const { data: config, refresh: refreshConfig } = useFetch<PersonasAutorizadasConfig>('/api/admin/personas-autorizadas/config', { timeout: 15000 })
 const passRows = computed(() => passSearch.value?.rows || [])
 const passState = computed(() => passPending.value && !passRows.value.length ? 'loading' : passError.value ? 'error' : passRows.value.length ? 'content' : 'empty')
+const passFixtureMode = computed(() => route.query.fixture === '1')
+const passStatusLabel = computed(() => passPending.value ? 'Consultando...' : passFixtureMode.value ? 'Fixtures dev' : 'Datos reales PA')
 const previewKey = computed(() => `svg-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
 const pdfPreviewKey = computed(() => `pdf-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
 
@@ -270,7 +273,7 @@ watch(config, (value) => {
   configForm.helpUrl = value.helpUrl || ''
 }, { immediate: true })
 
-watch(passRows, (rows) => {
+function syncSelectedPass(rows: SuperAdminPassCandidate[]) {
   if (!rows.length) {
     selectedPass.value = null
     return
@@ -281,7 +284,19 @@ watch(passRows, (rows) => {
     selectedPass.value = fromRoute
     return
   }
-  if (!selectedPass.value || !rows.some((row) => row.personId === selectedPass.value?.personId)) selectedPass.value = rows[0]
+  if (!selectedPass.value || !rows.some((row) => row.personId === selectedPass.value?.personId)) {
+    selectedPass.value = rows.find((row) => row.readiness.ok) || rows[0]
+  }
+}
+
+onMounted(() => {
+  clientReady.value = true
+  syncSelectedPass(passRows.value)
+})
+
+watch(passRows, (rows) => {
+  if (!clientReady.value) return
+  syncSelectedPass(rows)
 }, { immediate: true })
 
 watch([search, selectedPlantel, selectedNivel], () => {
@@ -458,6 +473,7 @@ async function saveConfig() {
 .pass-results,
 .pass-detail,
 .config-panel {
+  align-content: start;
   background: #fff;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);

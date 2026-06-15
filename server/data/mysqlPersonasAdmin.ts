@@ -113,6 +113,21 @@ function issue(key: PersonasReadinessIssue['key'], label: string): PersonasReadi
   return { key, label }
 }
 
+function unavailableTemplateMessage(error: unknown) {
+  return error instanceof Error && error.message ? error.message : 'Marbete no disponible'
+}
+
+function selectTemplateOrIssue(
+  templates: Awaited<ReturnType<typeof listMarbeteTemplates>>,
+  input: Parameters<typeof selectMarbeteTemplate>[1]
+) {
+  try {
+    return { template: selectMarbeteTemplate(templates, input), templateIssue: '' }
+  } catch (error) {
+    return { template: null, templateIssue: unavailableTemplateMessage(error) }
+  }
+}
+
 export async function getPersonasReadiness(filters: { plantel?: string; nivel?: string; status?: string; search?: string; limit?: number } = {}): Promise<PersonasReadinessResponse> {
   const queryLimit = Math.min(Math.max(Number(filters.limit || 120), 25), 400)
   const rows = await legacyQuery<ReadinessDbRow[]>(
@@ -189,7 +204,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     const plantel = derivedPlantel(row)
     const matricula = normalizeMatricula(row.username)
     const theme = resolvePersonasTheme({ matricula, plantel, nivelEdu: nivel, campus: row.childCampus || row.campus })
-    const template = selectMarbeteTemplate(templates, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
+    const { template, templateIssue } = selectTemplateOrIssue(templates, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
     const hasStudentData = Boolean(studentName && nivel && grado && grupo && matricula)
     const hasParentAccess = Boolean(clean(row.email) || clean(row.username))
     const authorizedCount = Number(row.authorizedCount || 0)
@@ -200,7 +215,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     if (authorizedCount <= 0) issues.push(issue('missingAuthorizedPeople', 'Sin personas autorizadas'))
     if (!hasStudentData) issues.push(issue('missingRequiredStudentData', 'Datos de alumno incompletos'))
     if (!hasPrintableReadiness) {
-      issues.push(issue('missingPrintableReadiness', missingRegisteredPhotos ? 'Foto pendiente en persona registrada' : 'Marbete no disponible'))
+      issues.push(issue('missingPrintableReadiness', missingRegisteredPhotos ? 'Foto pendiente en persona registrada' : templateIssue || 'Marbete no disponible'))
     }
     const rowOut: PersonasReadinessRow = {
       userId: Number(row.userId),
@@ -420,13 +435,13 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
       nivelEdu: printable.nivelEdu,
       campus: row.childCampus || row.campus
     })
-    const template = selectMarbeteTemplate(templates, {
+    const { template, templateIssue } = selectTemplateOrIssue(templates, {
       matricula: printable.matricula,
       plantel: printable.plantel,
       nivelEdu: printable.nivelEdu,
       themeKey: theme.key
     })
-    let readiness = { ok: false, issues: ['Plantilla de Husky Pass no disponible.'] }
+    let readiness = { ok: false, issues: [templateIssue || 'Plantilla de Husky Pass no disponible.'] }
     if (template) {
       const svg = await readMarbeteTemplateSvg(template)
       readiness = validateMarbeteRequirements(svg, printable, origin)

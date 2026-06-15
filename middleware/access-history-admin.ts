@@ -1,5 +1,6 @@
-import { defineNuxtRouteMiddleware, navigateTo, useRequestFetch } from 'nuxt/app'
+import { defineNuxtRouteMiddleware, navigateTo } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
+import { getRouteSession } from '~/utils/routeSession'
 
 function canOpenAccessHistory(session: PublicSession) {
   const user = session.user
@@ -11,7 +12,6 @@ function canOpenAccessHistory(session: PublicSession) {
 }
 
 export default defineNuxtRouteMiddleware(async () => {
-  const requestFetch = useRequestFetch()
-  const session = await requestFetch<PublicSession>('/api/auth/me')
+  const session = await getRouteSession()
   if (!canOpenAccessHistory(session)) return navigateTo('/admin/login')
 })
