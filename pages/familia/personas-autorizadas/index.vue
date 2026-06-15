@@ -101,26 +101,15 @@
 
                 <button
                   v-if="person.id"
-                  class="slot-btn slot-btn-outline"
+                  class="slot-btn slot-btn-danger-outline"
                   type="button"
-                  data-diagnostic-action="editar-persona-autorizada"
-                  @click="edit(person)"
+                  data-diagnostic-action="abrir-anular-persona-autorizada"
+                  @click="annulTarget = person"
                 >
-                  <FamilyPersonasIcon name="edit" />
-                  Editar
+                  <FamilyPersonasIcon name="trash" />
+                  Anular o reemplazar
                 </button>
               </div>
-
-              <button
-                v-if="person.id"
-                class="slot-menu"
-                type="button"
-                aria-label="Eliminar registro"
-                data-diagnostic-action="confirmar-eliminar-persona-autorizada"
-                @click.stop="deleteTarget = person"
-              >
-                <FamilyPersonasIcon name="more" />
-              </button>
             </article>
           </div>
         </section>
@@ -140,17 +129,7 @@
           </article>
 
           <article class="card faq-card" data-product-panel="faq" data-state="content">
-            <header class="section-title-inline">
-              <FamilyPersonasIcon name="help" />
-              <h2>Preguntas frecuentes</h2>
-            </header>
-            <button v-for="(item, index) in faqItems" :key="item.question" class="faq-item" type="button" :aria-expanded="openFaq === index" @click="openFaq = openFaq === index ? null : index">
-              <span>
-                <strong>{{ item.question }}</strong>
-                <em v-if="openFaq === index">{{ item.answer }}</em>
-              </span>
-              <span class="faq-chevron" aria-hidden="true"><FamilyPersonasIcon name="chevron" /></span>
-            </button>
+            <div class="faq-copy">{{ faqCopy }}</div>
           </article>
         </section>
       </section>
@@ -176,26 +155,35 @@
       </FamilyPersonasModal>
 
       <FamilyPersonasModal
-        v-if="deleteTarget"
-        title="Eliminar registro"
-        :eyebrow="authorizedPersonLabel(Number(deleteTarget.indice || 1))"
+        v-if="annulTarget"
+        title="Anular persona autorizada"
+        :eyebrow="authorizedPersonLabel(Number(annulTarget.indice || 1))"
         :theme="theme"
-        @close="deleteTarget = null"
+        @close="annulTarget = null"
       >
         <section class="delete-confirm">
-          <p>{{ fullName(deleteTarget) || 'Este registro' }}</p>
-          <small>También dejará de estar disponible para el Husky Pass.</small>
+          <p>{{ fullName(annulTarget) || 'Este registro' }}</p>
+          <small>Al anularlo, la persona ya no podrá entregar o recoger al alumno. Para corregir datos o foto, anula el registro y captura uno nuevo.</small>
           <div class="actions form-actions">
             <button
               class="btn btn-danger"
               type="button"
               :disabled="deleting"
-              data-diagnostic-action="eliminar-persona-autorizada"
-              @click="remove(deleteTarget.id)"
+              data-diagnostic-action="anular-y-recapturar-persona-autorizada"
+              @click="remove(annulTarget.id, { recapture: true, indice: annulTarget.indice })"
             >
-              {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+              {{ deleting ? 'Anulando...' : 'Anular y capturar de nuevo' }}
             </button>
-            <button class="btn btn-secondary" type="button" :disabled="deleting" @click="deleteTarget = null">Cancelar</button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              :disabled="deleting"
+              data-diagnostic-action="anular-persona-autorizada"
+              @click="remove(annulTarget.id)"
+            >
+              Solo anular
+            </button>
+            <button class="btn btn-secondary" type="button" :disabled="deleting" @click="annulTarget = null">Cancelar</button>
           </div>
         </section>
       </FamilyPersonasModal>
@@ -224,13 +212,12 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 const editing = ref<Partial<AuthorizedPerson> | null>(null)
 const editorError = ref('')
 const editorBusy = ref(false)
-const deleteTarget = ref<AuthorizedPerson | null>(null)
+const annulTarget = ref<AuthorizedPerson | null>(null)
 const saving = ref(false)
 const deleting = ref(false)
 const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
-const openFaq = ref<number | null>(null)
 const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
 const downloadingId = ref<number | null>(null)
 const downloadError = ref('')
@@ -254,12 +241,18 @@ const completedRegularCount = computed(() => people.value.filter((person) => per
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
 
-const faqItems = [
-  { question: '¿Cuántas personas puedo registrar?', answer: 'Tres personas y un Pase Express opcional.' },
-  { question: '¿Qué foto debo usar?', answer: 'Una foto frontal, clara y reciente.' },
-  { question: '¿Dónde descargo el Husky Pass?', answer: 'Cada persona lista muestra su botón Descargar Husky Pass.' },
-  { question: '¿Puedo cambiar grado o grupo?', answer: 'No. La escuela administra esos datos.' }
-]
+const faqCopy = `Preguntas Frecuentes (FAQ's)
+Sabemos que tendras muchas preguntas, es por eso que aqui te dejamos respuestas a algunas de ellas, si existiera alguna duda en particular, contactanos y con mucho gusto te brindaremos una atención personalizada.
+
+El módulo 'Personas Autorizadas' en Husky Pass es una herramienta que permite a los padres de familia gestionar los registros de las personas autorizadas para entregar y recoger a los alumnos en los colegios.
+Puedes registrar un máximo de tres personas autorizadas por cada alumno matriculado.
+Para registrar a una persona autorizada, se deben completar los siguientes campos en el formulario: nombre completo de la persona, parentesco con el alumno y cargar una fotografía que cumpla con las especificaciones de estilo de pasaporte.
+En caso de una eventualidad donde ninguna de las tres personas autorizadas esté disponible, se puede generar un 'pase express' de manera rápida y segura. El pase express permite registrar temporalmente los datos de un familiar, conocido, tutor o persona encargada para que pueda entregar o recoger al alumno. El registro express será válido durante 24 horas a partir de su generación.
+Para generar un pase express, sigue las instrucciones en la plataforma Husky Pass para completar los datos del familiar, conocido, tutor o persona encargada en el formulario correspondiente.
+Si el pase express ha expirado y aún necesitas que alguien recoja o entregue al alumno, te recomendamos comunicarte directamente con la recepción / Control escolar del colegio. El personal estará encantado de ayudarte a encontrar una solución adecuada y asegurarse de que el alumno esté en buenas manos.
+Después de generar y guardar el registro normal o el pase express, deberás realizar la impresión del PDF que contiene el formato para recortar, ya sea el hanger o el gafete.
+Si necesitas eliminar a una persona autorizada de la lista, simplemente accede al módulo 'Personas Autorizadas' en Husky Pass, selecciona la persona que deseas eliminar y busca la opción de eliminar o anular el registro. Ten en cuenta que al eliminar a una persona autorizada, ya no podrá entregar o recoger al alumno a menos que se registre nuevamente.
+No, la información de cada registro no se puede editar una vez guardada. En caso de algún error de captura de datos o de la foto, se deberá eliminar o anular el registro existente y crear uno nuevo desde cero con la información correcta.`
 
 watch(() => route.query.persona, (value) => {
   const next = normalizeIndice(value)
@@ -383,7 +376,17 @@ function edit(person: AuthorizedPerson) {
   editorError.value = ''
   editorBusy.value = false
   selectedIndice.value = person.indice
+  if (person.id) {
+    annulTarget.value = person
+    return
+  }
   editing.value = toAuthorizedPersonSavePayload(createAuthorizedPersonForm(person))
+}
+function openFreshCapture(indice: number) {
+  editorError.value = ''
+  editorBusy.value = false
+  selectedIndice.value = normalizeIndice(indice)
+  editing.value = toAuthorizedPersonSavePayload(createAuthorizedPersonForm({ indice: selectedIndice.value }))
 }
 function closeEditor() {
   if (saving.value || editorBusy.value) return
@@ -427,20 +430,26 @@ async function save(payload: Partial<AuthorizedPerson>) {
     saving.value = false
   }
 }
-async function remove(id: number | null | undefined) {
+async function remove(id: number | null | undefined, options: { recapture?: boolean; indice?: number } = {}) {
   if (!id) return
   deleting.value = true
   error.value = ''
   notice.value = ''
   try {
     await $fetch(`/api/personas-autorizadas/family/${id}`, { method: 'DELETE' })
-    deleteTarget.value = null
+    const nextIndice = normalizeIndice(options.indice)
+    annulTarget.value = null
     await refresh()
     await refreshMarbeteReadiness()
-    notice.value = 'Registro eliminado.'
+    if (options.recapture) {
+      openFreshCapture(nextIndice)
+      notice.value = 'Registro anulado. Captura la información correcta.'
+    } else {
+      notice.value = 'Registro anulado.'
+    }
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible eliminar el registro.'
+    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible anular el registro.'
   } finally {
     deleting.value = false
   }
@@ -828,6 +837,16 @@ function normalizeIndice(value: unknown) {
   color: #0b68ad;
 }
 
+.slot-btn-danger-outline {
+  background: #fff;
+  border: 1px solid #f1b5b5;
+  color: #a23a3a;
+}
+
+.slot-btn-danger-outline:hover:not(:disabled) {
+  box-shadow: 0 8px 18px rgba(162, 58, 58, 0.12);
+}
+
 .person-slot-card.express .slot-btn-outline {
   border-color: #a9cf99;
   color: #3f7c2e;
@@ -837,28 +856,6 @@ function normalizeIndice(value: unknown) {
   background: #f5f8fb;
   border: 1px solid #dfe8f2;
   color: #6f7785;
-}
-
-.slot-menu {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  bottom: 12px;
-  color: #50627a;
-  cursor: pointer;
-  display: inline-flex;
-  height: 30px;
-  justify-content: center;
-  padding: 0;
-  position: absolute;
-  right: 12px;
-  width: 30px;
-}
-
-.slot-menu:hover {
-  background: rgba(23, 58, 98, .07);
-  color: #142b45;
 }
 
 .loading-row,
@@ -927,65 +924,13 @@ function normalizeIndice(value: unknown) {
   width: 100%;
 }
 
-.faq-item {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #e2ebf4;
-  border-radius: 13px;
-  box-shadow: 0 6px 16px rgba(40, 65, 100, 0.04);
-  cursor: pointer;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) 32px;
-  min-height: 48px;
-  padding: 12px 10px 12px 14px;
-  text-align: left;
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-  width: 100%;
-}
-
-.faq-item:hover,
-.faq-item[aria-expanded='true'] {
-  background: linear-gradient(180deg, #fff, #fbfdff);
-  border-color: #cbddec;
-  box-shadow: 0 10px 22px rgba(40, 65, 100, 0.08);
-}
-
-.faq-item strong,
-.faq-item em {
-  display: block;
-}
-
-.faq-item strong {
-  color: #313b52;
-  font-size: 0.88rem;
-}
-
-.faq-item em {
+.faq-copy {
   color: #6f7785;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-style: normal;
   font-weight: 700;
-  margin-top: 8px;
-}
-
-.faq-chevron {
-  align-items: center;
-  background: #f4f8fc;
-  border: 1px solid #dfe8f2;
-  border-radius: 999px;
-  color: #173a62;
-  display: inline-flex;
-  height: 30px;
-  justify-content: center;
-  transition: transform .18s ease, background .18s ease;
-  width: 30px;
-}
-
-.faq-item[aria-expanded='true'] .faq-chevron {
-  background: var(--pa-soft);
-  color: var(--pa-primary);
-  transform: rotate(180deg);
+  line-height: 1.5;
+  white-space: pre-line;
 }
 
 .actions,
@@ -1096,10 +1041,6 @@ function normalizeIndice(value: unknown) {
     grid-column: 1 / -1;
     justify-self: stretch;
     width: 100%;
-  }
-  .slot-menu {
-    bottom: auto;
-    top: 14px;
   }
   .empty-guidance {
     grid-template-columns: 62px minmax(0, 1fr);

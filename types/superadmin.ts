@@ -76,3 +76,23 @@ export interface SuperAdminPassSearchResponse {
     limit: number
   }
 }
+
+export interface SuperAdminEnvChecklistItem {
+  key: string
+  label: string
+  ok: boolean
+  severity: 'required' | 'warning' | 'info'
+  message: string
+}
+
+export interface SuperAdminEnvChecklistGroup {
+  id: string
+  label: string
+  items: SuperAdminEnvChecklistItem[]
+}
+
+export interface SuperAdminEnvChecklistResponse {
+  ok: boolean
+  checkedAt: string
+  groups: SuperAdminEnvChecklistGroup[]
+}

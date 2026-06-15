@@ -64,7 +64,7 @@ function numberIsValid(env, key, fallback) {
 }
 
 function privateKeyConfigured(env, options) {
-  return hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', options) || hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', options)
+  return hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', options)
 }
 
 function validate(env, options) {
@@ -106,14 +106,18 @@ function validate(env, options) {
     for (const key of ['PASSWORD_RECOVERY_BASE_URL', 'PASSWORD_RECOVERY_FROM_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_EMAIL']) {
       if (!hasRequiredValue(env, key, options)) errors.push(`${key} falta para envio real de recuperacion de contrasena.`)
     }
-    if (!privateKeyConfigured(env, options)) errors.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY o GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 falta para envio real.')
+    if (!privateKeyConfigured(env, options)) errors.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY falta para envio real.')
     if (!hasRequiredValue(env, 'GOOGLE_WORKSPACE_DELEGATED_USER', options) && !hasRequiredValue(env, 'GOOGLE_GMAIL_DELEGATED_USER', options)) {
       errors.push('GOOGLE_WORKSPACE_DELEGATED_USER falta para envio Gmail delegado.')
     }
   }
 
   if (hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY') && !String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY).includes('\\n') && !String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY).includes('\n')) {
-    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY no contiene saltos de linea escapados; usa \\n o GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64.')
+    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY no contiene saltos de linea escapados; usa \\n en el valor directo.')
+  }
+
+  if (hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64')) {
+    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 ya no se usa; configura GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY como texto directo.')
   }
 
   return {

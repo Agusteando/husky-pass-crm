@@ -23,23 +23,17 @@ interface RecoveryEmailConfig {
   delegatedUser: string
 }
 
-function decodePrivateKey(raw?: string | null, rawBase64?: string | null) {
+function decodePrivateKey(raw?: string | null) {
   const fromText = String(raw || '').trim()
   if (fromText) return fromText.replace(/\\n/g, '\n')
-  const fromBase64 = String(rawBase64 || '').trim()
-  if (!fromBase64) return ''
-  try {
-    return Buffer.from(fromBase64, 'base64').toString('utf8').replace(/\\n/g, '\n')
-  } catch {
-    return ''
-  }
+  return ''
 }
 
 function getRecoveryEmailConfig(): RecoveryEmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
   const mode = String(recovery.emailMode || 'gmail').trim().toLowerCase() === 'preview' ? 'preview' : 'gmail'
-  const privateKey = decodePrivateKey(recovery.googleServiceAccountPrivateKey, recovery.googleServiceAccountPrivateKeyBase64)
+  const privateKey = decodePrivateKey(recovery.googleServiceAccountPrivateKey)
   return {
     mode,
     fromEmail: String(recovery.fromEmail || '').trim(),
@@ -54,7 +48,7 @@ function assertGmailConfig(config: RecoveryEmailConfig) {
   const missing = [
     ['PASSWORD_RECOVERY_FROM_EMAIL', config.fromEmail],
     ['GOOGLE_SERVICE_ACCOUNT_EMAIL', config.serviceAccountEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', config.privateKey],
+    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey],
     ['GOOGLE_WORKSPACE_DELEGATED_USER or GOOGLE_GMAIL_DELEGATED_USER', config.delegatedUser]
   ].filter(([, value]) => !value).map(([key]) => key)
 

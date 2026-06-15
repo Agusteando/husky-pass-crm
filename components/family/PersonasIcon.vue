@@ -37,7 +37,9 @@ import {
   ShieldCheck,
   School,
   Plus,
+  RefreshCw,
   Sparkles,
+  Trash2,
   UserRound,
   UserRoundCheck,
   UsersRound
@@ -72,6 +74,8 @@ const iconMap: Record<string, FunctionalComponent> = {
   chevron: ChevronDown,
   more: EllipsisVertical,
   plus: Plus,
+  replace: RefreshCw,
+  trash: Trash2,
   document: FileCheck,
   security: ShieldCheck
 }

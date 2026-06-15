@@ -21,6 +21,8 @@ type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string 
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
 type AuthorizedPersonPayload = Partial<AuthorizedPerson> & { children?: AuthorizedChild[] }
 
+const AUTHORIZE_RECAPTURE_MESSAGE = 'Para corregir una persona autorizada, primero anula el registro y captura uno nuevo.'
+
 function assertFamilyOwner(user: AppSessionUser, ownerId?: number | string | null) {
   if (String(user.id) !== String(ownerId)) {
     throw createError({ statusCode: 403, statusMessage: 'Registro fuera del alcance de la cuenta familiar' })
@@ -702,22 +704,17 @@ export async function upsertAuthorizedPersona(user: AppSessionUser, payload: Aut
     fechaP: normalizeString(payload.fechaP)
   }
 
-  const existing = payload.id
-    ? await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [payload.id])
-    : await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE user_id = ? AND indice = ? ORDER BY id ASC LIMIT 1', [user.id, indice])
+  if (payload.id) {
+    const existingById = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [payload.id])
+    if (!existingById) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+    assertFamilyOwner(user, existingById.user_id as number)
+    throw createError({ statusCode: 409, statusMessage: AUTHORIZE_RECAPTURE_MESSAGE })
+  }
 
-  if (payload.id && !existing) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
-
-  if (existing) {
-    assertFamilyOwner(user, existing.user_id as number)
-
-    await legacyWrite(
-      `UPDATE personas_autorizadas
-       SET indice = ?, paternoP = ?, maternoP = ?, nombreP = ?, parenP = ?, foto = ?, compressed_foto = ?, fechaP = ?, user_id = ?
-       WHERE id = ? AND user_id = ?`,
-      [indice, values.paternoP, values.maternoP, values.nombreP, values.parenP, values.foto, values.compressed_foto, values.fechaP, user.id, existing.id, user.id]
-    )
-    return { ...payload, id: Number(existing.id), indice, user_id: user.id, qr: String(existing.id) }
+  const existingSlot = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE user_id = ? AND indice = ? ORDER BY id ASC LIMIT 1', [user.id, indice])
+  if (existingSlot) {
+    assertFamilyOwner(user, existingSlot.user_id as number)
+    throw createError({ statusCode: 409, statusMessage: AUTHORIZE_RECAPTURE_MESSAGE })
   }
 
   const result = await legacyWrite(

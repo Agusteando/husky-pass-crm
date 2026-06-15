@@ -9,6 +9,7 @@
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Personas Autorizadas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Entorno</NuxtLink>
         <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
       </div>
     </header>

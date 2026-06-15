@@ -147,11 +147,10 @@ Required environment variables for real Google service-account email delivery:
 - `PASSWORD_RECOVERY_FROM_EMAIL`: institutional sender address.
 - `PASSWORD_RECOVERY_FROM_NAME`: sender display name, usually `Husky Pass`.
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`: service-account client email.
-- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`: private key with escaped newlines (`\n`), or use `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64`.
-- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64`: base64-encoded private-key file content; leave blank when using `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`.
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`: private key as a direct string with escaped newlines (`\n`).
 - `GOOGLE_WORKSPACE_DELEGATED_USER`: Workspace user impersonated for Gmail sending. `GOOGLE_GMAIL_DELEGATED_USER` is also accepted.
 
-Never use or commit a `credentials.json` file. Keep all of the values above server-side.
+Never use or commit a `credentials.json` file. Do not configure `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64`; use the direct private-key string only. Keep all of the values above server-side.
 
 Account-security routes and APIs:
 
@@ -159,6 +158,7 @@ Account-security routes and APIs:
 - Parent reset page: `/restablecer-contrasena?token=<token>`
 - Authenticated change-password page: `/familia/cuenta/seguridad`
 - Dev recovery lab: `/__dev/password-recovery`
+- Super Admin env checklist: `/admin/superadmin/entorno`
 - Forgot API: `POST /api/auth/password/forgot`
 - Reset-token status API: `GET /api/auth/password/reset?token=<token>`
 - Reset API: `POST /api/auth/password/reset`
