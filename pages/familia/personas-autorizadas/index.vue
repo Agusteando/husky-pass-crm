@@ -129,7 +129,25 @@
           </article>
 
           <article class="card faq-card" data-product-panel="faq" data-state="content">
-            <div class="faq-copy">{{ faqCopy }}</div>
+            <header class="section-title-inline">
+              <FamilyPersonasIcon name="help" />
+              <h2>Preguntas frecuentes</h2>
+            </header>
+            <p class="faq-intro">{{ faqIntro }}</p>
+            <button
+              v-for="(item, index) in faqItems"
+              :key="item.question"
+              class="faq-item"
+              type="button"
+              :aria-expanded="openFaq === index"
+              @click="openFaq = openFaq === index ? null : index"
+            >
+              <span>
+                <strong>{{ item.question }}</strong>
+                <em v-if="openFaq === index">{{ item.answer }}</em>
+              </span>
+              <span class="faq-chevron" aria-hidden="true"><FamilyPersonasIcon name="chevron" /></span>
+            </button>
           </article>
         </section>
       </section>
@@ -218,6 +236,7 @@ const deleting = ref(false)
 const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(normalizeIndice(route.query.persona))
+const openFaq = ref<number | null>(null)
 const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
 const downloadingId = ref<number | null>(null)
 const downloadError = ref('')
@@ -241,18 +260,45 @@ const completedRegularCount = computed(() => people.value.filter((person) => per
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
 
-const faqCopy = `Preguntas Frecuentes (FAQ's)
-Sabemos que tendras muchas preguntas, es por eso que aqui te dejamos respuestas a algunas de ellas, si existiera alguna duda en particular, contactanos y con mucho gusto te brindaremos una atención personalizada.
-
-El módulo 'Personas Autorizadas' en Husky Pass es una herramienta que permite a los padres de familia gestionar los registros de las personas autorizadas para entregar y recoger a los alumnos en los colegios.
-Puedes registrar un máximo de tres personas autorizadas por cada alumno matriculado.
-Para registrar a una persona autorizada, se deben completar los siguientes campos en el formulario: nombre completo de la persona, parentesco con el alumno y cargar una fotografía que cumpla con las especificaciones de estilo de pasaporte.
-En caso de una eventualidad donde ninguna de las tres personas autorizadas esté disponible, se puede generar un 'pase express' de manera rápida y segura. El pase express permite registrar temporalmente los datos de un familiar, conocido, tutor o persona encargada para que pueda entregar o recoger al alumno. El registro express será válido durante 24 horas a partir de su generación.
-Para generar un pase express, sigue las instrucciones en la plataforma Husky Pass para completar los datos del familiar, conocido, tutor o persona encargada en el formulario correspondiente.
-Si el pase express ha expirado y aún necesitas que alguien recoja o entregue al alumno, te recomendamos comunicarte directamente con la recepción / Control escolar del colegio. El personal estará encantado de ayudarte a encontrar una solución adecuada y asegurarse de que el alumno esté en buenas manos.
-Después de generar y guardar el registro normal o el pase express, deberás realizar la impresión del PDF que contiene el formato para recortar, ya sea el hanger o el gafete.
-Si necesitas eliminar a una persona autorizada de la lista, simplemente accede al módulo 'Personas Autorizadas' en Husky Pass, selecciona la persona que deseas eliminar y busca la opción de eliminar o anular el registro. Ten en cuenta que al eliminar a una persona autorizada, ya no podrá entregar o recoger al alumno a menos que se registre nuevamente.
-No, la información de cada registro no se puede editar una vez guardada. En caso de algún error de captura de datos o de la foto, se deberá eliminar o anular el registro existente y crear uno nuevo desde cero con la información correcta.`
+const faqIntro = 'Sabemos que tendras muchas preguntas, es por eso que aqui te dejamos respuestas a algunas de ellas, si existiera alguna duda en particular, contactanos y con mucho gusto te brindaremos una atención personalizada.'
+const faqItems = [
+  {
+    question: "¿Qué es el módulo 'Personas Autorizadas' y para qué se utiliza?",
+    answer: "El módulo 'Personas Autorizadas' en Husky Pass es una herramienta que permite a los padres de familia gestionar los registros de las personas autorizadas para entregar y recoger a los alumnos en los colegios."
+  },
+  {
+    question: '¿Cuántas personas autorizadas puedo registrar por cada alumno matriculado?',
+    answer: 'Puedes registrar un máximo de tres personas autorizadas por cada alumno matriculado.'
+  },
+  {
+    question: '¿Qué información se requiere para registrar a una persona autorizada?',
+    answer: 'Para registrar a una persona autorizada, se deben completar los siguientes campos en el formulario: nombre completo de la persona, parentesco con el alumno y cargar una fotografía que cumpla con las especificaciones de estilo de pasaporte.'
+  },
+  {
+    question: '¿Qué debo hacer si ninguna de las tres personas autorizadas está disponible ante una eventualidad emergente?',
+    answer: "En caso de una eventualidad donde ninguna de las tres personas autorizadas esté disponible, se puede generar un 'pase express' de manera rápida y segura. El pase express permite registrar temporalmente los datos de un familiar, conocido, tutor o persona encargada para que pueda entregar o recoger al alumno. El registro express será válido durante 24 horas a partir de su generación."
+  },
+  {
+    question: '¿Cómo genero un pase express?',
+    answer: 'Para generar un pase express, sigue las instrucciones en la plataforma Husky Pass para completar los datos del familiar, conocido, tutor o persona encargada en el formulario correspondiente.'
+  },
+  {
+    question: '¿Qué hago si el pase express expiró?',
+    answer: 'Si el pase express ha expirado y aún necesitas que alguien recoja o entregue al alumno, te recomendamos comunicarte directamente con la recepción / Control escolar del colegio. El personal estará encantado de ayudarte a encontrar una solución adecuada y asegurarse de que el alumno esté en buenas manos.'
+  },
+  {
+    question: '¿Qué debo hacer después de guardar el registro normal o el pase express?',
+    answer: 'Después de generar y guardar el registro normal o el pase express, deberás realizar la impresión del PDF que contiene el formato para recortar, ya sea el hanger o el gafete.'
+  },
+  {
+    question: '¿Cómo elimino o anulo una persona autorizada?',
+    answer: "Si necesitas eliminar a una persona autorizada de la lista, simplemente accede al módulo 'Personas Autorizadas' en Husky Pass, selecciona la persona que deseas eliminar y busca la opción de eliminar o anular el registro. Ten en cuenta que al eliminar a una persona autorizada, ya no podrá entregar o recoger al alumno a menos que se registre nuevamente."
+  },
+  {
+    question: '¿Puedo editar la información después de guardar un registro?',
+    answer: 'No, la información de cada registro no se puede editar una vez guardada. En caso de algún error de captura de datos o de la foto, se deberá eliminar o anular el registro existente y crear uno nuevo desde cero con la información correcta.'
+  }
+]
 
 watch(() => route.query.persona, (value) => {
   const next = normalizeIndice(value)
@@ -877,6 +923,7 @@ function normalizeIndice(value: unknown) {
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1.03fr) minmax(300px, .97fr);
+  scroll-margin-top: 112px;
 }
 
 .tutorial-card,
@@ -924,13 +971,73 @@ function normalizeIndice(value: unknown) {
   width: 100%;
 }
 
-.faq-copy {
+.faq-intro {
   color: #6f7785;
   font-size: 0.86rem;
-  font-style: normal;
   font-weight: 700;
   line-height: 1.5;
-  white-space: pre-line;
+  margin: 0;
+}
+
+.faq-item {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2ebf4;
+  border-radius: 13px;
+  box-shadow: 0 6px 16px rgba(40, 65, 100, 0.04);
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  min-height: 48px;
+  padding: 12px 10px 12px 14px;
+  text-align: left;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  width: 100%;
+}
+
+.faq-item:hover,
+.faq-item[aria-expanded='true'] {
+  background: linear-gradient(180deg, #fff, #fbfdff);
+  border-color: #cbddec;
+  box-shadow: 0 10px 22px rgba(40, 65, 100, 0.08);
+}
+
+.faq-item strong,
+.faq-item em {
+  display: block;
+}
+
+.faq-item strong {
+  color: #313b52;
+  font-size: 0.88rem;
+}
+
+.faq-item em {
+  color: #6f7785;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.faq-chevron {
+  align-items: center;
+  background: #f4f8fc;
+  border: 1px solid #dfe8f2;
+  border-radius: 999px;
+  color: #173a62;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  transition: transform .18s ease, background .18s ease;
+  width: 30px;
+}
+
+.faq-item[aria-expanded='true'] .faq-chevron {
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  transform: rotate(180deg);
 }
 
 .actions,

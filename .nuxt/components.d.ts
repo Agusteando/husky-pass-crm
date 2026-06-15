@@ -1,100 +1,18 @@
 
 import type { DefineComponent, SlotsType } from 'vue'
-type IslandComponent<T extends DefineComponent> = T & DefineComponent<{}, {refresh: () => Promise<void>}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, SlotsType<{ fallback: { error: unknown } }>>
-interface _GlobalComponents {
-      'AppTopbar': typeof import("../components/AppTopbar.vue")['default']
-    'BrandMark': typeof import("../components/BrandMark.vue")['default']
-    'EmptyState': typeof import("../components/EmptyState.vue")['default']
-    'ExperienceLoginForm': typeof import("../components/ExperienceLoginForm.vue")['default']
-    'LoginPanel': typeof import("../components/LoginPanel.vue")['default']
-    'ResourceCard': typeof import("../components/ResourceCard.vue")['default']
-    'AdminDaycareSidebar': typeof import("../components/admin/AdminDaycareSidebar.vue")['default']
-    'AdminModuleTabs': typeof import("../components/admin/AdminModuleTabs.vue")['default']
-    'AdminResourceModule': typeof import("../components/admin/AdminResourceModule.vue")['default']
-    'AdminSalasCommandCenter': typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']
-    'AdminFamilyAccountEditor': typeof import("../components/admin/FamilyAccountEditor.vue")['default']
-    'AdminResourceEditor': typeof import("../components/admin/ResourceEditor.vue")['default']
-    'FamilyAuthorizedPersonEditor': typeof import("../components/family/AuthorizedPersonEditor.vue")['default']
-    'FamilyResourceList': typeof import("../components/family/FamilyResourceList.vue")['default']
-    'FamilySidebar': typeof import("../components/family/FamilySidebar.vue")['default']
-    'FamilyPersonasAmbassador': typeof import("../components/family/PersonasAmbassador.vue")['default']
-    'FamilyPersonasAutorizadasShell': typeof import("../components/family/PersonasAutorizadasShell.vue")['default']
-    'FamilyPersonasIcon': typeof import("../components/family/PersonasIcon.vue")['default']
-    'FamilyPersonasImageUpload': typeof import("../components/family/PersonasImageUpload.vue")['default']
-    'FamilyPersonasModal': typeof import("../components/family/PersonasModal.vue")['default']
-    'FamilyPersonasProcessedPhoto': typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
-    'NuxtWelcome': typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']
-    'NuxtLayout': typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']
-    'NuxtErrorBoundary': typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary")['default']
-    'ClientOnly': typeof import("../node_modules/nuxt/dist/app/components/client-only")['default']
-    'DevOnly': typeof import("../node_modules/nuxt/dist/app/components/dev-only")['default']
-    'ServerPlaceholder': typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
-    'NuxtLink': typeof import("../node_modules/nuxt/dist/app/components/nuxt-link")['default']
-    'NuxtLoadingIndicator': typeof import("../node_modules/nuxt/dist/app/components/nuxt-loading-indicator")['default']
-    'NuxtRouteAnnouncer': typeof import("../node_modules/nuxt/dist/app/components/nuxt-route-announcer")['default']
-    'NuxtImg': typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtImg']
-    'NuxtPicture': typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtPicture']
-    'NuxtPage': typeof import("../node_modules/nuxt/dist/pages/runtime/page")['default']
-    'NoScript': typeof import("../node_modules/nuxt/dist/head/runtime/components")['NoScript']
-    'Link': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Link']
-    'Base': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Base']
-    'Title': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Title']
-    'Meta': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Meta']
-    'Style': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Style']
-    'Head': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Head']
-    'Html': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
-    'Body': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
-    'NuxtIsland': typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
-    'NuxtRouteAnnouncer': IslandComponent<typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']>
-      'LazyAppTopbar': typeof import("../components/AppTopbar.vue")['default']
-    'LazyBrandMark': typeof import("../components/BrandMark.vue")['default']
-    'LazyEmptyState': typeof import("../components/EmptyState.vue")['default']
-    'LazyExperienceLoginForm': typeof import("../components/ExperienceLoginForm.vue")['default']
-    'LazyLoginPanel': typeof import("../components/LoginPanel.vue")['default']
-    'LazyResourceCard': typeof import("../components/ResourceCard.vue")['default']
-    'LazyAdminDaycareSidebar': typeof import("../components/admin/AdminDaycareSidebar.vue")['default']
-    'LazyAdminModuleTabs': typeof import("../components/admin/AdminModuleTabs.vue")['default']
-    'LazyAdminResourceModule': typeof import("../components/admin/AdminResourceModule.vue")['default']
-    'LazyAdminSalasCommandCenter': typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']
-    'LazyAdminFamilyAccountEditor': typeof import("../components/admin/FamilyAccountEditor.vue")['default']
-    'LazyAdminResourceEditor': typeof import("../components/admin/ResourceEditor.vue")['default']
-    'LazyFamilyAuthorizedPersonEditor': typeof import("../components/family/AuthorizedPersonEditor.vue")['default']
-    'LazyFamilyResourceList': typeof import("../components/family/FamilyResourceList.vue")['default']
-    'LazyFamilySidebar': typeof import("../components/family/FamilySidebar.vue")['default']
-    'LazyFamilyPersonasAmbassador': typeof import("../components/family/PersonasAmbassador.vue")['default']
-    'LazyFamilyPersonasAutorizadasShell': typeof import("../components/family/PersonasAutorizadasShell.vue")['default']
-    'LazyFamilyPersonasIcon': typeof import("../components/family/PersonasIcon.vue")['default']
-    'LazyFamilyPersonasImageUpload': typeof import("../components/family/PersonasImageUpload.vue")['default']
-    'LazyFamilyPersonasModal': typeof import("../components/family/PersonasModal.vue")['default']
-    'LazyFamilyPersonasProcessedPhoto': typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
-    'LazyNuxtWelcome': typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']
-    'LazyNuxtLayout': typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']
-    'LazyNuxtErrorBoundary': typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary")['default']
-    'LazyClientOnly': typeof import("../node_modules/nuxt/dist/app/components/client-only")['default']
-    'LazyDevOnly': typeof import("../node_modules/nuxt/dist/app/components/dev-only")['default']
-    'LazyServerPlaceholder': typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
-    'LazyNuxtLink': typeof import("../node_modules/nuxt/dist/app/components/nuxt-link")['default']
-    'LazyNuxtLoadingIndicator': typeof import("../node_modules/nuxt/dist/app/components/nuxt-loading-indicator")['default']
-    'LazyNuxtRouteAnnouncer': typeof import("../node_modules/nuxt/dist/app/components/nuxt-route-announcer")['default']
-    'LazyNuxtImg': typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtImg']
-    'LazyNuxtPicture': typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtPicture']
-    'LazyNuxtPage': typeof import("../node_modules/nuxt/dist/pages/runtime/page")['default']
-    'LazyNoScript': typeof import("../node_modules/nuxt/dist/head/runtime/components")['NoScript']
-    'LazyLink': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Link']
-    'LazyBase': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Base']
-    'LazyTitle': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Title']
-    'LazyMeta': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Meta']
-    'LazyStyle': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Style']
-    'LazyHead': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Head']
-    'LazyHtml': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
-    'LazyBody': typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
-    'LazyNuxtIsland': typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
-    'LazyNuxtRouteAnnouncer': IslandComponent<typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']>
-}
+type IslandComponent<T> = DefineComponent<{}, {refresh: () => Promise<void>}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, SlotsType<{ fallback: { error: unknown } }>> & T
 
-declare module 'vue' {
-  export interface GlobalComponents extends _GlobalComponents { }
+type HydrationStrategies = {
+  hydrateOnVisible?: IntersectionObserverInit | true
+  hydrateOnIdle?: number | true
+  hydrateOnInteraction?: keyof HTMLElementEventMap | Array<keyof HTMLElementEventMap> | true
+  hydrateOnMediaQuery?: string
+  hydrateAfter?: number
+  hydrateWhen?: boolean
+  hydrateNever?: true
 }
+type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {}, {}, { hydrated: () => void }> & T
+
 
 export const AppTopbar: typeof import("../components/AppTopbar.vue")['default']
 export const BrandMark: typeof import("../components/BrandMark.vue")['default']
@@ -119,12 +37,13 @@ export const FamilyPersonasModal: typeof import("../components/family/PersonasMo
 export const FamilyPersonasProcessedPhoto: typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
 export const NuxtWelcome: typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']
 export const NuxtLayout: typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']
-export const NuxtErrorBoundary: typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary")['default']
+export const NuxtErrorBoundary: typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary.vue")['default']
 export const ClientOnly: typeof import("../node_modules/nuxt/dist/app/components/client-only")['default']
 export const DevOnly: typeof import("../node_modules/nuxt/dist/app/components/dev-only")['default']
 export const ServerPlaceholder: typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
 export const NuxtLink: typeof import("../node_modules/nuxt/dist/app/components/nuxt-link")['default']
 export const NuxtLoadingIndicator: typeof import("../node_modules/nuxt/dist/app/components/nuxt-loading-indicator")['default']
+export const NuxtTime: typeof import("../node_modules/nuxt/dist/app/components/nuxt-time.vue")['default']
 export const NuxtRouteAnnouncer: typeof import("../node_modules/nuxt/dist/app/components/nuxt-route-announcer")['default']
 export const NuxtImg: typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtImg']
 export const NuxtPicture: typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtPicture']
@@ -139,50 +58,49 @@ export const Head: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const Html: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
 export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
 export const NuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
-export const NuxtRouteAnnouncer: IslandComponent<typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']>
-export const LazyAppTopbar: typeof import("../components/AppTopbar.vue")['default']
-export const LazyBrandMark: typeof import("../components/BrandMark.vue")['default']
-export const LazyEmptyState: typeof import("../components/EmptyState.vue")['default']
-export const LazyExperienceLoginForm: typeof import("../components/ExperienceLoginForm.vue")['default']
-export const LazyLoginPanel: typeof import("../components/LoginPanel.vue")['default']
-export const LazyResourceCard: typeof import("../components/ResourceCard.vue")['default']
-export const LazyAdminDaycareSidebar: typeof import("../components/admin/AdminDaycareSidebar.vue")['default']
-export const LazyAdminModuleTabs: typeof import("../components/admin/AdminModuleTabs.vue")['default']
-export const LazyAdminResourceModule: typeof import("../components/admin/AdminResourceModule.vue")['default']
-export const LazyAdminSalasCommandCenter: typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']
-export const LazyAdminFamilyAccountEditor: typeof import("../components/admin/FamilyAccountEditor.vue")['default']
-export const LazyAdminResourceEditor: typeof import("../components/admin/ResourceEditor.vue")['default']
-export const LazyFamilyAuthorizedPersonEditor: typeof import("../components/family/AuthorizedPersonEditor.vue")['default']
-export const LazyFamilyResourceList: typeof import("../components/family/FamilyResourceList.vue")['default']
-export const LazyFamilySidebar: typeof import("../components/family/FamilySidebar.vue")['default']
-export const LazyFamilyPersonasAmbassador: typeof import("../components/family/PersonasAmbassador.vue")['default']
-export const LazyFamilyPersonasAutorizadasShell: typeof import("../components/family/PersonasAutorizadasShell.vue")['default']
-export const LazyFamilyPersonasIcon: typeof import("../components/family/PersonasIcon.vue")['default']
-export const LazyFamilyPersonasImageUpload: typeof import("../components/family/PersonasImageUpload.vue")['default']
-export const LazyFamilyPersonasModal: typeof import("../components/family/PersonasModal.vue")['default']
-export const LazyFamilyPersonasProcessedPhoto: typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
-export const LazyNuxtWelcome: typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']
-export const LazyNuxtLayout: typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']
-export const LazyNuxtErrorBoundary: typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary")['default']
-export const LazyClientOnly: typeof import("../node_modules/nuxt/dist/app/components/client-only")['default']
-export const LazyDevOnly: typeof import("../node_modules/nuxt/dist/app/components/dev-only")['default']
-export const LazyServerPlaceholder: typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
-export const LazyNuxtLink: typeof import("../node_modules/nuxt/dist/app/components/nuxt-link")['default']
-export const LazyNuxtLoadingIndicator: typeof import("../node_modules/nuxt/dist/app/components/nuxt-loading-indicator")['default']
-export const LazyNuxtRouteAnnouncer: typeof import("../node_modules/nuxt/dist/app/components/nuxt-route-announcer")['default']
-export const LazyNuxtImg: typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtImg']
-export const LazyNuxtPicture: typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtPicture']
-export const LazyNuxtPage: typeof import("../node_modules/nuxt/dist/pages/runtime/page")['default']
-export const LazyNoScript: typeof import("../node_modules/nuxt/dist/head/runtime/components")['NoScript']
-export const LazyLink: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Link']
-export const LazyBase: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Base']
-export const LazyTitle: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Title']
-export const LazyMeta: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Meta']
-export const LazyStyle: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Style']
-export const LazyHead: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Head']
-export const LazyHtml: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
-export const LazyBody: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
-export const LazyNuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
-export const LazyNuxtRouteAnnouncer: IslandComponent<typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']>
+export const LazyAppTopbar: LazyComponent<typeof import("../components/AppTopbar.vue")['default']>
+export const LazyBrandMark: LazyComponent<typeof import("../components/BrandMark.vue")['default']>
+export const LazyEmptyState: LazyComponent<typeof import("../components/EmptyState.vue")['default']>
+export const LazyExperienceLoginForm: LazyComponent<typeof import("../components/ExperienceLoginForm.vue")['default']>
+export const LazyLoginPanel: LazyComponent<typeof import("../components/LoginPanel.vue")['default']>
+export const LazyResourceCard: LazyComponent<typeof import("../components/ResourceCard.vue")['default']>
+export const LazyAdminDaycareSidebar: LazyComponent<typeof import("../components/admin/AdminDaycareSidebar.vue")['default']>
+export const LazyAdminModuleTabs: LazyComponent<typeof import("../components/admin/AdminModuleTabs.vue")['default']>
+export const LazyAdminResourceModule: LazyComponent<typeof import("../components/admin/AdminResourceModule.vue")['default']>
+export const LazyAdminSalasCommandCenter: LazyComponent<typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']>
+export const LazyAdminFamilyAccountEditor: LazyComponent<typeof import("../components/admin/FamilyAccountEditor.vue")['default']>
+export const LazyAdminResourceEditor: LazyComponent<typeof import("../components/admin/ResourceEditor.vue")['default']>
+export const LazyFamilyAuthorizedPersonEditor: LazyComponent<typeof import("../components/family/AuthorizedPersonEditor.vue")['default']>
+export const LazyFamilyResourceList: LazyComponent<typeof import("../components/family/FamilyResourceList.vue")['default']>
+export const LazyFamilySidebar: LazyComponent<typeof import("../components/family/FamilySidebar.vue")['default']>
+export const LazyFamilyPersonasAmbassador: LazyComponent<typeof import("../components/family/PersonasAmbassador.vue")['default']>
+export const LazyFamilyPersonasAutorizadasShell: LazyComponent<typeof import("../components/family/PersonasAutorizadasShell.vue")['default']>
+export const LazyFamilyPersonasIcon: LazyComponent<typeof import("../components/family/PersonasIcon.vue")['default']>
+export const LazyFamilyPersonasImageUpload: LazyComponent<typeof import("../components/family/PersonasImageUpload.vue")['default']>
+export const LazyFamilyPersonasModal: LazyComponent<typeof import("../components/family/PersonasModal.vue")['default']>
+export const LazyFamilyPersonasProcessedPhoto: LazyComponent<typeof import("../components/family/PersonasProcessedPhoto.vue")['default']>
+export const LazyNuxtWelcome: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']>
+export const LazyNuxtLayout: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']>
+export const LazyNuxtErrorBoundary: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary.vue")['default']>
+export const LazyClientOnly: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/client-only")['default']>
+export const LazyDevOnly: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/dev-only")['default']>
+export const LazyServerPlaceholder: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']>
+export const LazyNuxtLink: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-link")['default']>
+export const LazyNuxtLoadingIndicator: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-loading-indicator")['default']>
+export const LazyNuxtTime: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-time.vue")['default']>
+export const LazyNuxtRouteAnnouncer: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-route-announcer")['default']>
+export const LazyNuxtImg: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtImg']>
+export const LazyNuxtPicture: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-stubs")['NuxtPicture']>
+export const LazyNuxtPage: LazyComponent<typeof import("../node_modules/nuxt/dist/pages/runtime/page")['default']>
+export const LazyNoScript: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['NoScript']>
+export const LazyLink: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Link']>
+export const LazyBase: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Base']>
+export const LazyTitle: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Title']>
+export const LazyMeta: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Meta']>
+export const LazyStyle: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Style']>
+export const LazyHead: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Head']>
+export const LazyHtml: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']>
+export const LazyBody: LazyComponent<typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']>
+export const LazyNuxtIsland: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']>
 
 export const componentNames: string[]

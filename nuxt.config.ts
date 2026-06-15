@@ -80,12 +80,16 @@ export default defineNuxtConfig({
       reportCompressedSize: false
     }
   },
-  nitro: {
-    preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : undefined),
-    serverAssets: [
-      { baseName: 'marbete-templates', dir: '../data/marbete-templates' },
-      { baseName: 'personas-config', dir: '../data/personas-autorizadas' },
-      { baseName: 'hp-fonts', dir: '../public/fonts' }
-    ]
+  hooks: {
+    'nitro:config'(nitroConfig) {
+      const preset = process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : undefined)
+      if (preset) nitroConfig.preset = preset
+      nitroConfig.serverAssets = [
+        ...(nitroConfig.serverAssets || []),
+        { baseName: 'marbete-templates', dir: '../data/marbete-templates' },
+        { baseName: 'personas-config', dir: '../data/personas-autorizadas' },
+        { baseName: 'hp-fonts', dir: '../public/fonts' }
+      ]
+    }
   }
 })

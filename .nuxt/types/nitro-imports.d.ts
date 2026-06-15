@@ -1,11 +1,13 @@
 declare global {
   const DEV_HUSKY_PASS_SCENARIOS: typeof import('../../server/utils/devHuskyPassFixtures').DEV_HUSKY_PASS_SCENARIOS
   const DEV_HUSKY_PASS_VARIANTS: typeof import('../../server/utils/devHuskyPassFixtures').DEV_HUSKY_PASS_VARIANTS
+  const H3Error: typeof import('../../node_modules/h3').H3Error
+  const H3Event: typeof import('../../node_modules/h3').H3Event
   const PASSWORD_MAX_LENGTH: typeof import('../../server/utils/passwordPolicy').PASSWORD_MAX_LENGTH
   const PASSWORD_MIN_LENGTH: typeof import('../../server/utils/passwordPolicy').PASSWORD_MIN_LENGTH
   const SURVEY_NIVEL_OPTIONS: typeof import('../../server/utils/personasConfig').SURVEY_NIVEL_OPTIONS
-  const __buildAssetsURL: typeof import('../../node_modules/nuxt/dist/core/runtime/nitro/paths').buildAssetsURL
-  const __publicAssetsURL: typeof import('../../node_modules/nuxt/dist/core/runtime/nitro/paths').publicAssetsURL
+  const __buildAssetsURL: typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/utils/paths').buildAssetsURL
+  const __publicAssetsURL: typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/utils/paths').publicAssetsURL
   const adminOrigin: typeof import('../../server/utils/impersonation').adminOrigin
   const appendAccessActionLog: typeof import('../../server/utils/personasConfig').appendAccessActionLog
   const appendCorsHeaders: typeof import('../../node_modules/h3').appendCorsHeaders
@@ -48,7 +50,7 @@ declare global {
   const csvToList: typeof import('../../server/utils/mysql').csvToList
   const dataUrlToUploadFile: typeof import('../../server/utils/externalUpload').dataUrlToUploadFile
   const defaultContentType: typeof import('../../node_modules/h3').defaultContentType
-  const defineAppConfig: typeof import('../../node_modules/nuxt/dist/core/runtime/nitro/config').defineAppConfig
+  const defineAppConfig: typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/utils/config').defineAppConfig
   const defineCachedEventHandler: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').defineCachedEventHandler
   const defineCachedFunction: typeof import('../../node_modules/nitropack/dist/runtime/internal/cache').defineCachedFunction
   const defineEventHandler: typeof import('../../node_modules/h3').defineEventHandler
@@ -207,6 +209,9 @@ declare global {
 // for type re-export
 declare global {
   // @ts-ignore
+  export type { EventHandler, EventHandlerRequest, EventHandlerResponse, EventHandlerObject, H3EventContext } from '../../node_modules/h3'
+  import('../../node_modules/h3')
+  // @ts-ignore
   export type { DevHuskyPassVariant, DevHuskyPassScenario } from '../../server/utils/devHuskyPassFixtures'
   import('../../server/utils/devHuskyPassFixtures')
   // @ts-ignore
@@ -222,6 +227,7 @@ declare global {
   export type { SipaeAbsentStudent, SipaeAttendanceGroup, SipaeAttendanceDay, SipaeAttendanceDetailResponse, SipaeTardyRecord, SipaeTardiesResponse } from '../../server/utils/sipaeAttendance'
   import('../../server/utils/sipaeAttendance')
 }
+export { H3Event, H3Error, appendCorsHeaders, appendCorsPreflightHeaders, appendHeader, appendHeaders, appendResponseHeader, appendResponseHeaders, assertMethod, callNodeListener, clearResponseHeaders, clearSession, createApp, createAppEventHandler, createError, createEvent, createEventStream, createRouter, defaultContentType, defineEventHandler, defineLazyEventHandler, defineNodeListener, defineNodeMiddleware, defineRequestMiddleware, defineResponseMiddleware, defineWebSocket, defineWebSocketHandler, deleteCookie, dynamicEventHandler, eventHandler, fetchWithEvent, fromNodeMiddleware, fromPlainHandler, fromWebHandler, getCookie, getHeader, getHeaders, getMethod, getProxyRequestHeaders, getQuery, getRequestFingerprint, getRequestHeader, getRequestHeaders, getRequestHost, getRequestIP, getRequestPath, getRequestProtocol, getRequestURL, getRequestWebStream, getResponseHeader, getResponseHeaders, getResponseStatus, getResponseStatusText, getRouterParam, getRouterParams, getSession, getValidatedQuery, getValidatedRouterParams, handleCacheHeaders, handleCors, isCorsOriginAllowed, isError, isEvent, isEventHandler, isMethod, isPreflightRequest, isStream, isWebResponse, lazyEventHandler, parseCookies, promisifyNodeListener, proxyRequest, readBody, readFormData, readMultipartFormData, readRawBody, readValidatedBody, removeResponseHeader, sanitizeStatusCode, sanitizeStatusMessage, sealSession, send, sendError, sendIterable, sendNoContent, sendProxy, sendRedirect, sendStream, sendWebResponse, serveStatic, setCookie, setHeader, setHeaders, setResponseHeader, setResponseHeaders, setResponseStatus, splitCookiesString, toEventHandler, toNodeListener, toPlainHandler, toWebHandler, toWebRequest, unsealSession, updateSession, useBase, useSession, writeEarlyHints } from 'h3';
 export { useNitroApp } from 'nitropack/runtime/internal/app';
 export { useRuntimeConfig, useAppConfig } from 'nitropack/runtime/internal/config';
 export { defineNitroPlugin, nitroPlugin } from 'nitropack/runtime/internal/plugin';
@@ -233,9 +239,8 @@ export { getRouteRules } from 'nitropack/runtime/internal/route-rules';
 export { useEvent } from 'nitropack/runtime/internal/context';
 export { defineTask, runTask } from 'nitropack/runtime/internal/task';
 export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils';
-export { appendCorsHeaders, appendCorsPreflightHeaders, appendHeader, appendHeaders, appendResponseHeader, appendResponseHeaders, assertMethod, callNodeListener, clearResponseHeaders, clearSession, createApp, createAppEventHandler, createError, createEvent, createEventStream, createRouter, defaultContentType, defineEventHandler, defineLazyEventHandler, defineNodeListener, defineNodeMiddleware, defineRequestMiddleware, defineResponseMiddleware, defineWebSocket, defineWebSocketHandler, deleteCookie, dynamicEventHandler, eventHandler, fetchWithEvent, fromNodeMiddleware, fromPlainHandler, fromWebHandler, getCookie, getHeader, getHeaders, getMethod, getProxyRequestHeaders, getQuery, getRequestFingerprint, getRequestHeader, getRequestHeaders, getRequestHost, getRequestIP, getRequestPath, getRequestProtocol, getRequestURL, getRequestWebStream, getResponseHeader, getResponseHeaders, getResponseStatus, getResponseStatusText, getRouterParam, getRouterParams, getSession, getValidatedQuery, getValidatedRouterParams, handleCacheHeaders, handleCors, isCorsOriginAllowed, isError, isEvent, isEventHandler, isMethod, isPreflightRequest, isStream, isWebResponse, lazyEventHandler, parseCookies, promisifyNodeListener, proxyRequest, readBody, readFormData, readMultipartFormData, readRawBody, readValidatedBody, removeResponseHeader, sanitizeStatusCode, sanitizeStatusMessage, sealSession, send, sendError, sendIterable, sendNoContent, sendProxy, sendRedirect, sendStream, sendWebResponse, serveStatic, setCookie, setHeader, setHeaders, setResponseHeader, setResponseHeaders, setResponseStatus, splitCookiesString, toEventHandler, toNodeListener, toPlainHandler, toWebHandler, toWebRequest, unsealSession, updateSession, useBase, useSession, writeEarlyHints } from 'h3';
-export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from 'C:/Users/hp/husky-pass-crm/node_modules/nuxt/dist/core/runtime/nitro/paths';
-export { defineAppConfig } from 'C:/Users/hp/husky-pass-crm/node_modules/nuxt/dist/core/runtime/nitro/config';
+export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from 'C:/Users/hp/husky-pass-crm/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
+export { defineAppConfig } from 'C:/Users/hp/husky-pass-crm/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
 export { createCaptchaChallenge, verifyCaptchaChallenge, assertRateLimit, assertRegistrationAntibot } from 'C:/Users/hp/husky-pass-crm/server/utils/antibot';
 export { attendanceQuery, attendanceOne, attendanceWrite } from 'C:/Users/hp/husky-pass-crm/server/utils/attendanceMysql';
 export { hasFamilyProductScope, isSuperAdmin, assertDaycareFamily, assertPersonasAutorizadasFamily, assertDaycareAdmin, assertAccessHistoryAdmin, assertUnidadAccess, assertSalaAccess } from 'C:/Users/hp/husky-pass-crm/server/utils/authz';
