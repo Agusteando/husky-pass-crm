@@ -1,1 +1,1 @@
-Rediseña la experiencia familiar de Personas Autorizadas
+refactor(ui): estandariza encabezados y corrige el uso de embajadores

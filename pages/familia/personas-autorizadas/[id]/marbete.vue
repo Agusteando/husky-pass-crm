@@ -1,28 +1,30 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Husky Pass">
     <section class="pass-page" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="husky-pass">
-      <header class="pass-head">
-        <div>
-          <p class="eyebrow">Husky Pass</p>
-          <h1>{{ fullName || 'Persona autorizada' }}</h1>
-          <p>{{ passContext }}</p>
-        </div>
-        <FamilyPersonasAmbassador class="pass-ambassador" :theme="theme" variant="preview" compact decorative />
-        <div class="head-actions">
-          <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
-          <button
-            v-if="downloadAvailable"
-            class="btn btn-primary pa-primary"
-            type="button"
-            :disabled="downloading"
-            data-diagnostic-action="descargar-husky-pass"
-            @click="downloadHuskyPass"
-          >
-            {{ downloading ? 'Preparando...' : 'Descargar Husky Pass' }}
-          </button>
-          <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
-        </div>
-      </header>
+      <FamilyPersonasPageHeader
+        eyebrow="Husky Pass"
+        :title="fullName || 'Persona autorizada'"
+        :description="passContext"
+        :theme="theme"
+        ambassador-variant="preview"
+      >
+        <template #actions>
+          <div class="head-actions">
+            <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
+            <button
+              v-if="downloadAvailable"
+              class="btn btn-primary pa-primary"
+              type="button"
+              :disabled="downloading"
+              data-diagnostic-action="descargar-husky-pass"
+              @click="downloadHuskyPass"
+            >
+              {{ downloading ? 'Preparando...' : 'Descargar Husky Pass' }}
+            </button>
+            <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
+          </div>
+        </template>
+      </FamilyPersonasPageHeader>
 
       <p v-if="downloadError" class="alert" data-state="error">{{ downloadError }}</p>
       <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el Husky Pass.' }}</p>
@@ -132,7 +134,6 @@ async function downloadHuskyPass() {
   gap: 12px;
 }
 
-.pass-head,
 .preview-shell,
 .preview-state {
   background: #fff;
@@ -141,21 +142,6 @@ async function downloadHuskyPass() {
   box-shadow: var(--shadow-soft);
 }
 
-.pass-head {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  padding: clamp(12px, 2vw, 16px);
-}
-
-.pass-head h1,
-.pass-head p {
-  margin-bottom: 0;
-}
-.pass-ambassador {
-  justify-self: center;
-}
 
 .head-actions {
   display: flex;
@@ -241,13 +227,6 @@ iframe {
 }
 
 @media (max-width: 760px) {
-  .pass-head {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-  .pass-ambassador {
-    justify-self: start;
-  }
   .preview-state.unavailable {
     grid-template-columns: 64px minmax(0, 1fr);
   }

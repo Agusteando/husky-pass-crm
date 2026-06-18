@@ -9,19 +9,14 @@
 
     <template v-else>
       <section class="pa-home-screen" data-product-panel="personas-home">
-        <header class="pa-page-hero">
-          <div class="pa-title-block">
-            <span class="hero-shield" aria-hidden="true">
-              <FamilyPersonasIcon name="authorized" />
-            </span>
-            <div>
-              <p class="eyebrow">{{ levelLabel }}</p>
-              <h1>Personas autorizadas</h1>
-              <p>Gestiona de forma segura quién puede recoger a {{ studentFirstName }}.</p>
-            </div>
-          </div>
-
-          <div class="pa-hero-actions">
+        <FamilyPersonasPageHeader
+          :eyebrow="levelLabel"
+          title="Personas autorizadas"
+          :description="`Gestiona de forma segura quién puede recoger a ${studentFirstName}.`"
+          :theme="theme"
+          ambassador-variant="hero"
+        >
+          <template #actions>
             <button
               v-if="expressSlot && !expressSlot.id"
               class="hero-express-action"
@@ -41,17 +36,15 @@
               </span>
               <span class="callout-action">Subir foto</span>
             </NuxtLink>
-          </div>
-        </header>
+          </template>
+        </FamilyPersonasPageHeader>
 
         <section class="authorized-section" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
-          <header class="section-label-row">
-            <span class="section-icon" aria-hidden="true">
-              <FamilyPersonasIcon name="people" />
-            </span>
-            <h2>Personas autorizadas</h2>
-            <small>{{ registeredPeopleLabel }}</small>
-          </header>
+          <FamilyPersonasSectionHeading
+            title="Personas autorizadas"
+            description="Registros permanentes y pase temporal."
+            :meta="registeredPeopleLabel"
+          />
 
           <div v-if="!completedCount" class="empty-guidance" data-state="empty">
             <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
@@ -66,15 +59,9 @@
               v-for="person in people"
               :key="person.indice"
               class="person-slot-card"
-              :class="{ selected: selected?.indice === person.indice, empty: !person.id, express: person.indice === 4 }"
+              :class="{ empty: !person.id, express: person.indice === 4 }"
               :data-state="person.id ? 'registered' : 'available'"
               :data-slot="person.indice"
-              role="button"
-              tabindex="0"
-              :aria-label="slotActionLabel(person)"
-              @click="selectPerson(person)"
-              @keydown.enter.prevent="selectPerson(person)"
-              @keydown.space.prevent="selectPerson(person)"
             >
               <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo"><FamilyPersonasIcon name="check" /></span>
               <span v-if="!person.id && person.indice === 4" class="slot-badge">Nuevo</span>
@@ -144,24 +131,22 @@
         <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
           <article class="card tutorial-card">
             <header class="section-head branded-head">
-              <div>
-                <div class="section-title-inline">
-                  <FamilyPersonasIcon name="document" />
-                  <h2>Tutorial</h2>
-                </div>
-                <p>Aprende a crear, descargar y usar los Husky Pass.</p>
+              <FamilyPersonasSectionHeading
+                title="Tutorial"
+                description="Aprende a crear, descargar y usar los Husky Pass."
+              />
+              <div class="section-ambassador" aria-hidden="true">
+                <FamilyPersonasAmbassador :theme="theme" variant="help" compact contained decorative />
               </div>
-              <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
             </header>
             <FamilyPersonasTutorialVideo :theme="theme" video-id="PMBQolTRysg" title="Tutorial Personas Autorizadas" />
           </article>
 
           <article class="card faq-card" data-product-panel="faq" data-state="content">
-            <header class="section-title-inline">
-              <FamilyPersonasIcon name="help" />
-              <h2>Preguntas frecuentes</h2>
-            </header>
-            <p class="faq-intro">{{ faqIntro }}</p>
+            <FamilyPersonasSectionHeading
+              title="Preguntas frecuentes"
+              :description="faqIntro"
+            />
             <button
               v-for="(item, index) in faqItems"
               :key="item.question"
@@ -243,15 +228,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch, useRoute, useRouter } from 'nuxt/app'
+import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
-const route = useRoute()
-const router = useRouter()
 const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
@@ -264,7 +247,7 @@ const saving = ref(false)
 const deleting = ref(false)
 const error = ref('')
 const notice = ref('')
-const selectedIndice = ref(normalizeIndice(route.query.persona))
+const selectedIndice = ref(1)
 const openFaq = ref<number | null>(null)
 const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
 const downloadingId = ref<number | null>(null)
@@ -287,7 +270,6 @@ const studentFirstName = computed(() => String(primaryChild.value?.nombreA || st
 const completedCount = computed(() => people.value.filter((person) => person.id).length)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
-const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
 const expressSlot = computed(() => people.value.find((person) => person.indice === 4) || null)
 
 function retryLoad() {
@@ -334,10 +316,6 @@ const faqItems = [
   }
 ]
 
-watch(() => route.query.persona, (value) => {
-  const next = normalizeIndice(value)
-  if (next !== selectedIndice.value) selectedIndice.value = next
-})
 watch(people, (value) => {
   if (!value.length) return
   if (!value.some((person) => person.indice === selectedIndice.value)) selectedIndice.value = value[0]?.indice || 1
@@ -365,10 +343,6 @@ function slotTitle(person: AuthorizedPerson) {
 function slotSubtitle(person: AuthorizedPerson) {
   if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
   return person.parenP || 'Datos pendientes'
-}
-function slotActionLabel(person: AuthorizedPerson) {
-  if (person.id) return `Ver acciones de ${fullName(person) || authorizedPersonLabel(person.indice)}`
-  return person.indice === 4 ? 'Crear pase express' : `Capturar ${authorizedPersonLabel(person.indice)}`
 }
 function localMarbeteReady(person: AuthorizedPerson) {
   return Boolean(person.id && photoUrl(person) && fullName(person) && person.parenP)
@@ -447,16 +421,6 @@ async function refreshMarbeteReadiness() {
       marbeteReadiness.value[id] = { ok: false, issues: [friendlyReadinessMessage(failure?.data?.statusMessage || failure?.statusMessage || failure?.message)], pending: false }
     }
   }))
-}
-function selectPerson(person: AuthorizedPerson) {
-  if (!person.id) {
-    edit(person)
-    return
-  }
-  selectedIndice.value = person.indice
-  error.value = ''
-  notice.value = ''
-  router.replace({ path: route.path, query: { ...route.query, persona: String(person.indice) } })
 }
 function edit(person: AuthorizedPerson) {
   error.value = ''
@@ -552,90 +516,6 @@ function normalizeIndice(value: unknown) {
 .pa-home-screen {
   display: grid;
   gap: 22px;
-}
-
-.pa-page-hero {
-  align-items: center;
-  display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 88px;
-}
-
-.pa-title-block {
-  align-items: center;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: 64px minmax(0, 1fr);
-  min-width: 0;
-}
-
-.hero-shield {
-  align-items: center;
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, .34), transparent 34%),
-    linear-gradient(145deg, #14939a, #09646f);
-  border: 1px solid rgba(255, 255, 255, .5);
-  border-radius: 22px;
-  box-shadow: 0 16px 32px rgba(14, 116, 124, .22);
-  color: #fff;
-  display: inline-grid;
-  height: 64px;
-  justify-content: center;
-  position: relative;
-  width: 64px;
-}
-
-.hero-shield::after {
-  border: 1px solid rgba(255, 255, 255, .34);
-  border-radius: 17px;
-  content: '';
-  inset: 7px;
-  position: absolute;
-}
-
-.hero-shield :deep(.pa-icon) {
-  height: 1.65rem;
-  position: relative;
-  stroke-width: 2.1;
-  width: 1.65rem;
-  z-index: 1;
-}
-
-.pa-title-block h1,
-.pa-title-block p,
-.section-label-row h2,
-.section-title-inline h2 {
-  margin-bottom: 0;
-}
-
-.pa-title-block .eyebrow {
-  color: var(--pa-primary);
-  font-size: .72rem;
-  margin-bottom: 4px;
-}
-
-.pa-title-block h1 {
-  color: #1e2c45;
-  font-size: clamp(2rem, 2.5vw, 2.7rem);
-  font-weight: 700;
-  letter-spacing: -.035em;
-  line-height: 1;
-}
-
-.pa-title-block p:not(.eyebrow) {
-  color: #707a8c;
-  font-size: .92rem;
-  font-weight: 600;
-  line-height: 1.45;
-  margin-top: 8px;
-}
-
-.pa-hero-actions {
-  align-items: flex-end;
-  display: grid;
-  gap: 10px;
-  justify-items: end;
 }
 
 .hero-express-action {
@@ -734,40 +614,6 @@ function normalizeIndice(value: unknown) {
   padding: 20px;
 }
 
-.section-label-row,
-.section-title-inline {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  min-width: 0;
-}
-
-.section-label-row h2,
-.section-title-inline h2 {
-  color: #26334b;
-  font-family: var(--font-body);
-  font-size: 1.02rem;
-  font-weight: 800;
-  letter-spacing: -.015em;
-}
-
-.section-label-row small {
-  color: #788294;
-  font-size: .74rem;
-  font-weight: 750;
-  margin-left: auto;
-}
-
-.section-icon,
-.section-title-inline :deep(.pa-icon) {
-  color: #efa91e;
-}
-
-.section-icon {
-  align-items: center;
-  display: inline-grid;
-  justify-content: center;
-}
 
 .empty-guidance {
   align-items: center;
@@ -807,7 +653,6 @@ function normalizeIndice(value: unknown) {
   border: 1px solid #e3e9ed;
   border-radius: 20px;
   box-shadow: 0 10px 28px rgba(31, 52, 76, .055);
-  cursor: pointer;
   display: grid;
   gap: 12px;
   grid-template-rows: auto minmax(66px, auto) auto;
@@ -818,13 +663,6 @@ function normalizeIndice(value: unknown) {
   position: relative;
   text-align: center;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-}
-
-.person-slot-card:hover,
-.person-slot-card.selected {
-  border-color: rgba(var(--pa-primary-rgb), .3);
-  box-shadow: 0 17px 36px rgba(30, 69, 87, .11);
-  transform: translateY(-2px);
 }
 
 .person-slot-card.empty:not(.express) {
@@ -1163,16 +1001,17 @@ function normalizeIndice(value: unknown) {
   min-height: 52px;
 }
 
-.section-head p {
-  color: #778193;
-  font-size: .74rem;
-  margin: 5px 0 0 30px;
+.section-ambassador {
+  flex: 0 0 auto;
+  height: 62px;
+  overflow: hidden;
+  width: 68px;
 }
 
-.branded-head :deep(.pa-ambassador-card) {
-  flex: 0 0 auto;
-  max-height: 62px;
-  max-width: 86px;
+.section-ambassador :deep(.pa-ambassador-card),
+.section-ambassador :deep(.pa-ambassador-visual) {
+  height: 62px;
+  width: 68px;
 }
 
 .tutorial-card :deep(.tutorial-video) {
@@ -1185,13 +1024,6 @@ function normalizeIndice(value: unknown) {
   display: none;
 }
 
-.faq-intro {
-  color: #707a8c;
-  font-size: .76rem;
-  font-weight: 650;
-  line-height: 1.5;
-  margin: -3px 0 2px 30px;
-}
 
 .faq-item {
   align-items: center;
@@ -1305,17 +1137,6 @@ function normalizeIndice(value: unknown) {
     gap: 16px;
   }
 
-  .pa-page-hero {
-    align-items: start;
-    grid-template-columns: 1fr;
-  }
-
-  .pa-hero-actions {
-    align-items: stretch;
-    grid-template-columns: auto minmax(0, 1fr);
-    justify-items: stretch;
-  }
-
   .student-photo-callout {
     max-width: none;
   }
@@ -1329,34 +1150,6 @@ function normalizeIndice(value: unknown) {
 }
 
 @media (max-width: 700px) {
-  .pa-title-block {
-    gap: 13px;
-    grid-template-columns: 50px minmax(0, 1fr);
-  }
-
-  .hero-shield {
-    border-radius: 17px;
-    height: 50px;
-    width: 50px;
-  }
-
-  .hero-shield::after {
-    border-radius: 13px;
-    inset: 6px;
-  }
-
-  .pa-title-block h1 {
-    font-size: clamp(1.55rem, 8vw, 2rem);
-  }
-
-  .pa-title-block p:not(.eyebrow) {
-    font-size: .8rem;
-    margin-top: 5px;
-  }
-
-  .pa-hero-actions {
-    grid-template-columns: 1fr;
-  }
 
   .hero-express-action {
     justify-self: stretch;
@@ -1372,17 +1165,6 @@ function normalizeIndice(value: unknown) {
     justify-self: start;
   }
 
-  .section-label-row {
-    align-items: flex-start;
-    display: grid;
-    gap: 4px 8px;
-    grid-template-columns: 20px minmax(0, 1fr);
-  }
-
-  .section-label-row small {
-    grid-column: 2;
-    margin-left: 0;
-  }
 
   .person-slots {
     grid-template-columns: 1fr;

@@ -11,20 +11,18 @@
         </NuxtLink>
       </div>
 
-      <section v-if="primaryChild" class="pa-student-switcher" data-product-panel="active-student" aria-label="Alumno activo">
+      <section v-if="primaryChild" class="pa-student-context" data-product-panel="active-student" aria-label="Contexto del alumno">
         <span class="pa-student-avatar">
           <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
           <b v-else>{{ studentInitials }}</b>
         </span>
         <span class="pa-student-copy">
-          <small>Alumno activo</small>
+          <small>Estás consultando a</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
           <span>{{ contextLine }}</span>
         </span>
-        <FamilyPersonasIcon class="pa-student-chevron" name="chevron" aria-hidden="true" />
       </section>
 
-      <span class="pa-topbar-spacer" aria-hidden="true"></span>
       <TopbarAccountMenu :session="session" experience="escolar" security-to="/familia/cuenta/seguridad?experiencia=escolar" />
     </header>
 
@@ -45,9 +43,13 @@
         </nav>
 
         <section class="pa-help-card" aria-label="Centro de ayuda">
-          <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
-          <strong>¿Necesitas ayuda?</strong>
-          <span>Consulta la guía o contacta a tu colegio.</span>
+          <div class="pa-help-ambassador" aria-hidden="true">
+            <FamilyPersonasAmbassador :theme="theme" variant="help" compact contained decorative />
+          </div>
+          <div class="pa-help-copy">
+            <strong>¿Necesitas ayuda?</strong>
+            <span>Consulta la guía o contacta a tu colegio.</span>
+          </div>
           <NuxtLink to="/familia/personas-autorizadas#ayuda">Centro de ayuda</NuxtLink>
         </section>
       </aside>
@@ -113,9 +115,9 @@ function isActive(item: { to: string }) {
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
   --pa-sidebar-width: 236px;
-  --pa-topbar-height: 78px;
+  --pa-topbar-height: 74px;
   background:
-    radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.08), transparent 20rem),
+    radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
     linear-gradient(180deg, #fcfdfd 0%, #f5f8f8 100%);
   color: var(--pa-gray);
   min-height: 100vh;
@@ -123,12 +125,12 @@ function isActive(item: { to: string }) {
 
 .pa-product-topbar {
   align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid #e7ebee;
   backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: 24px;
-  grid-template-columns: var(--pa-sidebar-width) minmax(280px, 390px) minmax(0, 1fr) auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(0, 1fr) auto;
   min-height: var(--pa-topbar-height);
   padding: 0 28px 0 20px;
   position: sticky;
@@ -163,44 +165,41 @@ function isActive(item: { to: string }) {
 }
 
 .pa-institution-logo {
-  height: 42px;
-  max-width: 50px;
+  height: 40px;
+  max-width: 48px;
   width: auto;
 }
 
 .pa-lockup-divider {
   background: rgba(var(--pa-primary-rgb), 0.22);
-  height: 28px;
+  height: 26px;
   width: 1px;
 }
 
 .pa-husky-pass-logo {
-  height: 38px;
-  max-width: 92px;
+  height: 36px;
+  max-width: 88px;
   width: auto;
 }
 
-.pa-student-switcher {
+.pa-student-context {
   align-items: center;
-  background: #fff;
-  border: 1px solid #e3e8ec;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(26, 48, 72, 0.06);
   display: grid;
-  gap: 11px;
-  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  gap: 10px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  justify-self: start;
+  max-width: 520px;
   min-width: 0;
-  padding: 7px 12px 7px 7px;
 }
 
 .pa-student-avatar {
   aspect-ratio: 1;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 13px;
+  border-radius: 12px;
   color: var(--pa-primary);
   display: grid;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 800;
   overflow: hidden;
   place-items: center;
@@ -219,9 +218,11 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-copy small {
-  color: var(--pa-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
+  color: var(--pa-primary);
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 .pa-student-copy strong,
@@ -239,17 +240,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy span {
   color: var(--pa-muted);
-  font-size: 0.68rem;
-}
-
-.pa-student-chevron {
-  color: var(--pa-muted);
-  height: 1rem;
-  width: 1rem;
-}
-
-.pa-topbar-spacer {
-  min-width: 0;
+  font-size: 0.67rem;
 }
 
 .pa-product-layout {
@@ -258,12 +249,13 @@ function isActive(item: { to: string }) {
 }
 
 .pa-product-nav {
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   border-right: 1px solid #e7ebee;
   display: flex;
   flex-direction: column;
   gap: 24px;
   height: calc(100vh - var(--pa-topbar-height));
+  overflow: hidden;
   padding: 24px 14px 18px;
   position: sticky;
   top: var(--pa-topbar-height);
@@ -337,34 +329,50 @@ function isActive(item: { to: string }) {
 }
 
 .pa-help-card {
-  align-items: start;
+  align-items: center;
   background:
-    radial-gradient(circle at 90% 10%, rgba(250, 186, 64, 0.18), transparent 5rem),
-    linear-gradient(145deg, #f7fbfc, #eef7f7);
+    radial-gradient(circle at 10% 15%, rgba(var(--pa-primary-rgb), 0.1), transparent 5rem),
+    linear-gradient(145deg, #fbfdfd, #f3f8f8);
   border: 1px solid rgba(var(--pa-primary-rgb), 0.15);
   border-radius: 18px;
   display: grid;
-  gap: 7px;
+  gap: 9px 10px;
+  grid-template-columns: 64px minmax(0, 1fr);
   margin-top: auto;
   overflow: hidden;
-  padding: 14px;
+  padding: 12px;
 }
 
-.pa-help-card :deep(.pa-ambassador-card) {
-  height: 72px;
-  justify-self: start;
-  width: 92px;
+.pa-help-ambassador {
+  align-self: end;
+  display: grid;
+  height: 70px;
+  overflow: hidden;
+  place-items: end center;
+  width: 64px;
 }
 
-.pa-help-card strong {
+.pa-help-ambassador :deep(.pa-ambassador-card),
+.pa-help-ambassador :deep(.pa-ambassador-visual) {
+  height: 70px;
+  width: 64px;
+}
+
+.pa-help-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pa-help-copy strong {
   color: var(--pa-gray);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
-.pa-help-card span {
+.pa-help-copy span {
   color: var(--pa-muted);
-  font-size: 0.72rem;
-  line-height: 1.45;
+  font-size: 0.68rem;
+  line-height: 1.4;
 }
 
 .pa-help-card a {
@@ -374,8 +382,9 @@ function isActive(item: { to: string }) {
   border-radius: 10px;
   color: var(--pa-primary);
   display: inline-flex;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.7rem;
+  font-weight: 850;
+  grid-column: 1 / -1;
   justify-content: center;
   min-height: 34px;
   padding: 0 10px;
@@ -386,9 +395,9 @@ function isActive(item: { to: string }) {
   display: grid;
   gap: 18px;
   margin: 0 auto;
-  max-width: 1640px;
+  max-width: 1580px;
   min-width: 0;
-  padding: clamp(24px, 2.8vw, 44px) clamp(20px, 3.2vw, 52px) 52px;
+  padding: clamp(22px, 2.5vw, 38px) clamp(20px, 3vw, 46px) 52px;
   width: 100%;
 }
 
@@ -403,7 +412,6 @@ function isActive(item: { to: string }) {
 
   .pa-product-topbar {
     gap: 18px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(260px, 360px) minmax(0, 1fr) auto;
     padding-left: 14px;
   }
 
@@ -470,8 +478,7 @@ function isActive(item: { to: string }) {
     max-width: 74px;
   }
 
-  .pa-student-switcher,
-  .pa-topbar-spacer,
+  .pa-student-context,
   .pa-product-nav {
     display: none;
   }

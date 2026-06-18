@@ -1,23 +1,25 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Hermanos">
-    <section class="card section-hero" data-product-panel="siblings-hero">
-      <div>
-        <p class="eyebrow">Familia</p>
-        <h1>Alumnos vinculados</h1>
-        <p>{{ siblingTitle }}</p>
-      </div>
-      <FamilyPersonasAmbassador :theme="theme" variant="hero" compact decorative />
-      <div class="sibling-summary" aria-label="Resumen de alumnos">
-        <span>
-          <strong>{{ children.length || 0 }}</strong>
-          alumnos
-        </span>
-        <span>
-          <strong>{{ switchableSiblings.length }}</strong>
-          disponibles
-        </span>
-      </div>
-    </section>
+    <FamilyPersonasPageHeader
+      eyebrow="Familia"
+      title="Alumnos vinculados"
+      :description="siblingTitle"
+      :theme="theme"
+      ambassador-variant="hero"
+    >
+      <template #actions>
+        <div class="sibling-summary" aria-label="Resumen de alumnos">
+          <span>
+            <strong>{{ children.length || 0 }}</strong>
+            alumnos
+          </span>
+          <span>
+            <strong>{{ switchableSiblings.length }}</strong>
+            disponibles
+          </span>
+        </div>
+      </template>
+    </FamilyPersonasPageHeader>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar la vinculación familiar.</p>
     <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando…</div>
@@ -135,7 +137,6 @@ async function switchToChild(child: AuthorizedChild) {
 </script>
 
 <style scoped>
-.section-hero { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto auto; }
 .loading-row, .notice { border: 1px solid var(--pa-border); font-weight: 600; }
 .notice { background: var(--pa-soft); border-radius: var(--radius-lg); margin: 0; padding: 10px 12px; }
 .sibling-summary { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(96px, auto)); }
@@ -152,5 +153,5 @@ async function switchToChild(child: AuthorizedChild) {
 .matricula-line { letter-spacing: 0; text-transform: uppercase; }
 .empty-state { align-items: center; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: var(--radius-lg); color: var(--pa-muted); display: grid; font-weight: 700; gap: 10px; grid-template-columns: 72px minmax(0, 1fr) auto; padding: 10px 12px; }
 .retry-button { justify-self: end; }
-@media (max-width: 680px) { .section-hero, .sibling-card { grid-template-columns: 1fr; } .sibling-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sibling-photo { width: 64px; } .empty-state { grid-template-columns: 58px minmax(0, 1fr); } .retry-button { grid-column: 1 / -1; justify-self: start; } }
+@media (max-width: 680px) { .sibling-card { grid-template-columns: 1fr; } .sibling-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sibling-photo { width: 64px; } .empty-state { grid-template-columns: 58px minmax(0, 1fr); } .retry-button { grid-column: 1 / -1; justify-self: start; } }
 </style>

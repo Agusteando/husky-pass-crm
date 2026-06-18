@@ -1,14 +1,17 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Persona autorizada">
     <section class="pa-detail" :style="themeVars" data-product-area="personas-autorizadas" data-product-screen="detail">
-      <header class="detail-head">
-        <div>
-          <p class="eyebrow">Persona autorizada</p>
-          <h1>{{ fullName || 'Registro' }}</h1>
-          <p>{{ subtitle }}</p>
-        </div>
-        <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
-      </header>
+      <FamilyPersonasPageHeader
+        eyebrow="Persona autorizada"
+        :title="fullName || 'Registro'"
+        :description="subtitle"
+        :theme="theme"
+        ambassador-variant="header"
+      >
+        <template #actions>
+          <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
+        </template>
+      </FamilyPersonasPageHeader>
 
       <p v-if="loadError" class="alert" data-state="error">No fue posible cargar este registro.</p>
       <div v-else-if="pending" class="card loading-card" data-product-loading data-state="loading">Cargando registro...</div>
@@ -71,7 +74,7 @@ const { data: readiness, pending: readinessPending, error: readinessError } = us
 })
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
-const { themeVars } = useResolvedPersonasTheme(() => ({
+const { theme, themeVars } = useResolvedPersonasTheme(() => ({
   matricula: primaryChild.value?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
   plantel: primaryChild.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
   nivelEdu: primaryChild.value?.nivelEdu || familyTheme.primaryChild.value?.nivelEdu,
@@ -110,7 +113,6 @@ const marbeteMessage = computed(() => {
   gap: 12px;
 }
 
-.detail-head,
 .identity-card,
 .actions-card {
   background: #fff;
@@ -119,16 +121,6 @@ const marbeteMessage = computed(() => {
   box-shadow: var(--shadow-soft);
 }
 
-.detail-head {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: clamp(12px, 2vw, 16px);
-}
-
-.detail-head h1,
-.detail-head p,
 .identity-card h2,
 .identity-card p {
   margin-bottom: 0;
@@ -207,7 +199,6 @@ const marbeteMessage = computed(() => {
 }
 
 @media (max-width: 760px) {
-  .detail-head,
   .detail-grid,
   .readiness,
   .action-grid {

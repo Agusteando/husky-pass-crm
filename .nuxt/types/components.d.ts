@@ -34,7 +34,9 @@ interface _GlobalComponents {
   FamilyPersonasIcon: typeof import("../../components/family/PersonasIcon.vue")['default']
   FamilyPersonasImageUpload: typeof import("../../components/family/PersonasImageUpload.vue")['default']
   FamilyPersonasModal: typeof import("../../components/family/PersonasModal.vue")['default']
+  FamilyPersonasPageHeader: typeof import("../../components/family/PersonasPageHeader.vue")['default']
   FamilyPersonasProcessedPhoto: typeof import("../../components/family/PersonasProcessedPhoto.vue")['default']
+  FamilyPersonasSectionHeading: typeof import("../../components/family/PersonasSectionHeading.vue")['default']
   FamilyPersonasTutorialVideo: typeof import("../../components/family/PersonasTutorialVideo.vue")['default']
   TopbarAccountMenu: typeof import("../../components/topbar/AccountMenu.vue")['default']
   TopbarAdminExperienceTopbar: typeof import("../../components/topbar/AdminExperienceTopbar.vue")['default']
@@ -82,7 +84,9 @@ interface _GlobalComponents {
   LazyFamilyPersonasIcon: LazyComponent<typeof import("../../components/family/PersonasIcon.vue")['default']>
   LazyFamilyPersonasImageUpload: LazyComponent<typeof import("../../components/family/PersonasImageUpload.vue")['default']>
   LazyFamilyPersonasModal: LazyComponent<typeof import("../../components/family/PersonasModal.vue")['default']>
+  LazyFamilyPersonasPageHeader: LazyComponent<typeof import("../../components/family/PersonasPageHeader.vue")['default']>
   LazyFamilyPersonasProcessedPhoto: LazyComponent<typeof import("../../components/family/PersonasProcessedPhoto.vue")['default']>
+  LazyFamilyPersonasSectionHeading: LazyComponent<typeof import("../../components/family/PersonasSectionHeading.vue")['default']>
   LazyFamilyPersonasTutorialVideo: LazyComponent<typeof import("../../components/family/PersonasTutorialVideo.vue")['default']>
   LazyTopbarAccountMenu: LazyComponent<typeof import("../../components/topbar/AccountMenu.vue")['default']>
   LazyTopbarAdminExperienceTopbar: LazyComponent<typeof import("../../components/topbar/AdminExperienceTopbar.vue")['default']>

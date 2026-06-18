@@ -1,17 +1,29 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Convenios">
-    <section class="card convenios-card" :class="{ unavailable: !config?.conveniosUrl }" data-product-panel="convenios" :data-state="config?.conveniosUrl ? 'content' : 'unavailable'">
-      <div>
-        <p class="eyebrow">Convenios</p>
-        <h1>Beneficios institucionales</h1>
-        <p>{{ config?.conveniosUrl ? 'Consulta los convenios disponibles para tu familia.' : 'No hay convenios disponibles por el momento.' }}</p>
-      </div>
-      <FamilyPersonasAmbassador variant="help" compact decorative />
-      <div class="convenios-action">
-        <span class="badge">{{ config?.conveniosUrl ? 'Disponible' : 'Sin enlace' }}</span>
-        <a v-if="config?.conveniosUrl" class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
-        <button v-else class="btn btn-secondary" type="button" disabled>Sin convenios</button>
-      </div>
+    <section class="convenios-screen">
+      <FamilyPersonasPageHeader
+        eyebrow="Familias"
+        title="Convenios"
+        :description="config?.conveniosUrl ? 'Consulta los beneficios institucionales disponibles para tu familia.' : 'Los beneficios institucionales aparecerán aquí cuando estén disponibles.'"
+        ambassador-variant="help"
+      >
+        <template v-if="config?.conveniosUrl" #actions>
+          <a class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
+        </template>
+      </FamilyPersonasPageHeader>
+
+      <section class="card convenios-card" :class="{ unavailable: !config?.conveniosUrl }" data-product-panel="convenios" :data-state="config?.conveniosUrl ? 'content' : 'unavailable'">
+        <FamilyPersonasSectionHeading
+          title="Beneficios institucionales"
+          :description="config?.conveniosUrl ? 'El catálogo se abre en el sitio institucional correspondiente.' : 'No hay un catálogo publicado por el momento.'"
+          :meta="config?.conveniosUrl ? 'Disponible' : 'Próximamente'"
+        />
+        <p>
+          {{ config?.conveniosUrl
+            ? 'Revisa promociones, servicios y acuerdos vigentes para las familias de la comunidad escolar.'
+            : 'No necesitas realizar ninguna acción. El acceso se habilitará automáticamente cuando el colegio publique nuevos convenios.' }}
+        </p>
+      </section>
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>
@@ -25,8 +37,35 @@ const { data: config } = useFetch<PersonasAutorizadasConfig>('/api/personas-auto
 </script>
 
 <style scoped>
-.convenios-card { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto auto; }
-.convenios-action { align-items: end; display: grid; gap: 10px; justify-items: end; }
-.pa-primary { background: var(--pa-primary); color: var(--pa-contrast); }
-@media (max-width: 760px) { .convenios-card { grid-template-columns: 1fr; } .convenios-action { justify-items: stretch; } }
+.convenios-screen {
+  display: grid;
+  gap: 20px;
+  max-width: 980px;
+}
+
+.convenios-card {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: #e2e8ec;
+  border-radius: 20px;
+  display: grid;
+  gap: 14px;
+  padding: clamp(18px, 2.2vw, 26px);
+}
+
+.convenios-card.unavailable {
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), 0.05), rgba(255, 255, 255, 0.96));
+}
+
+.convenios-card > p {
+  color: #6f798a;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 72ch;
+}
+
+.pa-primary {
+  background: var(--pa-primary);
+  color: var(--pa-contrast);
+}
 </style>

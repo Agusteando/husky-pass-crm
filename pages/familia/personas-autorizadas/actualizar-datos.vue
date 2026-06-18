@@ -8,19 +8,14 @@
 
     <template v-else-if="profile">
       <section class="student-data-screen" data-product-panel="student-data-home">
-        <header class="student-data-header">
-          <span class="student-title-icon" aria-hidden="true">
-            <FamilyPersonasIcon name="person" />
-          </span>
-          <div class="student-title-copy">
-            <h1>Datos del alumno</h1>
-            <p>Alumno activo: <strong>{{ studentDisplayName }}</strong></p>
-            <span class="student-update-line">
-              <FamilyPersonasIcon name="calendar" />
-              Última actualización: <strong>{{ lastUpdateLabel }}</strong>
-            </span>
-          </div>
-        </header>
+        <FamilyPersonasPageHeader
+          eyebrow="Alumno"
+          title="Datos del alumno"
+          :description="`Consulta y actualiza la información de ${studentDisplayName}.`"
+          :meta="`Última actualización: ${lastUpdateLabel}`"
+          :theme="theme"
+          ambassador-variant="header"
+        />
 
         <section class="student-profile-card" data-product-panel="academic-readonly">
           <div class="student-portrait" :data-has-photo="Boolean(studentPhoto)">
@@ -493,15 +488,6 @@ async function saveActiveGroup() {
   max-width: 1120px;
 }
 
-.student-data-header {
-  align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 64px minmax(0, 1fr);
-  padding: 2px 0 4px;
-}
-
-.student-title-icon,
 .section-avatar,
 .fact-icon,
 .family-row-icon {
@@ -510,61 +496,6 @@ async function saveActiveGroup() {
   justify-content: center;
 }
 
-.student-title-icon {
-  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .14), rgba(var(--pa-primary-rgb), .05));
-  border: 1px solid var(--pa-border);
-  border-radius: 14px;
-  color: var(--pa-primary);
-  height: 54px;
-  width: 54px;
-}
-
-.student-title-icon :deep(.pa-icon) {
-  height: 1.75rem;
-  width: 1.75rem;
-}
-
-.student-title-copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.student-title-copy h1 {
-  color: #14284d;
-  font-size: clamp(1.72rem, 2.5vw, 2.35rem);
-  letter-spacing: -0.032em;
-  line-height: 1;
-  margin: 0;
-}
-
-.student-title-copy p {
-  color: #536079;
-  font-size: .96rem;
-  font-weight: 650;
-}
-
-.student-title-copy strong,
-.student-update-line strong {
-  color: var(--pa-primary);
-  font-weight: 850;
-}
-
-.student-update-line {
-  align-items: center;
-  color: #65728b;
-  display: inline-flex;
-  flex-wrap: wrap;
-  font-size: .9rem;
-  font-weight: 750;
-  gap: 7px;
-}
-
-.student-update-line :deep(.pa-icon) {
-  color: var(--pa-primary);
-  height: 1rem;
-  width: 1rem;
-}
 
 .student-profile-card,
 .student-info-card {
@@ -1145,30 +1076,6 @@ async function saveActiveGroup() {
     gap: 12px;
   }
 
-  .student-data-header {
-    gap: 10px;
-    grid-template-columns: 42px minmax(0, 1fr);
-  }
-
-  .student-title-icon {
-    border-radius: 12px;
-    height: 38px;
-    width: 38px;
-  }
-
-  .student-title-icon :deep(.pa-icon) {
-    height: 1.25rem;
-    width: 1.25rem;
-  }
-
-  .student-title-copy h1 {
-    font-size: 1.55rem;
-  }
-
-  .student-title-copy p,
-  .student-update-line {
-    font-size: .77rem;
-  }
 
   .student-profile-card {
     align-items: start;

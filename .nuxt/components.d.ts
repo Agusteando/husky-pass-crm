@@ -34,7 +34,9 @@ export const FamilyPersonasAutorizadasShell: typeof import("../components/family
 export const FamilyPersonasIcon: typeof import("../components/family/PersonasIcon.vue")['default']
 export const FamilyPersonasImageUpload: typeof import("../components/family/PersonasImageUpload.vue")['default']
 export const FamilyPersonasModal: typeof import("../components/family/PersonasModal.vue")['default']
+export const FamilyPersonasPageHeader: typeof import("../components/family/PersonasPageHeader.vue")['default']
 export const FamilyPersonasProcessedPhoto: typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
+export const FamilyPersonasSectionHeading: typeof import("../components/family/PersonasSectionHeading.vue")['default']
 export const FamilyPersonasTutorialVideo: typeof import("../components/family/PersonasTutorialVideo.vue")['default']
 export const TopbarAccountMenu: typeof import("../components/topbar/AccountMenu.vue")['default']
 export const TopbarAdminExperienceTopbar: typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']
@@ -82,7 +84,9 @@ export const LazyFamilyPersonasAutorizadasShell: LazyComponent<typeof import("..
 export const LazyFamilyPersonasIcon: LazyComponent<typeof import("../components/family/PersonasIcon.vue")['default']>
 export const LazyFamilyPersonasImageUpload: LazyComponent<typeof import("../components/family/PersonasImageUpload.vue")['default']>
 export const LazyFamilyPersonasModal: LazyComponent<typeof import("../components/family/PersonasModal.vue")['default']>
+export const LazyFamilyPersonasPageHeader: LazyComponent<typeof import("../components/family/PersonasPageHeader.vue")['default']>
 export const LazyFamilyPersonasProcessedPhoto: LazyComponent<typeof import("../components/family/PersonasProcessedPhoto.vue")['default']>
+export const LazyFamilyPersonasSectionHeading: LazyComponent<typeof import("../components/family/PersonasSectionHeading.vue")['default']>
 export const LazyFamilyPersonasTutorialVideo: LazyComponent<typeof import("../components/family/PersonasTutorialVideo.vue")['default']>
 export const LazyTopbarAccountMenu: LazyComponent<typeof import("../components/topbar/AccountMenu.vue")['default']>
 export const LazyTopbarAdminExperienceTopbar: LazyComponent<typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']>

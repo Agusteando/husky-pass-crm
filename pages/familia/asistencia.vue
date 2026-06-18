@@ -1,8 +1,13 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Asistencia y accesos">
     <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-bitacora">
-      <header class="attendance-hero">
-        <div class="student-heading">
+      <FamilyPersonasPageHeader
+        eyebrow="Asistencia y accesos"
+        :title="data?.selectedChild.name || 'Asistencia y accesos'"
+        :description="selectedChildLine || displayMatricula(data?.selectedChild.matricula || '')"
+        :show-ambassador="false"
+      >
+        <template #visual>
           <div class="student-avatar" :data-has-photo="Boolean(selectedChildPhoto)">
             <FamilyPersonasProcessedPhoto
               v-if="selectedChildPhoto"
@@ -11,40 +16,37 @@
               :alt="data?.selectedChild.name || 'Alumno'"
               loading="eager"
             />
-            <span v-else>{{ data ? initials(data.selectedChild.name) : 'JB' }}</span>
+            <span v-else>{{ data ? initials(data.selectedChild.name) : 'A' }}</span>
           </div>
-          <div class="student-title-copy">
-            <p class="eyebrow">Asistencia y accesos</p>
-            <h1>{{ data?.selectedChild.name || 'Asistencia y accesos' }}</h1>
-            <p>{{ selectedChildLine || displayMatricula(data?.selectedChild.matricula || '') }}</p>
+        </template>
+
+        <template v-if="data" #actions>
+          <div class="hero-controls" aria-label="Contexto de asistencia">
+            <button class="cycle-pill" type="button" data-testid="attendance-open-cycles" @click="cycleDrawerOpen = true">
+              <FamilyPersonasIcon name="calendar" />
+              <span>
+                <small>Este ciclo escolar</small>
+                <strong>{{ selectedSchoolYearLabel }}</strong>
+              </span>
+              <FamilyPersonasIcon name="chevron" />
+            </button>
+
+            <button class="btn btn-secondary history-button" type="button" @click="cycleDrawerOpen = true">
+              Ciclos anteriores
+              <FamilyPersonasIcon name="arrow" />
+            </button>
+
+            <label v-if="children.length > 1" class="compact-select">
+              <span>Alumno</span>
+              <select v-model="selectedMatricula" class="select" data-testid="attendance-child-select" @change="syncRoute">
+                <option v-for="child in children" :key="child.matricula" :value="child.matricula">
+                  {{ child.name }}
+                </option>
+              </select>
+            </label>
           </div>
-        </div>
-
-        <div v-if="data" class="hero-controls" aria-label="Contexto de asistencia">
-          <button class="cycle-pill" type="button" data-testid="attendance-open-cycles" @click="cycleDrawerOpen = true">
-            <FamilyPersonasIcon name="calendar" />
-            <span>
-              <small>Este ciclo escolar</small>
-              <strong>{{ selectedSchoolYearLabel }}</strong>
-            </span>
-            <FamilyPersonasIcon name="chevron" />
-          </button>
-
-          <button class="btn btn-secondary history-button" type="button" @click="cycleDrawerOpen = true">
-            Ciclos anteriores
-            <FamilyPersonasIcon name="arrow" />
-          </button>
-
-          <label v-if="children.length > 1" class="compact-select">
-            <span>Alumno</span>
-            <select v-model="selectedMatricula" class="select" data-testid="attendance-child-select" @change="syncRoute">
-              <option v-for="child in children" :key="child.matricula" :value="child.matricula">
-                {{ child.name }}
-              </option>
-            </select>
-          </label>
-        </div>
-      </header>
+        </template>
+      </FamilyPersonasPageHeader>
 
       <p v-if="loadError" class="alert" data-state="error">No fue posible abrir la bitácora de asistencia.</p>
 
@@ -812,21 +814,6 @@ async function saveMotivo() {
   color: #0f6b52;
 }
 
-.attendance-hero {
-  align-items: center;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 2px 0 4px;
-}
-
-.student-heading {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 48px minmax(0, 1fr);
-  min-width: 0;
-}
 
 .student-avatar,
 .person-thumb,
@@ -847,7 +834,9 @@ async function saveMotivo() {
   font-family: var(--font-title);
   font-size: 1.15rem;
   font-weight: 900;
+  height: 68px;
   justify-items: center;
+  width: 68px;
 }
 
 .student-avatar :deep(.processed-photo),
@@ -860,25 +849,6 @@ async function saveMotivo() {
   width: 100%;
 }
 
-.student-title-copy {
-  min-width: 0;
-}
-
-.student-title-copy h1 {
-  color: #141c2f;
-  font-family: var(--font-title);
-  font-size: clamp(1.45rem, 2.4vw, 2.02rem);
-  letter-spacing: -0.035em;
-  line-height: 1.02;
-  margin: 0 0 4px;
-}
-
-.student-title-copy p:not(.eyebrow) {
-  color: #697386;
-  font-size: .92rem;
-  font-weight: 850;
-  margin: 0;
-}
 
 .hero-controls {
   align-items: center;
@@ -1765,7 +1735,6 @@ async function saveMotivo() {
 
 @media (max-width: 1180px) {
   .priority-grid,
-  .attendance-hero,
   .record-filters {
     grid-template-columns: 1fr;
   }
@@ -1796,17 +1765,6 @@ async function saveMotivo() {
     gap: 12px;
   }
 
-  .student-heading {
-    grid-template-columns: 48px minmax(0, 1fr);
-  }
-
-  .student-avatar {
-    font-size: .95rem;
-  }
-
-  .student-title-copy h1 {
-    font-size: clamp(1.28rem, 7vw, 1.62rem);
-  }
 
   .hero-controls,
   .cycle-pill,

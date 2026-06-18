@@ -1,13 +1,13 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Foto del alumno">
-    <section class="card photo-hero" data-product-panel="credential-photo-flow">
-      <div>
-        <p class="eyebrow">Alumno</p>
-        <h1>Foto del alumno</h1>
-        <p>{{ currentPhoto ? 'Lista.' : 'Pendiente.' }}</p>
-      </div>
-      <FamilyPersonasAmbassador :theme="theme" variant="preview" compact decorative />
-    </section>
+    <FamilyPersonasPageHeader
+      eyebrow="Alumno"
+      title="Foto del alumno"
+      description="Mantén una fotografía clara y actual para generar los Husky Pass."
+      :meta="currentPhoto ? 'Foto lista' : 'Foto pendiente'"
+      :theme="theme"
+      ambassador-variant="preview"
+    />
 
     <div v-if="loadError" class="alert retry-alert" data-state="error">
       <span>No fue posible cargar los datos del alumno.</span>
@@ -171,8 +171,7 @@ async function savePendingPhoto() {
 </script>
 
 <style scoped>
-.photo-hero, .photo-flow { align-items: center; display: grid; gap: 12px; }
-.photo-hero { background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border-radius: 14px; grid-template-columns: minmax(0, 1fr) auto; }
+.photo-flow { align-items: center; display: grid; gap: 12px; }
 .photo-flow { grid-template-columns: 150px minmax(0, 1fr); }
 .photo-preview { aspect-ratio: 1; background: #f2f2ef; border: 1px solid var(--pa-border); border-radius: 14px; color: var(--pa-muted); display: grid; font-weight: 600; overflow: hidden; padding: 0; place-items: center; width: 150px; }
 .photo-preview:not(:disabled) { cursor: pointer; }
@@ -188,5 +187,5 @@ async function savePendingPhoto() {
 .status-card[data-state='loading'], .status-card[data-state='saved'], .status-card[data-state='ready'] { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
 .current-photo-large { border-radius: 14px; display: block; height: min(64vh, 420px); margin: 0 auto; width: min(100%, 420px); }
 .current-photo-large :deep(img) { object-fit: contain; }
-@media (max-width: 860px) { .photo-hero, .photo-flow { grid-template-columns: 1fr; } .photo-preview { width: min(100%, 180px); } }
+@media (max-width: 860px) { .photo-flow { grid-template-columns: 1fr; } .photo-preview { width: min(100%, 180px); } }
 </style>

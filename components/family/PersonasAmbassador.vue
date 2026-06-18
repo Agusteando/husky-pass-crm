@@ -4,9 +4,12 @@
     class="pa-ambassador-card"
     :data-variant="variant"
     :data-compact="compact ? 'true' : 'false'"
+    :data-contained="contained ? 'true' : 'false'"
     :aria-label="decorative ? undefined : computedAlt"
   >
-    <img v-if="imageSrc" :src="imageSrc" :alt="decorative ? '' : computedAlt" loading="lazy" decoding="async" />
+    <span v-if="imageSrc" class="pa-ambassador-visual">
+      <img :src="imageSrc" :alt="decorative ? '' : computedAlt" loading="lazy" decoding="async" />
+    </span>
     <figcaption v-if="title || text || $slots.default">
       <slot>
         <strong v-if="title">{{ title }}</strong>
@@ -29,6 +32,7 @@ const props = withDefaults(defineProps<{
   title?: string
   text?: string
   compact?: boolean
+  contained?: boolean
   decorative?: boolean
 }>(), {
   variant: 'hero',
@@ -36,6 +40,7 @@ const props = withDefaults(defineProps<{
   title: '',
   text: '',
   compact: false,
+  contained: false,
   decorative: false
 })
 
@@ -48,44 +53,68 @@ const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Pers
 
 <style scoped>
 .pa-ambassador-card {
+  --ambassador-height: 132px;
+  --ambassador-width: 136px;
   align-items: center;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: center;
   margin: 0;
+  max-width: 100%;
   min-width: 0;
   text-align: center;
 }
 
+.pa-ambassador-visual {
+  align-items: end;
+  display: grid;
+  height: var(--ambassador-height);
+  justify-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  width: var(--ambassador-width);
+}
+
 .pa-ambassador-card img {
   display: block;
-  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.12));
-  max-height: 136px;
-  max-width: min(100%, 142px);
+  filter: drop-shadow(0 8px 12px rgba(20, 45, 66, 0.1));
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
   object-fit: contain;
+  object-position: center bottom;
+  width: 100%;
 }
 
-.pa-ambassador-card[data-variant='header'] img,
-.pa-ambassador-card[data-variant='transition'] img {
-  max-height: 82px;
-  max-width: 96px;
+.pa-ambassador-card[data-variant='header'],
+.pa-ambassador-card[data-variant='transition'] {
+  --ambassador-height: 84px;
+  --ambassador-width: 88px;
 }
 
-.pa-ambassador-card[data-variant='empty'] img,
-.pa-ambassador-card[data-variant='help'] img,
-.pa-ambassador-card[data-variant='preview'] img {
-  max-height: 112px;
-  max-width: 124px;
+.pa-ambassador-card[data-variant='empty'],
+.pa-ambassador-card[data-variant='help'],
+.pa-ambassador-card[data-variant='preview'] {
+  --ambassador-height: 106px;
+  --ambassador-width: 112px;
 }
 
-.pa-ambassador-card[data-compact='true'] img {
-  max-height: 86px;
-  max-width: 96px;
+.pa-ambassador-card[data-compact='true'] {
+  --ambassador-height: 74px;
+  --ambassador-width: 78px;
+}
+
+.pa-ambassador-card[data-contained='true'],
+.pa-ambassador-card[data-contained='true'] .pa-ambassador-visual {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
 }
 
 .pa-ambassador-card figcaption {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .pa-ambassador-card strong {
@@ -93,16 +122,21 @@ const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Pers
   font-size: 0.88rem;
 }
 
-.pa-ambassador-card span {
+.pa-ambassador-card figcaption span {
   color: var(--pa-muted);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
 @media (max-width: 640px) {
-  .pa-ambassador-card img {
-    max-height: 92px;
-    max-width: 104px;
+  .pa-ambassador-card {
+    --ambassador-height: 88px;
+    --ambassador-width: 94px;
+  }
+
+  .pa-ambassador-card[data-compact='true'] {
+    --ambassador-height: 62px;
+    --ambassador-width: 66px;
   }
 }
 </style>

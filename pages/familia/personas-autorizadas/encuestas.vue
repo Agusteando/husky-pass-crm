@@ -1,25 +1,30 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Encuestas">
-    <section class="card survey-card" :class="{ unavailable: !surveyAvailable }" data-product-panel="surveys" :data-state="surveyAvailable ? 'content' : 'unavailable'">
-      <header class="section-head">
-        <div>
-          <p class="eyebrow">Encuestas</p>
-          <h1>{{ activeSurvey.title || 'Encuesta' }}</h1>
-          <p>{{ surveyAvailable ? `Disponible para ${nivelLabel}.` : `Sin encuesta activa para ${nivelLabel}.` }}</p>
+    <section class="survey-screen">
+      <FamilyPersonasPageHeader
+        eyebrow="Participación"
+        title="Encuestas"
+        :description="surveyAvailable ? `Hay una encuesta disponible para ${nivelLabel}.` : `No hay una encuesta activa para ${nivelLabel}.`"
+        :meta="surveyAvailable ? 'Disponible' : 'Sin formulario publicado'"
+        ambassador-variant="help"
+      />
+
+      <section class="card survey-card" :class="{ unavailable: !surveyAvailable }" data-product-panel="surveys" :data-state="surveyAvailable ? 'content' : 'unavailable'">
+        <FamilyPersonasSectionHeading
+          :title="activeSurvey.title || 'Encuesta'"
+          :description="surveyAvailable ? 'Completa el formulario directamente en esta página.' : 'Cuando el colegio publique una encuesta para este nivel, aparecerá aquí.'"
+        />
+        <iframe v-if="surveyAvailable" :src="activeSurvey.embedUrl" title="Encuesta Personas Autorizadas" loading="lazy"></iframe>
+        <div v-else class="compact-empty">
+          <div class="compact-empty-ambassador" aria-hidden="true">
+            <FamilyPersonasAmbassador variant="empty" compact contained decorative />
+          </div>
+          <div>
+            <strong>No hay formulario publicado</strong>
+            <span>No necesitas realizar ninguna acción por ahora.</span>
+          </div>
         </div>
-        <div class="head-side">
-          <FamilyPersonasAmbassador variant="help" compact decorative />
-          <span class="status-pill">{{ surveyAvailable ? 'Disponible' : 'No disponible' }}</span>
-        </div>
-      </header>
-      <iframe v-if="surveyAvailable" :src="activeSurvey.embedUrl" title="Encuesta Personas Autorizadas" loading="lazy"></iframe>
-      <div v-else class="compact-empty">
-        <FamilyPersonasAmbassador variant="empty" compact decorative />
-        <div>
-          <strong>No hay formulario publicado</strong>
-          <span>Cuando el colegio active una encuesta para este nivel, aparecerá aquí.</span>
-        </div>
-      </div>
+      </section>
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>
@@ -46,15 +51,85 @@ const nivelLabels: Record<PersonasSurveyNivelKey, string> = {
 </script>
 
 <style scoped>
-.survey-card { display: grid; gap: 12px; min-height: 0; }
-.section-head { align-items: center; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) auto; }
-.section-head h1 { margin-bottom: 8px; }
-.head-side { align-items: center; display: flex; gap: 10px; justify-content: flex-end; }
-.status-pill { background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-primary); font-weight: 600; padding: 8px 12px; }
-iframe { border: 1px solid var(--pa-border); border-radius: 12px; height: min(620px, calc(100vh - 190px));
-  min-height: 360px; width: 100%; }
-.compact-empty { align-items: center; background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff); border: 1px solid var(--pa-border); border-radius: 12px; display: grid; gap: 10px; grid-template-columns: 92px minmax(0, 1fr); min-height: 132px; padding: 16px; text-align: left; }
-.compact-empty strong { color: var(--pa-gray); display: block; }
-.compact-empty span { color: var(--pa-muted); display: block; font-weight: 600; }
-@media (max-width: 760px) { .section-head { grid-template-columns: 1fr; } .head-side { justify-content: flex-start; } .compact-empty { grid-template-columns: 64px minmax(0, 1fr); } }
+.survey-screen,
+.survey-card {
+  display: grid;
+  gap: 18px;
+  min-height: 0;
+}
+
+.survey-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #e2e8ec;
+  border-radius: 20px;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.survey-card.unavailable {
+  max-width: 900px;
+}
+
+iframe {
+  border: 1px solid var(--pa-border);
+  border-radius: 14px;
+  height: min(620px, calc(100vh - 240px));
+  min-height: 360px;
+  width: 100%;
+}
+
+.compact-empty {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff);
+  border: 1px solid var(--pa-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 76px minmax(0, 1fr);
+  min-height: 136px;
+  overflow: hidden;
+  padding: 16px;
+  text-align: left;
+}
+
+.compact-empty-ambassador {
+  height: 84px;
+  overflow: hidden;
+  width: 76px;
+}
+
+.compact-empty-ambassador :deep(.pa-ambassador-card),
+.compact-empty-ambassador :deep(.pa-ambassador-visual) {
+  height: 84px;
+  width: 76px;
+}
+
+.compact-empty strong,
+.compact-empty span {
+  display: block;
+}
+
+.compact-empty strong {
+  color: var(--pa-gray);
+}
+
+.compact-empty span {
+  color: var(--pa-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+@media (max-width: 620px) {
+  .compact-empty {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .compact-empty-ambassador,
+  .compact-empty-ambassador :deep(.pa-ambassador-card),
+  .compact-empty-ambassador :deep(.pa-ambassador-visual) {
+    height: 66px;
+    width: 58px;
+  }
+}
 </style>
