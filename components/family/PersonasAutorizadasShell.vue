@@ -114,8 +114,9 @@ function isActive(item: { to: string }) {
   --pa-border: rgba(var(--pa-primary-rgb), 0.2);
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
-  --pa-sidebar-width: 236px;
-  --pa-topbar-height: 74px;
+  --pa-sidebar-width: 224px;
+  --pa-topbar-height: 72px;
+  --pa-content-gutter: clamp(18px, 2.1vw, 34px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
     linear-gradient(180deg, #fcfdfd 0%, #f5f8f8 100%);
@@ -129,10 +130,11 @@ function isActive(item: { to: string }) {
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid #e7ebee;
   display: grid;
-  gap: 24px;
+  gap: clamp(16px, 1.5vw, 24px);
   grid-template-columns: var(--pa-sidebar-width) minmax(0, 1fr) auto;
+  height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
-  padding: 0 28px 0 20px;
+  padding: 0 var(--pa-content-gutter) 0 18px;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -246,6 +248,7 @@ function isActive(item: { to: string }) {
 .pa-product-layout {
   display: grid;
   grid-template-columns: var(--pa-sidebar-width) minmax(0, 1fr);
+  min-height: calc(100dvh - var(--pa-topbar-height));
 }
 
 .pa-product-nav {
@@ -253,17 +256,36 @@ function isActive(item: { to: string }) {
   border-right: 1px solid #e7ebee;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: calc(100vh - var(--pa-topbar-height));
-  overflow: hidden;
-  padding: 24px 14px 18px;
+  gap: 14px;
+  height: calc(100dvh - var(--pa-topbar-height));
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 12px 14px;
   position: sticky;
+  scrollbar-color: rgba(var(--pa-primary-rgb), 0.22) transparent;
+  scrollbar-width: thin;
   top: var(--pa-topbar-height);
 }
 
 .pa-product-nav nav {
   display: grid;
-  gap: 7px;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.pa-product-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pa-product-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pa-product-nav::-webkit-scrollbar-thumb {
+  background: rgba(var(--pa-primary-rgb), 0.2);
+  border-radius: 999px;
 }
 
 .pa-nav-link {
@@ -272,11 +294,11 @@ function isActive(item: { to: string }) {
   border-radius: 14px;
   color: #596477;
   display: grid;
-  font-size: 0.84rem;
+  font-size: 0.79rem;
   font-weight: 700;
   gap: 11px;
   grid-template-columns: 36px minmax(0, 1fr);
-  min-height: 50px;
+  min-height: 44px;
   padding: 6px 10px 6px 7px;
   position: relative;
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
@@ -326,6 +348,9 @@ function isActive(item: { to: string }) {
 
 .pa-nav-label {
   line-height: 1.18;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pa-help-card {
@@ -336,26 +361,26 @@ function isActive(item: { to: string }) {
   border: 1px solid rgba(var(--pa-primary-rgb), 0.15);
   border-radius: 18px;
   display: grid;
-  gap: 9px 10px;
-  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 7px 9px;
+  grid-template-columns: 52px minmax(0, 1fr);
   margin-top: auto;
   overflow: hidden;
-  padding: 12px;
+  padding: 10px;
 }
 
 .pa-help-ambassador {
   align-self: end;
   display: grid;
-  height: 70px;
+  height: 56px;
   overflow: hidden;
   place-items: end center;
-  width: 64px;
+  width: 52px;
 }
 
 .pa-help-ambassador :deep(.pa-ambassador-card),
 .pa-help-ambassador :deep(.pa-ambassador-visual) {
-  height: 70px;
-  width: 64px;
+  height: 56px;
+  width: 52px;
 }
 
 .pa-help-copy {
@@ -366,12 +391,12 @@ function isActive(item: { to: string }) {
 
 .pa-help-copy strong {
   color: var(--pa-gray);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .pa-help-copy span {
   color: var(--pa-muted);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   line-height: 1.4;
 }
 
@@ -386,18 +411,18 @@ function isActive(item: { to: string }) {
   font-weight: 850;
   grid-column: 1 / -1;
   justify-content: center;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 10px;
 }
 
 .pa-route-content {
   align-content: start;
   display: grid;
-  gap: 18px;
+  gap: clamp(14px, 1.4vw, 20px);
   margin: 0 auto;
-  max-width: 1580px;
+  max-width: 1520px;
   min-width: 0;
-  padding: clamp(22px, 2.5vw, 38px) clamp(20px, 3vw, 46px) 52px;
+  padding: clamp(18px, 2.2vh, 30px) var(--pa-content-gutter) 48px;
   width: 100%;
 }
 
@@ -405,24 +430,23 @@ function isActive(item: { to: string }) {
   display: none;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1399px) {
   .pa-shell-app {
-    --pa-sidebar-width: 88px;
+    --pa-sidebar-width: 208px;
+    --pa-content-gutter: clamp(16px, 1.8vw, 26px);
   }
 
   .pa-product-topbar {
-    gap: 18px;
-    padding-left: 14px;
+    gap: 16px;
+    padding-left: 16px;
   }
 
   .pa-topbar-brand-zone {
-    justify-content: center;
-    padding-right: 14px;
+    padding-right: 16px;
   }
 
-  .pa-lockup-divider,
   .pa-husky-pass-logo {
-    display: none;
+    max-width: 76px;
   }
 
   .pa-product-nav {
@@ -430,23 +454,50 @@ function isActive(item: { to: string }) {
   }
 
   .pa-nav-link {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    min-height: 48px;
-    padding: 6px;
+    font-size: 0.75rem;
+    gap: 8px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    min-height: 42px;
+    padding-inline: 6px 8px;
   }
 
-  .pa-nav-label,
-  .pa-help-card {
-    display: none;
-  }
-
-  .pa-nav-link.active::after {
-    right: -11px;
+  .pa-nav-icon {
+    border-radius: 10px;
+    height: 30px;
+    width: 30px;
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1099px) {
+  .pa-shell-app {
+    --pa-sidebar-width: 204px;
+  }
+
+  .pa-husky-pass-logo {
+    display: none;
+  }
+
+  .pa-lockup-divider {
+    display: none;
+  }
+
+  .pa-student-context {
+    max-width: 390px;
+  }
+
+  .pa-help-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .pa-help-ambassador,
+  .pa-help-ambassador :deep(.pa-ambassador-card),
+  .pa-help-ambassador :deep(.pa-ambassador-visual) {
+    height: 48px;
+    width: 44px;
+  }
+}
+
+@media (max-width: 900px) {
   .pa-shell-app {
     --pa-topbar-height: 66px;
   }
@@ -528,6 +579,42 @@ function isActive(item: { to: string }) {
     background: var(--pa-soft);
     border-color: var(--pa-border);
     color: var(--pa-primary);
+  }
+}
+
+@media (max-height: 820px) and (min-width: 901px) {
+  .pa-shell-app {
+    --pa-topbar-height: 66px;
+  }
+
+  .pa-product-nav {
+    gap: 9px;
+    padding-block: 10px;
+  }
+
+  .pa-product-nav nav {
+    gap: 2px;
+  }
+
+  .pa-nav-link {
+    min-height: 39px;
+  }
+
+  .pa-help-card {
+    gap: 5px 8px;
+    padding: 8px;
+  }
+
+  .pa-help-copy span {
+    line-height: 1.25;
+  }
+
+  .pa-help-card a {
+    min-height: 29px;
+  }
+
+  .pa-route-content {
+    padding-top: 16px;
   }
 }
 

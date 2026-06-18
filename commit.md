@@ -1,1 +1,1 @@
-refactor(ui): estandariza encabezados y corrige el uso de embajadores
+fix(ui): corrige la escala responsive y la visibilidad de la navegación

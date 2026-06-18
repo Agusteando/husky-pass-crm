@@ -515,7 +515,7 @@ function normalizeIndice(value: unknown) {
 <style scoped>
 .pa-home-screen {
   display: grid;
-  gap: 22px;
+  gap: clamp(16px, 1.6vw, 22px);
 }
 
 .hero-express-action {
@@ -610,8 +610,8 @@ function normalizeIndice(value: unknown) {
   border-radius: 24px;
   box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
   display: grid;
-  gap: 18px;
-  padding: 20px;
+  gap: 16px;
+  padding: 18px;
 }
 
 
@@ -654,12 +654,12 @@ function normalizeIndice(value: unknown) {
   border-radius: 20px;
   box-shadow: 0 10px 28px rgba(31, 52, 76, .055);
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-rows: auto minmax(66px, auto) auto;
   justify-items: center;
-  min-height: 326px;
+  min-height: 304px;
   overflow: hidden;
-  padding: 18px 16px 16px;
+  padding: 16px 14px 14px;
   position: relative;
   text-align: center;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
@@ -789,13 +789,13 @@ function normalizeIndice(value: unknown) {
   margin-top: 2px;
   overflow: hidden;
   place-items: center;
-  width: 124px;
+  width: 108px;
 }
 
 .person-photo[data-empty='true'] {
   border-color: rgba(var(--pa-primary-rgb), .25);
   color: var(--pa-primary);
-  width: 82px;
+  width: 76px;
 }
 
 .person-slot-card.express.empty .person-photo {
@@ -976,7 +976,7 @@ function normalizeIndice(value: unknown) {
 .support-panel {
   align-items: start;
   display: grid;
-  gap: 18px;
+  gap: 16px;
   grid-template-columns: minmax(0, 1.04fr) minmax(360px, .96fr);
   scroll-margin-top: 112px;
 }
@@ -990,7 +990,7 @@ function normalizeIndice(value: unknown) {
   box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
   display: grid;
   gap: 12px;
-  padding: 18px;
+  padding: 16px;
 }
 
 .section-head {
@@ -1129,6 +1129,47 @@ function normalizeIndice(value: unknown) {
 
   .support-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 820px) and (min-width: 1121px) {
+  .pa-home-screen {
+    gap: 14px;
+  }
+
+  .authorized-section {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .person-slots {
+    gap: 12px;
+  }
+
+  .person-slot-card {
+    gap: 8px;
+    min-height: 276px;
+    padding: 13px 12px 12px;
+  }
+
+  .person-photo {
+    width: 92px;
+  }
+
+  .person-meta {
+    gap: 6px;
+  }
+
+  .person-meta h3 {
+    font-size: 0.9rem;
+  }
+
+  .slot-actions {
+    gap: 5px;
+  }
+
+  .slot-btn {
+    min-height: 35px;
   }
 }
 
