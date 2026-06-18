@@ -3,10 +3,12 @@ import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/personasConfig'
+import { withRequestBoundary } from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
+  return withRequestBoundary(event, 'personas-autorizadas.config.load', async () => {
   const [config, children] = await Promise.all([readPersonasConfig(), getFamilyChildren(user)])
   const child = children.find((item) => item.isCurrent) || children[0] || null
   const resolved = resolveSurveyForStudent(config, {
@@ -20,4 +22,5 @@ export default defineEventHandler(async (event) => {
     ...config,
     ...resolved
   }
+  }, { userId: user.id })
 })

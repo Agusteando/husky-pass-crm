@@ -1,4 +1,4 @@
-import { createError } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import type { RowDataPacket } from 'mysql2/promise'
 import type {
   AttendanceAbsenceRecord,
@@ -520,7 +520,7 @@ const STUDENT_SELECT = `
 
 function familyMatricula(user: AppSessionUser) {
   const matricula = normalizeMatricula(user.username)
-  if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matrícula vinculada.' })
+  if (!matricula) throw publicError(403, 'La cuenta familiar no tiene matrícula vinculada.')
   return matricula
 }
 
@@ -574,7 +574,7 @@ async function loadAttendanceStudentRows(user: AppSessionUser) {
     [currentMatricula]
   )
 
-  if (!current) throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
+  if (!current) throw publicError(404, 'No encontramos la matrícula vinculada a esta cuenta familiar.')
   if (!completeAttendanceParentFields(current)) return [current]
 
   const where = FAMILY_PARENT_FIELDS.map((field) => `m.${field} = ?`).join(' AND ')
@@ -602,7 +602,7 @@ export async function getAttendanceChildrenForFamily(user: AppSessionUser) {
     .filter(Boolean) as AttendanceChild[]
 
   if (!children.length) {
-    throw createError({ statusCode: 404, statusMessage: 'No encontramos alumnos vinculados a esta cuenta familiar.' })
+    throw publicError(404, 'No encontramos alumnos vinculados a esta cuenta familiar.')
   }
 
   return children
@@ -616,7 +616,7 @@ export async function resolveAttendanceChild(user: AppSessionUser, matricula?: s
     : children.find((child) => child.isCurrent) || children[0]
 
   if (!selected) {
-    throw createError({ statusCode: 403, statusMessage: 'El alumno solicitado no pertenece a esta cuenta familiar.' })
+    throw publicError(403, 'El alumno solicitado no pertenece a esta cuenta familiar.')
   }
 
   return { selected, children }
@@ -789,13 +789,13 @@ export async function updateParentAbsenceMotivo(user: AppSessionUser, input: {
     [input.absenceId]
   )
 
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'No encontramos la inasistencia solicitada.' })
+  if (!row) throw publicError(404, 'No encontramos la inasistencia solicitada.')
   const recordDate = dateOnly(row.fecha)
   if (!recordDate || !dateInRange(recordDate, selectedSchoolYear)) {
-    throw createError({ statusCode: 403, statusMessage: 'La inasistencia está fuera del ciclo seleccionado.' })
+    throw publicError(403, 'La inasistencia está fuera del ciclo seleccionado.')
   }
   if (!dbAbsenceMatchesChild(selected, row)) {
-    throw createError({ statusCode: 403, statusMessage: 'La inasistencia no pertenece al alumno seleccionado.' })
+    throw publicError(403, 'La inasistencia no pertenece al alumno seleccionado.')
   }
 
   const motivo = input.motivo.trim()

@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
+import { defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { assertDevOnly } from '~/server/utils/devOnly'
 import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   })
   const templates = await listMarbeteTemplates()
   const template = selectDevHuskyPassTemplate(templates, fixture.variant)
-  if (!template) throw createError({ statusCode: 503, statusMessage: 'Plantilla de Husky Pass no disponible.' })
+  if (!template) throw publicError(503, 'Plantilla de Husky Pass no disponible.')
 
   const templateSvg = await readMarbeteTemplateSvg(template)
   const renderValues = buildMarbeteRenderValues(fixture.data, origin)

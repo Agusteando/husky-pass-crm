@@ -1,4 +1,3 @@
-import { createError } from 'h3'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
@@ -9,6 +8,7 @@ import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { runtimeDataDir } from '~/server/utils/serverlessPaths'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import { publicError } from '~/server/utils/httpError'
 
 const TEMPLATE_DIR = runtimeDataDir('marbete-templates')
 const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
@@ -119,8 +119,8 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   } catch {
     svg = await readBundledTemplateSvg(template.filename)
   }
-  if (!svg) throw createError({ statusCode: 404, statusMessage: `No se encontro la plantilla SVG ${template.filename}.` })
-  if (!svg.includes('<svg')) throw createError({ statusCode: 422, statusMessage: 'La plantilla SVG no es valida.' })
+  if (!svg) throw publicError(404, `No se encontro la plantilla SVG ${template.filename}.`)
+  if (!svg.includes('<svg')) throw publicError(422, 'La plantilla SVG no es valida.')
   return svg
 }
 
@@ -138,10 +138,7 @@ export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: {
   const byTheme = templates.find((template) => template.themeKey === theme.key)
   if (byTheme) return byTheme
 
-  throw createError({
-    statusCode: 422,
-    statusMessage: `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`
-  })
+  throw publicError(422, `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`)
 }
 
 export async function saveMarbeteTemplate(input: {
@@ -153,7 +150,7 @@ export async function saveMarbeteTemplate(input: {
   file?: { filename?: string | null; data: Buffer }
 }) {
   if (!VALID_THEME_KEYS.has(input.themeKey)) {
-    throw createError({ statusCode: 400, statusMessage: 'Tema de plantilla invalido.' })
+    throw publicError(400, 'Tema de plantilla invalido.')
   }
 
   const templates = await listMarbeteTemplates()
@@ -163,15 +160,15 @@ export async function saveMarbeteTemplate(input: {
   const existing = existingIndex >= 0 ? templates[existingIndex] : null
 
   if (!existing && !input.file?.data?.length) {
-    throw createError({ statusCode: 400, statusMessage: 'Agrega un archivo SVG para crear la plantilla.' })
+    throw publicError(400, 'Agrega un archivo SVG para crear la plantilla.')
   }
 
   const filename = input.file?.data?.length ? filenameFor(`${safeId(baseId)}-${Date.now()}`) : existing?.filename || filenameFor(safeId(baseId))
   if (input.file?.data?.length) {
     const sourceName = String(input.file.filename || '')
-    if (!sourceName.toLowerCase().endsWith('.svg')) throw createError({ statusCode: 415, statusMessage: 'La plantilla debe ser SVG.' })
+    if (!sourceName.toLowerCase().endsWith('.svg')) throw publicError(415, 'La plantilla debe ser SVG.')
     const text = input.file.data.toString('utf8')
-    if (!text.includes('<svg')) throw createError({ statusCode: 422, statusMessage: 'El archivo no parece ser una plantilla SVG valida.' })
+    if (!text.includes('<svg')) throw publicError(422, 'El archivo no parece ser una plantilla SVG valida.')
     await ensureTemplateDir()
     await writeFile(join(TEMPLATE_DIR, filename), input.file.data)
   }

@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody, setCookie } from 'h3'
+import { defineEventHandler, readBody, setCookie } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import type { AppSessionUser } from '~/types/session'
 import { getSalaById } from '~/server/data/mysqlDaycare'
@@ -10,7 +11,7 @@ const schema = z.object({ sala: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
   const admin = getAppSession(event).user
-  if (!admin) throw createError({ statusCode: 401, statusMessage: 'Sesión no válida' })
+  if (!admin) throw publicError(401, 'Sesión no válida')
   assertDaycareAdmin(admin)
   const body = schema.parse(await readBody(event))
   const sala = await getSalaById(admin, body.sala)

@@ -1,42 +1,35 @@
 <template>
   <main class="pa-shell-app" :style="themeVars" data-product-area="personas-autorizadas">
     <header class="pa-product-topbar">
-      <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Husky Pass Personas Autorizadas`">
-        <span class="pa-product-lockup">
-          <img class="pa-institution-logo" :src="institutionLogo" :alt="institution" />
-          <span class="pa-lockup-divider" aria-hidden="true"></span>
-          <img class="pa-husky-pass-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
-        </span>
-      </NuxtLink>
-
-      <div class="pa-top-copy">
-        <span>{{ institution }}</span>
-        <strong>{{ title }}</strong>
-        <small>{{ activeStudentLine }}</small>
+      <div class="pa-topbar-brand-zone">
+        <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Husky Pass Personas Autorizadas`">
+          <span class="pa-product-lockup">
+            <img class="pa-institution-logo" :src="institutionLogo" :alt="institution" />
+            <span class="pa-lockup-divider" aria-hidden="true"></span>
+            <img class="pa-husky-pass-logo" src="/brand/husky-pass-logo.png" alt="Husky Pass" />
+          </span>
+        </NuxtLink>
       </div>
 
-      <section v-if="primaryChild" class="pa-student-chip" data-product-panel="active-student" aria-label="Alumno activo">
+      <section v-if="primaryChild" class="pa-student-switcher" data-product-panel="active-student" aria-label="Alumno activo">
         <span class="pa-student-avatar">
           <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
           <b v-else>{{ studentInitials }}</b>
         </span>
-        <span>
+        <span class="pa-student-copy">
+          <small>Alumno activo</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
-          <small>{{ contextLine }}</small>
+          <span>{{ contextLine }}</span>
         </span>
+        <FamilyPersonasIcon class="pa-student-chevron" name="chevron" aria-hidden="true" />
       </section>
 
-      <button class="pa-logout" type="button" data-diagnostic-action="logout-personas-autorizadas" @click="logout">Salir</button>
-      <img v-if="headerMascot" class="pa-top-ambassador" :src="headerMascot" :alt="`${levelName.spanish} ambassador`" />
+      <span class="pa-topbar-spacer" aria-hidden="true"></span>
+      <TopbarAccountMenu :session="session" experience="escolar" security-to="/familia/cuenta/seguridad?experiencia=escolar" />
     </header>
 
     <div class="pa-product-layout">
       <aside class="pa-product-nav" aria-label="Navegación Personas Autorizadas">
-        <div class="pa-nav-mark">
-          <img v-if="navMascot" class="pa-nav-mascot" :src="navMascot" alt="" loading="lazy" decoding="async" />
-          <span>{{ levelName.spanish }}</span>
-          <small>Husky Pass</small>
-        </div>
         <nav>
           <NuxtLink
             v-for="item in navItems"
@@ -46,10 +39,17 @@
             :class="{ active: isActive(item) }"
             :data-product-nav="item.key"
           >
-            <FamilyPersonasIcon :name="item.icon" />
-            <span>{{ item.label }}</span>
+            <span class="pa-nav-icon"><FamilyPersonasIcon :name="item.icon" /></span>
+            <span class="pa-nav-label">{{ item.label }}</span>
           </NuxtLink>
         </nav>
+
+        <section class="pa-help-card" aria-label="Centro de ayuda">
+          <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
+          <strong>¿Necesitas ayuda?</strong>
+          <span>Consulta la guía o contacta a tu colegio.</span>
+          <NuxtLink to="/familia/personas-autorizadas#ayuda">Centro de ayuda</NuxtLink>
+        </section>
       </aside>
 
       <section class="pa-route-content">
@@ -73,23 +73,18 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { navigateTo, useRoute } from 'nuxt/app'
-import { personasInstitutionLogo, personasInstitutionName, personasLevelName, personasMascot } from '~/utils/personasTheme'
+import { useRoute } from 'nuxt/app'
+import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
 import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
-import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
+import { displayMatricula } from '~/utils/matricula'
 
-const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
+withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
-const { primaryChild, studentName, studentPhoto, theme, themeVars } = usePersonasFamilyTheme({ key: 'shell' })
+const { session, primaryChild, studentName, studentPhoto, theme, themeVars } = usePersonasFamilyTheme({ key: 'shell' })
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
-const headerMascot = computed(() => personasMascot(theme.value, 'header'))
-const navMascot = computed(() => personasMascot(theme.value, 'transition'))
-const levelName = computed(() => personasLevelName(theme.value))
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
-const title = computed(() => props.title)
-const contextLine = computed(() => [primaryChild.value?.nivelEdu, primaryChild.value?.grado, primaryChild.value?.grupo].filter(Boolean).join(' / ') || 'Cuenta familiar')
-const activeStudentLine = computed(() => studentName.value ? `Alumno activo: ${studentName.value}` : 'Cuenta familiar')
+const contextLine = computed(() => [displayMatricula(primaryChild.value?.matricula), primaryChild.value?.nivelEdu, primaryChild.value?.grado, primaryChild.value?.grupo].filter(Boolean).join(' · ') || 'Cuenta familiar')
 
 const navItems = [
   { key: 'personas', label: 'Personas autorizadas', shortLabel: 'Personas', icon: 'people', to: '/familia/personas-autorizadas' },
@@ -106,149 +101,440 @@ function isActive(item: { to: string }) {
   const target = item.to.split('?')[0] || item.to
   return route.path === target || (target !== '/familia/personas-autorizadas' && route.path.startsWith(`${target}/`))
 }
-
-async function logout() {
-  await $fetch('/api/auth/logout', { method: 'POST' })
-  await navigateTo(defaultLoginRouteForExperience(theme.value.key === 'daycare' ? 'guarderia' : 'escolar'))
-}
 </script>
 
 <style scoped>
 .pa-shell-app {
-  --pa-primary: #618b2f;
-  --pa-primary-rgb: 97, 139, 47;
+  --pa-primary: #167b83;
+  --pa-primary-rgb: 22, 123, 131;
   --pa-contrast: #fff;
-  --pa-soft: rgba(97, 139, 47, 0.12);
-  --pa-border: rgba(97, 139, 47, 0.28);
-  --pa-gray: #50535a;
-  --pa-muted: #86888c;
-  background: linear-gradient(180deg, #fbfcf8 0%, #f3f5ee 100%);
+  --pa-soft: rgba(var(--pa-primary-rgb), 0.09);
+  --pa-border: rgba(var(--pa-primary-rgb), 0.2);
+  --pa-gray: #1f2d46;
+  --pa-muted: #6d7687;
+  --pa-sidebar-width: 236px;
+  --pa-topbar-height: 78px;
+  background:
+    radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.08), transparent 20rem),
+    linear-gradient(180deg, #fcfdfd 0%, #f5f8f8 100%);
   color: var(--pa-gray);
   min-height: 100vh;
 }
 
 .pa-product-topbar {
   align-items: center;
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid rgba(222, 226, 216, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #e7ebee;
+  backdrop-filter: blur(18px);
   display: grid;
-  gap: 12px;
-  grid-template-columns: max-content minmax(0, 1fr) minmax(220px, 300px) auto;
-  min-height: 62px;
-  padding: 6px clamp(12px, 2.2vw, 24px) 6px clamp(10px, 1.4vw, 16px);
+  gap: 24px;
+  grid-template-columns: var(--pa-sidebar-width) minmax(280px, 390px) minmax(0, 1fr) auto;
+  min-height: var(--pa-topbar-height);
+  padding: 0 28px 0 20px;
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 30;
 }
 
-.pa-product-topbar::after {
-  background: linear-gradient(to right, #a1ce58, #ef4b4b, #fec63e, #5aa6db);
-  bottom: 0;
-  content: '';
-  height: 4px;
-  left: 0;
-  position: absolute;
+.pa-topbar-brand-zone {
+  align-items: center;
+  align-self: stretch;
+  border-right: 1px solid #edf0f2;
+  display: flex;
+  min-width: 0;
+  padding-right: 22px;
+}
+
+.pa-brand,
+.pa-product-lockup {
+  align-items: center;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.pa-product-lockup {
+  gap: 10px;
+}
+
+.pa-brand img {
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+.pa-institution-logo {
+  height: 42px;
+  max-width: 50px;
+  width: auto;
+}
+
+.pa-lockup-divider {
+  background: rgba(var(--pa-primary-rgb), 0.22);
+  height: 28px;
+  width: 1px;
+}
+
+.pa-husky-pass-logo {
+  height: 38px;
+  max-width: 92px;
+  width: auto;
+}
+
+.pa-student-switcher {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e3e8ec;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(26, 48, 72, 0.06);
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  min-width: 0;
+  padding: 7px 12px 7px 7px;
+}
+
+.pa-student-avatar {
+  aspect-ratio: 1;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 13px;
+  color: var(--pa-primary);
+  display: grid;
+  font-size: 0.8rem;
+  font-weight: 800;
+  overflow: hidden;
+  place-items: center;
+}
+
+.pa-student-avatar img {
+  height: 100%;
+  object-fit: cover;
   width: 100%;
 }
 
-.pa-brand {
-  align-items: center;
-  align-self: stretch;
-  display: flex;
-  justify-self: start;
-  min-width: 0;
-  width: max-content;
-}
-.pa-product-lockup {
-  align-items: center;
-  display: inline-grid;
-  gap: 10px;
-  grid-template-columns: max-content 1px max-content;
-  justify-content: start;
-  min-width: 0;
-  width: max-content;
-}
-.pa-brand img { display: block; object-fit: contain; object-position: center; }
-.pa-institution-logo { height: 44px; max-width: 52px; width: auto; }
-.pa-lockup-divider { background: rgba(var(--pa-primary-rgb), .28); height: 30px; width: 1px; }
-.pa-husky-pass-logo { height: 38px; max-width: 82px; width: auto; }
-.pa-top-copy { display: grid; gap: 2px; min-width: 0; }
-.pa-top-copy span { color: var(--pa-primary); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.pa-top-copy strong { color: #50535a; font-size: clamp(1.05rem, 1.6vw, 1.36rem); letter-spacing: -0.02em; line-height: 1.02; }
-.pa-top-copy small, .pa-student-chip strong, .pa-student-chip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pa-top-copy small { color: var(--pa-muted); font-weight: 600; }
-
-.pa-student-chip {
-  align-items: center;
-  background: #f8f8f6;
-  border: 1px solid #ecece7;
-  border-radius: 12px;
+.pa-student-copy {
   display: grid;
-  gap: 10px;
-  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 1px;
   min-width: 0;
-  padding: 5px 10px 5px 5px;
 }
-.pa-student-avatar { aspect-ratio: 1; background: var(--pa-soft); border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-primary); display: grid; font-weight: 600; overflow: hidden; place-items: center; }
-.pa-student-avatar img { height: 100%; object-fit: cover; width: 100%; }
-.pa-student-chip strong, .pa-student-chip small { display: block; }
-.pa-student-chip strong { color: var(--pa-gray); font-size: 0.86rem; line-height: 1.1; }
-.pa-student-chip small { color: var(--pa-muted); font-size: 0.72rem; font-weight: 600; }
-.pa-logout { background: #fff; border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-primary); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 600; min-height: 34px; padding: 0 12px; }
-.pa-logout:hover { background: var(--pa-soft); }
-.pa-top-ambassador { display: none; } 
 
-.pa-product-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
-.pa-product-nav { background: rgba(255, 255, 255, 0.96); border-right: 1px solid rgba(222, 226, 216, 0.9); min-height: calc(100vh - 62px); padding: 12px 0 18px; position: sticky; top: 62px; }
-.pa-nav-mark { align-items: center; background: linear-gradient(180deg, #fff, rgba(var(--pa-primary-rgb), .07)); border: 1px solid var(--pa-border); border-radius: 14px; display: grid; gap: 4px; margin: 0 12px 12px; padding: 12px; }
-.pa-nav-mascot { display: block; filter: drop-shadow(0 10px 16px rgba(0,0,0,.12)); height: 56px; justify-self: center; object-fit: contain; width: 72px; }
-.pa-nav-mark span { color: var(--pa-primary); font-size: 0.82rem; font-weight: 800; letter-spacing: .08em; line-height: 1.1; text-align: center; text-transform: uppercase; }
-.pa-nav-mark small { color: var(--pa-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.pa-product-nav nav { display: grid; gap: 4px; }
-.pa-nav-link { align-items: center; border: 1px solid transparent; border-radius: 0 12px 12px 0; color: #73757a; display: grid; font-size: 0.84rem; font-weight: 700; gap: 8px; grid-template-columns: 22px minmax(0, 1fr); margin-right: 10px; min-height: 38px; padding: 0 12px 0 18px; }
-.pa-nav-link:hover, .pa-nav-link.active { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
-.pa-nav-link.active { box-shadow: inset 4px 0 0 var(--pa-primary); }
-.pa-route-content { align-content: start; display: grid; gap: 12px; padding: clamp(10px, 2.2vw, 20px); }
-.pa-mobile-nav { display: none; }
+.pa-student-copy small {
+  color: var(--pa-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
 
+.pa-student-copy strong,
+.pa-student-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-@media (min-width: 1280px) {
-  .pa-top-ambassador {
-    bottom: 2px;
-    display: block;
-    filter: drop-shadow(0 10px 16px rgba(0,0,0,.12));
-    height: 58px;
-    object-fit: contain;
-    pointer-events: none;
-    position: absolute;
-    right: clamp(86px, 8vw, 124px);
-    width: 76px;
-    z-index: 1;
+.pa-student-copy strong {
+  color: var(--pa-gray);
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.pa-student-copy span {
+  color: var(--pa-muted);
+  font-size: 0.68rem;
+}
+
+.pa-student-chevron {
+  color: var(--pa-muted);
+  height: 1rem;
+  width: 1rem;
+}
+
+.pa-topbar-spacer {
+  min-width: 0;
+}
+
+.pa-product-layout {
+  display: grid;
+  grid-template-columns: var(--pa-sidebar-width) minmax(0, 1fr);
+}
+
+.pa-product-nav {
+  background: rgba(255, 255, 255, 0.94);
+  border-right: 1px solid #e7ebee;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: calc(100vh - var(--pa-topbar-height));
+  padding: 24px 14px 18px;
+  position: sticky;
+  top: var(--pa-topbar-height);
+}
+
+.pa-product-nav nav {
+  display: grid;
+  gap: 7px;
+}
+
+.pa-nav-link {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: #596477;
+  display: grid;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 11px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  min-height: 50px;
+  padding: 6px 10px 6px 7px;
+  position: relative;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.pa-nav-link:hover {
+  background: #f7fafb;
+  border-color: #e7ecef;
+  color: var(--pa-gray);
+  transform: translateX(2px);
+}
+
+.pa-nav-link.active {
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), 0.12), rgba(var(--pa-primary-rgb), 0.06));
+  border-color: rgba(var(--pa-primary-rgb), 0.16);
+  color: var(--pa-primary);
+}
+
+.pa-nav-link.active::after {
+  background: var(--pa-primary);
+  border-radius: 999px;
+  content: '';
+  height: 26px;
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+}
+
+.pa-nav-icon {
+  align-items: center;
+  background: #f5f8f9;
+  border: 1px solid #e6ecef;
+  border-radius: 11px;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.pa-nav-link.active .pa-nav-icon {
+  background: #fff;
+  border-color: rgba(var(--pa-primary-rgb), 0.18);
+  box-shadow: 0 6px 14px rgba(var(--pa-primary-rgb), 0.1);
+}
+
+.pa-nav-label {
+  line-height: 1.18;
+}
+
+.pa-help-card {
+  align-items: start;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(250, 186, 64, 0.18), transparent 5rem),
+    linear-gradient(145deg, #f7fbfc, #eef7f7);
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.15);
+  border-radius: 18px;
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.pa-help-card :deep(.pa-ambassador-card) {
+  height: 72px;
+  justify-self: start;
+  width: 92px;
+}
+
+.pa-help-card strong {
+  color: var(--pa-gray);
+  font-size: 0.82rem;
+}
+
+.pa-help-card span {
+  color: var(--pa-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.pa-help-card a {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.28);
+  border-radius: 10px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.pa-route-content {
+  align-content: start;
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 1640px;
+  min-width: 0;
+  padding: clamp(24px, 2.8vw, 44px) clamp(20px, 3.2vw, 52px) 52px;
+  width: 100%;
+}
+
+.pa-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  .pa-shell-app {
+    --pa-sidebar-width: 88px;
+  }
+
+  .pa-product-topbar {
+    gap: 18px;
+    grid-template-columns: var(--pa-sidebar-width) minmax(260px, 360px) minmax(0, 1fr) auto;
+    padding-left: 14px;
+  }
+
+  .pa-topbar-brand-zone {
+    justify-content: center;
+    padding-right: 14px;
+  }
+
+  .pa-lockup-divider,
+  .pa-husky-pass-logo {
+    display: none;
+  }
+
+  .pa-product-nav {
+    padding-inline: 10px;
+  }
+
+  .pa-nav-link {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 48px;
+    padding: 6px;
+  }
+
+  .pa-nav-label,
+  .pa-help-card {
+    display: none;
+  }
+
+  .pa-nav-link.active::after {
+    right: -11px;
   }
 }
 
-@media (max-width: 1060px) {
-  .pa-product-topbar { grid-template-columns: max-content minmax(0, 1fr) auto; }
-  .pa-student-chip { display: none; }
-  .pa-institution-logo { height: 40px; max-width: 48px; }
-  .pa-husky-pass-logo { height: 34px; max-width: 74px; }
+@media (max-width: 860px) {
+  .pa-shell-app {
+    --pa-topbar-height: 66px;
+  }
+
+  .pa-product-topbar {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0 12px;
+  }
+
+  .pa-topbar-brand-zone {
+    border-right: 0;
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .pa-lockup-divider,
+  .pa-husky-pass-logo {
+    display: block;
+  }
+
+  .pa-institution-logo {
+    height: 36px;
+    max-width: 42px;
+  }
+
+  .pa-husky-pass-logo {
+    height: 31px;
+    max-width: 74px;
+  }
+
+  .pa-student-switcher,
+  .pa-topbar-spacer,
+  .pa-product-nav {
+    display: none;
+  }
+
+  .pa-product-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pa-route-content {
+    padding: 12px 12px 32px;
+  }
+
+  .pa-mobile-nav {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #e3e8ec;
+    border-radius: 15px;
+    box-shadow: 0 10px 24px rgba(26, 48, 72, 0.07);
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 6px;
+    position: sticky;
+    scrollbar-width: none;
+    top: calc(var(--pa-topbar-height) + 8px);
+    z-index: 20;
+  }
+
+  .pa-mobile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pa-mobile-nav a {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: var(--pa-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.76rem;
+    font-weight: 800;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 11px;
+  }
+
+  .pa-mobile-nav a.active {
+    background: var(--pa-soft);
+    border-color: var(--pa-border);
+    color: var(--pa-primary);
+  }
 }
-@media (max-width: 920px) {
-  .pa-product-layout { grid-template-columns: 1fr; }
-  .pa-product-nav { display: none; }
-  .pa-route-content { padding-top: 10px; }
-  .pa-mobile-nav { background: rgba(255,255,255,.96); border: 1px solid #e7e7e7; border-radius: 14px; display: flex; gap: 6px; overflow-x: auto; padding: 6px; position: sticky; top: 62px; z-index: 10; }
-  .pa-mobile-nav a { align-items: center; border: 1px solid transparent; border-radius: 10px; color: var(--pa-muted); display: inline-flex; flex: 0 0 auto; gap: 6px; font-size: .8rem; font-weight: 700; min-height: 34px; padding: 7px 9px; }
-  .pa-mobile-nav a.active { background: var(--pa-soft); border-color: var(--pa-border); color: var(--pa-primary); }
-}
-@media (max-width: 640px) {
-  .pa-product-topbar { gap: 8px; grid-template-columns: max-content minmax(0, 1fr) auto; padding-left: 10px; }
-  .pa-product-lockup { gap: 6px; }
-  .pa-institution-logo { height: 32px; max-width: 38px; }
-  .pa-husky-pass-logo { height: 28px; max-width: 58px; }
-  .pa-lockup-divider { height: 20px; }
-  .pa-logout { min-height: 32px; padding: 0 9px; }
-  .pa-top-copy span, .pa-top-copy small { display: none; }
-  .pa-top-copy strong { font-size: 0.94rem; line-height: 1.05; }
+
+@media (max-width: 480px) {
+  .pa-product-lockup {
+    gap: 7px;
+  }
+
+  .pa-husky-pass-logo {
+    max-width: 64px;
+  }
+
+  .pa-route-content {
+    padding-inline: 10px;
+  }
 }
 </style>

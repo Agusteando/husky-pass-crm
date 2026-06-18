@@ -1,4 +1,3 @@
-import { createError } from 'h3'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -8,7 +7,8 @@ import { spawn } from 'node:child_process'
 import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
 import { useStorage } from 'nitropack/runtime'
-import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import { logPersonasDebug, logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import { publicError } from '~/server/utils/httpError'
 
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
 const FRIENDLY_IMAGE_MESSAGE = 'Para descargar el Husky Pass, actualiza la foto de la persona autorizada o solicita apoyo a la escuela.'
@@ -68,14 +68,10 @@ type MarbetePdfDiagnosticCode =
 
 function diagnosticError(statusCode: number, statusMessage: string, code: MarbetePdfDiagnosticCode, details: Record<string, unknown> = {}) {
   logPersonasWarning(`marbete-pdf-${code}`, details)
-  return createError({
-    statusCode,
-    statusMessage,
-    data: {
-      diagnostic: {
-        code,
-        ...details
-      }
+  return publicError(statusCode, statusMessage, undefined, {
+    diagnostic: {
+      code,
+      ...details
     }
   })
 }
@@ -635,7 +631,7 @@ async function renderSvgToPdfKit(input: MarbetePdfInput) {
     })
   }
   if (warnings.some((warning) => /image|font|parse|invalid|not look like/i.test(warning))) {
-    logPersonasWarning('marbete-pdf-pdfkit-warnings', { warnings: warnings.slice(0, 10) })
+    logPersonasDebug('marbete-pdf-pdfkit-warnings', { warnings: warnings.slice(0, 10) })
   }
   return pdf
 }

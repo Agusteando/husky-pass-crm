@@ -9,7 +9,10 @@
       <FamilyPersonasAmbassador :theme="theme" variant="preview" compact decorative />
     </section>
 
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
+    <div v-if="loadError" class="alert retry-alert" data-state="error">
+      <span>No fue posible cargar los datos del alumno.</span>
+      <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-foto-alumno" @click="retryLoad">Reintentar</button>
+    </div>
     <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando…</div>
 
     <section v-else-if="profile" class="card photo-flow" data-product-panel="student-photo-update">
@@ -84,10 +87,11 @@ import { useFetch } from 'nuxt/app'
 import type { PersonasStudentProfile } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
+import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
-const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-photo-student-profile', timeout: 15000 })
+const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000, dedupe: 'defer' })
 
 const photoModalOpen = ref(false)
 const currentPhotoModalOpen = ref(false)
@@ -98,6 +102,10 @@ const notice = ref('')
 const saved = ref(false)
 const pendingPhotoUrl = ref('')
 
+function retryLoad() {
+  return refresh()
+}
+
 const theme = computed(() => resolvePersonasTheme({
   matricula: profile.value?.readonly.matricula,
   plantel: profile.value?.readonly.plantel,
@@ -105,7 +113,7 @@ const theme = computed(() => resolvePersonasTheme({
 }))
 const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.readonly.foto || ''))
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
-const academicLine = computed(() => [profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
+const academicLine = computed(() => [displayMatricula(profile.value?.readonly.matricula), profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
 const statusText = computed(() => {
   if (processing.value) return 'Preparando…'
   if (saving.value) return 'Guardando…'

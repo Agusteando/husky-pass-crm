@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
@@ -12,14 +13,14 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const admin = requireSession(event, 'admin')
-  if (!isSuperAdmin(admin)) throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede preparar acceso Husky Pass.' })
+  if (!isSuperAdmin(admin)) throw publicError(403, 'Solo superadmin puede preparar acceso Husky Pass.')
   const body = schema.parse(await readBody(event))
   const user = await getPersonasAccessUser(body.userId)
-  if (!user) throw createError({ statusCode: 404, statusMessage: 'Familia no encontrada.' })
+  if (!user) throw publicError(404, 'Familia no encontrada.')
 
   const userLogin = displayMatriculaCandidate(user.username)
   const login = user.email || userLogin || ''
-  if (!login) throw createError({ statusCode: 422, statusMessage: 'La familia no tiene correo ni usuario para preparar acceso.' })
+  if (!login) throw publicError(422, 'La familia no tiene correo ni usuario para preparar acceso.')
 
   const payload = {
     userId: Number(user.id),

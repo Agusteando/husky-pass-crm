@@ -51,7 +51,7 @@ const email = ref('')
 const loading = ref(false)
 const sent = ref(false)
 const error = ref('')
-const message = ref('Si existe una cuenta familiar con ese correo, enviaremos un enlace para restablecer la contrasena.')
+const message = ref('Si existe una cuenta familiar con ese correo, enviaremos un enlace para restablecer la contraseña.')
 const experience = computed<Extract<ExperienceName, 'escolar' | 'guarderia'>>(() => (
   normalizeExperienceName(String(route.query.experiencia || '')) === 'guarderia' ? 'guarderia' : 'escolar'
 ))
@@ -70,7 +70,7 @@ async function submit() {
     sent.value = true
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'Intenta de nuevo mas tarde.'
+    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'Intenta de nuevo más tarde.'
   } finally {
     loading.value = false
   }

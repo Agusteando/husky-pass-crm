@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, getQuery, getRequestURL } from 'h3'
+import { defineEventHandler, getQuery, getRequestURL } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
@@ -17,7 +18,7 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  if (!isSuperAdmin(user)) throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede generar Husky Pass.' })
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede generar Husky Pass.')
   const query = schema.parse(getQuery(event))
   const origin = getRequestURL(event).origin
 

@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readMultipartFormData } from 'h3'
+import { defineEventHandler, readMultipartFormData } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { assertRegistrationAntibot } from '~/server/utils/antibot'
 import { registerDaycareFamily } from '~/server/data/daycareRegistration'
@@ -23,7 +24,7 @@ function field(parts: NonNullable<Awaited<ReturnType<typeof readMultipartFormDat
 
 export default defineEventHandler(async (event) => {
   const parts = await readMultipartFormData(event)
-  if (!parts?.length) throw createError({ statusCode: 400, statusMessage: 'Completa el formulario de registro.' })
+  if (!parts?.length) throw publicError(400, 'Completa el formulario de registro.')
 
   const body = schema.parse({
     parentName: field(parts, 'parentName'),

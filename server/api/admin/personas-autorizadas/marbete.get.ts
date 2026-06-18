@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
+import { defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
@@ -28,7 +29,7 @@ function firstIssue(issues: string[]) {
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  if (!isSuperAdmin(user)) throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede generar Husky Pass.' })
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede generar Husky Pass.')
 
   const query = schema.parse(getQuery(event))
   const origin = getRequestURL(event).origin
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   const data = process.env.NODE_ENV !== 'production' && fixtureIndex >= 0 && fixtureIndex < DEV_HUSKY_PASS_VARIANTS.length
     ? buildDevPrintableAuthorizedPerson({ origin, variantId: DEV_HUSKY_PASS_VARIANTS[fixtureIndex].id, scenarioId: query.scenario }).data
     : await getSuperAdminPrintableAuthorizedPersona(query.id)
-  if (!data) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada.' })
+  if (!data) throw publicError(404, 'Persona autorizada no encontrada.')
 
   const templates = await listMarbeteTemplates()
   const template = selectMarbeteTemplate(templates, {
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
     plantel: data.plantel,
     nivelEdu: data.nivelEdu
   })
-  if (!template) throw createError({ statusCode: 503, statusMessage: 'El Husky Pass no esta disponible para este alumno.' })
+  if (!template) throw publicError(503, 'El Husky Pass no esta disponible para este alumno.')
 
   const templateSvg = await readMarbeteTemplateSvg(template)
   const renderedSvg = renderMarbeteSvg(templateSvg, data, origin)
@@ -88,7 +89,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!readiness.ok) {
-    throw createError({ statusCode: 422, statusMessage: firstIssue(readiness.issues) })
+    throw publicError(422, firstIssue(readiness.issues))
   }
 
   if (query.format === 'svg-preview') {

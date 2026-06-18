@@ -89,10 +89,11 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
+import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
-import type { AppSessionUser, PublicSession } from '~/types/session'
+import type { AppSessionUser } from '~/types/session'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 
@@ -110,7 +111,7 @@ const actionNotice = ref('')
 const previewing = ref(false)
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-family-module-session' })
+const { data: session } = useAppSession()
 const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {

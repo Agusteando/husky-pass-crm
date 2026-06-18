@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { findLegacyFamilyById, updateLegacyFamilyPassword, validateLegacyPassword } from '~/server/data/mysqlAuth'
 import { assertRateLimit } from '~/server/utils/antibot'
@@ -23,23 +24,23 @@ export default defineEventHandler(async (event) => {
   const body = schema.parse(await readBody(event))
   const issues = assertPasswordConfirmation(body.password, body.confirmation)
   if (issues.length) {
-    throw createError({ statusCode: 400, statusMessage: issues[0] })
+    throw publicError(400, issues[0])
   }
   if (body.currentPassword === body.password) {
-    throw createError({ statusCode: 400, statusMessage: 'La nueva contraseña debe ser diferente.' })
+    throw publicError(400, 'La nueva contraseña debe ser diferente.')
   }
 
   try {
     const legacyUser = await findLegacyFamilyById(Number(user.id))
     if (!legacyUser) {
       logSecurityWarning('password-change-family-account-missing', { userId: user.id })
-      throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no está disponible.' })
+      throw publicError(403, 'La cuenta familiar no está disponible.')
     }
 
     const valid = await validateLegacyPassword(body.currentPassword, legacyUser.raw)
     if (!valid) {
       logSecurityWarning('password-change-current-password-invalid', { userId: user.id })
-      throw createError({ statusCode: 400, statusMessage: 'La contraseña actual no coincide.' })
+      throw publicError(400, 'La contraseña actual no coincide.')
     }
 
     await updateLegacyFamilyPassword(Number(user.id), body.password)

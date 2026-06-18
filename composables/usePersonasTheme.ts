@@ -1,7 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, PersonasTheme } from '~/types/daycare'
-import type { PublicSession } from '~/types/session'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeMatricula } from '~/utils/matricula'
@@ -24,9 +23,12 @@ export function useResolvedPersonasTheme(source: MaybeRefOrGetter<PersonasThemeS
 }
 
 export function usePersonasFamilyTheme(options: FamilyThemeOptions = {}) {
-  const key = options.key || 'default'
-  const sessionState = useFetch<PublicSession>('/api/auth/me', { key: `pa-theme-session-${key}` })
-  const peopleState = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: `pa-theme-family-people-${key}`, timeout: 15000 })
+  const sessionState = useAppSession()
+  const peopleState = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', {
+    key: 'pa-family-people',
+    timeout: 15000,
+    dedupe: 'defer'
+  })
 
   const selectedMatricula = computed(() => normalizeMatricula(toValue(options.selectedMatricula)))
   const fallback = computed(() => toValue(options.fallback) || {})

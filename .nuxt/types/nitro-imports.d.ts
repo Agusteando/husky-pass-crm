@@ -72,6 +72,8 @@ declare global {
   const devHuskyPassScenario: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassScenario
   const devHuskyPassVariant: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassVariant
   const dynamicEventHandler: typeof import('../../node_modules/h3').dynamicEventHandler
+  const ensureRequestId: typeof import('../../server/utils/logger').ensureRequestId
+  const errorSummary: typeof import('../../server/utils/logger').errorSummary
   const eventHandler: typeof import('../../node_modules/h3').eventHandler
   const externalUploadFolder: typeof import('../../server/utils/externalUpload').externalUploadFolder
   const fallbackTemplateColor: typeof import('../../server/utils/marbeteTemplates').fallbackTemplateColor
@@ -125,6 +127,9 @@ declare global {
   const legacyQuery: typeof import('../../server/utils/mysql').legacyQuery
   const legacyWrite: typeof import('../../server/utils/mysql').legacyWrite
   const listMarbeteTemplates: typeof import('../../server/utils/marbeteTemplates').listMarbeteTemplates
+  const logErrorOnce: typeof import('../../server/utils/logger').logErrorOnce
+  const logEvent: typeof import('../../server/utils/logger').logEvent
+  const logPersonasDebug: typeof import('../../server/utils/personasDiagnostics').logPersonasDebug
   const logPersonasDiagnostic: typeof import('../../server/utils/personasDiagnostics').logPersonasDiagnostic
   const logPersonasWarning: typeof import('../../server/utils/personasDiagnostics').logPersonasWarning
   const logSecurityDiagnostic: typeof import('../../server/utils/securityDiagnostics').logSecurityDiagnostic
@@ -138,6 +143,7 @@ declare global {
   const prepareMarbeteSvgForPdf: typeof import('../../server/utils/marbetePdf').prepareMarbeteSvgForPdf
   const promisifyNodeListener: typeof import('../../node_modules/h3').promisifyNodeListener
   const proxyRequest: typeof import('../../node_modules/h3').proxyRequest
+  const publicError: typeof import('../../server/utils/httpError').publicError
   const readBody: typeof import('../../node_modules/h3').readBody
   const readFormData: typeof import('../../node_modules/h3').readFormData
   const readLastAccessActions: typeof import('../../server/utils/personasConfig').readLastAccessActions
@@ -147,6 +153,7 @@ declare global {
   const readPersonasConfig: typeof import('../../server/utils/personasConfig').readPersonasConfig
   const readRawBody: typeof import('../../node_modules/h3').readRawBody
   const readValidatedBody: typeof import('../../node_modules/h3').readValidatedBody
+  const redactContext: typeof import('../../server/utils/logger').redactContext
   const removeResponseHeader: typeof import('../../node_modules/h3').removeResponseHeader
   const renderMarbetePdf: typeof import('../../server/utils/marbetePdf').renderMarbetePdf
   const renderMarbeteSvg: typeof import('../../server/utils/marbeteTemplates').renderMarbeteSvg
@@ -181,15 +188,18 @@ declare global {
   const setResponseHeader: typeof import('../../node_modules/h3').setResponseHeader
   const setResponseHeaders: typeof import('../../node_modules/h3').setResponseHeaders
   const setResponseStatus: typeof import('../../node_modules/h3').setResponseStatus
+  const shortHash: typeof import('../../server/utils/logger').shortHash
   const sipaeErrorMessage: typeof import('../../server/utils/sipaeAttendance').sipaeErrorMessage
   const sipaeErrorState: typeof import('../../server/utils/sipaeAttendance').sipaeErrorState
   const splitCookiesString: typeof import('../../node_modules/h3').splitCookiesString
   const surveyNivelFromStudent: typeof import('../../server/utils/personasConfig').surveyNivelFromStudent
+  const timeoutError: typeof import('../../server/utils/httpError').timeoutError
   const toEventHandler: typeof import('../../node_modules/h3').toEventHandler
   const toNodeListener: typeof import('../../node_modules/h3').toNodeListener
   const toPlainHandler: typeof import('../../node_modules/h3').toPlainHandler
   const toWebHandler: typeof import('../../node_modules/h3').toWebHandler
   const toWebRequest: typeof import('../../node_modules/h3').toWebRequest
+  const unavailableError: typeof import('../../server/utils/httpError').unavailableError
   const unsealSession: typeof import('../../node_modules/h3').unsealSession
   const updateSession: typeof import('../../node_modules/h3').updateSession
   const uploadToExternalService: typeof import('../../server/utils/externalUpload').uploadToExternalService
@@ -203,6 +213,7 @@ declare global {
   const validateFamilyPassword: typeof import('../../server/utils/passwordPolicy').validateFamilyPassword
   const validateMarbeteRequirements: typeof import('../../server/utils/marbeteTemplates').validateMarbeteRequirements
   const verifyCaptchaChallenge: typeof import('../../server/utils/antibot').verifyCaptchaChallenge
+  const withRequestBoundary: typeof import('../../server/utils/logger').withRequestBoundary
   const writeEarlyHints: typeof import('../../node_modules/h3').writeEarlyHints
   const writePersonasConfig: typeof import('../../server/utils/personasConfig').writePersonasConfig
 }
@@ -217,6 +228,9 @@ declare global {
   // @ts-ignore
   export type { UploadInputFile, ExternalUploadResult } from '../../server/utils/externalUpload'
   import('../../server/utils/externalUpload')
+  // @ts-ignore
+  export type { LogLevel } from '../../server/utils/logger'
+  import('../../server/utils/logger')
   // @ts-ignore
   export type { MarbetePdfInput } from '../../server/utils/marbetePdf'
   import('../../server/utils/marbetePdf')
@@ -249,13 +263,15 @@ export { assertDevOnly } from 'C:/Users/hp/husky-pass-crm/server/utils/devOnly';
 export { buildEnvChecklist } from 'C:/Users/hp/husky-pass-crm/server/utils/envChecklist';
 export { externalUploadFolder, uploadToExternalService, dataUrlToUploadFile } from 'C:/Users/hp/husky-pass-crm/server/utils/externalUpload';
 export { resolveGrupoSigil } from 'C:/Users/hp/husky-pass-crm/server/utils/grupoIcons';
+export { publicError, timeoutError, unavailableError } from 'C:/Users/hp/husky-pass-crm/server/utils/httpError';
 export { adminOrigin } from 'C:/Users/hp/husky-pass-crm/server/utils/impersonation';
+export { shortHash, redactContext, errorSummary, ensureRequestId, logEvent, logErrorOnce, withRequestBoundary } from 'C:/Users/hp/husky-pass-crm/server/utils/logger';
 export { prepareMarbeteSvgForPdf, assertMarbetePdfAssets, renderMarbetePdf } from 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf';
 export { listMarbeteTemplates, marbeteTemplateThemes, readMarbeteTemplateSvg, selectMarbeteTemplate, saveMarbeteTemplate, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
 export { legacyQuery, legacyOne, legacyWrite, csvToList } from 'C:/Users/hp/husky-pass-crm/server/utils/mysql';
 export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, validateFamilyPassword, assertPasswordConfirmation } from 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy';
 export { SURVEY_NIVEL_OPTIONS, normalizeGoogleFormEmbedUrl, readPersonasConfig, writePersonasConfig, savePersonasConfig, surveyNivelFromStudent, resolveSurveyForStudent, appendAccessActionLog, readLastAccessActions } from 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig';
-export { logPersonasDiagnostic, logPersonasWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics';
+export { logPersonasDiagnostic, logPersonasWarning, logPersonasDebug } from 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics';
 export { sendPasswordRecoveryEmail, readLatestRecoveryEmailPreview } from 'C:/Users/hp/husky-pass-crm/server/utils/recoveryEmail';
 export { securityHash, logSecurityDiagnostic, logSecurityWarning } from 'C:/Users/hp/husky-pass-crm/server/utils/securityDiagnostics';
 export { isServerlessRuntime, runtimeDataDir } from 'C:/Users/hp/husky-pass-crm/server/utils/serverlessPaths';

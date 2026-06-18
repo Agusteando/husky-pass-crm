@@ -1,6 +1,6 @@
 <template>
   <div class="family-experience-root" :style="identityVars" :data-experience="identity.context.experience">
-    <AppTopbar :session="session" :home-to="homeTo" :items="[]" />
+    <TopbarFamilyExperienceTopbar :session="session" :home-to="homeTo" :identity="identity" />
     <div class="page-shell workspace-shell">
       <FamilySidebar :session="session" />
       <main class="layout-main">
@@ -11,17 +11,19 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
-import { useFetch, useRoute } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { useRoute } from 'nuxt/app'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { resolveVisualIdentity } from '~/utils/experienceIdentity'
 
 const route = useRoute()
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-family-session' })
+const { data: session } = useAppSession()
 const homeTo = computed(() => defaultFamilyRoute(session.value?.user))
-const identity = computed(() => resolveVisualIdentity({ routePath: route.path, user: session.value?.user }).identity)
-const identityVars = computed(() => resolveVisualIdentity({ routePath: route.path, user: session.value?.user }).vars)
+const requestedExperience = computed(() => typeof route.query.experiencia === 'string' ? route.query.experiencia : undefined)
+const resolvedIdentity = computed(() => resolveVisualIdentity({ routePath: route.path, requestedExperience: requestedExperience.value, user: session.value?.user }))
+const identity = computed(() => resolvedIdentity.value.identity)
+const identityVars = computed(() => resolvedIdentity.value.vars)
 </script>
 
 <style scoped>

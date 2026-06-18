@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody, setCookie } from 'h3'
+import { defineEventHandler, readBody, setCookie } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
@@ -12,7 +13,7 @@ const schema = z.object({ credential: z.string().min(1) })
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   if (!config.googleClientId) {
-    throw createError({ statusCode: 500, statusMessage: 'GOOGLE_CLIENT_ID no está configurado.' })
+    throw publicError(500, 'GOOGLE_CLIENT_ID no está configurado.')
   }
 
   const body = schema.parse(await readBody(event))
@@ -22,14 +23,14 @@ export default defineEventHandler(async (event) => {
   const email = normalizeEmail(payload?.email)
 
   if (!email.endsWith('@casitaiedis.edu.mx')) {
-    throw createError({ statusCode: 403, statusMessage: 'El correo no pertenece a la institución.' })
+    throw publicError(403, 'El correo no pertenece a la institución.')
   }
 
   const legacyUser = await findLegacyUserByEmail(email)
   let sessionUser
 
   if (!legacyUser) {
-    throw createError({ statusCode: 401, statusMessage: 'No hay ninguna cuenta interna creada con ese correo.' })
+    throw publicError(401, 'No hay ninguna cuenta interna creada con ese correo.')
   }
 
   if (payload?.name && payload.name !== legacyUser.raw.displayName) {

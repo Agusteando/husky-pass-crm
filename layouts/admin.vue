@@ -1,6 +1,6 @@
 <template>
   <div class="admin-experience-root" :style="adminVars" data-experience="admin">
-    <AppTopbar :session="session" :home-to="homeTo" :items="topbarItems" />
+    <TopbarAdminExperienceTopbar :session="session" :home-to="homeTo" :items="topbarItems" />
     <div class="page-shell workspace-shell" :class="isDaycareWorkspace ? 'with-rail' : 'full-width'">
       <AdminDaycareSidebar v-if="isDaycareWorkspace" :session="session" />
       <main class="layout-main" :class="{ 'layout-main-wide': !isDaycareWorkspace }">
@@ -11,16 +11,23 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
-import { useFetch, useRoute } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { useRoute } from 'nuxt/app'
 import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
+import { hasDaycareAdminScope } from '~/utils/sessionScopes'
 
 const route = useRoute()
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'layout-admin-session' })
+const { data: session } = useAppSession()
 const adminVars = experienceThemeVars(visualIdentityForContext({ experience: 'admin', institution: null, nivel: null, plantel: null, grupo: null }))
 
-const homeTo = computed(() => session.value?.user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas')
+const homeTo = computed(() => {
+  const user = session.value?.user
+  if (user?.isSuperAdmin) return '/admin/superadmin'
+  if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
+  if (canAccessHistory.value) return '/admin/historial-accesos'
+  return '/admin/login'
+})
 const canAccessHistory = computed(() => {
   const user = session.value?.user
   if (!user || user.kind !== 'admin') return false
@@ -32,16 +39,19 @@ const canAccessHistory = computed(() => {
 const topbarItems = computed(() => {
   const firstUnidad = session.value?.user?.unidades?.[0] || ''
   const daycareTo = firstUnidad ? `/admin/daycare/salas?unidad=${encodeURIComponent(firstUnidad)}` : '/admin/daycare/salas'
-  const items = [{ label: 'Guardería', to: daycareTo }]
+  const items: Array<{ key: string; label: string; to: string; icon: string }> = []
+  if (hasDaycareAdminScope(session.value?.user)) {
+    items.push({ key: 'guarderia-admin', label: 'Guarderia', to: daycareTo, icon: 'daycare' })
+  }
   if (session.value?.user?.isSuperAdmin) {
     items.unshift(
-      { label: 'Superadmin', to: '/admin/superadmin' },
-      { label: 'Personas Autorizadas', to: '/admin/superadmin/personas-autorizadas' },
-      { label: 'Historial de accesos', to: '/admin/historial-accesos' },
-      { label: 'Marbetes', to: '/admin/superadmin/marbetes' }
+      { key: 'superadmin', label: 'Directorio', to: '/admin/superadmin', icon: 'people' },
+      { key: 'personas-autorizadas', label: 'Husky Pass', to: '/admin/superadmin/personas-autorizadas', icon: 'marbete' },
+      { key: 'historial-accesos', label: 'Historial', to: '/admin/historial-accesos', icon: 'history' },
+      { key: 'marbetes', label: 'Plantillas', to: '/admin/superadmin/marbetes', icon: 'document' }
     )
   } else if (canAccessHistory.value) {
-    items.unshift({ label: 'Historial de accesos', to: '/admin/historial-accesos' })
+    items.unshift({ key: 'historial-accesos', label: 'Historial', to: '/admin/historial-accesos', icon: 'history' })
   }
   return items
 })

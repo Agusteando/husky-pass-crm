@@ -30,6 +30,7 @@ export { requestIdleCallback, cancelIdleCallback } from '#app/compat/idle-callba
 export { setInterval } from '#app/compat/interval';
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
+export { useAppSession } from '../composables/useAppSession';
 export { useResolvedPersonasTheme, usePersonasFamilyTheme } from '../composables/usePersonasTheme';
 export { normalizeAttendanceText, makeSchoolYearRange, parseSchoolYearLabel, currentSchoolYearStart, buildSchoolYearOptions, resolveSchoolYearOption, dateOnly, formatAttendanceDate, formatAttendanceTime } from '../utils/attendance';
 export { dateInputValue, createAuthorizedPersonForm, validateAuthorizedPersonForm, authorizedPersonFormIsValid, toAuthorizedPersonSavePayload, AuthorizedPersonFormModel, AuthorizedPersonValidationState } from '../utils/authorizedPersonForm';
@@ -39,7 +40,7 @@ export { normalizeExperienceName, normalizeInstitutionName, normalizeNivelIdenti
 export { resolveGrupoIcon, GrupoIconManifestEntry, GrupoIconManifest, ResolvedGrupoIcon } from '../utils/grupoIcons';
 export { normalizeMatricula, displayMatricula, isMatriculaLike, displayMatriculaCandidate, sameMatricula, matriculaSearchText } from '../utils/matricula';
 export { PA_COLORS, PERSONAS_THEMES, normalizePlantel, normalizeNivel, personasThemeKeyFromMatricula, resolvePersonasTheme, personasThemeStyle, allPersonasThemes, personasMascot, personasLevelName, personasInstitutionName, personasInstitutionLogo, PersonasMascotVariant } from '../utils/personasTheme';
-export { getRouteSession } from '../utils/routeSession';
+export { anonymousSession, useRouteSessionCache, setCachedRouteSession, getRouteSession } from '../utils/routeSession';
 export { DAYCARE_FAMILY_ROLE, DAYCARE_ADMIN_ROLE, hasRoleToken, hasFamilyScope, hasDaycareAdminScope, defaultFamilyRoute, familyNavItems } from '../utils/sessionScopes';
 export { SUPER_ADMIN_EMAIL, normalizeEmail, isConfiguredSuperAdminEmail } from '../utils/superAdmin';
 export { evaluateVisionFaceValidation, toVisionImageUrl, canProcessWithVision, markValidatedVisionPhotoUrl, isValidatedVisionPhotoUrl, getCachedProcessedFaceImage, processFaceImage, processFaceImageCached, VisionFaceResult, VisionFaceValidation } from '../utils/visionFace';

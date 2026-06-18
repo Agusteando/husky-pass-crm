@@ -1,8 +1,8 @@
-import { createError } from 'h3'
 import { $fetch } from 'ofetch'
 import { extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { useRuntimeConfig } from 'nitropack/runtime'
+import { publicError } from '~/server/utils/httpError'
 
 type UploadArea = 'daycare-registration' | 'daycare-resource' | 'personas-source' | 'personas-face' | 'personas-resource'
 
@@ -56,7 +56,7 @@ export function externalUploadFolder(area: UploadArea, ...segments: Array<string
   const safeSegments = segments.map(cleanSegment).filter(Boolean)
   const folder = [root, ...safeSegments].join('/')
   if (!/^[a-z0-9][a-z0-9/_-]{0,160}$/i.test(folder) || folder.includes('..')) {
-    throw createError({ statusCode: 400, statusMessage: 'Destino de carga no válido.' })
+    throw publicError(400, 'Destino de carga no válido.')
   }
   return folder
 }
@@ -73,15 +73,15 @@ function assertMime(mime: string, accept: 'images' | 'documents' | 'imagesAndDoc
   if (accept === 'images' && isImage) return
   if (accept === 'documents' && isDocument) return
   if (accept === 'imagesAndDocuments' && (isImage || isDocument)) return
-  throw createError({ statusCode: 415, statusMessage: 'Tipo de archivo no permitido.' })
+  throw publicError(415, 'Tipo de archivo no permitido.')
 }
 
 function assertFile(input: UploadInputFile, options: { maxBytes: number; accept: 'images' | 'documents' | 'imagesAndDocuments' }) {
   const size = input.data?.byteLength || 0
-  if (!size) throw createError({ statusCode: 400, statusMessage: 'Selecciona un archivo para subir.' })
+  if (!size) throw publicError(400, 'Selecciona un archivo para subir.')
   if (size > options.maxBytes) {
     const mb = Math.round(options.maxBytes / 1024 / 1024)
-    throw createError({ statusCode: 413, statusMessage: `El archivo excede ${mb} MB.` })
+    throw publicError(413, `El archivo excede ${mb} MB.`)
   }
   const mime = String(input.type || 'application/octet-stream').toLowerCase()
   assertMime(mime, options.accept)
@@ -106,7 +106,7 @@ export async function uploadToExternalService(input: UploadInputFile, options: {
   const fileName = `${safePrefix}-${Date.now()}-${randomUUID().slice(0, 8)}${extension}`
   const folder = options.folder
   if (!/^[a-z0-9][a-z0-9/_-]{0,160}$/i.test(folder) || folder.includes('..')) {
-    throw createError({ statusCode: 400, statusMessage: 'Destino de carga no válido.' })
+    throw publicError(400, 'Destino de carga no válido.')
   }
 
   const bytes = input.data instanceof Uint8Array ? input.data : new Uint8Array(input.data)
@@ -125,7 +125,7 @@ export async function uploadToExternalService(input: UploadInputFile, options: {
     })
 
     if (!response?.success || !response.url || !/^https?:\/\//i.test(response.url)) {
-      throw createError({ statusCode: 502, statusMessage: 'El servicio de carga no devolvió una URL válida.' })
+      throw publicError(502, 'El servicio de carga no devolvió una URL válida.')
     }
 
     return {
@@ -140,13 +140,13 @@ export async function uploadToExternalService(input: UploadInputFile, options: {
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    throw createError({ statusCode: 502, statusMessage: 'No fue posible subir el archivo al expediente externo.' })
+    throw publicError(502, 'No fue posible subir el archivo al expediente externo.')
   }
 }
 
 export function dataUrlToUploadFile(src: string, filenamePrefix: string): UploadInputFile {
   const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(src || ''))
-  if (!match) throw createError({ statusCode: 415, statusMessage: 'La imagen debe ser PNG, JPG o WEBP.' })
+  if (!match) throw publicError(415, 'La imagen debe ser PNG, JPG o WEBP.')
   const ext = match[1] === 'image/jpeg' ? 'jpg' : match[1].split('/')[1]
   return {
     data: Buffer.from(match[2], 'base64'),

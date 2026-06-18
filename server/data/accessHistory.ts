@@ -1,4 +1,4 @@
-import { createError } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import type { RowDataPacket } from 'mysql2/promise'
 import type {
   AccessActionType,
@@ -425,7 +425,7 @@ export async function assertFamilyCanAccessHistoryChild(user: AppSessionUser, ma
   const requested = normalizeMatricula(matricula)
   if (!requested) return children
   if (!children.some((child) => normalizeMatricula(child.matricula) === requested)) {
-    throw createError({ statusCode: 403, statusMessage: 'El alumno solicitado no pertenece a esta cuenta familiar.' })
+    throw publicError(403, 'El alumno solicitado no pertenece a esta cuenta familiar.')
   }
   return children
 }

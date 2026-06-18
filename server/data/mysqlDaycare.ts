@@ -1,4 +1,3 @@
-import { createError } from 'h3'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
 import type {
@@ -14,7 +13,8 @@ import type {
 } from '~/types/daycare'
 import { assertSalaAccess, assertUnidadAccess } from '~/server/utils/authz'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
-import { logPersonasDiagnostic, logPersonasWarning } from '~/server/utils/personasDiagnostics'
+import { logPersonasWarning, logPersonasDebug } from '~/server/utils/personasDiagnostics'
+import { publicError } from '~/server/utils/httpError'
 import { normalizeMatricula } from '~/utils/matricula'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
@@ -25,7 +25,7 @@ const AUTHORIZE_RECAPTURE_MESSAGE = 'Para corregir una persona autorizada, prime
 
 function assertFamilyOwner(user: AppSessionUser, ownerId?: number | string | null) {
   if (String(user.id) !== String(ownerId)) {
-    throw createError({ statusCode: 403, statusMessage: 'Registro fuera del alcance de la cuenta familiar' })
+    throw publicError(403, 'Registro fuera del alcance de la cuenta familiar')
   }
 }
 
@@ -94,7 +94,7 @@ type ParentEditableStudentField = typeof PARENT_EDITABLE_STUDENT_FIELDS[number]
 
 function assertFamilyMatricula(user: AppSessionUser) {
   const matricula = normalizeMatricula(user.username)
-  if (!matricula) throw createError({ statusCode: 403, statusMessage: 'La cuenta familiar no tiene matrícula vinculada.' })
+  if (!matricula) throw publicError(403, 'La cuenta familiar no tiene matrícula vinculada.')
   return matricula
 }
 
@@ -122,6 +122,7 @@ const REQUIRED_PARENT_NAME_FIELDS = [
 ] as const
 
 type ParentNameField = typeof REQUIRED_PARENT_NAME_FIELDS[number]
+const PARENT_SIGNATURE_COLUMN = 'hp_parent_signature'
 
 function normalizeFamilyName(value: unknown) {
   return String(value || '')
@@ -206,12 +207,11 @@ async function getMatriculaColumnSet() {
     matriculaColumnCache = new Set(rows.map((row) => String(row.Field || '').trim()).filter(Boolean))
     if (!matriculaColumnCache.has('matricula')) {
       logPersonasWarning('matricula-schema-missing-primary-column', { table: 'matricula', requiredColumn: 'matricula' })
-      throw createError({ statusCode: 500, statusMessage: 'La tabla de matrícula no tiene la columna requerida.' })
+      throw publicError(500, 'La tabla de matrícula no tiene la columna requerida.')
     }
     return matriculaColumnCache
-  } catch (error) {
-    logPersonasDiagnostic('matricula-schema-inspection-failed', error, { table: 'matricula', action: 'SHOW COLUMNS' })
-    throw createError({ statusCode: 500, statusMessage: 'No fue posible validar la estructura de matrícula.' })
+  } catch {
+    throw publicError(500, 'No fue posible validar la estructura de matrícula.')
   }
 }
 
@@ -223,12 +223,11 @@ async function getUsersColumnSet() {
     usersColumnCache = new Set(rows.map((row) => String(row.Field || '').trim()).filter(Boolean))
     if (!usersColumnCache.has('id') || !usersColumnCache.has('username')) {
       logPersonasWarning('users-schema-missing-primary-columns', { table: 'users', requiredColumns: ['id', 'username'] })
-      throw createError({ statusCode: 500, statusMessage: 'La tabla de usuarios no tiene columnas requeridas.' })
+      throw publicError(500, 'La tabla de usuarios no tiene columnas requeridas.')
     }
     return usersColumnCache
-  } catch (error) {
-    logPersonasDiagnostic('users-schema-inspection-failed', error, { table: 'users', action: 'SHOW COLUMNS' })
-    throw createError({ statusCode: 500, statusMessage: 'No fue posible validar la estructura de usuarios.' })
+  } catch {
+    throw publicError(500, 'No fue posible validar la estructura de usuarios.')
   }
 }
 
@@ -250,7 +249,7 @@ function existingColumns(columns: Set<string>, fields: readonly string[], scope:
     const key = `${scope}:${missing.join(',')}`
     if (!loggedMissingMatriculaColumns.has(key)) {
       loggedMissingMatriculaColumns.add(key)
-      logPersonasWarning('matricula-schema-missing-columns', { scope, missingColumns: missing, table: 'matricula' })
+      logPersonasDebug('matricula-schema-missing-columns', { scope, missingColumns: missing, table: 'matricula' })
     }
   }
   return fields.filter((field) => columns.has(field))
@@ -274,7 +273,7 @@ export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
 export async function getSalaById(user: AppSessionUser, salaId: number) {
   assertSalaAccess(user, salaId)
   const sala = await legacyOne<(Sala & RowDataPacket)>('SELECT id, sala, unidad FROM salas WHERE id = ? LIMIT 1', [salaId])
-  if (!sala) throw createError({ statusCode: 404, statusMessage: 'Sala no encontrada' })
+  if (!sala) throw publicError(404, 'Sala no encontrada')
   assertUnidadAccess(user, sala.unidad)
   return { id: Number(sala.id), sala: sala.sala, unidad: sala.unidad }
 }
@@ -282,7 +281,7 @@ export async function getSalaById(user: AppSessionUser, salaId: number) {
 export async function getFamilyDashboard(user: AppSessionUser) {
   const unidad = user.scopes.daycare?.unidad
   const sala = user.scopes.daycare?.sala
-  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene alcance de guardería' })
+  if (!unidad || !sala) throw publicError(403, 'La cuenta no tiene alcance de guardería')
 
   const [tareas, circulares, calendario, valor] = await Promise.all([
     legacyQuery<(DaycareResource & RowDataPacket)[]>(
@@ -325,55 +324,39 @@ export async function getEditableStudentProfile(user: AppSessionUser) {
   const selectFields = Array.from(new Set([...readonlyFields, ...editableFields]))
   if (!selectFields.length) {
     logPersonasWarning('student-profile-no-readable-columns', { userId: user.id, matricula })
-    throw createError({ statusCode: 500, statusMessage: 'No hay campos de matrícula configurados para consulta familiar.' })
+    throw publicError(500, 'No hay campos de matricula configurados para consulta familiar.')
   }
 
-  try {
-    const columns = selectFields.map(quoteIdentifier).join(', ')
-    const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
-    if (!row) {
-      logPersonasWarning('student-profile-matricula-not-found', { userId: user.id, matricula })
-      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-    }
-    const plantel = derivePlantelFromMatricula(matricula, row.nivel as string | null, user.campus || user.empresa)
-    return pickStudentProfile(row, plantel, editableFields)
-  } catch (error) {
-    logPersonasDiagnostic('student-profile-load-failed', error, {
-      userId: user.id,
-      matricula,
-      selectedColumns: selectFields,
-      missingReadonlyColumns: STUDENT_READONLY_FIELDS.filter((field) => !columnSet.has(field)),
-      missingEditableColumns: PARENT_EDITABLE_STUDENT_FIELDS.filter((field) => !columnSet.has(field))
-    })
-    throw error
+  const columns = selectFields.map(quoteIdentifier).join(', ')
+  const row = await legacyOne<RowDataPacket>(`SELECT ${columns} FROM matricula WHERE matricula = ? LIMIT 1`, [matricula])
+  if (!row) {
+    logPersonasWarning('student-profile-matricula-not-found', { userId: user.id, matricula })
+    throw publicError(404, 'No encontramos la matricula vinculada a esta cuenta familiar.')
   }
+  const plantel = derivePlantelFromMatricula(matricula, row.nivel as string | null, user.campus || user.empresa)
+  return pickStudentProfile(row, plantel, editableFields)
 }
 
 export async function updateEditableStudentProfile(user: AppSessionUser, patch: Partial<PersonasStudentEditable>) {
   const matricula = assertFamilyMatricula(user)
   const columnSet = await getMatriculaColumnSet()
   const entries = Object.entries(patch).filter(([field]) => (PARENT_EDITABLE_STUDENT_FIELDS as readonly string[]).includes(field)) as [ParentEditableStudentField, unknown][]
-  if (!entries.length) throw createError({ statusCode: 400, statusMessage: 'No hay campos familiares autorizados para guardar.' })
+  if (!entries.length) throw publicError(400, 'No hay campos familiares autorizados para guardar.')
 
   const missingColumns = entries.map(([field]) => field).filter((field) => !columnSet.has(field))
   if (missingColumns.length) {
     logPersonasWarning('student-profile-update-missing-columns', { userId: user.id, matricula, missingColumns })
-    throw createError({ statusCode: 400, statusMessage: 'Algunos campos familiares no están disponibles para actualización.' })
+    throw publicError(400, 'Algunos campos familiares no estan disponibles para actualizacion.')
   }
 
-  try {
-    const assignments = entries.map(([field]) => `${quoteIdentifier(field)} = ?`).join(', ')
-    const values = entries.map(([, value]) => normalizeString(value))
-    const result = await legacyWrite(`UPDATE matricula SET ${assignments} WHERE matricula = ?`, [...values, matricula])
-    if (!result.affectedRows) {
-      logPersonasWarning('student-profile-update-matricula-not-found', { userId: user.id, matricula, updatedFields: entries.map(([field]) => field) })
-      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-    }
-    return getEditableStudentProfile(user)
-  } catch (error) {
-    logPersonasDiagnostic('student-profile-update-failed', error, { userId: user.id, matricula, updatedFields: entries.map(([field]) => field) })
-    throw error
+  const assignments = entries.map(([field]) => `${quoteIdentifier(field)} = ?`).join(', ')
+  const values = entries.map(([, value]) => normalizeString(value))
+  const result = await legacyWrite(`UPDATE matricula SET ${assignments} WHERE matricula = ?`, [...values, matricula])
+  if (!result.affectedRows) {
+    logPersonasWarning('student-profile-update-matricula-not-found', { userId: user.id, matricula, updatedFields: entries.map(([field]) => field) })
+    throw publicError(404, 'No encontramos la matricula vinculada a esta cuenta familiar.')
   }
+  return getEditableStudentProfile(user)
 }
 
 export async function updateStudentCredentialPhoto(user: AppSessionUser, photoUrl: string) {
@@ -381,27 +364,22 @@ export async function updateStudentCredentialPhoto(user: AppSessionUser, photoUr
   const columnSet = await getMatriculaColumnSet()
   if (!columnSet.has('foto')) {
     logPersonasWarning('student-photo-update-missing-column', { userId: user.id, matricula, missingColumn: 'foto', table: 'matricula' })
-    throw createError({ statusCode: 400, statusMessage: 'La foto del alumno no está disponible para actualización.' })
+    throw publicError(400, 'La foto del alumno no esta disponible para actualizacion.')
   }
   const value = normalizeString(photoUrl)
-  if (!value) throw createError({ statusCode: 400, statusMessage: 'La foto es obligatoria.' })
-  try {
-    const result = await legacyWrite('UPDATE matricula SET foto = ? WHERE matricula = ?', [value, matricula])
-    if (!result.affectedRows) {
-      logPersonasWarning('student-photo-update-matricula-not-found', { userId: user.id, matricula })
-      throw createError({ statusCode: 404, statusMessage: 'No encontramos la matrícula vinculada a esta cuenta familiar.' })
-    }
-    return getEditableStudentProfile(user)
-  } catch (error) {
-    logPersonasDiagnostic('student-photo-update-failed', error, { userId: user.id, matricula })
-    throw error
+  if (!value) throw publicError(400, 'La foto es obligatoria.')
+  const result = await legacyWrite('UPDATE matricula SET foto = ? WHERE matricula = ?', [value, matricula])
+  if (!result.affectedRows) {
+    logPersonasWarning('student-photo-update-matricula-not-found', { userId: user.id, matricula })
+    throw publicError(404, 'No encontramos la matricula vinculada a esta cuenta familiar.')
   }
+  return getEditableStudentProfile(user)
 }
 
 export async function getFamilyResources(user: AppSessionUser, type: 'hw' | 'news' | 'cal') {
   const unidad = user.scopes.daycare?.unidad
   const sala = user.scopes.daycare?.sala
-  if (!unidad || !sala) throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene alcance de guardería' })
+  if (!unidad || !sala) throw publicError(403, 'La cuenta no tiene alcance de guardería')
 
   if (type === 'cal') {
     return legacyQuery<(DaycareResource & RowDataPacket)[]>(
@@ -442,70 +420,78 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${matriculaSelect(columnSet, 'grado')} AS grado`,
     `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
     `${matriculaSelect(columnSet, 'foto')} AS foto`,
+    `${matriculaSelect(columnSet, PARENT_SIGNATURE_COLUMN)} AS parent_signature`,
     ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
     `${usersSelect(userColumnSet, 'id')} AS user_id`,
     `${usersSelect(userColumnSet, 'campus')} AS campus`
   ].join(',\n       ')
 
-  try {
-    const current = await legacyOne<RowDataPacket>(
-      `SELECT
+  const current = await legacyOne<RowDataPacket>(
+    `SELECT
        ${currentSelect}
      FROM matricula m
      LEFT JOIN users u ON u.username = m.matricula
      WHERE m.matricula = ?
      LIMIT 1`,
-      [currentMatricula]
-    )
+    [currentMatricula]
+  )
 
-    if (!current) {
-      logPersonasWarning('siblings-current-matricula-not-found', { userId: user.id, matricula: currentMatricula })
-      return []
-    }
+  if (!current) {
+    logPersonasWarning('siblings-current-matricula-not-found', { userId: user.id, matricula: currentMatricula })
+    return []
+  }
 
-    const missingParentColumns = REQUIRED_PARENT_NAME_FIELDS.filter((field) => !columnSet.has(field))
-    if (missingParentColumns.length) {
-      logPersonasWarning('siblings-required-parent-columns-missing', { userId: user.id, matricula: currentMatricula, missingColumns: missingParentColumns })
-      const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
-      return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
-    }
+  const currentChild = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
+  const unavailableCurrent = (context: Record<string, unknown>) => [{ ...currentChild, siblingMatch: 'unavailable' as const, canSwitch: false, siblingDiagnostics: context }]
 
-    const missingParentValues = missingRequiredParentFields(current as Partial<Record<ParentNameField, unknown>>)
-    const signature = completeParentSignature(current as Partial<Record<ParentNameField, unknown>>)
-    if (!signature) {
-      logPersonasWarning('siblings-parent-signature-incomplete', { userId: user.id, matricula: currentMatricula, missingFields: missingParentValues })
-      const child = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
-      return [{ ...child, siblingMatch: 'unavailable' as const, canSwitch: false }]
-    }
+  const missingParentColumns = REQUIRED_PARENT_NAME_FIELDS.filter((field) => !columnSet.has(field))
+  if (missingParentColumns.length) {
+    logPersonasWarning('siblings-required-parent-columns-missing', { userId: user.id, matricula: currentMatricula, missingColumns: missingParentColumns })
+    return unavailableCurrent({ code: 'missing-parent-columns' })
+  }
 
-    const candidateSelect = [
-      `${matriculaSelect(columnSet, 'matricula')} AS matricula`,
-      `${matriculaSelect(columnSet, 'apellido_paterno')} AS apellido_paterno`,
-      `${matriculaSelect(columnSet, 'apellido_materno')} AS apellido_materno`,
-      `${matriculaSelect(columnSet, 'nombres')} AS nombres`,
-      `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
-      `${matriculaSelect(columnSet, 'grado')} AS grado`,
-      `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
-      `${matriculaSelect(columnSet, 'foto')} AS foto`,
-      ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
-      `${usersSelect(userColumnSet, 'id')} AS user_id`,
-      `${usersSelect(userColumnSet, 'campus')} AS campus`
-    ].join(',\n       ')
-    const parentWhere = REQUIRED_PARENT_NAME_FIELDS
-      .map((field) => `m.${quoteIdentifier(field)} IS NOT NULL AND TRIM(m.${quoteIdentifier(field)}) <> ''`)
-      .join('\n       AND ')
+  const missingParentValues = missingRequiredParentFields(current as Partial<Record<ParentNameField, unknown>>)
+  const signature = completeParentSignature(current as Partial<Record<ParentNameField, unknown>>)
+  if (!signature) {
+    logPersonasDebug('siblings-parent-signature-incomplete', { userId: user.id, matricula: currentMatricula, missingFields: missingParentValues })
+    return unavailableCurrent({ code: 'incomplete-parent-signature', missingFields: missingParentValues })
+  }
 
-    const candidates = await legacyQuery<RowDataPacket[]>(
-      `SELECT
+  if (!columnSet.has(PARENT_SIGNATURE_COLUMN)) {
+    logPersonasDebug('siblings-parent-signature-index-missing', { userId: user.id, matricula: currentMatricula, column: PARENT_SIGNATURE_COLUMN })
+    return unavailableCurrent({ code: 'signature-index-missing' })
+  }
+
+  const signatureKey = String(current.parent_signature || '') || signature
+  const candidateSelect = [
+    `${matriculaSelect(columnSet, 'matricula')} AS matricula`,
+    `${matriculaSelect(columnSet, 'apellido_paterno')} AS apellido_paterno`,
+    `${matriculaSelect(columnSet, 'apellido_materno')} AS apellido_materno`,
+    `${matriculaSelect(columnSet, 'nombres')} AS nombres`,
+    `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
+    `${matriculaSelect(columnSet, 'grado')} AS grado`,
+    `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
+    `${matriculaSelect(columnSet, 'foto')} AS foto`,
+    `${usersSelect(userColumnSet, 'id')} AS user_id`,
+    `${usersSelect(userColumnSet, 'campus')} AS campus`
+  ].join(',\n       ')
+
+  const candidates = await legacyQuery<RowDataPacket[]>(
+    `SELECT
        ${candidateSelect}
      FROM matricula m
      LEFT JOIN users u ON u.username = m.matricula
-     WHERE ${parentWhere}`
-    )
+     WHERE m.${quoteIdentifier(PARENT_SIGNATURE_COLUMN)} = ?
+       AND m.matricula <> ?
+     ORDER BY m.apellido_paterno ASC, m.apellido_materno ASC, m.nombres ASC
+     LIMIT 7`,
+    [signatureKey, currentMatricula]
+  )
 
-    const seen = new Set<string>()
-    const children = candidates
-      .filter((row) => completeParentSignature(row as Partial<Record<ParentNameField, unknown>>) === signature)
+  const seen = new Set<string>([currentChild.matricula || String(currentChild.user_id || '')])
+  const children = [
+    currentChild,
+    ...candidates
       .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa))
       .filter((child) => {
         const key = child.matricula || String(child.user_id || '')
@@ -513,30 +499,18 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
         seen.add(key)
         return true
       })
-      .sort((a, b) => {
-        if (a.isCurrent) return -1
-        if (b.isCurrent) return 1
-        return [a.paternoA, a.maternoA, a.nombreA].filter(Boolean).join(' ').localeCompare([b.paternoA, b.maternoA, b.nombreA].filter(Boolean).join(' '), 'es')
-      })
+  ]
 
-    if (!children.some((child) => child.isCurrent)) {
-      children.unshift(mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa))
-    }
-
-    if (children.length <= 1) {
-      logPersonasWarning('siblings-no-additional-matches', { userId: user.id, matricula: currentMatricula, searchedCandidates: candidates.length })
-    }
-
-    if (children.length > 6) {
-      logPersonasWarning('siblings-parent-signature-review-required', { userId: user.id, matricula: currentMatricula, matchedChildren: children.length })
-      return children.map((child) => child.isCurrent ? child : { ...child, canSwitch: false, siblingMatch: 'review' as const })
-    }
-
-    return children
-  } catch (error) {
-    logPersonasDiagnostic('siblings-load-failed', error, { userId: user.id, matricula: currentMatricula })
-    throw error
+  if (children.length <= 1) {
+    logPersonasDebug('siblings-no-additional-matches', { userId: user.id, matricula: currentMatricula, searchedCandidates: candidates.length })
   }
+
+  if (children.length > 6) {
+    logPersonasWarning('siblings-parent-signature-review-required', { userId: user.id, matricula: currentMatricula, matchedChildren: children.length })
+    return children.map((child) => child.isCurrent ? child : { ...child, canSwitch: false, siblingMatch: 'review' as const })
+  }
+
+  return children
 }
 
 export async function getAdminResources(user: AppSessionUser, salaId: number, type: 'hw' | 'news' | 'cal') {
@@ -570,9 +544,9 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
 
   if (data.id) {
     const existing = await legacyOne<RowDataPacket>('SELECT id, unidad, sala, type FROM recursos WHERE id = ? LIMIT 1', [data.id])
-    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Recurso no encontrado' })
+    if (!existing) throw publicError(404, 'Recurso no encontrado')
     if (String(existing.unidad) !== data.unidad || String(existing.sala) !== data.sala || String(existing.type) !== data.type) {
-      throw createError({ statusCode: 403, statusMessage: 'Recurso fuera del alcance de esta sala' })
+      throw publicError(403, 'Recurso fuera del alcance de esta sala')
     }
 
     await legacyWrite(
@@ -594,7 +568,7 @@ export async function upsertAdminResource(user: AppSessionUser, payload: AdminRe
 
 async function assertAdminResourceAccess(user: AppSessionUser, id: number) {
   const row = await legacyOne<RowDataPacket>('SELECT id, unidad, sala, type FROM recursos WHERE id = ? LIMIT 1', [id])
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Recurso no encontrado' })
+  if (!row) throw publicError(404, 'Recurso no encontrado')
   assertUnidadAccess(user, String(row.unidad))
   assertSalaAccess(user, String(row.sala))
   return row
@@ -630,7 +604,7 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
 
   if (payload.id) {
     const existing = await legacyOne<RowDataPacket>('SELECT id, role, unidad, sala FROM users WHERE id = ? LIMIT 1', [payload.id])
-    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Cuenta familiar no encontrada' })
+    if (!existing) throw publicError(404, 'Cuenta familiar no encontrada')
 
     const existingRole = String(existing.role || '').toUpperCase()
     const existingUnidades = String(existing.unidad || '').split(',').map((item) => item.trim()).filter(Boolean)
@@ -638,7 +612,7 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
     const sameUnidad = existingUnidades.includes(sala.unidad)
 
     if (!existingRole.includes('HUSKY') || !sameSala || !sameUnidad) {
-      throw createError({ statusCode: 403, statusMessage: 'Cuenta familiar fuera del alcance de esta sala' })
+      throw publicError(403, 'Cuenta familiar fuera del alcance de esta sala')
     }
 
     await legacyWrite(
@@ -691,7 +665,7 @@ export async function getAuthorizedPersonas(user: AppSessionUser) {
 export async function upsertAuthorizedPersona(user: AppSessionUser, payload: AuthorizedPersonPayload) {
   const indice = Number(payload.indice || 1)
   if (indice < 1 || indice > 4) {
-    throw createError({ statusCode: 400, statusMessage: 'Índice de persona autorizada inválido' })
+    throw publicError(400, 'Índice de persona autorizada inválido')
   }
 
   const values = {
@@ -706,15 +680,15 @@ export async function upsertAuthorizedPersona(user: AppSessionUser, payload: Aut
 
   if (payload.id) {
     const existingById = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [payload.id])
-    if (!existingById) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+    if (!existingById) throw publicError(404, 'Persona autorizada no encontrada')
     assertFamilyOwner(user, existingById.user_id as number)
-    throw createError({ statusCode: 409, statusMessage: AUTHORIZE_RECAPTURE_MESSAGE })
+    throw publicError(409, AUTHORIZE_RECAPTURE_MESSAGE)
   }
 
   const existingSlot = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE user_id = ? AND indice = ? ORDER BY id ASC LIMIT 1', [user.id, indice])
   if (existingSlot) {
     assertFamilyOwner(user, existingSlot.user_id as number)
-    throw createError({ statusCode: 409, statusMessage: AUTHORIZE_RECAPTURE_MESSAGE })
+    throw publicError(409, AUTHORIZE_RECAPTURE_MESSAGE)
   }
 
   const result = await legacyWrite(
@@ -728,7 +702,7 @@ export async function upsertAuthorizedPersona(user: AppSessionUser, payload: Aut
 
 export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) {
   const existing = await legacyOne<RowDataPacket>('SELECT id, user_id FROM personas_autorizadas WHERE id = ? LIMIT 1', [id])
-  if (!existing) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+  if (!existing) throw publicError(404, 'Persona autorizada no encontrada')
   assertFamilyOwner(user, existing.user_id as number)
   await legacyWrite('DELETE FROM personas_autorizadas WHERE id = ? AND user_id = ?', [id, user.id])
   return { ok: true }
@@ -759,7 +733,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
      GROUP BY A.id`,
     [id]
   )
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Persona autorizada no encontrada' })
+  if (!row) throw publicError(404, 'Persona autorizada no encontrada')
   assertFamilyOwner(user, row.user_id)
   row.children = await getFamilyChildren(user)
   const currentChild = row.children.find((child) => child.isCurrent) || row.children?.[0] || null
@@ -806,7 +780,7 @@ export async function getScanAuthorizedPersona(id: number) {
      GROUP BY p.id`,
     [id]
   )
-  if (!rows.length) throw createError({ statusCode: 404, statusMessage: 'No se encontró el registro' })
+  if (!rows.length) throw publicError(404, 'No se encontró el registro')
   return rows[0]
 }
 

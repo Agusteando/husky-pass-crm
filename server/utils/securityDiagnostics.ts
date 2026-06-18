@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { errorSummary, logEvent } from '~/server/utils/logger'
 
 type DiagnosticContext = Record<string, unknown>
 
@@ -18,44 +19,17 @@ function safeContext(context: DiagnosticContext) {
   }))
 }
 
-function errorSummary(error: unknown) {
-  if (!error || typeof error !== 'object') return { message: String(error || 'unknown') }
-  const candidate = error as {
-    code?: string
-    errno?: number
-    sqlState?: string
-    sqlMessage?: string
-    message?: string
-    statusCode?: number
-    statusMessage?: string
-    stack?: string
-  }
-  return {
-    message: candidate.sqlMessage || candidate.statusMessage || candidate.message || 'unknown',
-    code: candidate.code,
-    errno: candidate.errno,
-    sqlState: candidate.sqlState,
-    statusCode: candidate.statusCode,
-    statusMessage: candidate.statusMessage,
-    stack: candidate.stack?.split('\n').slice(0, 3).join('\n')
-  }
-}
-
 export function logSecurityDiagnostic(scope: string, error: unknown, context: DiagnosticContext = {}) {
-  const payload = {
+  logEvent('error', `account-security:${scope}`, {
     scope,
-    at: new Date().toISOString(),
     error: errorSummary(error),
     context: safeContext(context)
-  }
-  console.error(`[account-security:${scope}] ${JSON.stringify(payload)}`)
+  })
 }
 
 export function logSecurityWarning(scope: string, context: DiagnosticContext = {}) {
-  const payload = {
+  logEvent('warn', `account-security:${scope}`, {
     scope,
-    at: new Date().toISOString(),
     context: safeContext(context)
-  }
-  console.warn(`[account-security:${scope}] ${JSON.stringify(payload)}`)
+  })
 }

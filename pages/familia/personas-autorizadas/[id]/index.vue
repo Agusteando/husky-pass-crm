@@ -57,12 +57,13 @@ import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
+import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-detail-${route.params.id}` })
-const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { timeout: 15000 })
+const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
 const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
   key: `pa-detail-marbete-readiness-${route.params.id}`,
   query: { id: route.params.id, format: 'readiness' },
@@ -87,7 +88,7 @@ const subtitle = computed(() => person.value?.parenP || (primaryChild.value ? st
 const studentLine = computed(() => {
   const child = primaryChild.value
   if (!child) return ''
-  return [child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ')
+  return [displayMatricula(child.matricula), child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ')
 })
 const marbeteReady = computed(() => Boolean(readiness.value?.ok))
 const marbeteMessage = computed(() => {

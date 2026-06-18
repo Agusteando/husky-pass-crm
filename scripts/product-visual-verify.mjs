@@ -275,6 +275,14 @@ async function loginFamily(page, baseUrl, experience, credentials, expectedPath)
   await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined)
 }
 
+async function logoutThroughAccountMenu(page) {
+  const visibleLogout = page.locator('[data-diagnostic-action="logout"]:visible').last()
+  if (!await visibleLogout.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await page.locator('[data-diagnostic-action="abrir-menu-cuenta"]').last().click()
+  }
+  await page.locator('[data-diagnostic-action="logout"]:visible').last().click()
+}
+
 async function superAdminCookie(baseUrl) {
   const user = {
     isSuperAdmin: true,
@@ -417,7 +425,7 @@ async function escolarSuite(browser, baseUrl, dirs, evidence) {
       await page.locator('[role="dialog"]').waitFor({ state: 'detached', timeout: 10000 }).catch(() => undefined)
     }
 
-    await page.locator('[data-diagnostic-action="logout"], button:has-text("Salir")').last().click()
+    await logoutThroughAccountMenu(page)
     await page.waitForURL((url) => url.pathname === '/login/escolar', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'escolar', 'escolar-logout-return', page.url(), { selectors: ['.login-page'] }))
 
@@ -442,7 +450,7 @@ async function guarderiaSuite(browser, baseUrl, dirs, evidence) {
       shots.push(await capturePage(page, baseUrl, dirs, 'guarderia', route[0], route[1], { selectors: route[2] }))
     }
 
-    await page.locator('[data-diagnostic-action="logout"], button:has-text("Salir")').last().click()
+    await logoutThroughAccountMenu(page)
     await page.waitForURL((url) => url.pathname === '/login/guarderia', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'guarderia', 'guarderia-logout-return', page.url(), { selectors: ['.login-page'] }))
 
@@ -497,7 +505,7 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
       shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-husky-pass-desk', '/admin/superadmin/personas-autorizadas', { selectors: ['[data-product-screen="husky-pass-desk"]'], timeout: 60000 }))
     }
 
-    await page.locator('[data-diagnostic-action="logout"], button:has-text("Salir")').last().click()
+    await logoutThroughAccountMenu(page)
     await page.waitForURL((url) => url.pathname === '/admin/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-logout-return', page.url(), { selectors: ['.login-page'] }))
 

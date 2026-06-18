@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { createError } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import type { RowDataPacket } from 'mysql2/promise'
 import { legacyOne, legacyQuery, legacyWrite, csvToList } from '~/server/utils/mysql'
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
@@ -40,10 +40,10 @@ function normalizeName(value: string) {
 
 function assertStrongEnoughPassword(password: string) {
   if (password.length < 8) {
-    throw createError({ statusCode: 400, statusMessage: 'La contraseña debe tener al menos 8 caracteres.' })
+    throw publicError(400, 'La contraseña debe tener al menos 8 caracteres.')
   }
   if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    throw createError({ statusCode: 400, statusMessage: 'Usa una contraseña con letras y números.' })
+    throw publicError(400, 'Usa una contraseña con letras y números.')
   }
 }
 
@@ -69,11 +69,11 @@ async function resolvePublicSala(salaId: number, unidad?: string | null) {
      LIMIT 1`,
     [salaId]
   )
-  if (!sala) throw createError({ statusCode: 404, statusMessage: 'No encontramos la sala seleccionada.' })
+  if (!sala) throw publicError(404, 'No encontramos la sala seleccionada.')
 
   const requestedUnidad = clean(unidad)
   if (requestedUnidad && requestedUnidad !== clean(sala.unidad)) {
-    throw createError({ statusCode: 400, statusMessage: 'La unidad no coincide con la sala seleccionada.' })
+    throw publicError(400, 'La unidad no coincide con la sala seleccionada.')
   }
 
   return {
@@ -106,27 +106,27 @@ export async function registerDaycareFamily(input: DaycareRegistrationInput) {
   const parentName = normalizeName(input.parentName)
   const childName = normalizeName(input.childName)
   const email = normalizeEmail(input.email)
-  if (!parentName) throw createError({ statusCode: 400, statusMessage: 'Escribe el nombre de madre, padre o tutor.' })
-  if (!childName) throw createError({ statusCode: 400, statusMessage: 'Escribe el nombre del niño o niña.' })
-  if (!email) throw createError({ statusCode: 400, statusMessage: 'Escribe un correo válido.' })
+  if (!parentName) throw publicError(400, 'Escribe el nombre de madre, padre o tutor.')
+  if (!childName) throw publicError(400, 'Escribe el nombre del niño o niña.')
+  if (!email) throw publicError(400, 'Escribe un correo válido.')
   assertStrongEnoughPassword(input.password)
 
   const sala = await resolvePublicSala(input.sala, input.unidad)
   const existing = await findExistingUsers(email)
   if (existing.length > 1) {
-    throw createError({ statusCode: 409, statusMessage: 'Encontramos más de una cuenta con ese correo. Solicita apoyo de administración.' })
+    throw publicError(409, 'Encontramos más de una cuenta con ese correo. Solicita apoyo de administración.')
   }
 
   const current = existing[0]
   if (current) {
     const daycare = daycareScopeFor(current)
     if (daycare?.unidad === sala.unidad && String(daycare.sala) === String(sala.id)) {
-      throw createError({ statusCode: 409, statusMessage: 'Este correo ya tiene acceso a guardería. Ingresa con tu cuenta existente.' })
+      throw publicError(409, 'Este correo ya tiene acceso a guardería. Ingresa con tu cuenta existente.')
     }
     if (daycare) {
-      throw createError({ statusCode: 409, statusMessage: 'Este correo ya está vinculado a otra sala. Solicita apoyo de administración.' })
+      throw publicError(409, 'Este correo ya está vinculado a otra sala. Solicita apoyo de administración.')
     }
-    throw createError({ statusCode: 409, statusMessage: 'Este correo ya existe en Husky Pass. Solicita a administración activar guardería en esa cuenta.' })
+    throw publicError(409, 'Este correo ya existe en Husky Pass. Solicita a administración activar guardería en esa cuenta.')
   }
 
   const passwordHash = await bcrypt.hash(input.password, 10)

@@ -1,6 +1,9 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Datos del alumno">
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los datos del alumno.</p>
+    <div v-if="loadError" class="alert retry-alert" data-state="error">
+      <span>No fue posible cargar los datos del alumno.</span>
+      <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-datos-alumno" @click="retryLoad">Reintentar</button>
+    </div>
     <div v-else-if="pending" class="card loading-row" data-product-loading>Cargando…</div>
 
     <template v-else-if="profile">
@@ -220,7 +223,7 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 type FieldKey = keyof PersonasStudentEditable
 type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
-const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000 })
+const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000, dedupe: 'defer' })
 const { data: grupoManifest } = useFetch<GrupoIconManifest>('/grupo-icons/manifest.json', { key: 'pa-student-data-grupo-icons', timeout: 15000 })
 const form = reactive<Record<string, string>>({})
 const original = ref<Record<string, string>>({})
@@ -229,6 +232,10 @@ const saving = ref(false)
 const error = ref('')
 const notice = ref('')
 const activeGroup = ref<FieldGroup | null>(null)
+
+function retryLoad() {
+  return refresh()
+}
 
 const theme = computed(() => resolvePersonasTheme({
   matricula: profile.value?.readonly.matricula,
@@ -373,7 +380,11 @@ function familyRowSubtitle(group: FieldGroup) {
   const keys = group.title === 'Padre'
     ? ['nombre_padre', 'apellido_paterno_padre', 'apellido_materno_padre']
     : ['nombre_madre', 'apellido_paterno_madre', 'apellido_materno_madre']
-  return compactText(keys.map((key) => form[key])) || (group.title === 'Padre' ? 'Padre' : 'Madre')
+  return compactText(keys.map((key) => displayEditableField(key as FieldKey))) || (group.title === 'Padre' ? 'Padre' : 'Madre')
+}
+
+function displayEditableField(key: FieldKey) {
+  return form[key] || formatEditableValue(profile.value?.editable[key])
 }
 
 function formatEditableValue(value: unknown) {

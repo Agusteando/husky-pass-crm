@@ -1,6 +1,7 @@
-import { createError } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { createPool, type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
+import { publicError } from '~/server/utils/httpError'
+import { logEvent } from '~/server/utils/logger'
 
 type LegacySqlValue = string | number | boolean | Date | null
 
@@ -55,12 +56,12 @@ function isTransientMysqlError(error: unknown) {
 function toPublicMysqlError(error: unknown) {
   if (error && typeof error === 'object') {
     const candidate = error as { code?: string; message?: string; statusCode?: number; statusMessage?: string }
-    if (candidate.statusCode && candidate.statusMessage) return error
+    if (candidate.statusCode && (candidate.statusMessage || candidate.message)) return error
     if (candidate.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
-      return createError({ statusCode: 504, statusMessage: 'La consulta a base de datos excedió el tiempo de espera. Intenta de nuevo.' })
+      return publicError(504, 'La consulta a base de datos excedio el tiempo de espera. Intenta de nuevo.')
     }
     if (isTransientMysqlError(error)) {
-      return createError({ statusCode: 503, statusMessage: 'La conexión a base de datos se perdió. Intenta de nuevo.' })
+      return publicError(503, 'La conexion a base de datos se perdio. Intenta de nuevo.')
     }
   }
   return error
@@ -81,11 +82,24 @@ async function executeWithRetry<T>(sql: string, params: LegacySqlValue[]): Promi
   let lastError: unknown
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const startedAt = performance.now()
     try {
       const [result] = await getPool().execute({ sql, values: params, timeout: DEFAULT_QUERY_TIMEOUT_MS })
+      const rowCount = Array.isArray(result) ? result.length : (result as ResultSetHeader).affectedRows
+      logEvent('debug', 'mysql.query', {
+        durationMs: Math.round(performance.now() - startedAt),
+        rowCount,
+        attempt: attempt + 1
+      })
       return result as T
     } catch (error) {
       lastError = error
+      logEvent('debug', 'mysql.query.failed', {
+        durationMs: Math.round(performance.now() - startedAt),
+        attempt: attempt + 1,
+        dependency: 'mysql',
+        code: error && typeof error === 'object' ? (error as { code?: string }).code : undefined
+      })
       if (!isTransientMysqlError(error) || attempt === 1) break
       await resetPool()
     }

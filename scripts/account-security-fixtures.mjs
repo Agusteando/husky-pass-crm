@@ -7,6 +7,14 @@ const DAYCARE_EMAIL = 'codex.daycare.parent@example.test'
 const PA_EMAIL = 'codex.pa.parent@example.test'
 const DAYCARE_USERNAME = 'CODEX-DAYCARE-001'
 const PA_USERNAME = 'PMCODEX001'
+const PARENT_FIELDS = [
+  'nombre_padre',
+  'apellido_paterno_padre',
+  'apellido_materno_padre',
+  'nombre_madre',
+  'apellido_paterno_madre',
+  'apellido_materno_madre'
+]
 
 function command() {
   return process.argv.find((arg) => ['up', 'down', 'list'].includes(arg)) || 'up'
@@ -38,6 +46,11 @@ async function firstSala(conn) {
   const row = rows[0]
   if (!row) throw new Error('No salas rows are available for daycare fixture.')
   return row
+}
+
+async function tableColumns(conn, table) {
+  const [rows] = await conn.execute(`SHOW COLUMNS FROM ${table}`)
+  return new Set(rows.map((row) => String(row.Field || '')))
 }
 
 async function upsertUser(conn, input) {
@@ -92,7 +105,7 @@ async function seedPersonas(conn) {
   )
 
   const [existingMatricula] = await conn.execute('SELECT id FROM matricula WHERE matricula = ? LIMIT 1', [PA_USERNAME])
-  const values = [
+  const baseValues = [
     'CAXX160229HDFBCDA1',
     'Prueba',
     'Visual',
@@ -105,18 +118,32 @@ async function seedPersonas(conn) {
     '2025-2026',
     'Taller de arte, Comedor, Taller de arte,  Transporte '
   ]
+  const parentValues = {
+    nombre_padre: 'Padre Codex',
+    apellido_paterno_padre: 'Prueba',
+    apellido_materno_padre: 'Visual',
+    nombre_madre: 'Madre Codex',
+    apellido_paterno_madre: 'Prueba',
+    apellido_materno_madre: 'Visual'
+  }
+  const columns = await tableColumns(conn, 'matricula')
+  const optionalFields = PARENT_FIELDS.filter((field) => columns.has(field))
+  const optionalAssignments = optionalFields.map((field) => `${field} = ?`)
+  const optionalInsertFields = optionalFields.join(', ')
+  const optionalInsertPlaceholders = optionalFields.map(() => '?').join(', ')
+  const optionalValues = optionalFields.map((field) => parentValues[field])
   if (existingMatricula[0]?.id) {
     await conn.execute(
       `UPDATE matricula
-       SET curp = ?, apellido_paterno = ?, apellido_materno = ?, nombres = ?, grado = ?, grupo = ?, foto = ?, fecha_nacimiento = ?, nivel = ?, ciclo = ?, servicio = ?
+       SET curp = ?, apellido_paterno = ?, apellido_materno = ?, nombres = ?, grado = ?, grupo = ?, foto = ?, fecha_nacimiento = ?, nivel = ?, ciclo = ?, servicio = ?${optionalAssignments.length ? `, ${optionalAssignments.join(', ')}` : ''}
        WHERE matricula = ?`,
-      [...values, PA_USERNAME]
+      [...baseValues, ...optionalValues, PA_USERNAME]
     )
   } else {
     await conn.execute(
-      `INSERT INTO matricula (matricula, curp, apellido_paterno, apellido_materno, nombres, grado, grupo, foto, fecha_nacimiento, nivel, ciclo, servicio)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [PA_USERNAME, ...values]
+      `INSERT INTO matricula (matricula, curp, apellido_paterno, apellido_materno, nombres, grado, grupo, foto, fecha_nacimiento, nivel, ciclo, servicio${optionalInsertFields ? `, ${optionalInsertFields}` : ''})
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${optionalInsertPlaceholders ? `, ${optionalInsertPlaceholders}` : ''})`,
+      [PA_USERNAME, ...baseValues, ...optionalValues]
     )
   }
   return userId

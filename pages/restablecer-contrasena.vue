@@ -108,7 +108,7 @@ async function submit() {
     success.value = true
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible actualizar la contrasena.'
+    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible actualizar la contraseña.'
   } finally {
     loading.value = false
   }

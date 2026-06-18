@@ -38,10 +38,13 @@ export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
   return '/login'
 }
 
-export function familyNavItems(user: AppSessionUser | null | undefined) {
+export function familyNavItems(user: AppSessionUser | null | undefined, activeScope?: FamilyProductScope | 'attendance' | 'chooser') {
   const items: Array<{ label: string; to: string; icon: string }> = []
 
-  if (hasFamilyScope(user, 'daycare')) {
+  const showDaycare = activeScope ? activeScope === 'daycare' || activeScope === 'chooser' : hasFamilyScope(user, 'daycare')
+  const showPersonas = activeScope ? activeScope === 'personasAutorizadas' || activeScope === 'attendance' || activeScope === 'chooser' : hasFamilyScope(user, 'personasAutorizadas')
+
+  if (showDaycare && hasFamilyScope(user, 'daycare')) {
     items.push(
       { label: 'Guardería', to: '/familia/daycare', icon: 'daycare' },
       { label: 'Tareas', to: '/familia/daycare/tareas', icon: 'edit' },
@@ -50,7 +53,7 @@ export function familyNavItems(user: AppSessionUser | null | undefined) {
     )
   }
 
-  if (hasFamilyScope(user, 'personasAutorizadas')) {
+  if (showPersonas && hasFamilyScope(user, 'personasAutorizadas')) {
     items.push({ label: 'Personas autorizadas', to: '/familia/personas-autorizadas', icon: 'people' })
     items.push({ label: 'Asistencia', to: '/familia/asistencia', icon: 'calendar' })
   }

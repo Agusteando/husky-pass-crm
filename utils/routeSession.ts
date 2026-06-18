@@ -1,8 +1,17 @@
-import { useRequestEvent, useRuntimeConfig } from 'nuxt/app'
+import { useRequestEvent, useRuntimeConfig, useState } from 'nuxt/app'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 
-const anonymousSession: PublicSession = { user: null, loggedin: false }
+export const anonymousSession: PublicSession = { user: null, loggedin: false }
 const sessionCookieName = 'hpc_session'
+const sessionStateKey = 'app-session-cache'
+
+export function useRouteSessionCache() {
+  return useState<PublicSession | null>(sessionStateKey, () => null)
+}
+
+export function setCachedRouteSession(session: PublicSession | null) {
+  useRouteSessionCache().value = session
+}
 
 function readCookieValue(cookieHeader: string | undefined, name: string) {
   if (!cookieHeader) return null
@@ -66,9 +75,15 @@ export async function getRouteSession(): Promise<PublicSession> {
     return getServerRouteSession()
   }
 
+  const cached = useRouteSessionCache()
+  if (cached.value) return cached.value
+
   try {
-    return await $fetch<PublicSession>('/api/auth/me')
+    const session = await $fetch<PublicSession>('/api/auth/me')
+    cached.value = session
+    return session
   } catch {
+    cached.value = anonymousSession
     return anonymousSession
   }
 }

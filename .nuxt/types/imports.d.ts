@@ -9,6 +9,7 @@ declare global {
   const abortNavigation: typeof import('../../node_modules/nuxt/dist/app/composables/router').abortNavigation
   const addRouteMiddleware: typeof import('../../node_modules/nuxt/dist/app/composables/router').addRouteMiddleware
   const allPersonasThemes: typeof import('../../utils/personasTheme').allPersonasThemes
+  const anonymousSession: typeof import('../../utils/routeSession').anonymousSession
   const appAbsoluteUrl: typeof import('../../utils/daycare').appAbsoluteUrl
   const authorizedPersonCredentialPath: typeof import('../../utils/daycare').authorizedPersonCredentialPath
   const authorizedPersonFormIsValid: typeof import('../../utils/authorizedPersonForm').authorizedPersonFormIsValid
@@ -160,6 +161,7 @@ declare global {
   const resolveSchoolYearOption: typeof import('../../utils/attendance').resolveSchoolYearOption
   const resolveVisualIdentity: typeof import('../../utils/experienceIdentity').resolveVisualIdentity
   const sameMatricula: typeof import('../../utils/matricula').sameMatricula
+  const setCachedRouteSession: typeof import('../../utils/routeSession').setCachedRouteSession
   const setInterval: typeof import('../../node_modules/nuxt/dist/app/compat/interval').setInterval
   const setPageLayout: typeof import('../../node_modules/nuxt/dist/app/composables/router').setPageLayout
   const setResponseStatus: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').setResponseStatus
@@ -179,6 +181,7 @@ declare global {
   const unref: typeof import('../../node_modules/vue').unref
   const updateAppConfig: typeof import('../../node_modules/nuxt/dist/app/config').updateAppConfig
   const useAppConfig: typeof import('../../node_modules/nuxt/dist/app/config').useAppConfig
+  const useAppSession: typeof import('../../composables/useAppSession').useAppSession
   const useAsyncData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useAsyncData
   const useAttrs: typeof import('../../node_modules/vue').useAttrs
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie').useCookie
@@ -208,6 +211,7 @@ declare global {
   const useResponseHeader: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').useResponseHeader
   const useRoute: typeof import('../../node_modules/nuxt/dist/app/composables/router').useRoute
   const useRouteAnnouncer: typeof import('../../node_modules/nuxt/dist/app/composables/route-announcer').useRouteAnnouncer
+  const useRouteSessionCache: typeof import('../../utils/routeSession').useRouteSessionCache
   const useRouter: typeof import('../../node_modules/nuxt/dist/app/composables/router').useRouter
   const useRuntimeConfig: typeof import('../../node_modules/nuxt/dist/app/nuxt').useRuntimeConfig
   const useRuntimeHook: typeof import('../../node_modules/nuxt/dist/app/composables/runtime-hook').useRuntimeHook
@@ -309,6 +313,7 @@ declare module 'vue' {
     readonly abortNavigation: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['abortNavigation']>
     readonly addRouteMiddleware: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['addRouteMiddleware']>
     readonly allPersonasThemes: UnwrapRef<typeof import('../../utils/personasTheme')['allPersonasThemes']>
+    readonly anonymousSession: UnwrapRef<typeof import('../../utils/routeSession')['anonymousSession']>
     readonly appAbsoluteUrl: UnwrapRef<typeof import('../../utils/daycare')['appAbsoluteUrl']>
     readonly authorizedPersonCredentialPath: UnwrapRef<typeof import('../../utils/daycare')['authorizedPersonCredentialPath']>
     readonly authorizedPersonFormIsValid: UnwrapRef<typeof import('../../utils/authorizedPersonForm')['authorizedPersonFormIsValid']>
@@ -460,6 +465,7 @@ declare module 'vue' {
     readonly resolveSchoolYearOption: UnwrapRef<typeof import('../../utils/attendance')['resolveSchoolYearOption']>
     readonly resolveVisualIdentity: UnwrapRef<typeof import('../../utils/experienceIdentity')['resolveVisualIdentity']>
     readonly sameMatricula: UnwrapRef<typeof import('../../utils/matricula')['sameMatricula']>
+    readonly setCachedRouteSession: UnwrapRef<typeof import('../../utils/routeSession')['setCachedRouteSession']>
     readonly setInterval: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/interval')['setInterval']>
     readonly setPageLayout: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['setPageLayout']>
     readonly setResponseStatus: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['setResponseStatus']>
@@ -479,6 +485,7 @@ declare module 'vue' {
     readonly unref: UnwrapRef<typeof import('../../node_modules/vue')['unref']>
     readonly updateAppConfig: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/config')['updateAppConfig']>
     readonly useAppConfig: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/config')['useAppConfig']>
+    readonly useAppSession: UnwrapRef<typeof import('../../composables/useAppSession')['useAppSession']>
     readonly useAsyncData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useAsyncData']>
     readonly useAttrs: UnwrapRef<typeof import('../../node_modules/vue')['useAttrs']>
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
@@ -508,6 +515,7 @@ declare module 'vue' {
     readonly useResponseHeader: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['useResponseHeader']>
     readonly useRoute: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['useRoute']>
     readonly useRouteAnnouncer: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/route-announcer')['useRouteAnnouncer']>
+    readonly useRouteSessionCache: UnwrapRef<typeof import('../../utils/routeSession')['useRouteSessionCache']>
     readonly useRouter: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['useRouter']>
     readonly useRuntimeConfig: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useRuntimeConfig']>
     readonly useRuntimeHook: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/runtime-hook')['useRuntimeHook']>

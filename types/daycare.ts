@@ -48,6 +48,7 @@ export interface AuthorizedChild {
   isCurrent?: boolean
   canSwitch?: boolean
   siblingMatch?: 'parents' | 'current' | 'unavailable' | 'review'
+  siblingDiagnostics?: Record<string, unknown>
 }
 
 export interface AuthorizedPerson {

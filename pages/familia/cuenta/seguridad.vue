@@ -63,16 +63,16 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed, reactive, ref } from 'vue'
-import { useFetch, useRoute } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { useRoute } from 'nuxt/app'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { experienceThemeVars, normalizeExperienceName, resolveVisualIdentity } from '~/utils/experienceIdentity'
 
 definePageMeta({ layout: 'family', middleware: 'family' })
 
 const route = useRoute()
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'account-security-session' })
+const { data: session } = useAppSession()
 const form = reactive({ currentPassword: '', password: '', confirmation: '' })
 const loading = ref(false)
 const error = ref('')
@@ -102,10 +102,10 @@ async function submit() {
     form.currentPassword = ''
     form.password = ''
     form.confirmation = ''
-    notice.value = response.message || 'Contrasena actualizada.'
+    notice.value = response.message || 'Contraseña actualizada.'
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cambiar la contrasena.'
+    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible cambiar la contraseña.'
   } finally {
     loading.value = false
   }

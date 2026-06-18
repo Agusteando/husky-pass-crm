@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody, setCookie } from 'h3'
+import { defineEventHandler, readBody, setCookie } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { findLegacyUserById } from '~/server/data/mysqlAuth'
 import { isSuperAdmin } from '~/server/utils/authz'
@@ -9,18 +10,18 @@ const schema = z.object({ userId: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
   const current = getAppSession(event).user
-  if (!current) throw createError({ statusCode: 401, statusMessage: 'Sesión no válida' })
+  if (!current) throw publicError(401, 'Sesión no válida')
   if (!isSuperAdmin(current)) {
-    throw createError({ statusCode: 403, statusMessage: 'La impersonación de cuentas está reservada para superadmin' })
+    throw publicError(403, 'La impersonación de cuentas está reservada para superadmin')
   }
 
   const body = schema.parse(await readBody(event))
   const legacyUser = await findLegacyUserById(body.userId)
-  if (!legacyUser) throw createError({ statusCode: 404, statusMessage: 'Cuenta familiar no encontrada' })
+  if (!legacyUser) throw publicError(404, 'Cuenta familiar no encontrada')
 
   const familyUser = legacyUser.toSession('family')
   if (!familyUser.productScopes.length) {
-    throw createError({ statusCode: 403, statusMessage: 'La cuenta no tiene acceso familiar habilitado' })
+    throw publicError(403, 'La cuenta no tiene acceso familiar habilitado')
   }
 
   familyUser.impersonation = {

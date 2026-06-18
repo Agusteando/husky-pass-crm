@@ -1,4 +1,5 @@
-import { createError, getHeader, type H3Event } from 'h3'
+import { getHeader, type H3Event } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 
@@ -61,22 +62,22 @@ export function verifyCaptchaChallenge(token?: string | null, answer?: string | 
   const raw = String(token || '')
   const [payload, signature] = raw.split('.')
   if (!payload || !signature || !verifySignature(payload, signature)) {
-    throw createError({ statusCode: 400, statusMessage: 'La verificación CAPTCHA no es válida.' })
+    throw publicError(400, 'La verificación CAPTCHA no es válida.')
   }
 
   let decoded: CaptchaPayload
   try {
     decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as CaptchaPayload
   } catch {
-    throw createError({ statusCode: 400, statusMessage: 'La verificación CAPTCHA no es válida.' })
+    throw publicError(400, 'La verificación CAPTCHA no es válida.')
   }
 
   if (Date.now() > decoded.exp) {
-    throw createError({ statusCode: 400, statusMessage: 'La verificación CAPTCHA expiró. Intenta de nuevo.' })
+    throw publicError(400, 'La verificación CAPTCHA expiró. Intenta de nuevo.')
   }
 
   if (Number(answer) !== decoded.answer) {
-    throw createError({ statusCode: 400, statusMessage: 'La respuesta CAPTCHA no coincide.' })
+    throw publicError(400, 'La respuesta CAPTCHA no coincide.')
   }
 }
 
@@ -84,7 +85,7 @@ export function assertRateLimit(key: string, options: { limit: number; windowMs:
   const now = Date.now()
   const previous = (rateBuckets.get(key) || []).filter((time) => now - time < options.windowMs)
   if (previous.length >= options.limit) {
-    throw createError({ statusCode: 429, statusMessage: options.message })
+    throw publicError(429, options.message)
   }
   previous.push(now)
   rateBuckets.set(key, previous)
@@ -106,13 +107,13 @@ export function assertRegistrationAntibot(event: H3Event, input: {
   email?: string | null
 }) {
   if (String(input.website || '').trim()) {
-    throw createError({ statusCode: 400, statusMessage: 'No fue posible validar el registro.' })
+    throw publicError(400, 'No fue posible validar el registro.')
   }
 
   const startedAt = Number(input.startedAt || 0)
   const elapsed = Date.now() - startedAt
   if (!Number.isFinite(startedAt) || elapsed < MIN_FORM_SECONDS * 1000 || elapsed > MAX_FORM_MINUTES * 60 * 1000) {
-    throw createError({ statusCode: 400, statusMessage: 'Vuelve a intentar el registro desde el formulario.' })
+    throw publicError(400, 'Vuelve a intentar el registro desde el formulario.')
   }
 
   verifyCaptchaChallenge(input.captchaToken, input.captchaAnswer)

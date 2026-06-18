@@ -32,14 +32,14 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
-import { useFetch } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+
 import { hasFamilyScope } from '~/utils/sessionScopes'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'family-index'] })
 
-const { data: session } = useFetch<PublicSession>('/api/auth/me')
+const { data: session } = useAppSession()
 const canDaycare = computed(() => hasFamilyScope(session.value?.user, 'daycare'))
 const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 </script>

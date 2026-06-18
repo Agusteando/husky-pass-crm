@@ -1,7 +1,10 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Personas autorizadas">
     <p v-if="downloadError" class="alert pa-download-alert" data-state="error">{{ downloadError }}</p>
-    <p v-if="loadError" class="alert" data-state="error">No fue posible cargar Personas Autorizadas.</p>
+    <div v-if="loadError" class="alert retry-alert" data-state="error">
+      <span>No fue posible cargar Personas Autorizadas.</span>
+      <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-personas-autorizadas" @click="retryLoad">Reintentar</button>
+    </div>
     <div v-else-if="pending" class="card loading-row" data-product-loading data-state="loading">Cargando...</div>
 
     <template v-else>
@@ -14,18 +17,31 @@
             <div>
               <p class="eyebrow">{{ levelLabel }}</p>
               <h1>Personas autorizadas</h1>
-              <p>Administra las personas que pueden recoger a {{ studentFirstName }}.</p>
+              <p>Gestiona de forma segura quién puede recoger a {{ studentFirstName }}.</p>
             </div>
           </div>
 
-          <NuxtLink v-if="!studentPhoto" class="student-photo-callout" to="/familia/personas-autorizadas/credencializacion">
-            <span class="callout-icon" aria-hidden="true">i</span>
-            <span class="callout-copy">
-              <strong>Foto del alumno pendiente</strong>
-              <small>Sube la foto de {{ studentFirstName }} para generar los Husky Pass.</small>
-            </span>
-            <span class="callout-action">Subir foto</span>
-          </NuxtLink>
+          <div class="pa-hero-actions">
+            <button
+              v-if="expressSlot && !expressSlot.id"
+              class="hero-express-action"
+              type="button"
+              data-diagnostic-action="agregar-pase-express-hero"
+              @click="edit(expressSlot)"
+            >
+              <FamilyPersonasIcon name="plus" />
+              Agregar pase express
+            </button>
+
+            <NuxtLink v-if="!studentPhoto" class="student-photo-callout" to="/familia/personas-autorizadas/credencializacion">
+              <span class="callout-icon" aria-hidden="true">i</span>
+              <span class="callout-copy">
+                <strong>Foto del alumno pendiente</strong>
+                <small>Sube la foto de {{ studentFirstName }} para generar los Husky Pass.</small>
+              </span>
+              <span class="callout-action">Subir foto</span>
+            </NuxtLink>
+          </div>
         </header>
 
         <section class="authorized-section" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
@@ -53,16 +69,26 @@
               :class="{ selected: selected?.indice === person.indice, empty: !person.id, express: person.indice === 4 }"
               :data-state="person.id ? 'registered' : 'available'"
               :data-slot="person.indice"
+              role="button"
+              tabindex="0"
+              :aria-label="slotActionLabel(person)"
               @click="selectPerson(person)"
+              @keydown.enter.prevent="selectPerson(person)"
+              @keydown.space.prevent="selectPerson(person)"
             >
               <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo"><FamilyPersonasIcon name="check" /></span>
+              <span v-if="!person.id && person.indice === 4" class="slot-badge">Nuevo</span>
+              <span v-if="!person.id && person.indice === 4" class="express-preview" aria-hidden="true">
+                <span class="express-preview-screen"><FamilyPersonasIcon name="check" /></span>
+              </span>
 
               <span class="person-photo" :data-empty="!person.id">
                 <FamilyPersonasProcessedPhoto
                   v-if="photoUrl(person)"
                   :src="person.foto"
                   :processed-src="person.compressed_foto"
-                  :auto-process="false"
+                  :auto-process="true"
+                  :trust-stored-processed="true"
                   :namespace="`pa-person-${person.id || person.indice}`"
                   :alt="fullName(person)"
                 />
@@ -73,6 +99,7 @@
               <div class="person-meta">
                 <h3>{{ slotTitle(person) }}</h3>
                 <p>{{ slotSubtitle(person) }}</p>
+                <span v-if="!person.id && person.indice === 4" class="express-description">Crea un pase temporal para una persona que recogerá a {{ studentFirstName }} una sola vez.</span>
               </div>
 
               <div class="slot-actions" @click.stop>
@@ -117,15 +144,16 @@
         <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
           <article class="card tutorial-card">
             <header class="section-head branded-head">
-              <div class="section-title-inline">
-                <FamilyPersonasIcon name="document" />
-                <h2>Tutorial</h2>
+              <div>
+                <div class="section-title-inline">
+                  <FamilyPersonasIcon name="document" />
+                  <h2>Tutorial</h2>
+                </div>
+                <p>Aprende a crear, descargar y usar los Husky Pass.</p>
               </div>
               <FamilyPersonasAmbassador :theme="theme" variant="help" compact decorative />
             </header>
-            <div class="video-frame">
-              <iframe src="https://www.youtube.com/embed/PMBQolTRysg" title="Tutorial Personas Autorizadas" allowfullscreen loading="lazy"></iframe>
-            </div>
+            <FamilyPersonasTutorialVideo :theme="theme" video-id="PMBQolTRysg" title="Tutorial Personas Autorizadas" />
           </article>
 
           <article class="card faq-card" data-product-panel="faq" data-state="content">
@@ -148,6 +176,7 @@
               </span>
               <span class="faq-chevron" aria-hidden="true"><FamilyPersonasIcon name="chevron" /></span>
             </button>
+            <NuxtLink class="faq-support-link" to="/familia/personas-autorizadas/tutorial">¿Tienes otra pregunta? Consulta el centro de ayuda <FamilyPersonasIcon name="arrow" /></NuxtLink>
           </article>
         </section>
       </section>
@@ -223,7 +252,7 @@ import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const route = useRoute()
 const router = useRouter()
-const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000 })
+const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -259,8 +288,13 @@ const completedCount = computed(() => people.value.filter((person) => person.id)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const selected = computed(() => people.value.find((person) => person.indice === selectedIndice.value) || people.value.find((person) => person.id) || people.value[0] || null)
+const expressSlot = computed(() => people.value.find((person) => person.indice === 4) || null)
 
-const faqIntro = 'Sabemos que tendras muchas preguntas, es por eso que aqui te dejamos respuestas a algunas de ellas, si existiera alguna duda en particular, contactanos y con mucho gusto te brindaremos una atención personalizada.'
+function retryLoad() {
+  return refresh()
+}
+
+const faqIntro = 'Sabemos que tendrás muchas preguntas, por eso reunimos aquí las respuestas más comunes. Si tienes una duda particular, contáctanos y con gusto te brindaremos atención personalizada.'
 const faqItems = [
   {
     question: "¿Qué es el módulo 'Personas Autorizadas' y para qué se utiliza?",
@@ -331,6 +365,10 @@ function slotTitle(person: AuthorizedPerson) {
 function slotSubtitle(person: AuthorizedPerson) {
   if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
   return person.parenP || 'Datos pendientes'
+}
+function slotActionLabel(person: AuthorizedPerson) {
+  if (person.id) return `Ver acciones de ${fullName(person) || authorizedPersonLabel(person.indice)}`
+  return person.indice === 4 ? 'Crear pase express' : `Capturar ${authorizedPersonLabel(person.indice)}`
 }
 function localMarbeteReady(person: AuthorizedPerson) {
   return Boolean(person.id && photoUrl(person) && fullName(person) && person.parenP)
@@ -411,6 +449,10 @@ async function refreshMarbeteReadiness() {
   }))
 }
 function selectPerson(person: AuthorizedPerson) {
+  if (!person.id) {
+    edit(person)
+    return
+  }
   selectedIndice.value = person.indice
   error.value = ''
   notice.value = ''
@@ -509,43 +551,55 @@ function normalizeIndice(value: unknown) {
 <style scoped>
 .pa-home-screen {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
 .pa-page-hero {
   align-items: center;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 410px);
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 88px;
 }
 
 .pa-title-block {
   align-items: center;
   display: grid;
-  gap: 16px;
-  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 18px;
+  grid-template-columns: 64px minmax(0, 1fr);
   min-width: 0;
 }
 
 .hero-shield {
   align-items: center;
-  background: linear-gradient(145deg, #5da2dc, #2d67a8);
-  border-radius: 18px;
-  box-shadow: 0 14px 30px rgba(42, 101, 166, 0.22);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, .34), transparent 34%),
+    linear-gradient(145deg, #14939a, #09646f);
+  border: 1px solid rgba(255, 255, 255, .5);
+  border-radius: 22px;
+  box-shadow: 0 16px 32px rgba(14, 116, 124, .22);
   color: #fff;
   display: inline-grid;
-  height: 58px;
+  height: 64px;
   justify-content: center;
   position: relative;
-  width: 58px;
+  width: 64px;
 }
 
 .hero-shield::after {
-  border: 1px solid rgba(255,255,255,.4);
-  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 17px;
   content: '';
   inset: 7px;
   position: absolute;
+}
+
+.hero-shield :deep(.pa-icon) {
+  height: 1.65rem;
+  position: relative;
+  stroke-width: 2.1;
+  width: 1.65rem;
+  z-index: 1;
 }
 
 .pa-title-block h1,
@@ -555,41 +609,81 @@ function normalizeIndice(value: unknown) {
   margin-bottom: 0;
 }
 
+.pa-title-block .eyebrow {
+  color: var(--pa-primary);
+  font-size: .72rem;
+  margin-bottom: 4px;
+}
+
 .pa-title-block h1 {
-  color: #26324a;
-  font-size: clamp(1.8rem, 3vw, 2.32rem);
-  letter-spacing: -0.02em;
+  color: #1e2c45;
+  font-size: clamp(2rem, 2.5vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -.035em;
   line-height: 1;
 }
 
 .pa-title-block p:not(.eyebrow) {
-  color: #727987;
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-top: 6px;
+  color: #707a8c;
+  font-size: .92rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+.pa-hero-actions {
+  align-items: flex-end;
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.hero-express-action {
+  align-items: center;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(var(--pa-primary-rgb), .55);
+  border-radius: 13px;
+  color: var(--pa-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.hero-express-action:hover {
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(var(--pa-primary-rgb), .13);
+  transform: translateY(-1px);
 }
 
 .student-photo-callout {
   align-items: center;
   background: linear-gradient(135deg, #fffaf2, #fffdf8);
-  border: 1px solid #f0bf86;
-  border-radius: 14px;
-  box-shadow: 0 12px 28px rgba(196, 128, 56, 0.09);
+  border: 1px solid #efc18d;
+  border-radius: 15px;
+  box-shadow: 0 10px 24px rgba(196, 128, 56, .08);
   color: #844f12;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
-  min-height: 78px;
-  padding: 14px;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  max-width: 440px;
+  min-height: 68px;
+  padding: 11px 12px;
 }
 
 .callout-icon {
   align-items: center;
-  border: 2px solid #ff7a25;
+  border: 2px solid #ea7b28;
   border-radius: 999px;
-  color: #ff7a25;
+  color: #ea7b28;
   display: inline-grid;
-  font-size: 0.78rem;
+  font-size: .72rem;
   font-weight: 900;
   height: 18px;
   justify-content: center;
@@ -598,7 +692,7 @@ function normalizeIndice(value: unknown) {
 
 .callout-copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -609,30 +703,35 @@ function normalizeIndice(value: unknown) {
 }
 
 .callout-copy strong {
-  color: #b35c16;
-  font-size: 0.92rem;
+  color: #a85a1b;
+  font-size: .82rem;
 }
 
 .callout-copy small {
-  color: #7a634c;
-  font-size: 0.78rem;
-  font-weight: 700;
+  color: #786653;
+  font-size: .7rem;
+  font-weight: 650;
 }
 
 .callout-action {
-  background: #2f78bd;
+  background: #fff;
+  border: 1px solid #e7b77e;
   border-radius: 9px;
-  box-shadow: 0 8px 18px rgba(47, 120, 189, 0.22);
-  color: #fff;
-  font-size: 0.78rem;
+  color: #a85a1b;
+  font-size: .72rem;
   font-weight: 800;
-  padding: 10px 14px;
+  padding: 8px 10px;
   white-space: nowrap;
 }
 
 .authorized-section {
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid #e2e8ec;
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
   display: grid;
-  gap: 14px;
+  gap: 18px;
+  padding: 20px;
 }
 
 .section-label-row,
@@ -645,23 +744,23 @@ function normalizeIndice(value: unknown) {
 
 .section-label-row h2,
 .section-title-inline h2 {
-  color: #28324a;
+  color: #26334b;
   font-family: var(--font-body);
-  font-size: 1.06rem;
+  font-size: 1.02rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -.015em;
 }
 
 .section-label-row small {
-  color: #7a8190;
-  font-size: 0.78rem;
-  font-weight: 800;
+  color: #788294;
+  font-size: .74rem;
+  font-weight: 750;
   margin-left: auto;
 }
 
 .section-icon,
 .section-title-inline :deep(.pa-icon) {
-  color: var(--pa-primary);
+  color: #efa91e;
 }
 
 .section-icon {
@@ -672,8 +771,8 @@ function normalizeIndice(value: unknown) {
 
 .empty-guidance {
   align-items: center;
-  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .08), #fff);
-  border: 1px dashed var(--pa-border);
+  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .07), #fff);
+  border: 1px dashed rgba(var(--pa-primary-rgb), .27);
   border-radius: 18px;
   display: grid;
   gap: 12px;
@@ -687,110 +786,182 @@ function normalizeIndice(value: unknown) {
 }
 
 .empty-guidance strong {
-  color: #28324a;
+  color: #26334b;
 }
 
 .empty-guidance span {
-  color: #6f7785;
-  font-size: .84rem;
-  font-weight: 700;
+  color: #707a8c;
+  font-size: .82rem;
+  font-weight: 650;
 }
 
 .person-slots {
   display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(4, minmax(168px, 1fr));
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .person-slot-card {
-  align-content: center;
-  background: linear-gradient(180deg, #ffffff, #fbfcff);
-  border: 1px solid #dfe8f2;
-  border-radius: 18px;
-  box-shadow: 0 16px 36px rgba(40, 65, 100, 0.09);
+  align-content: start;
+  background: #fff;
+  border: 1px solid #e3e9ed;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(31, 52, 76, .055);
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-rows: auto minmax(58px, auto) auto;
+  grid-template-rows: auto minmax(66px, auto) auto;
   justify-items: center;
-  min-height: 292px;
-  padding: 22px 14px 18px;
+  min-height: 326px;
+  overflow: hidden;
+  padding: 18px 16px 16px;
   position: relative;
   text-align: center;
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
 .person-slot-card:hover,
 .person-slot-card.selected {
-  border-color: #b6d6f3;
-  box-shadow: 0 20px 42px rgba(40, 93, 151, 0.15);
+  border-color: rgba(var(--pa-primary-rgb), .3);
+  box-shadow: 0 17px 36px rgba(30, 69, 87, .11);
   transform: translateY(-2px);
 }
 
-.person-slot-card.empty {
+.person-slot-card.empty:not(.express) {
   align-content: center;
-  background: linear-gradient(180deg, #fbfdff, #f7fbff);
-  border: 1px dashed #b9d8f1;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 12px 28px rgba(40, 65, 100, 0.06);
+  background: linear-gradient(180deg, #fbfdfd, #f5fafb);
+  border-style: dashed;
 }
 
 .person-slot-card.express {
-  background: linear-gradient(180deg, #fbfff8, #f4fbef);
-  border-color: #c5dfb8;
+  background:
+    radial-gradient(circle at 96% 12%, rgba(99, 183, 85, .2), transparent 9rem),
+    radial-gradient(circle at 82% 90%, rgba(99, 183, 85, .16), transparent 10rem),
+    linear-gradient(145deg, #fbfff8, #edf8e8);
+  border-color: #cfe4c5;
 }
 
 .person-slot-card.express.empty {
-  border-style: solid;
+  align-content: stretch;
+  justify-items: start;
+  padding: 22px 18px 16px;
+  text-align: left;
 }
 
 .slot-check {
   align-items: center;
-  background: #61a734;
+  background: #5caf3f;
   border: 3px solid #fff;
   border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(61, 126, 42, 0.24);
+  box-shadow: 0 7px 16px rgba(72, 142, 48, .24);
   color: #fff;
   display: inline-grid;
-  height: 28px;
+  height: 29px;
   justify-content: center;
   position: absolute;
-  right: 14px;
-  top: 14px;
-  width: 28px;
-  z-index: 2;
+  right: 13px;
+  top: 13px;
+  width: 29px;
+  z-index: 3;
 }
 
 .slot-check :deep(.pa-icon) {
-  height: .9rem;
+  height: .86rem;
   stroke-width: 3;
-  width: .9rem;
+  width: .86rem;
+}
+
+.slot-badge {
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid #bcd9ae;
+  border-radius: 999px;
+  color: #4f9335;
+  font-size: .68rem;
+  font-weight: 850;
+  left: 18px;
+  padding: 5px 9px;
+  position: absolute;
+  top: 16px;
+  z-index: 2;
+}
+
+.express-preview {
+  background: rgba(255, 255, 255, .7);
+  border: 5px solid rgba(37, 107, 103, .34);
+  border-radius: 20px;
+  box-shadow: 0 18px 28px rgba(45, 100, 78, .13);
+  display: grid;
+  height: 132px;
+  place-items: center;
+  position: absolute;
+  right: 17px;
+  top: 68px;
+  transform: rotate(6deg);
+  width: 78px;
+  z-index: 1;
+}
+
+.express-preview::before,
+.express-preview::after {
+  background: #dceecf;
+  border-radius: 999px;
+  content: '';
+  height: 6px;
+  left: 14px;
+  position: absolute;
+  width: 34px;
+}
+
+.express-preview::before {
+  bottom: 24px;
+}
+
+.express-preview::after {
+  bottom: 12px;
+  width: 24px;
+}
+
+.express-preview-screen {
+  align-items: center;
+  background: #5caf3f;
+  border: 5px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 7px 16px rgba(72, 142, 48, .24);
+  color: #fff;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  margin-top: -22px;
+  width: 44px;
 }
 
 .person-photo {
   align-items: center;
   aspect-ratio: 1;
-  background: linear-gradient(145deg, rgba(var(--pa-primary-rgb), .12), #fff);
-  border: 1px solid var(--pa-border);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, .92), transparent 36%),
+    linear-gradient(145deg, rgba(var(--pa-primary-rgb), .1), #fff);
+  border: 1px solid #e3e9ed;
   border-radius: 999px;
   color: var(--pa-primary);
   display: inline-grid;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 900;
   justify-self: center;
+  margin-top: 2px;
   overflow: hidden;
   place-items: center;
-  width: 96px;
+  width: 124px;
 }
 
 .person-photo[data-empty='true'] {
-  border-color: #b7d8f3;
-  color: #1f7cc2;
-  width: 76px;
+  border-color: rgba(var(--pa-primary-rgb), .25);
+  color: var(--pa-primary);
+  width: 82px;
 }
 
-.person-slot-card.express .person-photo[data-empty='true'] {
-  border-color: #c5dfb8;
-  color: #4d8c33;
+.person-slot-card.express.empty .person-photo {
+  display: none;
 }
 
 .person-photo img {
@@ -802,7 +973,7 @@ function normalizeIndice(value: unknown) {
 .person-meta {
   align-self: center;
   display: grid;
-  gap: 5px;
+  gap: 8px;
   min-width: 0;
   place-items: center;
 }
@@ -813,51 +984,91 @@ function normalizeIndice(value: unknown) {
 }
 
 .person-meta h3 {
-  color: #29334d;
+  color: #26334b;
   font-family: var(--font-title);
-  font-size: 1.08rem;
-  line-height: 1.08;
-  min-height: 2.2em;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.18;
+  max-width: 20ch;
+  min-height: 2.36em;
 }
 
-.person-slot-card.empty .person-meta h3 {
-  color: #0b68ad;
+.person-slot-card.empty:not(.express) .person-meta h3 {
+  color: var(--pa-primary);
   min-height: auto;
 }
 
-.person-slot-card.express.empty .person-meta h3 {
-  color: #315d24;
+.person-meta p {
+  background: #edf6ff;
+  border-radius: 999px;
+  color: #39709e;
+  font-size: .72rem;
+  font-weight: 800;
+  min-width: 76px;
+  padding: 5px 12px;
 }
 
-.person-meta p {
-  color: #6f7785;
-  font-size: 0.86rem;
-  font-weight: 700;
+.person-slot-card.express .person-meta p {
+  background: rgba(255, 255, 255, .72);
+  color: #4d8c33;
+}
+
+.person-slot-card.express.empty .person-meta {
+  align-content: start;
+  align-self: start;
+  gap: 9px;
+  justify-items: start;
+  margin-top: 48px;
+  max-width: 61%;
+  place-items: start;
+  position: relative;
+  z-index: 2;
+}
+
+.person-slot-card.express.empty .person-meta h3 {
+  color: #2e6b2b;
+  font-size: 1.14rem;
+  min-height: 0;
+}
+
+.person-slot-card.express.empty .person-meta p {
+  min-width: 0;
+}
+
+.express-description {
+  color: #647568;
+  font-size: .75rem;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .slot-actions {
-  align-self: center;
+  align-self: end;
   display: grid;
-  gap: 8px;
-  width: min(100%, 178px);
+  gap: 7px;
+  width: min(100%, 188px);
 }
 
-.person-slot-card[data-state='registered'] .slot-actions {
-  padding-bottom: 0;
+.person-slot-card.express.empty .slot-actions {
+  justify-self: stretch;
+  position: relative;
+  width: 100%;
+  z-index: 2;
 }
 
 .slot-btn {
   align-items: center;
-  border-radius: 9px;
+  border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.78rem;
-  font-weight: 900;
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 850;
   gap: 7px;
   justify-content: center;
-  min-height: 38px;
+  min-height: 39px;
   padding: 0 10px;
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
   width: 100%;
 }
 
@@ -867,41 +1078,46 @@ function normalizeIndice(value: unknown) {
 
 .slot-btn:disabled {
   cursor: not-allowed;
-  opacity: .72;
+  opacity: .7;
 }
 
 .slot-btn-primary {
-  background: #1877bf;
-  border: 1px solid #1877bf;
-  box-shadow: 0 8px 18px rgba(24, 119, 191, 0.22);
+  background: linear-gradient(135deg, #12858d, #0a6c76);
+  border: 1px solid #0a737d;
+  box-shadow: 0 8px 17px rgba(12, 112, 122, .2);
   color: #fff;
 }
 
 .slot-btn-outline {
   background: #fff;
-  border: 1px solid #b8d4ee;
-  color: #0b68ad;
+  border: 1px solid rgba(var(--pa-primary-rgb), .32);
+  color: var(--pa-primary);
 }
 
 .slot-btn-danger-outline {
-  background: #fff;
-  border: 1px solid #f1b5b5;
-  color: #a23a3a;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #b04e4e;
+  min-height: 34px;
 }
 
 .slot-btn-danger-outline:hover:not(:disabled) {
-  box-shadow: 0 8px 18px rgba(162, 58, 58, 0.12);
+  background: #fff4f3;
+  border-color: #f2c4c0;
+  box-shadow: none;
 }
 
 .person-slot-card.express .slot-btn-outline {
-  border-color: #a9cf99;
-  color: #3f7c2e;
+  background: linear-gradient(135deg, #64b645, #4a9a36);
+  border-color: #4c9b38;
+  box-shadow: 0 8px 18px rgba(70, 145, 50, .18);
+  color: #fff;
 }
 
 .slot-btn-muted {
-  background: #f5f8fb;
-  border: 1px solid #dfe8f2;
-  color: #6f7785;
+  background: #f5f8fa;
+  border: 1px solid #dfe7ec;
+  color: #6f7888;
 }
 
 .loading-row,
@@ -920,20 +1136,23 @@ function normalizeIndice(value: unknown) {
 }
 
 .support-panel {
+  align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.03fr) minmax(300px, .97fr);
+  grid-template-columns: minmax(0, 1.04fr) minmax(360px, .96fr);
   scroll-margin-top: 112px;
 }
 
 .tutorial-card,
 .faq-card {
   align-content: start;
-  border-color: #e2ebf4;
-  border-radius: 18px;
-  box-shadow: 0 14px 34px rgba(40, 65, 100, 0.08);
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid #e2e8ec;
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
   display: grid;
   gap: 12px;
+  padding: 18px;
 }
 
 .section-head {
@@ -941,66 +1160,60 @@ function normalizeIndice(value: unknown) {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  min-height: 52px;
+}
+
+.section-head p {
+  color: #778193;
+  font-size: .74rem;
+  margin: 5px 0 0 30px;
 }
 
 .branded-head :deep(.pa-ambassador-card) {
   flex: 0 0 auto;
+  max-height: 62px;
+  max-width: 86px;
 }
 
-.video-frame {
-  aspect-ratio: 16 / 9;
-  background: #111;
-  border-radius: 14px;
-  overflow: hidden;
-  position: relative;
+.tutorial-card :deep(.tutorial-video) {
+  border-radius: 17px;
+  box-shadow: none;
+  padding: 0;
 }
 
-.video-frame::after {
-  background: linear-gradient(to right, #65b640 0 18%, #ef4b4b 18% 36%, #f0ca45 36% 55%, #55a4d6 55% 74%, #4d4597 74% 100%);
-  bottom: 0;
-  content: '';
-  height: 5px;
-  left: 0;
-  position: absolute;
-  width: 100%;
-}
-
-.video-frame iframe {
-  border: 0;
-  height: 100%;
-  width: 100%;
+.tutorial-card :deep(.tutorial-video::after) {
+  display: none;
 }
 
 .faq-intro {
-  color: #6f7785;
-  font-size: 0.86rem;
-  font-weight: 700;
+  color: #707a8c;
+  font-size: .76rem;
+  font-weight: 650;
   line-height: 1.5;
-  margin: 0;
+  margin: -3px 0 2px 30px;
 }
 
 .faq-item {
   align-items: center;
   background: #fff;
-  border: 1px solid #e2ebf4;
-  border-radius: 13px;
-  box-shadow: 0 6px 16px rgba(40, 65, 100, 0.04);
+  border: 1px solid #e4e9ed;
+  border-radius: 11px;
   cursor: pointer;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) 32px;
-  min-height: 48px;
-  padding: 12px 10px 12px 14px;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  min-height: 43px;
+  padding: 9px 8px 9px 12px;
   text-align: left;
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
   width: 100%;
 }
 
 .faq-item:hover,
 .faq-item[aria-expanded='true'] {
-  background: linear-gradient(180deg, #fff, #fbfdff);
-  border-color: #cbddec;
-  box-shadow: 0 10px 22px rgba(40, 65, 100, 0.08);
+  background: #fbfdfd;
+  border-color: rgba(var(--pa-primary-rgb), .24);
+  box-shadow: 0 7px 17px rgba(31, 52, 76, .06);
 }
 
 .faq-item strong,
@@ -1009,35 +1222,51 @@ function normalizeIndice(value: unknown) {
 }
 
 .faq-item strong {
-  color: #313b52;
-  font-size: 0.88rem;
+  color: #354158;
+  font-size: .76rem;
+  line-height: 1.4;
 }
 
 .faq-item em {
-  color: #6f7785;
-  font-size: 0.82rem;
+  color: #6f798a;
+  font-size: .74rem;
   font-style: normal;
-  font-weight: 700;
-  margin-top: 8px;
+  font-weight: 650;
+  line-height: 1.5;
+  margin-top: 7px;
 }
 
 .faq-chevron {
   align-items: center;
-  background: #f4f8fc;
-  border: 1px solid #dfe8f2;
+  background: #f4f8f9;
+  border: 1px solid #e0e8eb;
   border-radius: 999px;
-  color: #173a62;
+  color: #536376;
   display: inline-flex;
-  height: 30px;
+  height: 26px;
   justify-content: center;
-  transition: transform .18s ease, background .18s ease;
-  width: 30px;
+  transition: background .18s ease, transform .18s ease;
+  width: 26px;
 }
 
 .faq-item[aria-expanded='true'] .faq-chevron {
   background: var(--pa-soft);
   color: var(--pa-primary);
   transform: rotate(180deg);
+}
+
+.faq-support-link {
+  align-items: center;
+  background: #f5f9f9;
+  border-radius: 11px;
+  color: var(--pa-primary);
+  display: flex;
+  font-size: .72rem;
+  font-weight: 800;
+  gap: 7px;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 12px;
 }
 
 .actions,
@@ -1061,96 +1290,127 @@ function normalizeIndice(value: unknown) {
   font-weight: 700;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1120px) {
   .person-slots {
-    grid-template-columns: repeat(2, minmax(190px, 1fr));
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
-}
 
-@media (max-width: 920px) {
-  .pa-page-hero,
   .support-panel {
     grid-template-columns: 1fr;
   }
-  .person-slot-card {
-    min-height: 240px;
+}
+
+@media (max-width: 860px) {
+  .pa-home-screen {
+    gap: 16px;
+  }
+
+  .pa-page-hero {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .pa-hero-actions {
+    align-items: stretch;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .student-photo-callout {
+    max-width: none;
+  }
+
+  .authorized-section,
+  .tutorial-card,
+  .faq-card {
+    border-radius: 20px;
+    padding: 16px;
   }
 }
 
-@media (max-width: 640px) {
-  .pa-home-screen {
-    gap: 14px;
-  }
-  .pa-page-hero {
-    gap: 12px;
-  }
+@media (max-width: 700px) {
   .pa-title-block {
-    gap: 12px;
-    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 13px;
+    grid-template-columns: 50px minmax(0, 1fr);
   }
+
   .hero-shield {
-    border-radius: 15px;
-    height: 46px;
-    width: 46px;
+    border-radius: 17px;
+    height: 50px;
+    width: 50px;
   }
+
+  .hero-shield::after {
+    border-radius: 13px;
+    inset: 6px;
+  }
+
   .pa-title-block h1 {
-    font-size: clamp(1.38rem, 8vw, 1.72rem);
+    font-size: clamp(1.55rem, 8vw, 2rem);
   }
+
   .pa-title-block p:not(.eyebrow) {
-    font-size: 0.8rem;
+    font-size: .8rem;
+    margin-top: 5px;
   }
+
+  .pa-hero-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-express-action {
+    justify-self: stretch;
+  }
+
   .student-photo-callout {
     align-items: start;
-    grid-template-columns: 22px minmax(0, 1fr);
-    min-height: 0;
+    grid-template-columns: 20px minmax(0, 1fr);
   }
+
   .callout-action {
     grid-column: 2;
     justify-self: start;
-    padding: 9px 12px;
   }
+
   .section-label-row {
     align-items: flex-start;
     display: grid;
     gap: 4px 8px;
-    grid-template-columns: 22px minmax(0, 1fr);
+    grid-template-columns: 20px minmax(0, 1fr);
   }
+
   .section-label-row small {
     grid-column: 2;
     margin-left: 0;
   }
+
   .person-slots {
-    gap: 12px;
     grid-template-columns: 1fr;
   }
+
   .person-slot-card {
-    align-items: center;
-    gap: 12px;
-    grid-template-columns: 68px minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    justify-items: stretch;
-    min-height: 0;
-    padding: 14px;
-    text-align: left;
+    min-height: 308px;
   }
-  .person-slot-card.empty {
-    grid-template-columns: 58px minmax(0, 1fr);
+
+  .person-slot-card.express.empty .person-meta {
+    max-width: 64%;
   }
-  .person-photo,
-  .person-photo[data-empty='true'] {
-    width: 64px;
+}
+
+@media (max-width: 430px) {
+  .authorized-section,
+  .tutorial-card,
+  .faq-card {
+    padding: 13px;
   }
-  .person-meta h3 {
-    font-size: 0.98rem;
-    min-height: 0;
+
+  .person-slot-card.express.empty .person-meta {
+    max-width: 58%;
   }
-  .slot-actions {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-    width: 100%;
-  }
-  .empty-guidance {
-    grid-template-columns: 62px minmax(0, 1fr);
+
+  .express-preview {
+    opacity: .72;
+    right: 8px;
   }
 }
 </style>

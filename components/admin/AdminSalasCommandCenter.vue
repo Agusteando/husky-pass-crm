@@ -142,14 +142,14 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
 import type { SalaSummary } from '~/types/daycare'
 
 const route = useRoute()
 const router = useRouter()
-const { data: session, pending: sessionPending } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-salas-command-session' })
+const { data: session, pending: sessionPending } = useAppSession()
 
 const unidades = computed(() => session.value?.user?.unidades || [])
 const noUnidadAvailable = computed(() => !sessionPending.value && unidades.value.length === 0)

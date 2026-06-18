@@ -29,6 +29,10 @@
     "verify:prod": "node scripts/product-visual-verify.mjs --suite prod --production",
     "verify:identity": "node scripts/identity-visual-verify.mjs",
     "verify:husky-pass": "node scripts/husky-pass-visual-verify.mjs",
+    "verify:requests": "node scripts/verify-requests.mjs",
+    "verify:logs": "node scripts/verify-logs.mjs",
+    "verify:mysql": "node scripts/mysql-sibling-indexes.mjs verify",
+    "mysql:siblings:explain": "node scripts/mysql-sibling-indexes.mjs explain",
     "dev:password-recovery": "node scripts/password-recovery-dev.mjs",
     "dev:account-security-fixtures": "node scripts/account-security-fixtures.mjs",
     "dev:husky-pass": "nuxt dev --host 127.0.0.1 --port 3000"

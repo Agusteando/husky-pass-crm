@@ -1,8 +1,9 @@
-import { createError, setCookie, deleteCookie, getCookie } from 'h3'
+import { setCookie, deleteCookie, getCookie } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import type { AppSessionUser, PublicSession } from '~/types/session'
+import { publicError } from '~/server/utils/httpError'
 
 const cookieName = 'hpc_session'
 
@@ -56,7 +57,7 @@ export function getAppSession(event: H3Event): PublicSession {
 export function requireSession(event: H3Event, kind?: 'family' | 'admin') {
   const session = getAppSession(event)
   if (!session.user || (kind && session.user.kind !== kind)) {
-    throw createError({ statusCode: 401, statusMessage: 'Sesión no válida' })
+    throw publicError(401, 'Sesión no válida')
   }
   return session.user
 }

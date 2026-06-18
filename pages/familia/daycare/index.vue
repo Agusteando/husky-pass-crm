@@ -77,9 +77,9 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
-import { useFetch, useRuntimeConfig } from 'nuxt/app'
-import type { PublicSession } from '~/types/session'
+import { useRuntimeConfig, useFetch } from 'nuxt/app'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, stripHtml } from '~/utils/daycare'
 import { hasFamilyScope } from '~/utils/sessionScopes'
@@ -87,7 +87,7 @@ import { hasFamilyScope } from '~/utils/sessionScopes'
 definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
 const config = useRuntimeConfig()
-const { data: session } = useFetch<PublicSession>('/api/auth/me')
+const { data: session } = useAppSession()
 const { data: dashboard, pending, error } = useFetch<{
   tareas: DaycareResource[]
   circulares: DaycareResource[]
@@ -263,6 +263,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 }
 
 .family-grid {
+  align-items: start;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
@@ -270,6 +271,7 @@ const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.u
 
 .compact-list,
 .content-panel {
+  align-content: start;
   display: grid;
   gap: 12px;
 }

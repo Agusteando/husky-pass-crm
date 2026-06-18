@@ -1,10 +1,12 @@
-import { createError, defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
+import { defineEventHandler, getQuery, getRequestURL, setHeader } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { getCredentialAuthorizedPersona } from '~/server/data/mysqlDaycare'
 import { buildMarbeteRenderValues, listMarbeteTemplates, marbeteDownloadName, readMarbeteTemplateSvg, renderMarbeteSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
 import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
+import { publicError } from '~/server/utils/httpError'
+import { withRequestBoundary } from '~/server/utils/logger'
 import type { MarbeteReadinessResponse } from '~/types/daycare'
 
 const schema = z.object({
@@ -20,13 +22,14 @@ function firstIssue(issues: string[]) {
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
+  return withRequestBoundary(event, 'personas-autorizadas.marbete.load', async () => {
   const query = schema.parse(getQuery(event))
   const data = await getCredentialAuthorizedPersona(user, query.id)
   const templates = await listMarbeteTemplates()
-  if (!templates.length) throw createError({ statusCode: 503, statusMessage: 'El Husky Pass no está disponible en este momento. Solicita apoyo a la escuela.' })
+  if (!templates.length) throw publicError(503, 'El Husky Pass no está disponible en este momento. Solicita apoyo a la escuela.')
 
   const template = selectMarbeteTemplate(templates, { matricula: data.matricula, plantel: data.plantel, nivelEdu: data.nivelEdu })
-  if (!template) throw createError({ statusCode: 503, statusMessage: 'El Husky Pass no está disponible para este alumno. Solicita apoyo a la escuela.' })
+  if (!template) throw publicError(503, 'El Husky Pass no está disponible para este alumno. Solicita apoyo a la escuela.')
 
   const origin = getRequestURL(event).origin
   const templateSvg = await readMarbeteTemplateSvg(template)
@@ -60,7 +63,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!requirementStatus.ok) {
-    throw createError({ statusCode: 422, statusMessage: firstIssue(requirementStatus.issues) })
+    throw publicError(422, firstIssue(requirementStatus.issues))
   }
 
   if (query.format === 'svg-preview' && query.download !== '1') {
@@ -85,4 +88,5 @@ export default defineEventHandler(async (event) => {
   }
 
   return pdf
+  }, { userId: user.id })
 })

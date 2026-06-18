@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getQuery } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { listSuperAdminDirectory } from '~/server/data/mysqlAuth'
 import { isSuperAdmin } from '~/server/utils/authz'
@@ -14,7 +15,7 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
   if (!isSuperAdmin(user)) {
-    throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede consultar el directorio de usuarios.' })
+    throw publicError(403, 'Solo superadmin puede consultar el directorio de usuarios.')
   }
 
   const query = schema.parse(getQuery(event))

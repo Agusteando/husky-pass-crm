@@ -1,6 +1,7 @@
-import { createError } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise'
+import { publicError } from '~/server/utils/httpError'
+import { logEvent } from '~/server/utils/logger'
 
 type SqlValue = string | number | boolean | Date | null
 
@@ -57,13 +58,13 @@ function isTransientMysqlError(error: unknown) {
 
 function toPublicMysqlError(error: unknown) {
   if (error && typeof error === 'object') {
-    const candidate = error as { code?: string; statusCode?: number; statusMessage?: string }
-    if (candidate.statusCode && candidate.statusMessage) return error
+    const candidate = error as { code?: string; message?: string; statusCode?: number; statusMessage?: string }
+    if (candidate.statusCode && (candidate.statusMessage || candidate.message)) return error
     if (candidate.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
-      return createError({ statusCode: 504, statusMessage: 'La consulta de asistencia excedió el tiempo de espera. Intenta de nuevo.' })
+      return publicError(504, 'La consulta de asistencia excedio el tiempo de espera. Intenta de nuevo.')
     }
     if (isTransientMysqlError(error)) {
-      return createError({ statusCode: 503, statusMessage: 'La base de asistencia no está disponible. Intenta de nuevo.' })
+      return publicError(503, 'La base de asistencia no esta disponible. Intenta de nuevo.')
     }
   }
   return error
@@ -84,11 +85,24 @@ async function executeAttendance<T>(sql: string, params: SqlValue[]): Promise<T>
   let lastError: unknown
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const startedAt = performance.now()
     try {
       const [result] = await getAttendancePool().execute({ sql, values: params, timeout: DEFAULT_QUERY_TIMEOUT_MS })
+      const rowCount = Array.isArray(result) ? result.length : (result as ResultSetHeader).affectedRows
+      logEvent('debug', 'attendance-mysql.query', {
+        durationMs: Math.round(performance.now() - startedAt),
+        rowCount,
+        attempt: attempt + 1
+      })
       return result as T
     } catch (error) {
       lastError = error
+      logEvent('debug', 'attendance-mysql.query.failed', {
+        durationMs: Math.round(performance.now() - startedAt),
+        attempt: attempt + 1,
+        dependency: 'attendance-mysql',
+        code: error && typeof error === 'object' ? (error as { code?: string }).code : undefined
+      })
       if (!isTransientMysqlError(error) || attempt === 1) break
       await resetAttendancePool()
     }

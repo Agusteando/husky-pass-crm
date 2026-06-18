@@ -1,9 +1,5 @@
 <template>
   <aside v-if="session?.user" class="family-panel" aria-label="Husky Pass familiar">
-    <div class="family-brand mobile-hidden">
-      <BrandMark :to="homeTo" />
-    </div>
-
     <section class="family-context">
       <span>{{ contextLabel }}</span>
       <strong>{{ primaryName }}</strong>
@@ -23,11 +19,10 @@ import { computed } from 'vue'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
-import { defaultFamilyRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
+import { familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
-const homeTo = computed(() => defaultFamilyRoute(props.session?.user))
 const activeProduct = computed(() => {
   if (route.path.startsWith('/familia/personas-autorizadas')) return 'personasAutorizadas'
   if (route.path.startsWith('/familia/asistencia')) return 'attendance'
@@ -36,7 +31,7 @@ const activeProduct = computed(() => {
   if (hasFamilyScope(props.session?.user, 'personasAutorizadas') && !hasFamilyScope(props.session?.user, 'daycare')) return 'personasAutorizadas'
   return 'chooser'
 })
-const items = computed(() => familyNavItems(props.session?.user).map((item) => {
+const items = computed(() => familyNavItems(props.session?.user, activeProduct.value).map((item) => {
   if (item.icon !== 'security') return item
   const experience = activeProduct.value === 'daycare' ? 'guarderia' : 'escolar'
   return { ...item, to: `${item.to}?experiencia=${experience}` }
@@ -152,17 +147,7 @@ async function exitPreview() {
   }
 
   .family-nav {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .family-nav a {
-    flex: 0 0 auto;
-    background: #fff;
-    border-color: var(--color-border);
-    white-space: nowrap;
+    display: none;
   }
 }
 </style>

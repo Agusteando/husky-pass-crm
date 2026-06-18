@@ -3,7 +3,7 @@ import { requireSession } from '~/server/utils/session'
 import { z } from 'zod'
 import { upsertAuthorizedPersona } from '~/server/data/mysqlDaycare'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
-import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
+import { withRequestBoundary } from '~/server/utils/logger'
 
 const schema = z.object({
   indice: z.coerce.number().int().min(1).max(4),
@@ -20,11 +20,8 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
-  try {
+  return withRequestBoundary(event, 'personas-autorizadas.family.save', async () => {
     const body = schema.parse(await readBody(event))
     return await upsertAuthorizedPersona(user, body)
-  } catch (error) {
-    logPersonasDiagnostic('family-people-api-save', error, { userId: user.id, username: user.username })
-    throw error
-  }
+  }, { userId: user.id })
 })

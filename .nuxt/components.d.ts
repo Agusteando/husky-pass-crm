@@ -35,6 +35,10 @@ export const FamilyPersonasIcon: typeof import("../components/family/PersonasIco
 export const FamilyPersonasImageUpload: typeof import("../components/family/PersonasImageUpload.vue")['default']
 export const FamilyPersonasModal: typeof import("../components/family/PersonasModal.vue")['default']
 export const FamilyPersonasProcessedPhoto: typeof import("../components/family/PersonasProcessedPhoto.vue")['default']
+export const FamilyPersonasTutorialVideo: typeof import("../components/family/PersonasTutorialVideo.vue")['default']
+export const TopbarAccountMenu: typeof import("../components/topbar/AccountMenu.vue")['default']
+export const TopbarAdminExperienceTopbar: typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']
+export const TopbarFamilyExperienceTopbar: typeof import("../components/topbar/FamilyExperienceTopbar.vue")['default']
 export const NuxtWelcome: typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']
 export const NuxtLayout: typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']
 export const NuxtErrorBoundary: typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary.vue")['default']
@@ -79,6 +83,10 @@ export const LazyFamilyPersonasIcon: LazyComponent<typeof import("../components/
 export const LazyFamilyPersonasImageUpload: LazyComponent<typeof import("../components/family/PersonasImageUpload.vue")['default']>
 export const LazyFamilyPersonasModal: LazyComponent<typeof import("../components/family/PersonasModal.vue")['default']>
 export const LazyFamilyPersonasProcessedPhoto: LazyComponent<typeof import("../components/family/PersonasProcessedPhoto.vue")['default']>
+export const LazyFamilyPersonasTutorialVideo: LazyComponent<typeof import("../components/family/PersonasTutorialVideo.vue")['default']>
+export const LazyTopbarAccountMenu: LazyComponent<typeof import("../components/topbar/AccountMenu.vue")['default']>
+export const LazyTopbarAdminExperienceTopbar: LazyComponent<typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']>
+export const LazyTopbarFamilyExperienceTopbar: LazyComponent<typeof import("../components/topbar/FamilyExperienceTopbar.vue")['default']>
 export const LazyNuxtWelcome: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/welcome.vue")['default']>
 export const LazyNuxtLayout: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-layout")['default']>
 export const LazyNuxtErrorBoundary: LazyComponent<typeof import("../node_modules/nuxt/dist/app/components/nuxt-error-boundary.vue")['default']>

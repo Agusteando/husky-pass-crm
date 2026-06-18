@@ -1,7 +1,7 @@
-import { createError } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 
 export function assertDevOnly() {
   if (process.env.NODE_ENV === 'production') {
-    throw createError({ statusCode: 404, statusMessage: 'Ruta no disponible.' })
+    throw publicError(404, 'Ruta no disponible.')
   }
 }

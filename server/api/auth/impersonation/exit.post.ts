@@ -1,11 +1,12 @@
-import { createError, defineEventHandler, setCookie } from 'h3'
+import { defineEventHandler, setCookie } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 
 export default defineEventHandler((event) => {
   const user = getAppSession(event).user
   const admin = user?.impersonation?.admin
   if (!user || !admin) {
-    throw createError({ statusCode: 400, statusMessage: 'No hay una vista familiar activa' })
+    throw publicError(400, 'No hay una vista familiar activa')
   }
 
   setAppSession(event, admin)

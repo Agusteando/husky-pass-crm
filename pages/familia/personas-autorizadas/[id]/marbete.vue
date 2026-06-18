@@ -55,6 +55,7 @@ import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import type { MarbeteReadinessResponse, PrintableAuthorizedPerson } from '~/types/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
+import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -73,7 +74,7 @@ const { theme, themeVars } = useResolvedPersonasTheme(() => ({
   campus: data.value?.child?.campus || familyTheme.primaryChild.value?.campus || familyTheme.session.value?.user?.campus
 }))
 const fullName = computed(() => [data.value?.nombreP, data.value?.paternoP, data.value?.maternoP].filter(Boolean).join(' '))
-const passContext = computed(() => [data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Datos escolares')
+const passContext = computed(() => [displayMatricula(data.value?.matricula || data.value?.child?.matricula), data.value?.plantel, data.value?.nivelEdu, data.value?.gradoA, data.value?.grupoA].filter(Boolean).join(' / ') || 'Datos escolares')
 const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&format=svg-preview`)
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
 const downloading = ref(false)

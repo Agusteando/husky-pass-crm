@@ -99,11 +99,11 @@
 </template>
 
 <script setup lang="ts">
+import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref } from 'vue'
-import { navigateTo, useFetch, useRoute } from 'nuxt/app'
+import { navigateTo, useRoute, useFetch } from 'nuxt/app'
 import type { SalaOverview } from '~/types/daycare'
 import { displayMatriculaCandidate } from '~/utils/matricula'
-import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -112,7 +112,7 @@ const route = useRoute()
 const salaId = Number(route.params.id)
 const actionError = ref('')
 const isSalaSummary = computed(() => route.path.replace(/\/$/, '') === `/admin/daycare/salas/${salaId}`)
-const { data: session } = useFetch<PublicSession>('/api/auth/me', { key: 'admin-sala-session' })
+const { data: session } = useAppSession()
 const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`, { timeout: 15000 })
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 

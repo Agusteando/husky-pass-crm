@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
@@ -25,22 +26,22 @@ function assertOptionalUrl(value: string, label: string) {
     const parsed = new URL(value)
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad-protocol')
   } catch {
-    throw createError({ statusCode: 400, statusMessage: `${label} debe ser una URL valida.` })
+    throw publicError(400, `${label} debe ser una URL valida.`)
   }
 }
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  if (!isSuperAdmin(user)) throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede configurar Personas Autorizadas.' })
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede configurar Personas Autorizadas.')
   const body = schema.parse(await readBody(event))
   if (body.surveyEnabled && !/^https:\/\/docs\.google\.com\/forms\//i.test(body.surveyEmbedUrl)) {
-    throw createError({ statusCode: 400, statusMessage: 'La encuesta activa debe ser un Google Form.' })
+    throw publicError(400, 'La encuesta activa debe ser un Google Form.')
   }
   for (const option of SURVEY_NIVEL_OPTIONS) {
     const survey = body.surveysByNivel?.[option.key]
     if (!survey) continue
     if (survey.enabled && !/^https:\/\/docs\.google\.com\/forms\//i.test(survey.embedUrl)) {
-      throw createError({ statusCode: 400, statusMessage: `La encuesta de ${option.label} debe ser un Google Form.` })
+      throw publicError(400, `La encuesta de ${option.label} debe ser un Google Form.`)
     }
     assertOptionalUrl(survey.embedUrl, `La encuesta de ${option.label}`)
   }

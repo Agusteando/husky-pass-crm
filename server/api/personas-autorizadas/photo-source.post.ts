@@ -2,8 +2,8 @@ import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
-import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
 import { dataUrlToUploadFile, externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
+import { withRequestBoundary } from '~/server/utils/logger'
 
 const schema = z.object({
   src: z.string().min(64)
@@ -12,7 +12,7 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
-  try {
+  return withRequestBoundary(event, 'personas-autorizadas.photo-source.upload', async () => {
     const body = schema.parse(await readBody(event))
     const file = dataUrlToUploadFile(body.src, 'foto-original')
     return uploadToExternalService(file, {
@@ -21,8 +21,5 @@ export default defineEventHandler(async (event) => {
       accept: 'images',
       filenamePrefix: 'foto-original'
     })
-  } catch (error) {
-    logPersonasDiagnostic('photo-source-api-upload', error, { userId: user.id, username: user.username })
-    throw error
-  }
+  }, { userId: user.id })
 })

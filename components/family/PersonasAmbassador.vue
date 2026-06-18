@@ -20,8 +20,7 @@
 import { computed } from 'vue'
 import type { PersonasMascotVariant } from '~/utils/personasTheme'
 import type { PersonasTheme } from '~/types/daycare'
-import { personasLevelName, personasMascot } from '~/utils/personasTheme'
-import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
+import { personasLevelName, personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = withDefaults(defineProps<{
   theme?: PersonasTheme | null
@@ -40,8 +39,8 @@ const props = withDefaults(defineProps<{
   decorative: false
 })
 
-const fallback = usePersonasFamilyTheme({ key: 'ambassador' })
-const resolvedTheme = computed(() => props.theme || fallback.theme.value)
+const neutralTheme = resolvePersonasTheme({})
+const resolvedTheme = computed(() => props.theme || neutralTheme)
 const imageSrc = computed(() => personasMascot(resolvedTheme.value, props.variant))
 const levelName = computed(() => personasLevelName(resolvedTheme.value))
 const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Personas Autorizadas`)

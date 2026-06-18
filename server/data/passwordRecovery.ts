@@ -1,4 +1,5 @@
-import { createError, getHeader, type H3Event } from 'h3'
+import { getHeader, type H3Event } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import type { RowDataPacket } from 'mysql2/promise'
 import { randomBytes, createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -152,7 +153,7 @@ export async function ensurePasswordRecoverySchema() {
       return
     }
     logSecurityDiagnostic('password-recovery-schema-init-failed', error, { table: 'password_recovery_tokens' })
-    throw createError({ statusCode: 500, statusMessage: 'No fue posible preparar la recuperación de contraseña.' })
+    throw publicError(500, 'No fue posible preparar la recuperación de contraseña.')
   }
 }
 
@@ -217,7 +218,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
       userId: input.userId,
       emailHash: securityHash(email)
     })
-    throw createError({ statusCode: 500, statusMessage: 'No fue posible preparar el enlace de recuperación.' })
+    throw publicError(500, 'No fue posible preparar el enlace de recuperación.')
   }
 }
 
@@ -254,7 +255,7 @@ export async function validatePasswordRecoveryToken(rawToken: string): Promise<R
     return { status: 'valid', row, experience }
   } catch (error) {
     logSecurityDiagnostic('password-recovery-token-validate-failed', error, { tokenHash: securityHash(token) })
-    throw createError({ statusCode: 500, statusMessage: 'No fue posible validar el enlace.' })
+    throw publicError(500, 'No fue posible validar el enlace.')
   }
 }
 
@@ -269,7 +270,7 @@ export function passwordRecoveryStatusMessage(status: RecoveryStatus) {
 export async function resetPasswordWithRecoveryToken(rawToken: string, password: string) {
   const validation = await validatePasswordRecoveryToken(rawToken)
   if (validation.status !== 'valid' || !validation.row) {
-    throw createError({ statusCode: 400, statusMessage: passwordRecoveryStatusMessage(validation.status) })
+    throw publicError(400, passwordRecoveryStatusMessage(validation.status))
   }
 
   const row = validation.row
@@ -280,7 +281,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
       userId: row.user_id,
       emailHash: securityHash(row.email)
     })
-    throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
+    throw publicError(400, 'El enlace no es válido.')
   }
 
   const sessionUser = familyUser.toSession('family')
@@ -291,7 +292,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
       tokenExperience: validation.experience,
       scopes: sessionUser.productScopes
     })
-    throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
+    throw publicError(400, 'El enlace no es válido.')
   }
   if (validation.experience === 'guarderia' && !hasFamilyScope(sessionUser, 'daycare')) {
     logSecurityWarning('password-recovery-experience-mismatch', {
@@ -300,7 +301,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
       tokenExperience: validation.experience,
       scopes: sessionUser.productScopes
     })
-    throw createError({ statusCode: 400, statusMessage: 'El enlace no es válido.' })
+    throw publicError(400, 'El enlace no es válido.')
   }
 
   try {
@@ -318,7 +319,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
         }
         return candidate
       })
-      if (!consumed) throw createError({ statusCode: 400, statusMessage: 'El enlace ya no está disponible.' })
+      if (!consumed) throw publicError(400, 'El enlace ya no está disponible.')
       await writeDevStore(store)
     } else {
       const consumed = await legacyWrite(
@@ -328,7 +329,7 @@ export async function resetPasswordWithRecoveryToken(rawToken: string, password:
         [row.id, row.account_kind]
       )
       if (consumed.affectedRows !== 1) {
-        throw createError({ statusCode: 400, statusMessage: 'El enlace ya no está disponible.' })
+        throw publicError(400, 'El enlace ya no está disponible.')
       }
     }
 

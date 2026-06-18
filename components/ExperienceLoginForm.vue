@@ -23,7 +23,9 @@
 import { computed, reactive, ref } from 'vue'
 import { navigateTo } from 'nuxt/app'
 import type { ExperienceName } from '~/types/identity'
+import type { PublicSession } from '~/types/session'
 import { recoveryRouteForExperience } from '~/utils/experienceIdentity'
+import { setCachedRouteSession } from '~/utils/routeSession'
 
 const props = defineProps<{
   experience: Extract<ExperienceName, 'escolar' | 'guarderia'>
@@ -39,13 +41,14 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    const response = await $fetch<{ defaultPath?: string }>('/api/auth/login', {
+    const response = await $fetch<PublicSession & { defaultPath?: string }>('/api/auth/login', {
       method: 'POST',
       body: { ...form, experience: props.experience }
     })
+    setCachedRouteSession({ user: response.user, loggedin: Boolean(response.user) })
     await navigateTo(response.defaultPath || '/')
   } catch (err: any) {
-    error.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible iniciar sesión.'
+    error.value = err?.data?.message || err?.data?.statusMessage || err?.statusMessage || 'No fue posible iniciar sesión.'
   } finally {
     loading.value = false
   }

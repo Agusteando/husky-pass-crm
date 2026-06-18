@@ -1,11 +1,12 @@
-import { createError, defineEventHandler, readBody, setCookie } from 'h3'
+import { defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
 import { findLegacyFamilyByLogin } from '~/server/data/mysqlAuth'
 import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { requireSession, setAppSession } from '~/server/utils/session'
+import { publicError } from '~/server/utils/httpError'
+import { withRequestBoundary } from '~/server/utils/logger'
 import { hasFamilyScope } from '~/utils/sessionScopes'
-import { logPersonasDiagnostic } from '~/server/utils/personasDiagnostics'
 import { normalizeMatricula } from '~/utils/matricula'
 import { resolveExperienceContext } from '~/utils/experienceIdentity'
 
@@ -16,24 +17,24 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'family')
   assertPersonasAutorizadasFamily(user)
-  try {
+  return withRequestBoundary(event, 'personas-autorizadas.sibling.switch', async () => {
     const body = schema.parse(await readBody(event))
     const targetMatricula = normalizeMatricula(body.matricula)
 
     const siblings = await getFamilyChildren(user)
     const target = siblings.find((child) => child.canSwitch && normalizeMatricula(child.matricula) === targetMatricula)
     if (!target) {
-      throw createError({ statusCode: 403, statusMessage: 'El alumno no está disponible para cambio directo.' })
+      throw publicError(403, 'El alumno no esta disponible para cambio directo.')
     }
 
     const legacyUser = await findLegacyFamilyByLogin(targetMatricula)
     if (!legacyUser) {
-      throw createError({ statusCode: 404, statusMessage: 'No encontramos una cuenta familiar activa para este alumno.' })
+      throw publicError(404, 'No encontramos una cuenta familiar activa para este alumno.')
     }
 
     const sessionUser = legacyUser.toSession('family')
     if (!hasFamilyScope(sessionUser, 'personasAutorizadas')) {
-      throw createError({ statusCode: 403, statusMessage: 'La cuenta vinculada no tiene Personas Autorizadas habilitado.' })
+      throw publicError(403, 'La cuenta vinculada no tiene Personas Autorizadas habilitado.')
     }
 
     setAppSession(event, sessionUser)
@@ -48,8 +49,5 @@ export default defineEventHandler(async (event) => {
     })
     setCookie(event, 'user_segment', resolved.context.experience === 'guarderia' ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
     return { user: sessionUser, loggedin: true }
-  } catch (error) {
-    logPersonasDiagnostic('sibling-session-api-switch', error, { userId: user.id, username: user.username })
-    throw error
-  }
+  }, { userId: user.id })
 })

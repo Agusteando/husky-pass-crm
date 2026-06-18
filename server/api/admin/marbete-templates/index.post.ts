@@ -1,4 +1,5 @@
-import { createError, defineEventHandler, readMultipartFormData } from 'h3'
+import { defineEventHandler, readMultipartFormData } from 'h3'
+import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
@@ -18,10 +19,10 @@ function field(parts: NonNullable<Awaited<ReturnType<typeof readMultipartFormDat
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  if (!isSuperAdmin(user)) throw createError({ statusCode: 403, statusMessage: 'Solo superadmin puede gestionar plantillas.' })
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede gestionar plantillas.')
 
   const parts = await readMultipartFormData(event)
-  if (!parts?.length) throw createError({ statusCode: 400, statusMessage: 'Formulario de plantilla vacio.' })
+  if (!parts?.length) throw publicError(400, 'Formulario de plantilla vacio.')
 
   const body = schema.parse({
     id: field(parts, 'id') || null,
