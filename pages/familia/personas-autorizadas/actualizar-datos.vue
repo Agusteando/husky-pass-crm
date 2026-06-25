@@ -205,6 +205,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
+import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { PersonasStudentEditable, PersonasStudentProfile } from '~/types/daycare'
 import { displayMatricula } from '~/utils/matricula'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
@@ -219,6 +220,7 @@ type FieldKey = keyof PersonasStudentEditable
 type FieldConfig = { key: FieldKey; label: string; type?: string; autocomplete?: string; inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal'; options?: string[]; maxlength?: number }
 type FieldGroup = { eyebrow: string; title: string; fields: FieldConfig[] }
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000, dedupe: 'defer' })
+const familyPeople = usePersonasFamilyPeople({ immediate: false })
 const { data: grupoManifest } = useFetch<GrupoIconManifest>('/grupo-icons/manifest.json', { key: 'pa-student-data-grupo-icons', timeout: 15000 })
 const form = reactive<Record<string, string>>({})
 const original = ref<Record<string, string>>({})
@@ -470,6 +472,7 @@ async function saveActiveGroup() {
   try {
     await $fetch('/api/personas-autorizadas/student', { method: 'POST', body: patch })
     await refresh()
+    await familyPeople.refresh().catch(() => undefined)
     activeGroup.value = null
     notice.value = 'Datos guardados.'
   } catch (err: unknown) {

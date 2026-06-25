@@ -31,7 +31,7 @@ export { setInterval } from '#app/compat/interval';
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useAppSession } from '../composables/useAppSession';
-export { useResolvedPersonasTheme, usePersonasFamilyTheme } from '../composables/usePersonasTheme';
+export { personasFamilyThemeContextKey, usePersonasFamilyPeople, useResolvedPersonasTheme, usePersonasFamilyTheme, PersonasFamilyThemeContext } from '../composables/usePersonasTheme';
 export { normalizeAttendanceText, makeSchoolYearRange, parseSchoolYearLabel, currentSchoolYearStart, buildSchoolYearOptions, resolveSchoolYearOption, dateOnly, formatAttendanceDate, formatAttendanceTime } from '../utils/attendance';
 export { dateInputValue, createAuthorizedPersonForm, validateAuthorizedPersonForm, authorizedPersonFormIsValid, toAuthorizedPersonSavePayload, AuthorizedPersonFormModel, AuthorizedPersonValidationState } from '../utils/authorizedPersonForm';
 export { normalizeCurp, parseCurpBirthDate, calculateAgeFromIsoDate, CurpBirthDateResult } from '../utils/curp';

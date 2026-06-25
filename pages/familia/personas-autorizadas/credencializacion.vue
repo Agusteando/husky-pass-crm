@@ -84,6 +84,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
+import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { PersonasStudentProfile } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
@@ -92,6 +93,7 @@ import { displayMatricula } from '~/utils/matricula'
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 const { data: profile, refresh, pending, error: loadError } = useFetch<PersonasStudentProfile>('/api/personas-autorizadas/student', { key: 'pa-student-profile', timeout: 15000, dedupe: 'defer' })
+const familyPeople = usePersonasFamilyPeople({ immediate: false })
 
 const photoModalOpen = ref(false)
 const currentPhotoModalOpen = ref(false)
@@ -157,6 +159,7 @@ async function savePendingPhoto() {
       body: { foto: pendingPhotoUrl.value }
     })
     await refresh()
+    await familyPeople.refresh().catch(() => undefined)
     saved.value = true
     photoModalOpen.value = false
     pendingPhotoUrl.value = ''

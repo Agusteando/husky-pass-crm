@@ -130,6 +130,7 @@ declare global {
   const parseCurpBirthDate: typeof import('../../utils/curp').parseCurpBirthDate
   const parseLegacyDate: typeof import('../../utils/daycare').parseLegacyDate
   const parseSchoolYearLabel: typeof import('../../utils/attendance').parseSchoolYearLabel
+  const personasFamilyThemeContextKey: typeof import('../../composables/usePersonasTheme').personasFamilyThemeContextKey
   const personasInstitutionLogo: typeof import('../../utils/personasTheme').personasInstitutionLogo
   const personasInstitutionName: typeof import('../../utils/personasTheme').personasInstitutionName
   const personasLevelName: typeof import('../../utils/personasTheme').personasLevelName
@@ -200,6 +201,7 @@ declare global {
   const useModel: typeof import('../../node_modules/vue').useModel
   const useNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').useNuxtApp
   const useNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useNuxtData
+  const usePersonasFamilyPeople: typeof import('../../composables/usePersonasTheme').usePersonasFamilyPeople
   const usePersonasFamilyTheme: typeof import('../../composables/usePersonasTheme').usePersonasFamilyTheme
   const usePreviewMode: typeof import('../../node_modules/nuxt/dist/app/composables/preview').usePreviewMode
   const useRequestEvent: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').useRequestEvent
@@ -285,6 +287,9 @@ declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from '../../node_modules/vue'
   import('../../node_modules/vue')
+  // @ts-ignore
+  export type { PersonasFamilyThemeContext } from '../../composables/usePersonasTheme'
+  import('../../composables/usePersonasTheme')
   // @ts-ignore
   export type { AuthorizedPersonFormModel, AuthorizedPersonValidationState } from '../../utils/authorizedPersonForm'
   import('../../utils/authorizedPersonForm')
@@ -434,6 +439,7 @@ declare module 'vue' {
     readonly parseCurpBirthDate: UnwrapRef<typeof import('../../utils/curp')['parseCurpBirthDate']>
     readonly parseLegacyDate: UnwrapRef<typeof import('../../utils/daycare')['parseLegacyDate']>
     readonly parseSchoolYearLabel: UnwrapRef<typeof import('../../utils/attendance')['parseSchoolYearLabel']>
+    readonly personasFamilyThemeContextKey: UnwrapRef<typeof import('../../composables/usePersonasTheme')['personasFamilyThemeContextKey']>
     readonly personasInstitutionLogo: UnwrapRef<typeof import('../../utils/personasTheme')['personasInstitutionLogo']>
     readonly personasInstitutionName: UnwrapRef<typeof import('../../utils/personasTheme')['personasInstitutionName']>
     readonly personasLevelName: UnwrapRef<typeof import('../../utils/personasTheme')['personasLevelName']>
@@ -504,6 +510,7 @@ declare module 'vue' {
     readonly useModel: UnwrapRef<typeof import('../../node_modules/vue')['useModel']>
     readonly useNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useNuxtApp']>
     readonly useNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useNuxtData']>
+    readonly usePersonasFamilyPeople: UnwrapRef<typeof import('../../composables/usePersonasTheme')['usePersonasFamilyPeople']>
     readonly usePersonasFamilyTheme: UnwrapRef<typeof import('../../composables/usePersonasTheme')['usePersonasFamilyTheme']>
     readonly usePreviewMode: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preview')['usePreviewMode']>
     readonly useRequestEvent: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['useRequestEvent']>

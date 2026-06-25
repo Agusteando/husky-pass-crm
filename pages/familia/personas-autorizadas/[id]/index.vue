@@ -56,9 +56,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
+import type { AuthorizedChild, MarbeteReadinessResponse } from '~/types/daycare'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
+import { usePersonasFamilyPeople, usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { displayMatricula } from '~/utils/matricula'
 
@@ -66,7 +66,7 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-detail-${route.params.id}` })
-const { data, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
+const { data, pending, error: loadError } = usePersonasFamilyPeople()
 const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
   key: `pa-detail-marbete-readiness-${route.params.id}`,
   query: { id: route.params.id, format: 'readiness' },

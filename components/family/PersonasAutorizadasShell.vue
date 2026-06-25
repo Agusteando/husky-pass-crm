@@ -74,15 +74,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, provide } from 'vue'
 import { useRoute } from 'nuxt/app'
 import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
-import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
+import { personasFamilyThemeContextKey, usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
 import { displayMatricula } from '~/utils/matricula'
 
 withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
 const { session, primaryChild, studentName, studentPhoto, theme, themeVars } = usePersonasFamilyTheme({ key: 'shell' })
+provide(personasFamilyThemeContextKey, { theme })
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))

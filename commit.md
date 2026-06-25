@@ -1,1 +1,1 @@
-Corrige carga ligera de fotos en personas autorizadas
+Evita recargas duplicadas en Personas Autorizadas

@@ -28,10 +28,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useSlots } from 'vue'
+import { computed, inject, useSlots } from 'vue'
 import type { PersonasTheme } from '~/types/daycare'
-import type { PersonasMascotVariant } from '~/utils/personasTheme'
-import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
+import { resolvePersonasTheme, type PersonasMascotVariant } from '~/utils/personasTheme'
+import { personasFamilyThemeContextKey } from '~/composables/usePersonasTheme'
 
 const props = withDefaults(defineProps<{
   eyebrow?: string
@@ -51,8 +51,8 @@ const props = withDefaults(defineProps<{
 })
 
 const slots = useSlots()
-const familyTheme = usePersonasFamilyTheme({ key: 'pa-shared-page-header' })
-const resolvedTheme = computed(() => props.theme || familyTheme.theme.value)
+const familyThemeContext = inject(personasFamilyThemeContextKey, null)
+const resolvedTheme = computed(() => props.theme || familyThemeContext?.theme.value || resolvePersonasTheme({}))
 const hasActions = computed(() => Boolean(slots.actions))
 const hasMetaSlot = computed(() => Boolean(slots.meta))
 const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))

@@ -228,14 +228,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch } from 'nuxt/app'
+import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
-const { data, refresh, pending, error: loadError } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
+const { data, refresh, pending, error: loadError } = usePersonasFamilyPeople()
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 

@@ -63,13 +63,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useFetch } from 'nuxt/app'
-import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
+import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
+import type { AuthorizedChild } from '~/types/daycare'
 import { displayMatricula } from '~/utils/matricula'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-const { data: people, pending, error: loadError, refresh } = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', { key: 'pa-family-people', timeout: 15000, dedupe: 'defer' })
+const { data: people, pending, error: loadError, refresh } = usePersonasFamilyPeople()
 const switching = ref(false)
 const error = ref('')
 const notice = ref('')

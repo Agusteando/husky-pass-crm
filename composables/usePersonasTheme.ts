@@ -1,5 +1,5 @@
-import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { useFetch } from 'nuxt/app'
+import { computed, onMounted, toValue, type ComputedRef, type InjectionKey, type MaybeRefOrGetter } from 'vue'
+import { useNuxtApp, useState } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, PersonasTheme } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
@@ -10,10 +10,83 @@ type FamilyThemeOptions = {
   key?: string
   selectedMatricula?: MaybeRefOrGetter<string | number | null | undefined>
   fallback?: MaybeRefOrGetter<PersonasThemeSource | null | undefined>
+  immediate?: MaybeRefOrGetter<boolean | null | undefined>
 }
+
+type PersonasFamilyPeoplePromiseHolder = {
+  _personasFamilyPeoplePromise?: Promise<AuthorizedPerson[]>
+}
+
+export type PersonasFamilyThemeContext = {
+  theme: ComputedRef<PersonasTheme>
+}
+
+export const personasFamilyThemeContextKey = Symbol('personas-family-theme-context') as InjectionKey<PersonasFamilyThemeContext>
 
 function childrenFromPeople(people?: AuthorizedPerson[] | null) {
   return people?.find((person) => person.children?.length)?.children || []
+}
+
+function fetchErrorMessage(error: unknown) {
+  const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
+  return failure?.data?.statusMessage || failure?.data?.message || failure?.statusMessage || failure?.message || 'No fue posible cargar Personas Autorizadas.'
+}
+
+export function usePersonasFamilyPeople(options: { immediate?: MaybeRefOrGetter<boolean | null | undefined> } = {}) {
+  const data = useState<AuthorizedPerson[]>('pa-family-people:data', () => [])
+  const loaded = useState<boolean>('pa-family-people:loaded', () => false)
+  const pendingState = useState<boolean>('pa-family-people:pending', () => false)
+  const errorMessage = useState<string>('pa-family-people:error', () => '')
+  const shouldLoad = computed(() => toValue(options.immediate) !== false)
+  const pending = computed(() => pendingState.value || (shouldLoad.value && !loaded.value && !errorMessage.value))
+  const error = computed(() => errorMessage.value || null)
+
+  async function load(force = false) {
+    if (!force && loaded.value) return data.value
+
+    const holder = useNuxtApp() as unknown as PersonasFamilyPeoplePromiseHolder
+    if (holder._personasFamilyPeoplePromise) return holder._personasFamilyPeoplePromise
+
+    pendingState.value = true
+    errorMessage.value = ''
+    holder._personasFamilyPeoplePromise = $fetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', {
+      timeout: 15000
+    }).then((rows) => {
+      data.value = Array.isArray(rows) ? rows : []
+      loaded.value = true
+      return data.value
+    }).catch((error: unknown) => {
+      errorMessage.value = fetchErrorMessage(error)
+      throw error
+    }).finally(() => {
+      pendingState.value = false
+      holder._personasFamilyPeoplePromise = undefined
+    })
+
+    return holder._personasFamilyPeoplePromise
+  }
+
+  function ensure() {
+    if (!shouldLoad.value || loaded.value || pendingState.value) return Promise.resolve(data.value)
+    return load(false)
+  }
+
+  function refresh() {
+    return load(true)
+  }
+
+  onMounted(() => {
+    void ensure().catch(() => undefined)
+  })
+
+  return {
+    data,
+    pending,
+    error,
+    loaded,
+    ensure,
+    refresh
+  }
 }
 
 export function useResolvedPersonasTheme(source: MaybeRefOrGetter<PersonasThemeSource | null | undefined>) {
@@ -24,11 +97,7 @@ export function useResolvedPersonasTheme(source: MaybeRefOrGetter<PersonasThemeS
 
 export function usePersonasFamilyTheme(options: FamilyThemeOptions = {}) {
   const sessionState = useAppSession()
-  const peopleState = useFetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', {
-    key: 'pa-family-people',
-    timeout: 15000,
-    dedupe: 'defer'
-  })
+  const peopleState = usePersonasFamilyPeople({ immediate: options.immediate })
 
   const selectedMatricula = computed(() => normalizeMatricula(toValue(options.selectedMatricula)))
   const fallback = computed(() => toValue(options.fallback) || {})
@@ -63,6 +132,7 @@ export function usePersonasFamilyTheme(options: FamilyThemeOptions = {}) {
     peoplePending: peopleState.pending,
     peopleError: peopleState.error,
     refreshPeople: peopleState.refresh,
+    ensurePeople: peopleState.ensure,
     children,
     primaryChild,
     studentName,
