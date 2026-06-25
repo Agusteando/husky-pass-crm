@@ -35,6 +35,17 @@ function normalizeString(value: unknown) {
   return normalized || null
 }
 
+const LIGHTWEIGHT_PHOTO_MAX_BYTES = 2048
+
+function lightweightPhotoSelect(column: string) {
+  return `CASE
+    WHEN NULLIF(${column}, '') IS NULL THEN NULL
+    WHEN ${column} LIKE 'data:%' THEN NULL
+    WHEN OCTET_LENGTH(${column}) > ${LIGHTWEIGHT_PHOTO_MAX_BYTES} THEN NULL
+    ELSE ${column}
+  END`
+}
+
 
 export const PARENT_EDITABLE_STUDENT_FIELDS = [
   'curp',
@@ -419,7 +430,7 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
     `${matriculaSelect(columnSet, 'grado')} AS grado`,
     `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
-    `${matriculaSelect(columnSet, 'foto')} AS foto`,
+    `${lightweightPhotoSelect(matriculaSelect(columnSet, 'foto'))} AS foto`,
     `${matriculaSelect(columnSet, PARENT_SIGNATURE_COLUMN)} AS parent_signature`,
     ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
     `${usersSelect(userColumnSet, 'id')} AS user_id`,
@@ -471,7 +482,7 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${matriculaSelect(columnSet, 'grupo')} AS grupo`,
     `${matriculaSelect(columnSet, 'grado')} AS grado`,
     `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
-    `${matriculaSelect(columnSet, 'foto')} AS foto`,
+    `${lightweightPhotoSelect(matriculaSelect(columnSet, 'foto'))} AS foto`,
     `${usersSelect(userColumnSet, 'id')} AS user_id`,
     `${usersSelect(userColumnSet, 'campus')} AS campus`
   ].join(',\n       ')
@@ -635,10 +646,26 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
 export async function getAuthorizedPersonas(user: AppSessionUser) {
   const [peopleRows, children] = await Promise.all([
     legacyQuery<(AuthorizedPerson & RowDataPacket)[]>(
-      `SELECT id, CAST(id AS CHAR) qr, indice, paternoP, maternoP, nombreP, parenP, foto, compressed_foto, fechaP, user_id
-       FROM personas_autorizadas
-       WHERE user_id = ? AND indice BETWEEN 1 AND 4
-       ORDER BY indice ASC, id ASC`,
+      `SELECT
+         p.id,
+         CAST(p.id AS CHAR) qr,
+         p.indice,
+         p.paternoP,
+         p.maternoP,
+         p.nombreP,
+         p.parenP,
+         ${lightweightPhotoSelect('p.foto')} AS foto,
+         ${lightweightPhotoSelect('p.compressed_foto')} AS compressed_foto,
+         p.fechaP,
+         p.user_id
+       FROM personas_autorizadas p
+       INNER JOIN (
+         SELECT MIN(id) AS id
+         FROM personas_autorizadas
+         WHERE user_id = ? AND indice BETWEEN 1 AND 4
+         GROUP BY indice
+       ) selected ON selected.id = p.id
+       ORDER BY p.indice ASC, p.id ASC`,
       [user.id]
     ),
     getFamilyChildren(user)
@@ -711,7 +738,17 @@ export async function deleteAuthorizedPersona(user: AppSessionUser, id: number) 
 export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: number) {
   const row = await legacyOne<(PrintableAuthorizedPerson & RowDataPacket)>(
     `SELECT
-       A.*,
+       A.id,
+       CAST(A.id AS CHAR) AS qr,
+       A.indice,
+       A.paternoP,
+       A.maternoP,
+       A.nombreP,
+       A.parenP,
+       ${lightweightPhotoSelect('A.foto')} AS foto,
+       ${lightweightPhotoSelect('A.compressed_foto')} AS compressed_foto,
+       A.fechaP,
+       A.user_id,
        IFNULL(MAX(IFNULL(m.nivel, B.nivelEdu)), 'preescolar') AS nivelEdu,
        UPPER(MAX(u.username)) AS matricula,
        MAX(CASE
@@ -721,7 +758,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
          ELSE LEFT(UPPER(u.username), 2)
        END) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
-       MAX(IFNULL(c.foto, IFNULL(m.foto, B.foto))) AS fotoA,
+       MAX(${lightweightPhotoSelect('IFNULL(c.foto, IFNULL(m.foto, B.foto))')}) AS fotoA,
        MAX(IFNULL(m.grado, B.grado)) AS gradoA,
        MAX(IFNULL(m.grupo, B.grupo)) AS grupoA
      FROM personas_autorizadas A
@@ -749,17 +786,19 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
 }
 
 export async function getScanAuthorizedPersona(id: number) {
+  const fotoP = lightweightPhotoSelect('p.foto')
+  const compressedFotoP = lightweightPhotoSelect('p.compressed_foto')
   const rows = await legacyQuery<(ScanAuthorizedPerson & RowDataPacket)[]>(
     `SELECT
        CONCAT(p.nombreP, ' ', p.paternoP, ' ', p.maternoP) AS fullnameP,
        CASE
-         WHEN IFNULL(p.foto, '') <> '' THEN p.foto
-         WHEN p.compressed_foto LIKE '%vision=marks-ok%' AND (p.compressed_foto LIKE 'http%' OR p.compressed_foto LIKE '/uploads/%') THEN p.compressed_foto
-         WHEN p.compressed_foto LIKE '%vision=marks-ok%' THEN CONCAT('https://admin.casitaiedis.edu.mx/virtual/', p.compressed_foto)
+         WHEN ${fotoP} IS NOT NULL THEN ${fotoP}
+         WHEN ${compressedFotoP} LIKE '%vision=marks-ok%' AND (${compressedFotoP} LIKE 'http%' OR ${compressedFotoP} LIKE '/uploads/%') THEN ${compressedFotoP}
+         WHEN ${compressedFotoP} LIKE '%vision=marks-ok%' THEN CONCAT('https://admin.casitaiedis.edu.mx/virtual/', ${compressedFotoP})
          ELSE ''
        END AS fotoP,
        CONCAT(IFNULL(m.nombres, a.nombreA), ' ', IFNULL(m.apellido_paterno, a.paternoA), ' ', IFNULL(m.apellido_materno, a.maternoA)) AS fullnameA,
-       MAX(c.foto) AS fotoA,
+       MAX(${lightweightPhotoSelect('c.foto')}) AS fotoA,
        IFNULL(m.grado, a.grado) AS gradoA,
        IFNULL(m.grupo, a.grupo) AS grupoA,
        p.parenP AS parentesco,
