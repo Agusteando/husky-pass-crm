@@ -1,8 +1,17 @@
+import { fileURLToPath } from 'node:url'
 import { defineNuxtConfig } from 'nuxt/config'
+
+const appManifestStub = fileURLToPath(new URL('./stubs/nuxt-app-manifest.mjs', import.meta.url))
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: false },
+  experimental: {
+    appManifest: false
+  },
+  alias: {
+    '#app-manifest': appManifestStub
+  },
   modules: ['@nuxtjs/google-fonts'],
   css: ['~/assets/css/main.css'],
   googleFonts: {
@@ -76,6 +85,11 @@ export default defineNuxtConfig({
     typeCheck: true
   },
   vite: {
+    resolve: {
+      alias: {
+        '#app-manifest': appManifestStub
+      }
+    },
     server: {
       watch: {
         ignored: ['**/artifacts/**', '**/.output/**', '**/.vercel/**']

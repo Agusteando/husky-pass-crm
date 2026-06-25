@@ -1,1 +1,1 @@
-Evita recargas duplicadas en Personas Autorizadas
+Corrige resolución del manifiesto de Nuxt en desarrollo

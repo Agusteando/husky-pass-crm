@@ -106,6 +106,9 @@
       "#server/*": [
         "../server/*"
       ],
+      "#app-manifest": [
+        "../node_modules/mocked-exports/lib/proxy.d.mts"
+      ],
       "#app": [
         "../node_modules/nuxt/dist/app"
       ],
@@ -123,9 +126,6 @@
       ],
       "#imports": [
         "./imports"
-      ],
-      "#app-manifest": [
-        "./manifest/meta/ea75fb5a-47ad-4095-acb7-02b4e5e2f12f.json"
       ],
       "#components": [
         "./components"
