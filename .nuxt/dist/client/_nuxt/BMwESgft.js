@@ -1,0 +1,1 @@
+import"./dCStn-eQ.js";import{u as s}from"./BXnLf40K.js";import{u as o,a as u}from"./DyhJFRcE.js";function i(){const e=o();return s("/api/auth/me",{key:"app-session",dedupe:"defer",default:()=>e.value||u,getCachedData:()=>e.value||void 0,onResponse({response:a}){e.value=a._data},watch:!1})}export{i as u};

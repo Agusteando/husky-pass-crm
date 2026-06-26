@@ -23,7 +23,7 @@
         </span>
       </section>
 
-      <TopbarAccountMenu :session="session" experience="escolar" security-to="/familia/cuenta/seguridad?experiencia=escolar" />
+      <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" />
     </header>
 
     <div class="pa-product-layout">
@@ -88,6 +88,7 @@ const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).s
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const contextLine = computed(() => [displayMatricula(primaryChild.value?.matricula), primaryChild.value?.nivelEdu, primaryChild.value?.grado, primaryChild.value?.grupo].filter(Boolean).join(' · ') || 'Cuenta familiar')
+const paSecurityRoute = '/familia/personas-autorizadas/seguridad'
 
 const navItems = [
   { key: 'personas', label: 'Personas autorizadas', shortLabel: 'Personas', icon: 'people', to: '/familia/personas-autorizadas' },
@@ -97,7 +98,7 @@ const navItems = [
   { key: 'asistencia', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'calendar', to: '/familia/asistencia' },
   { key: 'encuestas', label: 'Encuestas', shortLabel: 'Encuestas', icon: 'survey', to: '/familia/personas-autorizadas/encuestas' },
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
-  { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: '/familia/cuenta/seguridad?experiencia=escolar' }
+  { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: paSecurityRoute }
 ]
 
 function isActive(item: { to: string }) {
@@ -116,7 +117,7 @@ function isActive(item: { to: string }) {
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
   --pa-sidebar-width: 224px;
-  --pa-topbar-height: 72px;
+  --pa-topbar-height: 80px;
   --pa-content-gutter: clamp(18px, 2.1vw, 34px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
@@ -187,25 +188,32 @@ function isActive(item: { to: string }) {
 
 .pa-student-context {
   align-items: center;
+  background: linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.035));
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.12);
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(26, 48, 72, 0.06);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: 46px minmax(0, 1fr);
   justify-self: start;
-  max-width: 520px;
+  max-width: min(560px, 100%);
   min-width: 0;
+  padding: 7px 14px 7px 7px;
 }
 
 .pa-student-avatar {
   aspect-ratio: 1;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--pa-primary);
   display: grid;
   font-size: 0.76rem;
   font-weight: 800;
+  height: 46px;
   overflow: hidden;
   place-items: center;
+  width: 46px;
 }
 
 .pa-student-avatar img {
@@ -222,7 +230,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy small {
   color: var(--pa-primary);
-  font-size: 0.64rem;
+  font-size: 0.66rem;
   font-weight: 850;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -237,13 +245,14 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy strong {
   color: var(--pa-gray);
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   line-height: 1.2;
 }
 
 .pa-student-copy span {
   color: var(--pa-muted);
-  font-size: 0.67rem;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .pa-product-layout {
@@ -585,7 +594,17 @@ function isActive(item: { to: string }) {
 
 @media (max-height: 820px) and (min-width: 901px) {
   .pa-shell-app {
-    --pa-topbar-height: 66px;
+    --pa-topbar-height: 72px;
+  }
+
+  .pa-student-context {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding-block: 5px;
+  }
+
+  .pa-student-avatar {
+    height: 40px;
+    width: 40px;
   }
 
   .pa-product-nav {

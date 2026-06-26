@@ -1,0 +1,1 @@
+import{d as s,H as o,g as t}from"./dCStn-eQ.js";import"./DZ_zC5o8.js";import"./DwXDh1Bf.js";import"./P9p_9eoA.js";import"./DKuM7WI5.js";const a=s({__name:"personas-modals",setup(e){throw o({statusCode:404,statusMessage:"Ruta no disponible."})}}),_=t(a,[["__scopeId","data-v-49d68d41"]]);export{_ as default};

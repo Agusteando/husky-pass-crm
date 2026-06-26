@@ -1,0 +1,1 @@
+import{ab as t,ac as o,n as r}from"./dCStn-eQ.js";import{g as i}from"./DyhJFRcE.js";import{a as n}from"./DKuM7WI5.js";const d=t(async()=>{let e,a;const s=([e,a]=o(()=>i()),e=await e,a(),e);if(!s.user||!n(s.user))return r("/admin/login")});export{d as default};

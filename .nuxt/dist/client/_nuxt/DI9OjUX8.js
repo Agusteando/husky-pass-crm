@@ -1,0 +1,1 @@
+import{ab as t,ac as i,n as s}from"./dCStn-eQ.js";import{g as o}from"./DyhJFRcE.js";import{h as u,d as n}from"./DKuM7WI5.js";const f=t(async()=>{let e,r;const a=([e,r]=i(()=>o()),e=await e,r(),e);if(!a.user||a.user.kind!=="family")return s("/login/guarderia");if(!u(a.user,"daycare"))return s(n(a.user))});export{f as default};

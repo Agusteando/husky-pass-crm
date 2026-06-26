@@ -1,0 +1,1 @@
+import{_ as t}from"./dN_eozW9.js";import{d as e,i as r,o as s}from"./dCStn-eQ.js";import"./D6qfxHFa.js";import"./-uByDV02.js";import"./Dghz60su.js";import"./BmUi6920.js";import"./BXnLf40K.js";const f=e({__name:"avisos",setup(i){return(n,p)=>{const o=t;return s(),r(o,{type:"news",title:"Avisos",description:"Comunicados y circulares de guardería."})}}});export{f as default};

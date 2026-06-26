@@ -138,6 +138,9 @@ async function submitSearch() {
   align-items: center;
   display: flex;
   gap: 5px;
+  inline-size: 100%;
+  justify-self: stretch;
+  max-inline-size: 100%;
   min-width: 0;
   overflow-x: auto;
   padding: 4px 0;
@@ -193,6 +196,7 @@ async function submitSearch() {
   .admin-nav {
     grid-column: 1 / -1;
     order: 3;
+    width: 100%;
   }
 
   .admin-search {

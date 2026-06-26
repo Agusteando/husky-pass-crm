@@ -1,0 +1,1 @@
+import{d as e,M as s,n as r}from"./dCStn-eQ.js";const i=e({__name:"actualizar",async setup(n){let a,t;return[a,t]=s(()=>r("/familia/personas-autorizadas/actualizar-datos",{replace:!0})),await a,t(),()=>{}}});export{i as default};

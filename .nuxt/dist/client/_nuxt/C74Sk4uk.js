@@ -1,0 +1,1 @@
+import{ab as i,ac as t,n as s}from"./dCStn-eQ.js";import{g as n}from"./DyhJFRcE.js";import{a as o,d as u}from"./DKuM7WI5.js";const f=i(async()=>{let a,r;const e=([a,r]=t(()=>n()),a=await a,r(),a);return e.user?.kind==="admin"&&o(e.user)?s(e.user.isSuperAdmin?"/admin/superadmin":"/admin/daycare/salas"):e.user?.kind==="family"?s(u(e.user)):s("/login")});export{f as default};

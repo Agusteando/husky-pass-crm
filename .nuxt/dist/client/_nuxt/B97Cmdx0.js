@@ -1,0 +1,1 @@
+import{ab as n,ac as r,n as i}from"./dCStn-eQ.js";import{g as t}from"./DyhJFRcE.js";const d=n(async()=>{let e,s;const a=([e,s]=r(()=>t()),e=await e,s(),e);if(!a.user||a.user.kind!=="admin")return i("/admin/login");if(!a.user.isSuperAdmin)return i("/admin/daycare/salas")});export{d as default};

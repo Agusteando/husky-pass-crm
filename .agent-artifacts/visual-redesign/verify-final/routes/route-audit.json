@@ -1,0 +1,447 @@
+{
+  "generatedAt": "2026-06-26T01:44:38.936Z",
+  "baseUrl": "http://localhost:3000",
+  "routes": [
+    {
+      "file": "pages/index.vue",
+      "path": "/",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/__dev/husky-pass.vue",
+      "path": "/__dev/husky-pass",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/__dev/husky-pass",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "DEV HARNESS\n\nHusky Pass PDF Lab\nModales PA\nAbrir PDF\nDescargar\nVARIANTE\nGuarderia / CM\nPreescolar / PREEM\nPrimaria / PT\nPrimaria / PM\nSecundaria / ST\nSecundaria / SM\nESTADO\nComplet"
+    },
+    {
+      "file": "pages/__dev/identity-matrix.vue",
+      "path": "/__dev/identity-matrix",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/__dev/identity-matrix",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA ESCOLAR\n\nEscolar · Escolar\nescolar\n\nNAVEGACIÓN\n\nInicio\nDatos\nSeguridad\n\nESTADO\n\nContexto resuelto.\n\nASSETS PERMITIDOS\n\nescolar\nschool-neutral\nschool-neutral\nhusky-pass\n"
+    },
+    {
+      "file": "pages/__dev/password-recovery.vue",
+      "path": "/__dev/password-recovery",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/__dev/password-recovery",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "DEV HARNESS\n\nPassword Recovery Lab\nHusky Pass PDF\nModales PA\nSolicitar enlace\nCorreo familiar\nExperiencia\nExperiencia Escolar\nExperiencia Guardería\nEnviar\nUltimo preview local\nActu"
+    },
+    {
+      "file": "pages/__dev/personas-modals.vue",
+      "path": "/__dev/personas-modals",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/__dev/personas-modals",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ESCOLAR\n\nPersona 1\n×\n\nPERSONA 1\n\nDatos de la persona\nNombre(s)\nApellido paterno\nApellido materno\nParentesco\nFecha de alta\n\nFOTO DE IDENTIFICACION\n\nFoto\n\nFoto frontal, clara.\n\nSelec"
+    },
+    {
+      "file": "pages/admin/daycare.vue",
+      "path": "/admin/daycare",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/index.vue",
+      "path": "/admin/daycare/salas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/[id].vue",
+      "path": "/admin/daycare/salas/1",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/[id]/avisos.vue",
+      "path": "/admin/daycare/salas/1/avisos",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/[id]/calendario.vue",
+      "path": "/admin/daycare/salas/1/calendario",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/[id]/familias.vue",
+      "path": "/admin/daycare/salas/1/familias",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/daycare/salas/[id]/tareas.vue",
+      "path": "/admin/daycare/salas/1/tareas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/historial-accesos.vue",
+      "path": "/admin/historial-accesos",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/login.vue",
+      "path": "/admin/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/superadmin/index.vue",
+      "path": "/admin/superadmin",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/superadmin/entorno.vue",
+      "path": "/admin/superadmin/entorno",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/superadmin/marbetes.vue",
+      "path": "/admin/superadmin/marbetes",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/admin/superadmin/personas-autorizadas.vue",
+      "path": "/admin/superadmin/personas-autorizadas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/admin/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "ACCESO INTERNO\n\nAdministración Husky Pass\n\nIngresa con tu cuenta institucional.\n\nAcceso administrativo\n\nUsa tu cuenta @casitaiedis.edu.mx.\n\nAcceder con Google\nAcceso familiar"
+    },
+    {
+      "file": "pages/familia/index.vue",
+      "path": "/familia",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/asistencia.vue",
+      "path": "/familia/asistencia",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/cuenta/seguridad.vue",
+      "path": "/familia/cuenta/seguridad",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/daycare/index.vue",
+      "path": "/familia/daycare",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA GUARDERÍA\n\nAcceso familiar Guardería\n\nIngresa con la cuenta familiar asignada a tu sala.\n\nEntrar a Experiencia Guardería\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/familia/daycare/avisos.vue",
+      "path": "/familia/daycare/avisos",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA GUARDERÍA\n\nAcceso familiar Guardería\n\nIngresa con la cuenta familiar asignada a tu sala.\n\nEntrar a Experiencia Guardería\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/familia/daycare/calendario.vue",
+      "path": "/familia/daycare/calendario",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA GUARDERÍA\n\nAcceso familiar Guardería\n\nIngresa con la cuenta familiar asignada a tu sala.\n\nEntrar a Experiencia Guardería\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/familia/daycare/tareas.vue",
+      "path": "/familia/daycare/tareas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA GUARDERÍA\n\nAcceso familiar Guardería\n\nIngresa con la cuenta familiar asignada a tu sala.\n\nEntrar a Experiencia Guardería\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/index.vue",
+      "path": "/familia/personas-autorizadas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/[id]/index.vue",
+      "path": "/familia/personas-autorizadas/1",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/[id]/credencial.vue",
+      "path": "/familia/personas-autorizadas/1/credencial",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/[id]/imprimir.vue",
+      "path": "/familia/personas-autorizadas/1/imprimir",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/[id]/marbete.vue",
+      "path": "/familia/personas-autorizadas/1/marbete",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/[id]/qr.vue",
+      "path": "/familia/personas-autorizadas/1/qr",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/actualizar.vue",
+      "path": "/familia/personas-autorizadas/actualizar",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/actualizar-datos.vue",
+      "path": "/familia/personas-autorizadas/actualizar-datos",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/ayuda.vue",
+      "path": "/familia/personas-autorizadas/ayuda",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/convenios.vue",
+      "path": "/familia/personas-autorizadas/convenios",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/credencial.vue",
+      "path": "/familia/personas-autorizadas/credencial",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/credencializacion.vue",
+      "path": "/familia/personas-autorizadas/credencializacion",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/encuestas.vue",
+      "path": "/familia/personas-autorizadas/encuestas",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/hermanos.vue",
+      "path": "/familia/personas-autorizadas/hermanos",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/marbetes.vue",
+      "path": "/familia/personas-autorizadas/marbetes",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/familia/personas-autorizadas/tutorial.vue",
+      "path": "/familia/personas-autorizadas/tutorial",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/login/index.vue",
+      "path": "/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "HUSKY PASS\n\nElige tu experiencia\n\nSelecciona el acceso que corresponde a tu cuenta.\n\nExperiencia Escolar\nFamilias IECS o IEDIS\nExperiencia Guardería\nFamilias de Guardería\nExperienc"
+    },
+    {
+      "file": "pages/login/escolar.vue",
+      "path": "/login/escolar",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/escolar",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA ESCOLAR\n\nAcceso familiar escolar\n\nIngresa con la cuenta familiar vinculada a IECS o IEDIS.\n\nEntrar a Experiencia Escolar\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/login/guarderia.vue",
+      "path": "/login/guarderia",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login/guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA GUARDERÍA\n\nAcceso familiar Guardería\n\nIngresa con la cuenta familiar asignada a tu sala.\n\nEntrar a Experiencia Guardería\nUsuario o correo\nContraseña\nOlvidaste tu contra"
+    },
+    {
+      "file": "pages/recuperar-contrasena.vue",
+      "path": "/recuperar-contrasena",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/recuperar-contrasena",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA ESCOLAR\n\nRestablecer contraseña\n\nRecibe un enlace seguro en el correo de tu cuenta familiar.\n\nOlvidaste tu contraseña\nCorreo\nEnviar enlace\nVolver a iniciar sesión"
+    },
+    {
+      "file": "pages/registro-guarderia.vue",
+      "path": "/registro-guarderia",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/registro-guarderia",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "REGISTRO DE GUARDERÍA\n\nActiva tu acceso familiar\n\nRegistra la cuenta que usará tu familia para consultar avisos, tareas y calendario de la sala.\n\nAcceso seguro\nValidamos sala, CAPT"
+    },
+    {
+      "file": "pages/restablecer-contrasena.vue",
+      "path": "/restablecer-contrasena",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/restablecer-contrasena",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "EXPERIENCIA ESCOLAR\n\nNueva contraseña\n\nCrea una contraseña para volver a entrar a Husky Pass.\n\nEnlace no disponible\n\nEl enlace no es válido.\n\nSolicitar enlace\nVolver a iniciar sesi"
+    },
+    {
+      "file": "pages/[...slug].vue",
+      "path": "/ruta-inexistente-producto",
+      "status": 404,
+      "finalUrl": "http://localhost:3000/ruta-inexistente-producto",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "RUTA NO ENCONTRADA\n\nEsta pagina no esta disponible\n\nVuelve a elegir tu experiencia para continuar con una ruta valida.\n\nElegir experiencia\nAcceso escolar\nAcceso guarderia\nAdministr"
+    },
+    {
+      "file": "pages/validar/persona-autorizada/[id].vue",
+      "path": "/validar/persona-autorizada/1",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/validar/persona-autorizada/1",
+      "starter": false,
+      "ok": true,
+      "textSnippet": "Registro no encontrado\n\nNo fue posible validar esta persona autorizada."
+    }
+  ]
+}

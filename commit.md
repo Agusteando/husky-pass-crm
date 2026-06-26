@@ -1,1 +1,1 @@
-Corrige resolución del manifiesto de Nuxt en desarrollo
+Unifica la experiencia visual de Personas Autorizadas

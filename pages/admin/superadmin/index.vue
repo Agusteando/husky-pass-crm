@@ -1,82 +1,82 @@
 <template>
   <section class="superadmin-page stack" data-product-area="superadmin" data-product-screen="directory">
-    <header class="workspace-head compact-head superadmin-head">
-      <div>
+    <header class="admin-command">
+      <div class="admin-command-copy">
         <p class="eyebrow">Superadmin</p>
         <h1>Gestión de usuarios y productos</h1>
         <p>Encuentra cuentas, revisa alcances y abre soporte familiar desde un directorio operativo.</p>
+
+        <div class="head-actions">
+          <NuxtLink class="btn btn-primary" to="/admin/superadmin/personas-autorizadas">Husky Pass</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Entorno</NuxtLink>
+          <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
+        </div>
       </div>
-      <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Personas Autorizadas</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial de accesos</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Entorno</NuxtLink>
-        <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
-      </div>
+
+      <section v-if="directory && !loadProblem" class="command-metrics" aria-label="Resumen del directorio">
+        <article class="metric-feature">
+          <span>Total visible</span>
+          <strong>{{ directory.metrics.total }}</strong>
+          <small>{{ activeScopeLabel }}</small>
+        </article>
+        <article>
+          <span>Familias</span>
+          <strong>{{ directory.metrics.familyUsers }}</strong>
+        </article>
+        <article>
+          <span>Guardería</span>
+          <strong>{{ directory.metrics.daycareFamilies }}</strong>
+        </article>
+        <article>
+          <span>Husky Pass</span>
+          <strong>{{ directory.metrics.schoolFamilies }}</strong>
+        </article>
+        <article>
+          <span>Soporte</span>
+          <strong>{{ directory.metrics.impersonable }}</strong>
+        </article>
+      </section>
     </header>
 
-    <section class="scope-tabs" aria-label="Alcance de usuarios">
-      <button
-        v-for="option in scopeOptions"
-        :key="option.value"
-        class="scope-tab"
-        :class="{ active: selectedScope === option.value }"
-        type="button"
-        data-diagnostic-action="filtrar-scope"
-        :aria-pressed="selectedScope === option.value"
-        @click="selectScope(option.value)"
-      >
-        <strong>{{ option.label }}</strong>
-        <span>{{ option.description }}</span>
-      </button>
-    </section>
+    <section class="directory-control card">
+      <div class="scope-tabs" aria-label="Alcance de usuarios">
+        <button
+          v-for="option in scopeOptions"
+          :key="option.value"
+          class="scope-tab"
+          :class="{ active: selectedScope === option.value }"
+          type="button"
+          data-diagnostic-action="filtrar-scope"
+          :aria-pressed="selectedScope === option.value"
+          @click="selectScope(option.value)"
+        >
+          <strong>{{ option.label }}</strong>
+          <span>{{ option.description }}</span>
+        </button>
+      </div>
 
-    <section class="filters-card card">
-      <label class="label">
-        Plantel
-        <select v-model="selectedPlantel" class="select" data-diagnostic-filter="plantel">
-          <option value="">Todos</option>
-          <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
-        </select>
-      </label>
-      <label class="label">
-        Buscar usuario
-        <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, rol, sala o campus" data-diagnostic-filter="buscar-usuario" />
-      </label>
-      <label class="label">
-        Límite
-        <select v-model.number="limit" class="select" data-diagnostic-filter="limite">
-          <option :value="50">50</option>
-          <option :value="120">120</option>
-          <option :value="250">250</option>
-        </select>
-      </label>
-    </section>
-
-    <section v-if="directory && !loadProblem" class="super-metrics">
-      <article>
-        <span>Total visible</span>
-        <strong>{{ directory.metrics.total }}</strong>
-      </article>
-      <article>
-        <span>Familias</span>
-        <strong>{{ directory.metrics.familyUsers }}</strong>
-      </article>
-      <article>
-        <span>Guardería</span>
-        <strong>{{ directory.metrics.daycareFamilies }}</strong>
-      </article>
-      <article>
-        <span>Personas Autorizadas</span>
-        <strong>{{ directory.metrics.schoolFamilies }}</strong>
-      </article>
-      <article>
-        <span>Internos</span>
-        <strong>{{ directory.metrics.internalUsers }}</strong>
-      </article>
-      <article>
-        <span>Impersonables</span>
-        <strong>{{ directory.metrics.impersonable }}</strong>
-      </article>
+      <div class="filters-card">
+        <label class="label">
+          Plantel
+          <select v-model="selectedPlantel" class="select" data-diagnostic-filter="plantel">
+            <option value="">Todos</option>
+            <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
+          </select>
+        </label>
+        <label class="label search-label">
+          Buscar usuario
+          <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, rol, sala o campus" data-diagnostic-filter="buscar-usuario" />
+        </label>
+        <label class="label">
+          Límite
+          <select v-model.number="limit" class="select" data-diagnostic-filter="limite">
+            <option :value="50">50</option>
+            <option :value="120">120</option>
+            <option :value="250">250</option>
+          </select>
+        </label>
+      </div>
     </section>
 
     <p v-if="actionError" class="alert">{{ actionError }}</p>
@@ -465,41 +465,138 @@ function normalizeLimit(value: unknown) {
 
 <style scoped>
 .superadmin-page {
-  gap: 10px;
+  gap: 12px;
 }
 
-.superadmin-head {
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding-block: 12px;
+.admin-command {
+  background:
+    radial-gradient(circle at 88% 16%, rgba(35, 97, 136, .16), transparent 32%),
+    linear-gradient(135deg, #ffffff 0%, #f5f9f0 100%);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, .82fr);
+  padding: clamp(16px, 2vw, 24px);
+}
+
+.admin-command-copy {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-command-copy h1 {
+  font-size: clamp(2rem, 3.3vw, 3.25rem);
+  line-height: .96;
+  margin-bottom: 0;
+  max-width: 720px;
+}
+
+.admin-command-copy p {
+  font-size: 1rem;
+  max-width: 680px;
 }
 
 .head-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 6px;
+}
+
+.command-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.command-metrics article {
+  background: rgba(255, 255, 255, .86);
+  border: 1px solid rgba(203, 213, 225, .9);
+  border-radius: 18px;
+  box-shadow: var(--shadow-line);
+  display: grid;
+  gap: 4px;
+  min-height: 86px;
+  padding: 14px;
+}
+
+.command-metrics .metric-feature {
+  background: linear-gradient(135deg, var(--color-brand-900), #236188);
+  border-color: transparent;
+  color: #fff;
+  grid-row: span 2;
+}
+
+.command-metrics span {
+  color: var(--color-muted);
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.command-metrics strong {
+  color: var(--color-ink);
+  font-family: var(--font-title);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.command-metrics small {
+  color: rgba(255, 255, 255, .76);
+}
+
+.metric-feature span,
+.metric-feature strong {
+  color: #fff;
+}
+
+.metric-feature strong {
+  font-size: clamp(3rem, 5vw, 4.4rem);
+}
+
+.directory-control {
+  border-radius: 22px;
+  display: grid;
+  gap: 12px;
 }
 
 .scope-tabs {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  background: #f4f7f1;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.scope-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .scope-tab {
-  background: #fff;
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 14px;
   cursor: pointer;
   display: grid;
-  gap: 4px;
-  padding: 8px 10px;
+  flex: 1 0 150px;
+  gap: 2px;
+  min-height: 62px;
+  padding: 8px 12px;
   text-align: left;
 }
 
 .scope-tab:hover,
 .scope-tab.active {
-  background: var(--color-brand-100);
+  background: #fff;
   border-color: var(--color-brand-300);
+  box-shadow: var(--shadow-soft);
 }
 
 .scope-tab strong {
@@ -517,43 +614,18 @@ function normalizeLimit(value: unknown) {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr) minmax(120px, 0.32fr);
+  grid-template-columns: minmax(170px, .5fr) minmax(280px, 1fr) minmax(110px, .24fr);
 }
 
-.super-metrics {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.super-metrics article {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-line);
-  display: grid;
-  gap: 4px;
-  padding: 8px 10px;
-}
-
-.super-metrics span {
-  color: var(--color-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.super-metrics strong {
-  color: var(--color-ink);
-  font-size: 1.25rem;
-  line-height: 1;
+.search-label {
+  min-width: 0;
 }
 
 .directory-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  min-width: 0;
 }
 
 .section-head {
@@ -571,8 +643,24 @@ function normalizeLimit(value: unknown) {
 }
 
 .users-table {
-  min-width: 1040px;
+  min-width: 0;
+  table-layout: fixed;
 }
+
+.users-card,
+.users-table,
+.users-table tbody,
+.users-table tr,
+.users-table td {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.users-table th:nth-child(1) { width: 31%; }
+.users-table th:nth-child(2) { width: 16%; }
+.users-table th:nth-child(3) { width: 12%; }
+.users-table th:nth-child(4) { width: 19%; }
+.users-table th:nth-child(5) { width: 22%; }
 
 .users-table tr.selected td {
   background: #fbfdf8;
@@ -583,6 +671,7 @@ function normalizeLimit(value: unknown) {
   display: grid;
   gap: 10px;
   grid-template-columns: 36px minmax(0, 1fr);
+  min-width: 0;
 }
 
 .user-avatar {
@@ -605,6 +694,8 @@ function normalizeLimit(value: unknown) {
 .scope-stack span,
 .scope-stack small {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-cell small,
@@ -626,6 +717,11 @@ function normalizeLimit(value: unknown) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+}
+
+.row-actions .btn {
+  white-space: normal;
 }
 
 .scope-pill,
@@ -654,7 +750,7 @@ function normalizeLimit(value: unknown) {
 
 .compact {
   min-height: 34px;
-  padding-inline: 10px;
+  padding-inline: 9px;
 }
 
 .notice {
@@ -706,13 +802,16 @@ function normalizeLimit(value: unknown) {
 }
 
 @media (max-width: 1180px) {
-  .scope-tabs,
-  .super-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .admin-command {
+    grid-template-columns: 1fr;
   }
 
   .directory-grid {
     grid-template-columns: 1fr;
+  }
+
+  .users-table {
+    table-layout: auto;
   }
 
   .detail-card {
@@ -721,15 +820,49 @@ function normalizeLimit(value: unknown) {
 }
 
 @media (max-width: 980px) {
-  .filters-card,
-  .superadmin-head,
-  .scope-tabs,
-  .super-metrics {
+  .filters-card {
     grid-template-columns: 1fr;
+  }
+
+  .command-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .command-metrics .metric-feature {
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
 
   .users-table {
     min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-command {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .head-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .head-actions .btn {
+    justify-content: center;
+  }
+
+  .command-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .metric-feature strong {
+    font-size: 3rem;
+  }
+
+  .scope-tab {
+    flex-basis: 142px;
   }
 }
 </style>

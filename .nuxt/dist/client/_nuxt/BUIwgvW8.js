@@ -1,0 +1,1 @@
+import{d as t,M as n,n as r}from"./dCStn-eQ.js";const o=t({__name:"credencial",async setup(s){let a,e;return[a,e]=n(()=>r("/familia/personas-autorizadas/credencializacion",{replace:!0})),await a,e(),()=>{}}});export{o as default};

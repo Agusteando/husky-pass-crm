@@ -1,0 +1,1 @@
+import{d as s,m as r,M as n,n as o}from"./dCStn-eQ.js";const p=s({__name:"credencial",async setup(i){let e,a;const t=r();return[e,a]=n(()=>o(`/familia/personas-autorizadas/${t.params.id}/marbete`,{replace:!0})),await e,a(),()=>{}}});export{p as default};

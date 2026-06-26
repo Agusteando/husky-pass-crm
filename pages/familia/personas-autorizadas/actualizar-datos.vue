@@ -586,31 +586,28 @@ async function saveActiveGroup() {
 }
 
 .academic-facts {
-  border: 1px solid rgba(211, 226, 239, .92);
-  border-radius: 16px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: 0;
-  overflow: hidden;
 }
 
 .academic-fact {
   align-items: center;
-  background: rgba(255, 255, 255, .72);
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--pa-primary-rgb), .08), transparent 64%),
+    rgba(255, 255, 255, .82);
+  border: 1px solid rgba(211, 226, 239, .95);
+  border-radius: 17px;
+  box-shadow: 0 10px 24px rgba(31, 69, 108, .055);
   display: grid;
-  gap: 2px 10px;
-  grid-template-columns: 34px minmax(0, 1fr);
-  min-height: 74px;
-  padding: 11px 14px;
+  gap: 4px 13px;
+  grid-column: span 2;
+  grid-template-columns: 54px minmax(0, 1fr);
+  min-height: 88px;
+  overflow: hidden;
+  padding: 13px 15px;
   position: relative;
-}
-
-.academic-fact:not(:nth-child(3n)) {
-  border-right: 1px solid rgba(211, 226, 239, .92);
-}
-
-.academic-fact:nth-child(n + 4) {
-  border-top: 1px solid rgba(211, 226, 239, .92);
 }
 
 .academic-fact dt,
@@ -622,52 +619,59 @@ async function saveActiveGroup() {
 .academic-fact dt {
   align-self: end;
   color: #647089;
-  font-size: .73rem;
+  font-size: .7rem;
   font-weight: 800;
-  letter-spacing: .02em;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .academic-fact dd {
   align-self: start;
   color: #1c3158;
-  font-size: .95rem;
+  font-size: 1.02rem;
   font-weight: 900;
+  line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fact-icon {
+  background: rgba(var(--pa-primary-rgb), .1);
+  border: 1px solid rgba(var(--pa-primary-rgb), .18);
+  border-radius: 15px;
   color: var(--pa-primary);
   grid-row: span 2;
-  height: 34px;
-  width: 34px;
+  height: 52px;
+  width: 52px;
 }
 
 .fact-icon :deep(.pa-icon) {
-  height: 1.55rem;
-  width: 1.55rem;
+  height: 1.45rem;
+  width: 1.45rem;
 }
 
 .group-fact {
-  background: linear-gradient(135deg, rgba(var(--pa-primary-rgb), .1), rgba(255, 255, 255, .76));
+  background:
+    radial-gradient(circle at 92% 22%, rgba(var(--pa-primary-rgb), .14), transparent 38%),
+    linear-gradient(135deg, rgba(var(--pa-primary-rgb), .11), rgba(255, 255, 255, .84));
 }
 
 .group-fact.has-group-mask::after {
   background: var(--pa-primary);
   content: '';
-  height: 96px;
+  height: 112px;
   mask-image: var(--grupo-mask-url);
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
-  opacity: .08;
+  opacity: .065;
   pointer-events: none;
   position: absolute;
-  right: 10px;
+  right: -8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 96px;
+  width: 112px;
   -webkit-mask-image: var(--grupo-mask-url);
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
@@ -685,14 +689,14 @@ async function saveActiveGroup() {
   align-items: center;
   background: rgba(var(--pa-primary-rgb), .1);
   border: 2px solid rgba(var(--pa-primary-rgb), .34);
-  border-radius: 13px;
+  border-radius: 16px;
   color: var(--pa-primary);
   display: inline-flex;
   grid-row: span 2;
-  height: 48px;
+  height: 54px;
   justify-content: center;
   line-height: 1;
-  min-width: 56px;
+  min-width: 54px;
   overflow: hidden;
   padding: 0;
   position: relative;
@@ -728,24 +732,25 @@ async function saveActiveGroup() {
   align-items: center;
   background: linear-gradient(145deg, rgba(var(--pa-primary-rgb), .16), rgba(var(--pa-primary-rgb), .07));
   border: 2px solid rgba(var(--pa-primary-rgb), .28);
-  border-radius: 14px;
+  border-radius: 16px;
   color: var(--pa-primary);
   display: inline-flex;
   font-family: var(--font-title);
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   font-weight: 950;
   grid-row: span 2;
-  height: 44px;
+  height: 54px;
   justify-content: center;
   line-height: 1;
-  min-width: 44px;
+  min-width: 54px;
   padding: 0 10px;
 }
 
 .compact-fact {
-  grid-column: span 1;
+  background: rgba(255, 255, 255, .76);
+  grid-column: span 3;
   grid-template-columns: 1fr;
-  min-height: 66px;
+  min-height: 70px;
 }
 
 .compact-fact dt {
@@ -1123,7 +1128,7 @@ async function saveActiveGroup() {
   .academic-facts {
     border-radius: 12px;
     grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .student-readonly-strip {
@@ -1132,32 +1137,36 @@ async function saveActiveGroup() {
   }
 
   .academic-fact {
-    gap: 3px;
-    grid-template-columns: 1fr;
+    gap: 4px 10px;
+    grid-column: span 1;
+    grid-template-columns: 40px minmax(0, 1fr);
     justify-items: start;
-    min-height: 68px;
+    min-height: 78px;
     padding: 10px;
   }
 
-  .academic-fact:not(:nth-child(3n)) {
-    border-right: 1px solid rgba(211, 226, 239, .92);
+  .feature-fact {
+    grid-column: 1 / -1;
   }
 
-  .academic-fact:nth-child(n + 4) {
-    border-top: 1px solid rgba(211, 226, 239, .92);
+  .compact-fact {
+    align-content: center;
+    gap: 4px;
+    grid-template-columns: 1fr;
   }
 
   .academic-fact dt {
-    font-size: .62rem;
+    font-size: .61rem;
   }
 
   .academic-fact dd {
-    font-size: .72rem;
+    font-size: .78rem;
   }
 
   .fact-icon {
-    height: 24px;
-    width: 24px;
+    border-radius: 12px;
+    height: 38px;
+    width: 38px;
   }
 
   .fact-icon :deep(.pa-icon) {
@@ -1168,11 +1177,11 @@ async function saveActiveGroup() {
   .group-token,
   .grade-number {
     border-width: 2px;
-    border-radius: 999px;
-    font-size: .86rem;
-    height: 30px;
-    min-width: 30px;
-    padding: 0 8px;
+    border-radius: 13px;
+    font-size: .96rem;
+    height: 38px;
+    min-width: 38px;
+    padding: 0 7px;
   }
 
   .compact-info-card,
@@ -1264,11 +1273,14 @@ async function saveActiveGroup() {
 
 @media (max-width: 430px) {
   .academic-facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
+  .academic-fact,
   .compact-fact {
-    min-height: 58px;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    min-height: 68px;
   }
 
   .academic-fact {

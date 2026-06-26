@@ -12,14 +12,14 @@
           <strong>Experiencia Escolar</strong>
           <small>Familias IECS o IEDIS</small>
         </span>
-        <span aria-hidden="true">-></span>
+        <FamilyPersonasIcon name="arrow" aria-hidden="true" />
       </NuxtLink>
       <NuxtLink class="choice-row" to="/login/guarderia" data-login-entry="guarderia">
         <span>
           <strong>Experiencia Guardería</strong>
           <small>Familias de Guardería</small>
         </span>
-        <span aria-hidden="true">-></span>
+        <FamilyPersonasIcon name="arrow" aria-hidden="true" />
       </NuxtLink>
       <NuxtLink class="admin-link" to="/admin/login">Experiencia Administrativa</NuxtLink>
     </section>
@@ -44,13 +44,22 @@ definePageMeta({ middleware: 'guest' })
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .choice-row:hover,
 .choice-row:focus-visible {
   border-color: var(--color-brand-700);
-  box-shadow: var(--shadow-line);
+  box-shadow: var(--shadow-soft);
   outline: none;
+  transform: translateY(-1px);
+}
+
+.choice-row :deep(.pa-icon) {
+  color: var(--color-brand-700);
+  flex: 0 0 auto;
+  height: 1rem;
+  width: 1rem;
 }
 
 .choice-row strong,

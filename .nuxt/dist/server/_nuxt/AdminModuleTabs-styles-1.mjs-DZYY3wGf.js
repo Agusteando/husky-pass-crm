@@ -1,0 +1,5 @@
+const AdminModuleTabs_vue_vue_type_style_index_0_scoped_58f008e3_lang = ".admin-module-tabs[data-v-58f008e3]{align-items:center;background:#ffffffd6;border:1px solid var(--color-border);border-radius:18px;box-shadow:var(--shadow-line);display:flex;gap:6px;overflow-x:auto;padding:6px}.admin-module-tabs a[data-v-58f008e3]{border-radius:13px;color:var(--color-muted);flex:0 0 auto;font-size:.88rem;font-weight:600;padding:9px 12px;white-space:nowrap}.admin-module-tabs a.active[data-v-58f008e3],.admin-module-tabs a[data-v-58f008e3]:hover{background:var(--color-brand-100);color:var(--color-brand-900)}@media(max-width:640px){.admin-module-tabs[data-v-58f008e3]{margin-inline:-4px}.admin-module-tabs a[data-v-58f008e3]{padding:8px 10px}}";
+export {
+  AdminModuleTabs_vue_vue_type_style_index_0_scoped_58f008e3_lang as default
+};
+//# sourceMappingURL=AdminModuleTabs-styles-1.mjs-DZYY3wGf.js.map

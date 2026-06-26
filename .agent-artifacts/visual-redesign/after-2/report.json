@@ -1,0 +1,122 @@
+[
+  {
+    "name": "login-selector-desktop",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\login-selector-desktop.png",
+    "metrics": {
+      "path": "/login",
+      "width": 1366,
+      "height": 900,
+      "scrollWidth": 1366,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "login-selector-mobile",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\login-selector-mobile.png",
+    "metrics": {
+      "path": "/login",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "daycare-home-desktop",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\daycare-home-desktop.png",
+    "metrics": {
+      "path": "/familia/daycare",
+      "width": 1366,
+      "height": 900,
+      "scrollWidth": 1366,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "daycare-home-mobile",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\daycare-home-mobile.png",
+    "metrics": {
+      "path": "/familia/daycare",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "daycare-avisos-desktop",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\daycare-avisos-desktop.png",
+    "metrics": {
+      "path": "/familia/daycare/avisos",
+      "width": 1366,
+      "height": 900,
+      "scrollWidth": 1366,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "daycare-avisos-mobile",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\daycare-avisos-mobile.png",
+    "metrics": {
+      "path": "/familia/daycare/avisos",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "personas-photo-desktop",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\personas-photo-desktop.png",
+    "metrics": {
+      "path": "/familia/personas-autorizadas/credencializacion",
+      "width": 1366,
+      "height": 900,
+      "scrollWidth": 1366,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "personas-photo-mobile",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\personas-photo-mobile.png",
+    "metrics": {
+      "path": "/familia/personas-autorizadas/credencializacion",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "admin-directory-desktop",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\admin-directory-desktop.png",
+    "metrics": {
+      "path": "/admin/superadmin",
+      "width": 1366,
+      "height": 900,
+      "scrollWidth": 1366,
+      "overflowX": 0
+    },
+    "errors": []
+  },
+  {
+    "name": "admin-directory-mobile",
+    "file": "C:\\Users\\hp\\husky-pass-crm\\.agent-artifacts\\visual-redesign\\after-2\\admin-directory-mobile.png",
+    "metrics": {
+      "path": "/admin/superadmin",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflowX": 0
+    },
+    "errors": []
+  }
+]

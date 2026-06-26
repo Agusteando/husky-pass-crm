@@ -9,7 +9,7 @@
         </span>
       </NuxtLink>
 
-      <nav class="role-nav" aria-label="Navegacion familiar">
+      <nav class="role-nav" :class="{ 'mobile-only-nav': isGuarderia }" aria-label="Navegacion familiar">
         <NuxtLink v-for="item in navItems" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
           <FamilyPersonasIcon :name="item.icon" />
           <span>{{ item.label }}</span>
@@ -153,6 +153,9 @@ function isActive(to: string) {
   align-items: center;
   display: flex;
   gap: 5px;
+  inline-size: 100%;
+  justify-self: stretch;
+  max-inline-size: 100%;
   min-width: 0;
   overflow-x: auto;
   padding: 4px 0;
@@ -161,6 +164,12 @@ function isActive(to: string) {
 
 .role-nav::-webkit-scrollbar {
   display: none;
+}
+
+@media (min-width: 981px) {
+  .role-nav.mobile-only-nav {
+    display: none;
+  }
 }
 
 .role-nav a {
@@ -244,6 +253,7 @@ function isActive(to: string) {
   .role-nav {
     grid-column: 1 / -1;
     order: 3;
+    width: 100%;
   }
 
   .role-nav a {

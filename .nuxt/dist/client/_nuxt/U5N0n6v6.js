@@ -1,0 +1,1 @@
+import{ab as n,ac as c,n as u}from"./dCStn-eQ.js";import{g as m}from"./DyhJFRcE.js";import{h as o,d as f}from"./DKuM7WI5.js";const y=n(async()=>{let a,s;const e=([a,s]=c(()=>m()),a=await a,s(),a),r=o(e.user,"daycare"),i=o(e.user,"personasAutorizadas");if(Number(r)+Number(i)<=1){const t=f(e.user);if(t!=="/familia")return u(t)}});export{y as default};

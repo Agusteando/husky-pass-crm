@@ -1,0 +1,1 @@
+import{_ as a}from"./dN_eozW9.js";import{d as e,i as o,o as r}from"./dCStn-eQ.js";import"./D6qfxHFa.js";import"./-uByDV02.js";import"./Dghz60su.js";import"./BmUi6920.js";import"./BXnLf40K.js";const f=e({__name:"tareas",setup(p){return(s,i)=>{const t=a;return r(),o(t,{type:"hw",title:"Tareas",description:"Tareas publicadas para tu sala de guardería."})}}});export{f as default};
