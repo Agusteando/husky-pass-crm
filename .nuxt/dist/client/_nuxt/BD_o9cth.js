@@ -1,1 +1,0 @@
-import{d as t,M as o,c as s,n,o as r}from"./dCStn-eQ.js";const i={class:"card loading-row","data-product-loading":"","data-state":"loading"},p=t({__name:"marbetes",async setup(c){let a,e;return[a,e]=o(()=>n("/familia/personas-autorizadas#marbetes",{replace:!0})),await a,e(),(d,_)=>(r(),s("div",i,"Redirigiendo..."))}});export{p as default};

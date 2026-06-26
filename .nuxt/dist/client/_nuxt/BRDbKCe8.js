@@ -1,1 +1,0 @@
-import{d as s,H as e,g as a}from"./dCStn-eQ.js";const t=s({__name:"husky-pass",setup(o){throw e({statusCode:404,statusMessage:"Ruta no disponible."})}}),r=a(t,[["__scopeId","data-v-18e576be"]]);export{r as default};

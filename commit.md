@@ -1,1 +1,1 @@
-Unifica la experiencia visual de Personas Autorizadas
+Agrega gitignore adecuado para el proyecto

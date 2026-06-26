@@ -1,5 +1,0 @@
-const error_vue_vue_type_style_index_0_scoped_c5b0e2ab_lang = ".error-page[data-v-c5b0e2ab]{align-items:center;background:radial-gradient(circle at 78% 18%,rgba(93,162,220,.16),transparent 30%),linear-gradient(135deg,#f7f9fb,#eef4f8);color:var(--color-ink);display:grid;min-height:100vh;padding:24px}.error-shell[data-v-c5b0e2ab]{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);display:grid;gap:18px;margin:0 auto;max-width:620px;padding:clamp(22px,4vw,34px);width:min(100%,620px)}.error-copy[data-v-c5b0e2ab]{display:grid;gap:8px}.error-copy h1[data-v-c5b0e2ab],.error-copy p[data-v-c5b0e2ab]{margin-bottom:0}.error-copy h1[data-v-c5b0e2ab]{font-size:clamp(2rem,6vw,3.2rem)}.error-copy p[data-v-c5b0e2ab]:not(.eyebrow){color:var(--color-muted);line-height:1.5}.error-actions[data-v-c5b0e2ab]{display:flex;flex-wrap:wrap;gap:10px}@media(max-width:560px){.error-actions .btn[data-v-c5b0e2ab]{width:100%}}";
-export {
-  error_vue_vue_type_style_index_0_scoped_c5b0e2ab_lang as default
-};
-//# sourceMappingURL=entry-styles-3.mjs-DLnbCjNy.js.map

@@ -1,1 +1,0 @@
-import{ab as s,ac as o,n as t}from"./dCStn-eQ.js";import{g as n}from"./DyhJFRcE.js";import{d as u}from"./DKuM7WI5.js";const d=s(async r=>{let e,i;const a=([e,i]=o(()=>n()),e=await e,i(),e);if(!a.user||a.user.kind!=="family")return r.path.startsWith("/familia/daycare")?t("/login/guarderia"):t("/login");if(u(a.user)==="/login")return t("/login")});export{d as default};

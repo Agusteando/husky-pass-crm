@@ -1,1 +1,0 @@
-import{ab as o,ac as r,n as t}from"./dCStn-eQ.js";import{g as i}from"./DyhJFRcE.js";import{h as n,d as u}from"./DKuM7WI5.js";const l=o(async()=>{let e,a;const s=([e,a]=r(()=>i()),e=await e,a(),e);if(!s.user||s.user.kind!=="family")return t("/login");if(!n(s.user,"personasAutorizadas"))return t(u(s.user))});export{l as default};

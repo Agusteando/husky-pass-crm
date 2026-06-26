@@ -1,1 +1,0 @@
-function i(r){return String(r??"").trim().toUpperCase()}function e(r,t=""){return i(r)||t}function a(r){const t=i(r);return!t||t.includes("@")?!1:/^[A-Z]{1,6}[A-Z0-9-]*\d[A-Z0-9-]*$/.test(t)}function u(r,t=""){const n=String(r??"").trim();return n?a(n)?i(n):n:t}export{e as a,u as d,i as n};

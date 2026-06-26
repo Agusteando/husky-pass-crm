@@ -1,5 +1,0 @@
-const index_vue_vue_type_style_index_0_scoped_57d25335_lang = ".login-choice[data-v-57d25335]{gap:8px}.choice-row[data-v-57d25335]{align-items:center;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-lg);display:flex;gap:12px;justify-content:space-between;padding:12px;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.choice-row[data-v-57d25335]:focus-visible,.choice-row[data-v-57d25335]:hover{border-color:var(--color-brand-700);box-shadow:var(--shadow-soft);outline:none;transform:translateY(-1px)}.choice-row[data-v-57d25335] .pa-icon{color:var(--color-brand-700);flex:0 0 auto;height:1rem;width:1rem}.choice-row small[data-v-57d25335],.choice-row strong[data-v-57d25335]{display:block}.admin-link[data-v-57d25335],.choice-row small[data-v-57d25335]{color:var(--color-muted);font-size:.86rem}.admin-link[data-v-57d25335]{justify-self:center;margin-top:4px}";
-export {
-  index_vue_vue_type_style_index_0_scoped_57d25335_lang as default
-};
-//# sourceMappingURL=index-styles-1.mjs-DPoQPxd5.js.map

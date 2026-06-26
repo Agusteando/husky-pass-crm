@@ -1,1 +1,0 @@
-import{d as t,M as s,n}from"./dCStn-eQ.js";const _=t({__name:"ayuda",async setup(o){let a,e;return[a,e]=s(()=>n("/familia/personas-autorizadas#ayuda",{replace:!0})),await a,e(),()=>{}}});export{_ as default};

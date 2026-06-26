@@ -1,1 +1,0 @@
-import{d as s,m as o,M as r,n}from"./dCStn-eQ.js";const _=s({__name:"qr",async setup(i){let a,e;const t=o();return[a,e]=r(()=>n(`/familia/personas-autorizadas/${t.params.id}`,{replace:!0})),await a,e(),()=>{}}});export{_ as default};
