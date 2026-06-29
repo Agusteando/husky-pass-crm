@@ -1,1 +1,1 @@
-Rediseña topbar familiar e historial real de Pase Express
+Ajusta topbar familiar y marcador visual de grupo

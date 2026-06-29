@@ -1188,10 +1188,20 @@ function normalizeIndice(value: unknown) {
   border: 1px solid #cfe9c9;
   border-radius: 13px;
   color: #4ba737;
-  display: inline-flex;
+  display: inline-grid;
   height: 44px;
   justify-content: center;
+  line-height: 0;
+  place-items: center;
   width: 44px;
+}
+
+.express-access-icon :deep(.pa-icon),
+.express-history-icon :deep(.pa-icon) {
+  display: block;
+  height: 1.1rem;
+  margin: auto;
+  width: 1.1rem;
 }
 
 .express-access-card[data-type='salida'] .express-access-icon {

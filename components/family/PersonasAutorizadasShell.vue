@@ -20,10 +20,12 @@
           <span class="pa-presence-dot" aria-hidden="true"></span>
         </span>
         <span class="pa-student-copy">
-          <small>Alumno activo</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
-          <span class="pa-student-chip-row">
-            <span v-for="chip in studentChips" :key="chip">{{ chip }}</span>
+          <span v-if="hasAcademicMarkers" class="pa-student-marker-row" aria-label="Grado y grupo">
+            <span v-if="gradeNumber" class="pa-grade-badge" :aria-label="`Grado ${gradeNumber}`">{{ gradeNumber }}</span>
+            <span v-if="hasGroupSigil" class="pa-group-badge" :aria-label="groupSigilLabel">
+              <span class="pa-group-sigil" :style="groupSigilStyle" aria-hidden="true"></span>
+            </span>
           </span>
         </span>
         <FamilyPersonasIcon name="chevron" />
@@ -39,8 +41,8 @@
           :aria-label="item.label"
           :title="item.label"
         >
-          <FamilyPersonasIcon :name="item.icon" />
-          <span aria-hidden="true">{{ item.shortLabel || item.label }}</span>
+          <span class="pa-quick-icon" aria-hidden="true"><FamilyPersonasIcon :name="item.icon" /></span>
+          <span>{{ item.shortLabel || item.label }}</span>
         </NuxtLink>
       </nav>
 
@@ -48,10 +50,6 @@
         <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel" title="Notificaciones">
           <FamilyPersonasIcon name="bell" />
           <span v-if="unreadCommunications">{{ communicationBadge }}</span>
-        </NuxtLink>
-        <NuxtLink class="pa-security-control" :to="paSecurityRoute" aria-label="Seguridad de la cuenta" title="Seguridad">
-          <span><FamilyPersonasIcon name="security" /></span>
-          <small>Seguridad</small>
         </NuxtLink>
         <TopbarAccountMenu
           :session="session"
@@ -115,7 +113,7 @@ import { computed, provide } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
 import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
 import { personasFamilyThemeContextKey, usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
-import { displayMatricula } from '~/utils/matricula'
+import { resolveGrupoIcon, type GrupoIconManifest } from '~/utils/grupoIcons'
 
 withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 const route = useRoute()
@@ -127,12 +125,19 @@ const accountName = computed(() => primaryChild.value?.parentName || session.val
 const accountDetail = computed(() => primaryChild.value ? `${primaryChild.value.parentRole || 'Familia'} de ${studentFirstName.value}` : 'Cuenta familiar')
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
-const studentChips = computed<string[]>(() => [
-  displayMatricula(primaryChild.value?.matricula),
-  primaryChild.value?.nivelEdu,
-  primaryChild.value?.grado,
-  primaryChild.value?.grupo ? `Grupo ${primaryChild.value.grupo}` : ''
-].filter((chip): chip is string => Boolean(chip)))
+const rawStudentGroup = computed(() => String(primaryChild.value?.grupo || '').replace(/^grupo\s+/i, '').trim())
+const gradeNumber = computed(() => formatGradeNumber(primaryChild.value?.grado))
+const { data: grupoManifest } = useFetch<GrupoIconManifest>('/grupo-icons/manifest.json', {
+  key: 'pa-shell-grupo-icons',
+  lazy: true,
+  server: false,
+  default: () => ({ fallbackGrupo: '', entries: [] })
+})
+const groupIcon = computed(() => resolveGrupoIcon(grupoManifest.value, rawStudentGroup.value))
+const hasGroupSigil = computed(() => Boolean(rawStudentGroup.value && groupIcon.value.maskImage && !groupIcon.value.fallback))
+const hasAcademicMarkers = computed(() => Boolean(gradeNumber.value || hasGroupSigil.value))
+const groupSigilLabel = computed(() => `Grupo ${rawStudentGroup.value || groupIcon.value.grupoValue}`)
+const groupSigilStyle = computed(() => ({ '--pa-group-mask': `url("${groupIcon.value.maskImage}")` }))
 const paSecurityRoute = '/familia/personas-autorizadas/seguridad'
 const { data: communicationsSummary } = useFetch<{ unread: number; total: number }>('/api/family/comunicados/summary', {
   key: 'pa-shell-communications-summary',
@@ -160,7 +165,26 @@ const navItems = [
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
   { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: paSecurityRoute }
 ]
-const topbarItems = computed(() => navItems.filter((item) => ['comunicados', 'pagos'].includes(item.key)))
+const topbarItems = computed(() => navItems.filter((item) => ['asistencia', 'comunicados', 'pagos'].includes(item.key)))
+
+function formatGradeNumber(value?: string | number | null) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const numeric = raw.match(/\d+/)?.[0]
+  if (numeric) return numeric
+  const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const map: Record<string, string> = {
+    primero: '1',
+    primer: '1',
+    segundo: '2',
+    tercero: '3',
+    tercer: '3',
+    cuarto: '4',
+    quinto: '5',
+    sexto: '6'
+  }
+  return map[normalized] || raw.slice(0, 2).toUpperCase()
+}
 
 function isActive(item: { to: string }) {
   const target = item.to.split('?')[0] || item.to
@@ -195,7 +219,7 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(10px, 1vw, 16px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 460px) minmax(280px, 1fr) auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(340px, 430px) minmax(390px, 1fr) auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   overflow: visible;
@@ -251,18 +275,20 @@ function isActive(item: { to: string }) {
 
 .pa-student-context {
   align-items: center;
-  background: linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.035));
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.18);
-  border-radius: 22px;
-  box-shadow: 0 12px 30px rgba(26, 48, 72, 0.06);
+  background:
+    radial-gradient(circle at 92% 18%, rgba(var(--pa-primary-rgb), 0.16), transparent 7rem),
+    linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.075));
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.16);
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(26, 48, 72, 0.075);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 52px minmax(0, 1fr) 14px;
+  gap: 13px;
+  grid-template-columns: 64px minmax(0, 1fr) 16px;
   justify-self: stretch;
-  max-width: min(420px, 100%);
-  min-height: 62px;
+  max-width: min(430px, 100%);
+  min-height: 74px;
   min-width: 0;
-  padding: 7px 16px 7px 8px;
+  padding: 6px 18px 6px 7px;
 }
 
 .pa-student-avatar-wrap {
@@ -273,16 +299,17 @@ function isActive(item: { to: string }) {
 .pa-student-avatar {
   aspect-ratio: 1;
   background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 14px;
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.2);
+  border-radius: 999px;
+  box-shadow: 0 9px 20px rgba(var(--pa-primary-rgb), 0.12);
   color: var(--pa-primary);
   display: grid;
-  font-size: 0.74rem;
-  font-weight: 800;
-  height: 52px;
+  font-size: 0.82rem;
+  font-weight: 850;
+  height: 64px;
   overflow: hidden;
   place-items: center;
-  width: 52px;
+  width: 64px;
 }
 
 .pa-presence-dot {
@@ -304,17 +331,10 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-copy {
+  align-content: center;
   display: grid;
-  gap: 4px;
+  gap: 7px;
   min-width: 0;
-}
-
-.pa-student-copy small {
-  color: #44b23f;
-  font-size: 0.68rem;
-  font-weight: 850;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .pa-student-copy strong,
@@ -325,32 +345,55 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-copy strong {
-  color: var(--pa-gray);
-  font-size: 0.96rem;
-  line-height: 1.2;
+  color: #172642;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.12;
 }
 
-.pa-student-chip-row {
+.pa-student-marker-row {
   align-items: center;
   display: flex;
-  gap: 6px;
+  gap: 7px;
+  min-height: 24px;
   min-width: 0;
-  overflow: hidden;
 }
 
-.pa-student-chip-row span {
-  background: #f2fbfd;
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.22);
+.pa-grade-badge,
+.pa-group-badge {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.2);
   border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(var(--pa-primary-rgb), 0.08);
   color: var(--pa-primary);
+  display: inline-grid;
   flex: 0 0 auto;
-  font-size: 0.68rem;
-  font-weight: 850;
-  max-width: 118px;
-  overflow: hidden;
-  padding: 4px 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: 24px;
+  justify-content: center;
+}
+
+.pa-grade-badge {
+  font-size: 0.72rem;
+  font-weight: 900;
+  min-width: 32px;
+  padding: 0 9px;
+}
+
+.pa-group-badge {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(135deg, rgba(var(--pa-primary-rgb), 0.13), rgba(var(--pa-primary-rgb), 0.05));
+  width: 34px;
+}
+
+.pa-group-sigil {
+  background: linear-gradient(135deg, var(--pa-primary), rgba(var(--pa-primary-rgb), 0.62));
+  display: block;
+  height: 17px;
+  mask: var(--pa-group-mask) center / contain no-repeat;
+  -webkit-mask: var(--pa-group-mask) center / contain no-repeat;
+  width: 17px;
 }
 
 .pa-student-context > .pa-icon {
@@ -378,20 +421,24 @@ function isActive(item: { to: string }) {
   flex: 0 1 auto;
   font-size: 0.78rem;
   font-weight: 850;
-  gap: 9px;
+  gap: 10px;
   justify-content: center;
   min-height: 58px;
   min-width: 128px;
-  padding: 0 18px;
+  padding: 0 18px 0 15px;
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
 }
 
+.pa-topbar-quick-nav a[data-product-nav='topbar-asistencia'] {
+  min-width: 142px;
+}
+
 .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'] {
-  min-width: 164px;
+  min-width: 166px;
 }
 
 .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
-  min-width: 118px;
+  min-width: 124px;
 }
 
 .pa-topbar-quick-nav a:hover,
@@ -409,8 +456,21 @@ function isActive(item: { to: string }) {
   white-space: nowrap;
 }
 
-.pa-topbar-quick-nav :deep(.pa-icon) {
+.pa-quick-icon {
+  align-items: center;
+  background: rgba(var(--pa-primary-rgb), 0.085);
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.13);
+  border-radius: 11px;
   color: var(--pa-primary);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.pa-quick-icon :deep(.pa-icon) {
+  height: 1.04rem;
+  width: 1.04rem;
 }
 
 .pa-topbar-controls {
@@ -457,38 +517,6 @@ function isActive(item: { to: string }) {
   border-color: rgba(var(--pa-primary-rgb), 0.28);
   color: var(--pa-primary);
   transform: translateY(-1px);
-}
-
-.pa-security-control {
-  align-items: center;
-  color: #4f5f77;
-  display: inline-grid;
-  font-size: .68rem;
-  font-weight: 800;
-  gap: 5px;
-  justify-items: center;
-  line-height: 1;
-  min-width: 64px;
-}
-
-.pa-security-control > span {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #e6ebef;
-  border-radius: 999px;
-  box-shadow: 0 8px 22px rgba(26, 48, 72, 0.055);
-  display: inline-flex;
-  height: 54px;
-  justify-content: center;
-  width: 54px;
-}
-
-.pa-security-control:hover {
-  color: var(--pa-primary);
-}
-
-.pa-security-control:hover > span {
-  border-color: rgba(var(--pa-primary-rgb), .28);
 }
 
 .pa-topbar-controls :deep(.account-trigger) {
@@ -707,8 +735,8 @@ function isActive(item: { to: string }) {
   }
 
   .pa-product-topbar {
-    gap: 12px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(330px, 430px) minmax(260px, 1fr) auto;
+    gap: 10px;
+    grid-template-columns: var(--pa-sidebar-width) minmax(310px, 400px) minmax(372px, 1fr) auto;
     padding-left: 24px;
   }
 
@@ -740,52 +768,52 @@ function isActive(item: { to: string }) {
 }
 
 @media (max-width: 1280px) {
-  .pa-student-chip-row span {
-    max-width: 92px;
-  }
-
   .pa-student-context > .pa-icon {
     display: none;
   }
 
   .pa-student-context {
-    grid-template-columns: 48px minmax(0, 1fr);
-    padding-right: 12px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding-right: 14px;
+  }
+
+  .pa-student-avatar {
+    height: 56px;
+    width: 56px;
+  }
+
+  .pa-topbar-quick-nav {
+    gap: 8px;
+  }
+
+  .pa-topbar-quick-nav a,
+  .pa-topbar-quick-nav a[data-product-nav='topbar-asistencia'],
+  .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'],
+  .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
+    min-width: 0;
+    padding-inline: 12px 14px;
   }
 }
 
 @media (max-width: 1240px) and (min-width: 1181px) {
   .pa-product-topbar {
-    grid-template-columns: var(--pa-sidebar-width) minmax(300px, 1fr) auto auto;
+    grid-template-columns: 222px minmax(300px, 1fr) auto auto;
   }
 
-  .pa-topbar-quick-nav a,
-  .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'],
-  .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
-    flex: 0 0 auto;
-    gap: 0;
-    height: 52px;
-    min-width: 52px;
-    padding: 0;
-    width: 52px;
+  .pa-topbar-brand-zone {
+    padding-right: 10px;
   }
 
-  .pa-topbar-quick-nav span,
-  .pa-security-control small {
-    display: none;
+  .pa-institution-logo {
+    max-width: 46px;
   }
 
-  .pa-security-control {
-    min-width: 52px;
-  }
-
-  .pa-security-control > span {
-    height: 52px;
-    width: 52px;
+  .pa-husky-pass-logo {
+    max-width: 94px;
   }
 
   .pa-topbar-controls :deep(.account-trigger) {
-    min-width: 190px;
+    min-width: 184px;
   }
 }
 
@@ -798,7 +826,7 @@ function isActive(item: { to: string }) {
     max-width: 370px;
   }
 
-  .pa-student-chip-row {
+  .pa-student-marker-row {
     display: none;
   }
 
@@ -861,7 +889,6 @@ function isActive(item: { to: string }) {
   .pa-student-context,
   .pa-topbar-quick-nav,
   .pa-topbar-icon-link,
-  .pa-security-control,
   .pa-product-nav {
     display: none;
   }
@@ -929,8 +956,7 @@ function isActive(item: { to: string }) {
     width: 42px;
   }
 
-  .pa-topbar-icon-link,
-  .pa-security-control > span {
+  .pa-topbar-icon-link {
     height: 48px;
     width: 48px;
   }
