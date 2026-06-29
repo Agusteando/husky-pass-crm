@@ -7,6 +7,9 @@
       :meta="currentPhoto ? 'Foto lista' : 'Foto pendiente'"
       :theme="theme"
       ambassador-variant="preview"
+      :ambassador-title="currentPhoto ? 'Foto lista' : 'Te ayudo con la foto'"
+      :ambassador-message="currentPhoto ? 'La identificación visual ya puede respaldar los Husky Pass.' : 'Una foto frontal y clara reduce rechazos al generar pases.'"
+      :ambassador-tone="currentPhoto ? 'success' : 'notice'"
     />
 
     <div v-if="loadError" class="alert retry-alert" data-state="error">

@@ -6,6 +6,9 @@
       :description="siblingTitle"
       :theme="theme"
       ambassador-variant="hero"
+      ambassador-title="Contexto familiar"
+      ambassador-message="Cambia de alumno sin perder de vista a quién estás consultando."
+      ambassador-tone="calm"
     >
       <template #actions>
         <div class="sibling-summary" aria-label="Resumen de alumnos">

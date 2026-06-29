@@ -15,6 +15,9 @@
           :meta="`Última actualización: ${lastUpdateLabel}`"
           :theme="theme"
           ambassador-variant="header"
+          ambassador-title="Datos claros"
+          ambassador-message="Mantener esta información al día ayuda a la escuela a validar y contactar con seguridad."
+          ambassador-tone="calm"
         />
 
         <section class="student-profile-card" data-product-panel="academic-readonly">

@@ -1,1 +1,1 @@
-Revierte rediseño excesivo y ajusta encuadre de embajadores
+Rediseña el acompañamiento del embajador familiar

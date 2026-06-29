@@ -7,6 +7,9 @@
         :description="surveyAvailable ? `Hay una encuesta disponible para ${nivelLabel}.` : `No hay una encuesta activa para ${nivelLabel}.`"
         :meta="surveyAvailable ? 'Disponible' : 'Sin formulario publicado'"
         ambassador-variant="help"
+        :ambassador-title="surveyAvailable ? 'Tu opinión cuenta' : 'Sin pendientes por ahora'"
+        :ambassador-message="surveyAvailable ? 'Completa la encuesta cuando tengas unos minutos.' : 'Te mostraremos aquí cualquier formulario activo del colegio.'"
+        :ambassador-tone="surveyAvailable ? 'notice' : 'empty'"
       />
 
       <section class="card survey-card" :class="{ unavailable: !surveyAvailable }" data-product-panel="surveys" :data-state="surveyAvailable ? 'content' : 'unavailable'">

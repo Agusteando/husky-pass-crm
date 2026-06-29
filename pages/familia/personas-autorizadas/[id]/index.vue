@@ -7,6 +7,9 @@
         :description="subtitle"
         :theme="theme"
         ambassador-variant="header"
+        :ambassador-title="marbeteReady ? 'Registro confiable' : 'Falta un paso'"
+        :ambassador-message="marbeteReady ? 'Este Husky Pass puede descargarse para uso familiar.' : marbeteMessage"
+        :ambassador-tone="marbeteReady ? 'success' : 'notice'"
       >
         <template #actions>
           <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>

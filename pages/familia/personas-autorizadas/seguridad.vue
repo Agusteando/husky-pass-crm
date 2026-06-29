@@ -7,6 +7,9 @@
         description="Actualiza el acceso de esta cuenta familiar sin salir de Personas Autorizadas."
         :meta="accountDetail"
         ambassador-variant="header"
+        ambassador-title="Protegemos tu acceso"
+        ambassador-message="Usa una contraseña única y cámbiala si alguien más conoce tus datos."
+        ambassador-tone="notice"
       />
 
       <section class="pa-security-grid">

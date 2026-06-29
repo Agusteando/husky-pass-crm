@@ -6,6 +6,9 @@
         title="Convenios"
         :description="config?.conveniosUrl ? 'Consulta los beneficios institucionales disponibles para tu familia.' : 'Los beneficios institucionales aparecerán aquí cuando estén disponibles.'"
         ambassador-variant="help"
+        :ambassador-title="config?.conveniosUrl ? 'Beneficios disponibles' : 'Sin acción necesaria'"
+        :ambassador-message="config?.conveniosUrl ? 'Abriré el catálogo institucional en una pestaña segura.' : 'Cuando el colegio publique convenios, este acceso se activará.'"
+        :ambassador-tone="config?.conveniosUrl ? 'success' : 'empty'"
       >
         <template v-if="config?.conveniosUrl" #actions>
           <a class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>

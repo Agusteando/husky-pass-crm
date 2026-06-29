@@ -15,6 +15,9 @@
           :description="`Gestiona de forma segura quién puede recoger a ${studentFirstName}.`"
           :theme="theme"
           ambassador-variant="hero"
+          :ambassador-title="ambassadorTitle"
+          :ambassador-message="ambassadorMessage"
+          :ambassador-tone="ambassadorTone"
         >
           <template #actions>
             <button
@@ -128,6 +131,33 @@
           </div>
         </section>
 
+        <section class="express-history-panel" data-product-panel="pase-express-history" :data-state="expressAccessItems.length ? 'content' : expressSlot?.id ? 'active' : 'empty'">
+          <FamilyPersonasSectionHeading
+            title="Historial de accesos con Pase Express"
+            :description="expressHistoryDescription"
+            :meta="expressHistoryMeta"
+          />
+
+          <div v-if="expressAccessItems.length" class="express-timeline" aria-label="Historial reciente de Pase Express">
+            <article v-for="item in expressAccessItems" :key="item.key" class="express-timeline-item" :data-type="item.action.type">
+              <span class="express-timeline-icon"><FamilyPersonasIcon :name="item.action.type === 'entrada' ? 'entry' : 'exit'" /></span>
+              <div class="express-timeline-copy">
+                <strong>{{ item.label }} con {{ item.action.person.name }}</strong>
+                <span>{{ formatAccessDate(item.action.timestamp || item.action.date) }} · {{ item.action.time }} · {{ item.action.person.parentesco || 'Pase Express' }}</span>
+              </div>
+              <span class="express-timeline-status">Verificado</span>
+            </article>
+          </div>
+
+          <div v-else class="express-history-empty">
+            <span class="express-history-icon"><FamilyPersonasIcon :name="expressSlot?.id ? 'clock' : 'history'" /></span>
+            <div>
+              <strong>{{ expressSlot?.id ? 'Pase Express listo para usarse' : 'Sin actividad temporal todavía' }}</strong>
+              <span>{{ expressSlot?.id ? 'Cuando se registre una entrada o salida con este pase, quedará visible aquí.' : 'Este historial se activará automáticamente cuando generes y usen un Pase Express.' }}</span>
+            </div>
+          </div>
+        </section>
+
         <section id="ayuda" class="support-panel" data-product-panel="personas-help-tutorial">
           <article class="card tutorial-card">
             <header class="section-head branded-head">
@@ -228,8 +258,11 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
+import type { AccessHistoryAction } from '~/types/accessHistory'
+import type { ParentAttendanceResponse } from '~/types/attendance'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -271,6 +304,70 @@ const completedCount = computed(() => people.value.filter((person) => person.id)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const expressSlot = computed(() => people.value.find((person) => person.indice === 4) || null)
+const { data: attendanceOverview } = useFetch<ParentAttendanceResponse>('/api/family/attendance', {
+  query: computed(() => ({ matricula: primaryChild.value?.matricula || '' })),
+  timeout: 15000
+})
+const expressAccessItems = computed(() => {
+  const days = attendanceOverview.value?.accessHistory?.days || []
+  return days
+    .flatMap((day) => day.actions.map((action) => ({ day, action })))
+    .filter(({ action }) => Number(action.person.indice || 0) === 4)
+    .slice(0, 5)
+    .map(({ day, action }) => ({
+      key: `${day.key}-${action.id}`,
+      label: accessActionLabel(action),
+      action
+    }))
+})
+const expressHistoryMeta = computed(() => {
+  if (expressAccessItems.value.length === 1) return '1 movimiento'
+  if (expressAccessItems.value.length > 1) return `${expressAccessItems.value.length} movimientos`
+  return expressSlot.value?.id ? 'Pendiente de uso' : 'Sin pase activo'
+})
+const expressHistoryDescription = computed(() => {
+  if (expressAccessItems.value.length) return `Visibilidad reciente sobre quién usó un pase temporal para ${studentFirstName.value}.`
+  if (expressSlot.value?.id) return 'El pase temporal está preparado; aquí aparecerán sus entradas o salidas cuando se registren.'
+  return 'Crea un pase temporal solo cuando alguien fuera de tu red permanente necesite recoger al alumno.'
+})
+const ambassadorState = computed(() => {
+  if (!studentPhoto.value) {
+    return {
+      tone: 'notice' as const,
+      title: 'Primero aseguremos la foto',
+      message: `La foto de ${studentFirstName.value} permite validar y generar los Husky Pass sin fricción.`
+    }
+  }
+  if (!completedRegularCount.value) {
+    return {
+      tone: 'empty' as const,
+      title: 'Construyamos tu red segura',
+      message: 'Empieza con una persona de confianza. Te guiaré paso a paso.'
+    }
+  }
+  if (completedRegularCount.value < 3) {
+    return {
+      tone: 'calm' as const,
+      title: 'Puedes agregar más confianza',
+      message: `Tienes ${completedRegularCount.value} de 3 espacios permanentes ocupados.`
+    }
+  }
+  if (expressSlot.value?.id) {
+    return {
+      tone: 'success' as const,
+      title: 'Pase Express activo',
+      message: 'Tu pase temporal está listo y su actividad quedará registrada en el historial.'
+    }
+  }
+  return {
+    tone: 'success' as const,
+    title: 'Red familiar lista',
+    message: 'Tus personas permanentes están completas. Usa Pase Express solo para casos temporales.'
+  }
+})
+const ambassadorTitle = computed(() => ambassadorState.value.title)
+const ambassadorMessage = computed(() => ambassadorState.value.message)
+const ambassadorTone = computed(() => ambassadorState.value.tone)
 
 function retryLoad() {
   return refresh()
@@ -323,6 +420,16 @@ watch(people, (value) => {
 watch(() => people.value.map((person) => `${person.id || 'empty'}:${person.foto || ''}:${person.compressed_foto || ''}:${person.nombreP || ''}:${person.paternoP || ''}:${person.maternoP || ''}:${person.parenP || ''}`).join('|'), () => {
   void refreshMarbeteReadiness()
 }, { immediate: true })
+
+function accessActionLabel(action: AccessHistoryAction) {
+  return action.type === 'entrada' ? 'Entrada registrada' : 'Salida registrada'
+}
+function formatAccessDate(value?: string | null) {
+  if (!value) return 'Fecha no disponible'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+}
 
 function fullName(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
   return [person.nombreP, person.paternoP, person.maternoP].filter(Boolean).join(' ')
@@ -472,7 +579,7 @@ async function save(payload: Partial<AuthorizedPerson>) {
     const saved = await $fetch<AuthorizedPerson>('/api/personas-autorizadas/family', { method: 'POST', body: payload })
     applySavedPerson(saved)
     editing.value = null
-    notice.value = 'Registro guardado.'
+    notice.value = Number(saved.indice || 0) === 4 ? 'Pase Express guardado. Su actividad aparecerá en el historial cuando se use.' : 'Registro guardado. Tu red de confianza quedó actualizada.'
     await refresh()
     await refreshMarbeteReadiness()
   } catch (err: unknown) {
@@ -495,9 +602,9 @@ async function remove(id: number | null | undefined, options: { recapture?: bool
     await refreshMarbeteReadiness()
     if (options.recapture) {
       openFreshCapture(nextIndice)
-      notice.value = 'Registro anulado. Captura la información correcta.'
+      notice.value = 'Registro anulado. Te dejo listo el espacio para capturar la información correcta.'
     } else {
-      notice.value = 'Registro anulado.'
+      notice.value = 'Registro anulado. La persona ya no podrá usar ese Husky Pass.'
     }
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
@@ -973,6 +1080,119 @@ function normalizeIndice(value: unknown) {
   padding: 10px 12px;
 }
 
+.express-history-panel {
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--pa-primary-rgb), .08), transparent 14rem),
+    rgba(255, 255, 255, .94);
+  border: 1px solid #e2e8ec;
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(30, 53, 78, .06);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.express-timeline {
+  display: grid;
+  gap: 9px;
+}
+
+.express-timeline-item {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e4ebef;
+  border-radius: 16px;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 10px 12px;
+}
+
+.express-timeline-icon,
+.express-history-icon {
+  align-items: center;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.express-timeline-item[data-type='salida'] .express-timeline-icon {
+  background: #fff3db;
+  border-color: #f2d18f;
+  color: #93610f;
+}
+
+.express-timeline-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.express-timeline-copy strong,
+.express-timeline-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.express-timeline-copy strong {
+  color: #26334b;
+  font-size: .84rem;
+  font-weight: 850;
+}
+
+.express-timeline-copy span {
+  color: #747f90;
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.express-timeline-status {
+  background: #f2faee;
+  border: 1px solid #cfe6c3;
+  border-radius: 999px;
+  color: #4a8d32;
+  font-size: .68rem;
+  font-weight: 850;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.express-history-empty {
+  align-items: center;
+  background: linear-gradient(135deg, #fbfdfd, #fff);
+  border: 1px dashed rgba(var(--pa-primary-rgb), .28);
+  border-radius: 17px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-height: 74px;
+  padding: 13px 14px;
+}
+
+.express-history-empty strong,
+.express-history-empty span {
+  display: block;
+}
+
+.express-history-empty strong {
+  color: #26334b;
+  font-size: .86rem;
+}
+
+.express-history-empty span {
+  color: #717c8e;
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-top: 3px;
+}
+
 .support-panel {
   align-items: start;
   display: grid;
@@ -1187,6 +1407,18 @@ function normalizeIndice(value: unknown) {
   .faq-card {
     border-radius: 20px;
     padding: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .express-timeline-item {
+    align-items: start;
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .express-timeline-status {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 

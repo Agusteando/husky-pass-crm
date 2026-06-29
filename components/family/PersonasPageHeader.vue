@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <div v-if="showVisual" class="pa-page-header-ambassador">
+    <div v-if="showVisual" class="pa-page-header-ambassador" :data-has-message="hasAmbassadorMessage ? 'true' : 'false'" :data-tone="ambassadorTone">
       <slot name="visual">
         <FamilyPersonasAmbassador
           :theme="resolvedTheme"
@@ -19,6 +19,10 @@
           decorative
         />
       </slot>
+      <div v-if="hasAmbassadorMessage" class="pa-page-header-ambassador-copy">
+        <strong v-if="ambassadorTitle">{{ ambassadorTitle }}</strong>
+        <span v-if="ambassadorMessage">{{ ambassadorMessage }}</span>
+      </div>
     </div>
 
     <div v-if="hasActions" class="pa-page-header-actions">
@@ -40,6 +44,9 @@ const props = withDefaults(defineProps<{
   meta?: string
   theme?: PersonasTheme | null
   ambassadorVariant?: PersonasMascotVariant
+  ambassadorTitle?: string
+  ambassadorMessage?: string
+  ambassadorTone?: 'calm' | 'success' | 'notice' | 'empty'
   showAmbassador?: boolean
 }>(), {
   eyebrow: '',
@@ -47,6 +54,9 @@ const props = withDefaults(defineProps<{
   meta: '',
   theme: null,
   ambassadorVariant: 'header',
+  ambassadorTitle: '',
+  ambassadorMessage: '',
+  ambassadorTone: 'calm',
   showAmbassador: true
 })
 
@@ -55,6 +65,7 @@ const familyThemeContext = inject(personasFamilyThemeContextKey, null)
 const resolvedTheme = computed(() => props.theme || familyThemeContext?.theme.value || resolvePersonasTheme({}))
 const hasActions = computed(() => Boolean(slots.actions))
 const hasMetaSlot = computed(() => Boolean(slots.meta))
+const hasAmbassadorMessage = computed(() => Boolean(props.ambassadorTitle || props.ambassadorMessage))
 const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 </script>
 
@@ -64,7 +75,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   border-bottom: 1px solid #e4eaed;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) 72px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, auto) auto;
   min-height: 92px;
   overflow: hidden;
   padding: 2px 0 16px;
@@ -137,10 +148,80 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   width: 72px;
 }
 
+.pa-page-header-ambassador[data-has-message='true'] {
+  align-items: center;
+  align-self: center;
+  background:
+    radial-gradient(circle at 0 0, rgba(var(--pa-primary-rgb), .1), transparent 70%),
+    linear-gradient(135deg, #fff, rgba(var(--pa-primary-rgb), .045));
+  border: 1px solid rgba(var(--pa-primary-rgb), .18);
+  border-radius: 19px;
+  box-shadow: 0 12px 30px rgba(30, 53, 78, .065);
+  gap: 8px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  height: auto;
+  justify-items: start;
+  min-height: 74px;
+  overflow: visible;
+  padding: 7px 11px 7px 7px;
+  width: min(318px, 32vw);
+}
+
+.pa-page-header-ambassador[data-tone='success'] {
+  background:
+    radial-gradient(circle at 0 0, rgba(92, 175, 63, .13), transparent 70%),
+    linear-gradient(135deg, #fff, #f4fbf0);
+  border-color: rgba(92, 175, 63, .24);
+}
+
+.pa-page-header-ambassador[data-tone='notice'] {
+  background:
+    radial-gradient(circle at 0 0, rgba(234, 165, 29, .14), transparent 70%),
+    linear-gradient(135deg, #fff, #fff9ed);
+  border-color: rgba(234, 165, 29, .25);
+}
+
+.pa-page-header-ambassador[data-tone='empty'] {
+  border-style: dashed;
+}
+
 .pa-page-header-ambassador :deep(.pa-ambassador-card),
 .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
   height: 72px;
   width: 72px;
+}
+
+.pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
+.pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
+  height: 58px;
+  width: 58px;
+}
+
+.pa-page-header-ambassador-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pa-page-header-ambassador-copy strong,
+.pa-page-header-ambassador-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pa-page-header-ambassador-copy strong {
+  color: #26334b;
+  font-size: .78rem;
+  font-weight: 850;
+  line-height: 1.22;
+}
+
+.pa-page-header-ambassador-copy span {
+  color: #6f798a;
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .pa-page-header-actions {
@@ -153,7 +234,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-width: 900px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) 70px;
+    grid-template-columns: minmax(0, 1fr) minmax(70px, auto);
   }
 
   .pa-page-header-actions {
@@ -164,7 +245,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-height: 820px) and (min-width: 901px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) 62px auto;
+    grid-template-columns: minmax(0, 1fr) minmax(62px, auto) auto;
     min-height: 80px;
     padding-bottom: 12px;
   }
@@ -182,6 +263,18 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
     height: 62px;
     width: 62px;
+  }
+
+  .pa-page-header-ambassador[data-has-message='true'] {
+    grid-template-columns: 52px minmax(0, 1fr);
+    min-height: 66px;
+    width: min(288px, 30vw);
+  }
+
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
+    height: 52px;
+    width: 52px;
   }
 }
 
@@ -206,6 +299,21 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
     height: 64px;
     width: 58px;
+  }
+
+  .pa-page-header-ambassador[data-has-message='true'] {
+    border-radius: 16px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-column: 1 / -1;
+    min-height: 62px;
+    padding: 6px 9px 6px 6px;
+    width: 100%;
+  }
+
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
+    height: 48px;
+    width: 48px;
   }
 }
 </style>

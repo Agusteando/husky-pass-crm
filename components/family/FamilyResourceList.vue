@@ -6,6 +6,13 @@
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
       </div>
+      <aside class="resource-ambassador" aria-label="Guía digital de publicaciones">
+        <FamilyPersonasAmbassador :theme="daycareTheme" variant="header" compact contained decorative />
+        <span>
+          <strong>{{ resourceGuideTitle }}</strong>
+          <small>{{ resourceGuideMessage }}</small>
+        </span>
+      </aside>
       <NuxtLink class="btn btn-secondary" to="/familia/daycare">Inicio</NuxtLink>
     </header>
 
@@ -75,6 +82,7 @@ import { useFetch } from 'nuxt/app'
 import { computed } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 import { formatDate, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -87,11 +95,18 @@ const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycar
   timeout: 15000
 })
 
+const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
 const featuredItem = computed(() => items.value?.[0] || null)
 const remainingItems = computed(() => items.value?.slice(1) || [])
 const summaryEyebrow = computed(() => props.type === 'hw' ? 'Tareas activas' : props.type === 'cal' ? 'Agenda' : 'Comunicados')
 const featuredLabel = computed(() => props.type === 'hw' ? 'Tarea principal' : props.type === 'cal' ? 'Próximo evento' : 'Aviso más reciente')
 const titleFallback = computed(() => props.type === 'hw' ? 'Tarea publicada' : props.type === 'cal' ? 'Evento publicado' : 'Aviso publicado')
+const resourceGuideTitle = computed(() => props.type === 'hw' ? 'Prioriza la tarea principal' : props.type === 'cal' ? 'Mira lo próximo primero' : 'Lee el aviso destacado')
+const resourceGuideMessage = computed(() => {
+  if (props.type === 'hw') return 'Dejo arriba lo más reciente para que no revises todo el historial.'
+  if (props.type === 'cal') return 'La agenda mantiene el siguiente evento como referencia principal.'
+  return 'Los comunicados nuevos quedan destacados y el resto se conserva abajo.'
+})
 const summaryCopy = computed(() => {
   if (!items.value?.length) return 'No hay publicaciones vigentes.'
   if (props.type === 'hw') return 'Empieza por la tarea principal y consulta el historial para no perder recursos adjuntos.'
@@ -124,7 +139,7 @@ function resourceCopy(resource?: DaycareResource | null) {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 270px) auto;
   padding: clamp(18px, 2.4vw, 26px);
 }
 
@@ -135,6 +150,41 @@ function resourceCopy(resource?: DaycareResource | null) {
 
 .resource-hero h1 {
   font-size: clamp(2rem, 3.2vw, 3rem);
+}
+
+.resource-ambassador {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 18px;
+  box-shadow: var(--shadow-line);
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  padding: 8px 12px 8px 8px;
+}
+
+.resource-ambassador :deep(.pa-ambassador-card),
+.resource-ambassador :deep(.pa-ambassador-visual) {
+  height: 54px;
+  width: 54px;
+}
+
+.resource-ambassador span {
+  display: grid;
+  gap: 2px;
+}
+
+.resource-ambassador strong {
+  color: var(--color-ink);
+  font-size: .82rem;
+}
+
+.resource-ambassador small {
+  color: var(--color-muted);
+  font-size: .72rem;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .publication-workspace {

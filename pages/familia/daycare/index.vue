@@ -22,6 +22,14 @@
             <NuxtLink class="btn btn-primary" to="/familia/daycare/avisos">Revisar avisos</NuxtLink>
             <NuxtLink class="btn btn-secondary" to="/familia/daycare/calendario">Ver calendario</NuxtLink>
           </div>
+
+          <aside class="command-ambassador" aria-label="Guía digital de guardería">
+            <FamilyPersonasAmbassador :theme="daycareTheme" variant="header" compact contained decorative />
+            <span>
+              <strong>{{ daycareGuideTitle }}</strong>
+              <small>{{ daycareGuideMessage }}</small>
+            </span>
+          </aside>
         </article>
 
         <aside class="command-side">
@@ -133,6 +141,7 @@ import { useRuntimeConfig, useFetch } from 'nuxt/app'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, formatDate, stripHtml } from '~/utils/daycare'
 import { hasFamilyScope } from '~/utils/sessionScopes'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
@@ -145,9 +154,16 @@ const { data: dashboard, pending, error } = useFetch<{
   valor: Array<{ valor: string }>
 }>('/api/daycare/family/dashboard', { timeout: 15000 })
 
+const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
 const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 const latestNotice = computed(() => dashboard.value?.circulares?.[0] || null)
 const nextCalendar = computed(() => dashboard.value?.calendario?.[0] || null)
+const daycareGuideTitle = computed(() => latestNotice.value ? 'Empieza por el aviso más reciente' : nextCalendar.value ? 'Revisa el próximo evento' : 'Todo tranquilo por ahora')
+const daycareGuideMessage = computed(() => {
+  if (latestNotice.value) return 'Los comunicados nuevos quedan destacados para que no tengas que buscar.'
+  if (nextCalendar.value) return 'El calendario te ayuda a prepararte con tiempo.'
+  return 'Cuando la sala publique algo importante, aparecerá aquí.'
+})
 const salaLine = computed(() => {
   const user = session.value?.user
   return [user?.scopes.daycare?.unidad || 'Unidad', user?.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' · ')
@@ -179,6 +195,50 @@ const salaLine = computed(() => {
   overflow: hidden;
   padding: clamp(20px, 3vw, 30px);
   position: relative;
+}
+
+.command-ambassador {
+  align-items: center;
+  align-self: end;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 18px;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  justify-self: end;
+  max-width: min(100%, 320px);
+  padding: 8px 12px 8px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.command-ambassador :deep(.pa-ambassador-card),
+.command-ambassador :deep(.pa-ambassador-visual) {
+  height: 58px;
+  width: 58px;
+}
+
+.command-ambassador span {
+  display: grid;
+  gap: 2px;
+}
+
+.command-ambassador strong,
+.command-ambassador small {
+  color: #fff;
+}
+
+.command-ambassador strong {
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.command-ambassador small {
+  font-size: .72rem;
+  font-weight: 650;
+  line-height: 1.38;
+  opacity: .86;
 }
 
 .command-main::after {
@@ -485,6 +545,11 @@ const salaLine = computed(() => {
     border-radius: 22px;
     min-height: 0;
     padding: 20px;
+  }
+
+  .command-ambassador {
+    justify-self: stretch;
+    max-width: none;
   }
 
   .command-main::after {

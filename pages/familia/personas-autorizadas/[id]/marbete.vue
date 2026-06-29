@@ -7,6 +7,9 @@
         :description="passContext"
         :theme="theme"
         ambassador-variant="preview"
+        :ambassador-title="downloadAvailable ? 'Listo para imprimir' : 'Revisión pendiente'"
+        :ambassador-message="downloadAvailable ? 'Descarga el PDF y conserva el formato solicitado por la escuela.' : readinessMessage"
+        :ambassador-tone="downloadAvailable ? 'success' : 'notice'"
       >
         <template #actions>
           <div class="head-actions">

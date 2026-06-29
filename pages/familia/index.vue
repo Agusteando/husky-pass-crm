@@ -4,8 +4,15 @@
       <div>
         <p class="eyebrow">Husky Pass</p>
         <h1>Elige un acceso</h1>
-        <p>Tu cuenta tiene más de un producto disponible.</p>
+        <p>Tu embajador digital te ayuda a entrar al producto correcto sin perder contexto familiar.</p>
       </div>
+      <aside class="chooser-ambassador" aria-label="Guía digital Husky Pass">
+        <FamilyPersonasAmbassador :theme="chooserTheme" variant="header" compact contained decorative />
+        <span>
+          <strong>Te acompaño</strong>
+          <small>Elige la experiencia que necesitas hoy.</small>
+        </span>
+      </aside>
     </div>
 
     <section class="chooser-grid">
@@ -36,15 +43,52 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
 
 import { hasFamilyScope } from '~/utils/sessionScopes'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'family-index'] })
 
 const { data: session } = useAppSession()
 const canDaycare = computed(() => hasFamilyScope(session.value?.user, 'daycare'))
 const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
+const chooserTheme = computed(() => resolvePersonasTheme({ themeKey: canDaycare.value ? 'daycare' : 'primaria' }))
 </script>
 
 <style scoped>
+.chooser-ambassador {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 18px;
+  box-shadow: var(--shadow-line);
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  min-width: min(100%, 260px);
+  padding: 8px 12px 8px 8px;
+}
+
+.chooser-ambassador :deep(.pa-ambassador-card),
+.chooser-ambassador :deep(.pa-ambassador-visual) {
+  height: 54px;
+  width: 54px;
+}
+
+.chooser-ambassador span {
+  display: grid;
+  gap: 2px;
+}
+
+.chooser-ambassador strong {
+  color: var(--color-ink);
+  font-size: .85rem;
+}
+
+.chooser-ambassador small {
+  color: var(--color-muted);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .chooser-grid {
   display: grid;
   gap: 12px;
@@ -112,8 +156,13 @@ const canPa = computed(() => hasFamilyScope(session.value?.user, 'personasAutori
     grid-template-columns: 1fr;
   }
 
+  .chooser-ambassador {
+    min-width: 0;
+  }
+
   .choice-card {
     min-height: 0;
   }
 }
+
 </style>
