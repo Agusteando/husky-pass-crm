@@ -11,7 +11,7 @@
         </NuxtLink>
       </div>
 
-      <section v-if="primaryChild" class="pa-student-context" data-product-panel="active-student" aria-label="Contexto del alumno">
+      <section v-if="primaryChild" class="pa-student-context" data-product-panel="active-student" aria-label="Contexto familiar">
         <span class="pa-student-avatar-wrap">
           <span class="pa-student-avatar">
             <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
@@ -20,7 +20,7 @@
           <span class="pa-presence-dot" aria-hidden="true"></span>
         </span>
         <span class="pa-student-copy">
-          <small>Alumno activo</small>
+          <small>Expediente</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
           <span class="pa-student-chip-row">
             <span v-for="chip in studentChips" :key="chip">{{ chip }}</span>
@@ -36,15 +36,17 @@
           :to="item.to"
           :class="{ active: isActive(item) }"
           :data-product-nav="`topbar-${item.key}`"
+          :aria-label="item.label"
+          :title="item.label"
         >
           <FamilyPersonasIcon :name="item.icon" />
-          <span>{{ item.shortLabel || item.label }}</span>
+          <span aria-hidden="true">{{ item.shortLabel || item.label }}</span>
         </NuxtLink>
       </nav>
 
       <div class="pa-topbar-controls">
-        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel">
-          <FamilyPersonasIcon name="bell" />
+        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel" title="Comunicados">
+          <FamilyPersonasIcon name="announcement" />
           <span v-if="unreadCommunications">{{ communicationBadge }}</span>
         </NuxtLink>
         <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" presentation="compact" />
@@ -145,7 +147,7 @@ const navItems = [
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
   { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: paSecurityRoute }
 ]
-const topbarItems = computed(() => navItems.filter((item) => ['comunicados', 'pagos'].includes(item.key)))
+const topbarItems = computed(() => navItems.filter((item) => item.key === 'pagos'))
 
 function isActive(item: { to: string }) {
   const target = item.to.split('?')[0] || item.to
@@ -180,7 +182,7 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(10px, 1vw, 16px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(270px, 420px) minmax(190px, 240px) auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(250px, 420px) auto auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   overflow: visible;
@@ -360,14 +362,16 @@ function isActive(item: { to: string }) {
   box-shadow: 0 10px 26px rgba(26, 48, 72, 0.055);
   color: #24324b;
   display: inline-flex;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   font-size: 0.76rem;
   font-weight: 850;
-  gap: 7px;
+  gap: 0;
+  height: 46px;
   justify-content: center;
   min-height: 46px;
-  min-width: 0;
-  padding: 0 11px;
+  min-width: 46px;
+  padding: 0;
+  width: 46px;
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
 }
 
@@ -380,11 +384,9 @@ function isActive(item: { to: string }) {
 }
 
 .pa-topbar-quick-nav span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
+
 
 .pa-topbar-quick-nav :deep(.pa-icon) {
   color: var(--pa-primary);
@@ -630,7 +632,7 @@ function isActive(item: { to: string }) {
 
   .pa-product-topbar {
     gap: 12px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(250px, 1fr) minmax(178px, 220px) auto;
+    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) auto auto;
     padding-left: 16px;
   }
 

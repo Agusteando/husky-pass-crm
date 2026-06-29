@@ -536,7 +536,7 @@ export async function listFamilyCommunications(user: AppSessionUser): Promise<Fa
       withAttachments: items.filter((item) => item.attachments.length > 0).length
     },
     state: items.length ? 'ready' : 'empty',
-    message: items.length ? undefined : 'Cuando tu colegio publique avisos para tu alumno, aparecerán aquí.'
+    message: items.length ? undefined : 'No hay publicaciones vigentes.'
   }
 }
 

@@ -5953,3 +5953,2609 @@ undefined
 
 [vue-tsc] Found 1 error. Watching for file changes.
 
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/AppTopbar.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/BrandMark.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/EmptyState.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/ExperienceLoginForm.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/LoginPanel.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/ResourceCard.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminDaycareSidebar.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminModuleTabs.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminResourceModule.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminSalasCommandCenter.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/FamilyAccountEditor.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/ResourceEditor.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/AuthorizedPersonEditor.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/FamilyResourceList.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/FamilySidebar.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasAmbassador.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasAutorizadasShell.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasIcon.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasImageUpload.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasModal.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasPageHeader.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasProcessedPhoto.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasSectionHeading.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasTutorialVideo.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/AccountMenu.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/AdminExperienceTopbar.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/FamilyExperienceTopbar.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/composables/useAppSession.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/composables/usePersonasTheme.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/error.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/admin.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/default.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/family.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/access-history-admin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/admin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/comunicados-admin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/daycare-family.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/daycare-index.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/dev-only.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/family-index.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/family.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/guest.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/home.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/personas-autorizadas.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/superadmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/nuxt.config.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 47 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/.nuxt/nuxt.d.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/./nuxt.d.ts' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 1 error. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/app.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/error.vue' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/nuxt.config.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 4 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'useAppSession'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/composables/usePersonasTheme.ts:[33m99[39m:[33m24[39m
+
+  [0m [90m  97 |[39m
+   [90m  98 |[39m [36mexport[39m [36mfunction[39m usePersonasFamilyTheme(options[33m:[39m [33mFamilyThemeOptions[39m [33m=[39m {}) {
+  [31m[1m>[22m[39m[90m  99 |[39m   [36mconst[39m sessionState [33m=[39m useAppSession()
+   [90m     |[39m                        [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 100 |[39m   [36mconst[39m peopleState [33m=[39m usePersonasFamilyPeople({ immediate[33m:[39m options[33m.[39mimmediate })
+   [90m 101 |[39m
+   [90m 102 |[39m   [36mconst[39m selectedMatricula [33m=[39m computed(() [33m=>[39m normalizeMatricula(toValue(options[33m.[39mselectedMatricula)))[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Object literal may only specify known properties, and ''nitro:config'' does not exist in type '{ 'kit:compatibility'?: ((compatibility: NuxtCompatibility, issues: NuxtCompatibilityIssues) => HookResult) | undefined; ... 51 more ...; 'rspack:progress'?: ((statesArray: any[]) => void) | undefined; }'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m5[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m     [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Parameter 'nitroConfig' implicitly has an 'any' type.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m20[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m                    [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/husky-pass.vue:[33m90[39m:[33m9[39m
+
+  [0m [90m 88 |[39m
+   [90m 89 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 90 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 91 |[39m }
+   [90m 92 |[39m
+   [90m 93 |[39m [36minterface[39m [33mDevOptions[39m {[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/personas-modals.vue:[33m75[39m:[33m9[39m
+
+  [0m [90m 73 |[39m
+   [90m 74 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 75 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 76 |[39m }
+   [90m 77 |[39m
+   [90m 78 |[39m definePageMeta({ layout[33m:[39m [36mfalse[39m[33m,[39m middleware[33m:[39m [32m'dev-only'[39m })[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type 'unknown' is not assignable to type 'string | undefined'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m51[39m:[33m45[39m
+
+  [0m [90m 49 |[39m
+   [90m 50 |[39m           [33m<[39m[33mnav[39m [36mclass[39m[33m=[39m[32m"quick-dock"[39m aria[33m-[39mlabel[33m=[39m[32m"Accesos rápidos de guardería"[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 51 |[39m             [33m<[39m[33ma[39m [36mclass[39m[33m=[39m[32m"quick-card richmond"[39m [33m:[39mhref[33m=[39m[32m"config.public.richmondUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 52 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mRichmond[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 53 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mAcceder[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 54 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type '{}' is not assignable to type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m59[39m:[33m81[39m
+
+  [0m [90m 57 |[39m               [33m<[39m[33mstrong[39m[33m>[39m{{ nextCalendar [33m?[39m formatCalendarDay(nextCalendar[33m.[39mdate)[33m.[39mday [33m:[39m [32m'Hoy'[39m }}[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 58 |[39m             [33m<[39m[33m/[39m[33mNuxtLink[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 59 |[39m             [33m<[39m[33ma[39m v[33m-[39m[36mif[39m[33m=[39m[32m"config.public.pasePlatformUrl"[39m [36mclass[39m[33m=[39m[32m"quick-card neutral"[39m [33m:[39mhref[33m=[39m[32m"config.public.pasePlatformUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                                                                 [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mPASE[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 61 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mEntrar[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 62 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Argument of type 'unknown' is not assignable to parameter of type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/utils/routeSession.ts:[33m59[39m:[33m54[39m
+
+  [0m [90m 57 |[39m
+   [90m 58 |[39m   [36mconst[39m secret [33m=[39m useRuntimeConfig()[33m.[39msessionSecret
+  [31m[1m>[22m[39m[90m 59 |[39m   [36mconst[39m expected [33m=[39m [36mawait[39m signSessionPayload(payload[33m,[39m secret)
+   [90m    |[39m                                                      [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m   [36mif[39m ([33m![39mconstantTimeEqual(signature[33m,[39m expected)) {
+   [90m 61 |[39m     [36mreturn[39m anonymousSession
+   [90m 62 |[39m   }[0m
+
+[vue-tsc] Found 9 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/AppTopbar.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/BrandMark.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/EmptyState.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/ExperienceLoginForm.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/LoginPanel.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/ResourceCard.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminDaycareSidebar.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminModuleTabs.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminResourceModule.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/AdminSalasCommandCenter.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/FamilyAccountEditor.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/admin/ResourceEditor.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/AuthorizedPersonEditor.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/FamilyResourceList.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/FamilySidebar.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasAmbassador.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasAutorizadasShell.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasIcon.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasImageUpload.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasModal.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasPageHeader.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasProcessedPhoto.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasSectionHeading.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/family/PersonasTutorialVideo.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/AccountMenu.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/AdminExperienceTopbar.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/components/topbar/FamilyExperienceTopbar.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/composables/useAppSession.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/composables/usePersonasTheme.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/error.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/admin.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/default.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/layouts/family.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/access-history-admin.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/admin.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/comunicados-admin.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/daycare-family.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/daycare-index.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/dev-only.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/family-index.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/family.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/guest.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/home.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/personas-autorizadas.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/middleware/superadmin.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/nuxt.config.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 46 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/.nuxt/nuxt.d.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/./nuxt.d.ts' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/app.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/error.vue' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/nuxt.config.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/../**/*' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 4 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'useAppSession'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/composables/usePersonasTheme.ts:[33m99[39m:[33m24[39m
+
+  [0m [90m  97 |[39m
+   [90m  98 |[39m [36mexport[39m [36mfunction[39m usePersonasFamilyTheme(options[33m:[39m [33mFamilyThemeOptions[39m [33m=[39m {}) {
+  [31m[1m>[22m[39m[90m  99 |[39m   [36mconst[39m sessionState [33m=[39m useAppSession()
+   [90m     |[39m                        [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 100 |[39m   [36mconst[39m peopleState [33m=[39m usePersonasFamilyPeople({ immediate[33m:[39m options[33m.[39mimmediate })
+   [90m 101 |[39m
+   [90m 102 |[39m   [36mconst[39m selectedMatricula [33m=[39m computed(() [33m=>[39m normalizeMatricula(toValue(options[33m.[39mselectedMatricula)))[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Object literal may only specify known properties, and ''nitro:config'' does not exist in type '{ 'kit:compatibility'?: ((compatibility: NuxtCompatibility, issues: NuxtCompatibilityIssues) => HookResult) | undefined; ... 51 more ...; 'rspack:progress'?: ((statesArray: any[]) => void) | undefined; }'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m5[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m     [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Parameter 'nitroConfig' implicitly has an 'any' type.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m20[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m                    [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/husky-pass.vue:[33m90[39m:[33m9[39m
+
+  [0m [90m 88 |[39m
+   [90m 89 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 90 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 91 |[39m }
+   [90m 92 |[39m
+   [90m 93 |[39m [36minterface[39m [33mDevOptions[39m {[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/personas-modals.vue:[33m75[39m:[33m9[39m
+
+  [0m [90m 73 |[39m
+   [90m 74 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 75 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 76 |[39m }
+   [90m 77 |[39m
+   [90m 78 |[39m definePageMeta({ layout[33m:[39m [36mfalse[39m[33m,[39m middleware[33m:[39m [32m'dev-only'[39m })[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type 'unknown' is not assignable to type 'string | undefined'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m51[39m:[33m45[39m
+
+  [0m [90m 49 |[39m
+   [90m 50 |[39m           [33m<[39m[33mnav[39m [36mclass[39m[33m=[39m[32m"quick-dock"[39m aria[33m-[39mlabel[33m=[39m[32m"Accesos rápidos de guardería"[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 51 |[39m             [33m<[39m[33ma[39m [36mclass[39m[33m=[39m[32m"quick-card richmond"[39m [33m:[39mhref[33m=[39m[32m"config.public.richmondUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 52 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mRichmond[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 53 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mAcceder[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 54 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type '{}' is not assignable to type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m59[39m:[33m81[39m
+
+  [0m [90m 57 |[39m               [33m<[39m[33mstrong[39m[33m>[39m{{ nextCalendar [33m?[39m formatCalendarDay(nextCalendar[33m.[39mdate)[33m.[39mday [33m:[39m [32m'Hoy'[39m }}[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 58 |[39m             [33m<[39m[33m/[39m[33mNuxtLink[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 59 |[39m             [33m<[39m[33ma[39m v[33m-[39m[36mif[39m[33m=[39m[32m"config.public.pasePlatformUrl"[39m [36mclass[39m[33m=[39m[32m"quick-card neutral"[39m [33m:[39mhref[33m=[39m[32m"config.public.pasePlatformUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                                                                 [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mPASE[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 61 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mEntrar[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 62 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Argument of type 'unknown' is not assignable to parameter of type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/utils/routeSession.ts:[33m59[39m:[33m54[39m
+
+  [0m [90m 57 |[39m
+   [90m 58 |[39m   [36mconst[39m secret [33m=[39m useRuntimeConfig()[33m.[39msessionSecret
+  [31m[1m>[22m[39m[90m 59 |[39m   [36mconst[39m expected [33m=[39m [36mawait[39m signSessionPayload(payload[33m,[39m secret)
+   [90m    |[39m                                                      [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m   [36mif[39m ([33m![39mconstantTimeEqual(signature[33m,[39m expected)) {
+   [90m 61 |[39m     [36mreturn[39m anonymousSession
+   [90m 62 |[39m   }[0m
+
+[vue-tsc] Found 8 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/.nuxt/nuxt.d.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.nuxt/./nuxt.d.ts' in 'C:/Users/hp/husky-pass-crm/tsconfig.json'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 1 error. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'useAppSession'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/composables/usePersonasTheme.ts:[33m99[39m:[33m24[39m
+
+  [0m [90m  97 |[39m
+   [90m  98 |[39m [36mexport[39m [36mfunction[39m usePersonasFamilyTheme(options[33m:[39m [33mFamilyThemeOptions[39m [33m=[39m {}) {
+  [31m[1m>[22m[39m[90m  99 |[39m   [36mconst[39m sessionState [33m=[39m useAppSession()
+   [90m     |[39m                        [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 100 |[39m   [36mconst[39m peopleState [33m=[39m usePersonasFamilyPeople({ immediate[33m:[39m options[33m.[39mimmediate })
+   [90m 101 |[39m
+   [90m 102 |[39m   [36mconst[39m selectedMatricula [33m=[39m computed(() [33m=>[39m normalizeMatricula(toValue(options[33m.[39mselectedMatricula)))[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Object literal may only specify known properties, and ''nitro:config'' does not exist in type '{ 'kit:compatibility'?: ((compatibility: NuxtCompatibility, issues: NuxtCompatibilityIssues) => HookResult) | undefined; ... 51 more ...; 'rspack:progress'?: ((statesArray: any[]) => void) | undefined; }'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m5[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m     [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Parameter 'nitroConfig' implicitly has an 'any' type.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/nuxt.config.ts:[33m103[39m:[33m20[39m
+
+  [0m [90m 101 |[39m   }[33m,[39m
+   [90m 102 |[39m   hooks[33m:[39m {
+  [31m[1m>[22m[39m[90m 103 |[39m     [32m'nitro:config'[39m(nitroConfig) {
+   [90m     |[39m                    [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 104 |[39m       [36mconst[39m preset [33m=[39m process[33m.[39menv[33m.[39m[33mNITRO_PRESET[39m [33m||[39m (process[33m.[39menv[33m.[39m[33mVERCEL[39m [33m?[39m [32m'vercel'[39m [33m:[39m undefined)
+   [90m 105 |[39m       [36mif[39m (preset) nitroConfig[33m.[39mpreset [33m=[39m preset
+   [90m 106 |[39m       nitroConfig[33m.[39mserverAssets [33m=[39m [[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/husky-pass.vue:[33m90[39m:[33m9[39m
+
+  [0m [90m 88 |[39m
+   [90m 89 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 90 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 91 |[39m }
+   [90m 92 |[39m
+   [90m 93 |[39m [36minterface[39m [33mDevOptions[39m {[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot find name 'createError'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/__dev/personas-modals.vue:[33m75[39m:[33m9[39m
+
+  [0m [90m 73 |[39m
+   [90m 74 |[39m [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m) {
+  [31m[1m>[22m[39m[90m 75 |[39m   [36mthrow[39m createError({ statusCode[33m:[39m [35m404[39m[33m,[39m statusMessage[33m:[39m [32m'Ruta no disponible.'[39m })
+   [90m    |[39m         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 76 |[39m }
+   [90m 77 |[39m
+   [90m 78 |[39m definePageMeta({ layout[33m:[39m [36mfalse[39m[33m,[39m middleware[33m:[39m [32m'dev-only'[39m })[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type 'unknown' is not assignable to type 'string | undefined'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m51[39m:[33m45[39m
+
+  [0m [90m 49 |[39m
+   [90m 50 |[39m           [33m<[39m[33mnav[39m [36mclass[39m[33m=[39m[32m"quick-dock"[39m aria[33m-[39mlabel[33m=[39m[32m"Accesos rápidos de guardería"[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 51 |[39m             [33m<[39m[33ma[39m [36mclass[39m[33m=[39m[32m"quick-card richmond"[39m [33m:[39mhref[33m=[39m[32m"config.public.richmondUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 52 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mRichmond[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 53 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mAcceder[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 54 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Type '{}' is not assignable to type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/pages/familia/daycare/index.vue:[33m59[39m:[33m81[39m
+
+  [0m [90m 57 |[39m               [33m<[39m[33mstrong[39m[33m>[39m{{ nextCalendar [33m?[39m formatCalendarDay(nextCalendar[33m.[39mdate)[33m.[39mday [33m:[39m [32m'Hoy'[39m }}[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 58 |[39m             [33m<[39m[33m/[39m[33mNuxtLink[39m[33m>[39m
+  [31m[1m>[22m[39m[90m 59 |[39m             [33m<[39m[33ma[39m v[33m-[39m[36mif[39m[33m=[39m[32m"config.public.pasePlatformUrl"[39m [36mclass[39m[33m=[39m[32m"quick-card neutral"[39m [33m:[39mhref[33m=[39m[32m"config.public.pasePlatformUrl"[39m target[33m=[39m[32m"_blank"[39m rel[33m=[39m[32m"noopener"[39m[33m>[39m
+   [90m    |[39m                                                                                 [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m               [33m<[39m[33mspan[39m[33m>[39m[33mPASE[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+   [90m 61 |[39m               [33m<[39m[33mstrong[39m[33m>[39m[33mEntrar[39m[33m<[39m[33m/[39m[33mstrong[39m[33m>[39m
+   [90m 62 |[39m             [33m<[39m[33m/[39m[33ma[39m[33m>[39m[0m
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Argument of type 'unknown' is not assignable to parameter of type 'string'.
+[1m[30m[106m FILE [49m[39m[22m C:/Users/hp/husky-pass-crm/utils/routeSession.ts:[33m59[39m:[33m54[39m
+
+  [0m [90m 57 |[39m
+   [90m 58 |[39m   [36mconst[39m secret [33m=[39m useRuntimeConfig()[33m.[39msessionSecret
+  [31m[1m>[22m[39m[90m 59 |[39m   [36mconst[39m expected [33m=[39m [36mawait[39m signSessionPayload(payload[33m,[39m secret)
+   [90m    |[39m                                                      [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 60 |[39m   [36mif[39m ([33m![39mconstantTimeEqual(signature[33m,[39m expected)) {
+   [90m 61 |[39m     [36mreturn[39m anonymousSession
+   [90m 62 |[39m   }[0m
+
+[vue-tsc] Found 9 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/__dev/password-recovery/latest-preview.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/login.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/logout.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/me.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/family-accounts.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/family-accounts.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources/[id].delete.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources/[id].patch.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas/[id].get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas/overview.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/uploads.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/family/dashboard.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/family/resources.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration/captcha.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration/options.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/options.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/pass.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/photo.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/attendance/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/attendance/motivo.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/comunicados/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/comunicados/summary.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/payments/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/config.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/credential.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/faces.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/[id].delete.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/index.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/marbete.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/photo-source.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/scan.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/sibling-session.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student-photo.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/accessHistory.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/communications.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/daycareRegistration.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/familyAttendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlAuth.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlDaycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlPersonasAdmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/passwordRecovery.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/payments.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/plugins/request-id.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/types/svg-to-pdfkit.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/antibot.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/attendanceMysql.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/authz.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/devHuskyPassFixtures.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/devOnly.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/envChecklist.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/externalUpload.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/grupoIcons.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/httpError.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/impersonation.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/logger.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/mysql.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/recoveryEmail.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/securityDiagnostics.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/serverlessPaths.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/session.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/sipaeAttendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/sipaePlantel.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/accessHistory.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/assets.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/attendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/bcryptjs.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/communications.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/daycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/identity.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/nuxt-globals.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/payments.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/session.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/superadmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/svg-to-pdfkit.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/attendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/authorizedPersonForm.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/curp.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/daycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/experienceIdentity.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/grupoIcons.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/matricula.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/personasTheme.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/routeSession.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/sessionScopes.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/superAdmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/visionFace.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 99 errors. Watching for file changes.
+
+
+[41m[30m ERROR [39m[49m 
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m Cannot read file 'C:/Users/hp/husky-pass-crm/.nuxt/tsconfig.json'.
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/__dev/password-recovery/latest-preview.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/access-history/export.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/access-history/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/comunicados/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/comunicados/index.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/comunicados/uploads.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/marbete-templates/[id].get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/marbete-templates/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/marbete-templates/index.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/access-action.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/config.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/config.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/marbete.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/pass-search.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/readiness.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/personas-autorizadas/uploads.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/superadmin/env-check.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/superadmin/users.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/admin/superadmin/users/[id]/comunicados.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/admin/google.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/admin/impersonate.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/admin/preview-daycare.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/impersonation/exit.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/login.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/logout.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/me.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/password/change.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/password/forgot.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/password/reset.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/auth/password/reset.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/family-accounts.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/family-accounts.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources/[id].delete.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/resources/[id].patch.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas/[id].get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas/[id]/overview.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/salas/overview.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/admin/uploads.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/family/dashboard.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/family/resources.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration/captcha.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/daycare/registration/options.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/options.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/pass.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/dev/husky-pass/photo.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/attendance/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/attendance/motivo.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/comunicados/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/comunicados/summary.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/family/payments/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/config.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/credential.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/faces.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/[id].delete.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/index.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/family/index.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/marbete.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/photo-source.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/scan.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/sibling-session.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student-photo.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student.get.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/api/personas-autorizadas/student.post.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/accessHistory.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/communications.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/daycareRegistration.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/familyAttendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlAuth.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlDaycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/mysqlPersonasAdmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/passwordRecovery.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/data/payments.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/plugins/request-id.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/types/svg-to-pdfkit.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/antibot.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/attendanceMysql.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/authz.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/devHuskyPassFixtures.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/devOnly.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/envChecklist.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/externalUpload.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/grupoIcons.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/httpError.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/impersonation.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/logger.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/mysql.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/personasDiagnostics.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/recoveryEmail.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/securityDiagnostics.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/serverlessPaths.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/session.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/sipaeAttendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/server/utils/sipaePlantel.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/accessHistory.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/assets.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/attendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/bcryptjs.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/communications.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/daycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/identity.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/nuxt-globals.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/payments.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/session.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/superadmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/types/svg-to-pdfkit.d.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/attendance.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/authorizedPersonForm.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/curp.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/daycare.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/experienceIdentity.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/grupoIcons.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/matricula.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/personasTheme.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/routeSession.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/sessionScopes.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/superAdmin.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[1m[30m[101m ERROR(vue-tsc) [49m[39m[22m File 'C:/Users/hp/husky-pass-crm/utils/visionFace.ts' not found.
+  The file is in the program because:
+    Matched by default include pattern '**/*'
+[1m[30m[106m FILE [49m[39m[22m undefined:
+
+undefined
+
+[vue-tsc] Found 126 errors. Watching for file changes.
+

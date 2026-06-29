@@ -970,3 +970,160 @@ ZodError {
 [90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.server.mjs[39m in 517.64ms
 [90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.client.mjs[39m in 691.35ms
 [90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mtypes/plugins.d.ts[39m in 811.31ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mrouter.options.mjs[39m in 897.42ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.server.mjs[39m in 2799.44ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.client.mjs[39m in 4891.45ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mtypes/plugins.d.ts[39m in 6054.84ms
+[90m[[90mnitro[90m][39m [32m√[39m Nuxt Nitro server built in 37359ms
+[36mi[39m Vite server warmed up in 9ms
+[36mi[39m Vite client warmed up in 23ms
+[36mi[39m .nuxt/dist directory has been removed. Restarting Nuxt...
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.
+[32m√[39m Vite client built in 1351ms
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.
+[32m√[39m Vite server built in 1668ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.server.mjs[39m in 739.7ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.client.mjs[39m in 870.01ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mtypes/plugins.d.ts[39m in 919.22ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.server.mjs[39m in 1308ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.client.mjs[39m in 2181.24ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mtypes/plugins.d.ts[39m in 2657.84ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.server.mjs[39m in 919.34ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mplugins.client.mjs[39m in 1392.39ms
+[90m[[90mnuxt[90m][39m [36mi[39m Compiled [36mtypes/plugins.d.ts[39m in 1548.89ms
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.
+[90m[[90mnitro[90m][39m [32m√[39m Nuxt Nitro server built in 21033ms
+[36mi[39m Vite server warmed up in 7ms
+[36mi[39m Vite client warmed up in 19ms
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.[2m (x2)[22m
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.[2m (x3)[22m
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.[2m (x4)[22m
+[36mi[39m 
+[vue-tsc] Found 0 errors. Watching for file changes.[2m (x5)[22m
+[36mi[39m [32mhmr update [39m[2m/assets/css/main.css[22m
+[36mi[39m [32mhmr update [39m[2m/app.vue[22m
+[36mi[39m [32mhmr update [39m[2m/error.vue, /error.vue?vue&type=style&index=0&scoped=f249f6ff&lang.css[22m
+[36mi[39m [32mhmr update [39m[2m/components/BrandMark.vue, /components/BrandMark.vue?vue&type=style&index=0&scoped=54030c62&lang.css[22m
+[90m[[90mnuxt[90m][39m [36mi[39m Directory [36mcomponents/[39m removed
+[36mi[39m Restarting Nuxt...
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/avisos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/calendario.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/familias.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/tareas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id].vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/entorno.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/marbetes.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/personas-autorizadas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/comunicados.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/login.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/historial-accesos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/cuenta/seguridad.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/avisos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/calendario.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/tareas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/credencial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/imprimir.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/marbete.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/qr.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/actualizar-datos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/actualizar.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/ayuda.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/convenios.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/credencial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/credencializacion.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/encuestas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/hermanos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/marbetes.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/seguridad.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/tutorial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/asistencia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/comunicados.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/pagos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/escolar.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/guarderia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/validar/persona-autorizada/[id].vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/husky-pass.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/identity-matrix.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/password-recovery.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/personas-modals.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/recuperar-contrasena.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/registro-guarderia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/restablecer-contrasena.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/[...slug].vue?macro=true[22m
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.[2m (x2)[22m
+[36mi[39m .nuxt/dist directory has been removed. Restarting Nuxt...
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.[2m (x3)[22m
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.[2m (x4)[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/avisos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/calendario.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/familias.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id]/tareas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare/salas/[id].vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/entorno.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/marbetes.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/superadmin/personas-autorizadas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/comunicados.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/daycare.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/login.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/admin/historial-accesos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/cuenta/seguridad.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/avisos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/calendario.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/daycare/tareas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/credencial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/imprimir.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/qr.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/[id]/marbete.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/actualizar-datos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/actualizar.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/ayuda.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/convenios.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/credencial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/credencializacion.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/hermanos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/encuestas.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/seguridad.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/marbetes.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/personas-autorizadas/tutorial.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/asistencia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/comunicados.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/pagos.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/familia/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/guarderia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/escolar.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/login/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/validar/persona-autorizada/[id].vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/identity-matrix.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/husky-pass.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/password-recovery.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/__dev/personas-modals.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/index.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/recuperar-contrasena.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/registro-guarderia.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/restablecer-contrasena.vue?macro=true[22m
+[36mi[39m [32mhmr update [39m[2m/pages/[...slug].vue?macro=true[22m
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[36mi[39m [32mhmr update [39m[2m/app.vue[22m
+[36mi[39m [32mhmr update [39m[2m/error.vue, /error.vue?vue&type=style&index=0&scoped=f249f6ff&lang.css[22m
+[36mi[39m changed tsconfig file detected: C:/Users/hp/husky-pass-crm/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.

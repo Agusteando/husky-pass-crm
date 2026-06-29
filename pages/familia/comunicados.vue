@@ -1,34 +1,30 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Comunicados">
     <section class="communications-page" :data-state="pageState" data-product-panel="family-communications">
-      <FamilyPersonasPageHeader
-        eyebrow="Comunicados"
-        title="Avisos claros del colegio"
-        :description="headerDescription"
-        ambassador-variant="hero"
-        :ambassador-title="ambassadorTitle"
-        :ambassador-message="ambassadorMessage"
-        :ambassador-tone="ambassadorTone"
-      >
-        <template #actions>
-          <button class="btn btn-secondary refresh-action" type="button" :disabled="pending" @click="reload">
-            <FamilyPersonasIcon name="replace" />
-            Actualizar
-          </button>
-        </template>
-      </FamilyPersonasPageHeader>
+      <header class="communications-header" aria-label="Comunicados escolares">
+        <div class="communications-title-block">
+          <span class="communications-icon" aria-hidden="true"><FamilyPersonasIcon name="announcement" /></span>
+          <div>
+            <p>{{ contextLabel }}</p>
+            <h1>Comunicados</h1>
+          </div>
+        </div>
+        <button class="icon-action" type="button" :disabled="pending" aria-label="Actualizar comunicados" title="Actualizar" @click="reload">
+          <FamilyPersonasIcon name="replace" />
+        </button>
+      </header>
 
       <section v-if="data" class="communications-metrics" aria-label="Resumen de comunicados">
-        <article>
-          <span>No leídos</span>
+        <article :data-active="data.metrics.unread > 0 ? 'true' : 'false'">
+          <span>Sin leer</span>
           <strong>{{ data.metrics.unread }}</strong>
         </article>
-        <article>
-          <span>Importantes</span>
+        <article :data-active="data.metrics.important > 0 ? 'true' : 'false'">
+          <span>Prioridad</span>
           <strong>{{ data.metrics.important }}</strong>
         </article>
-        <article>
-          <span>Con adjuntos</span>
+        <article :data-active="data.metrics.withAttachments > 0 ? 'true' : 'false'">
+          <span>Adjuntos</span>
           <strong>{{ data.metrics.withAttachments }}</strong>
         </article>
       </section>
@@ -36,8 +32,8 @@
       <div v-if="loadError" class="friendly-alert" data-state="error">
         <FamilyPersonasIcon name="announcement" />
         <div>
-          <strong>No pudimos abrir comunicados</strong>
-          <span>Intenta nuevamente en un momento. Si el aviso es urgente, tu colegio también podrá orientarte por sus canales habituales.</span>
+          <strong>Comunicados no disponibles</strong>
+          <span>Intenta de nuevo.</span>
         </div>
         <button class="btn btn-secondary" type="button" @click="reload">Reintentar</button>
       </div>
@@ -47,12 +43,11 @@
       </section>
 
       <template v-else-if="data">
-        <section v-if="!data.items.length" class="empty-ambassador-card" data-state="empty">
-          <FamilyPersonasAmbassador :theme="theme" variant="empty" contained decorative />
+        <section v-if="!data.items.length" class="empty-announcements" data-state="empty" aria-label="Sin comunicados">
+          <span class="empty-announcements-icon"><FamilyPersonasIcon name="announcement" /></span>
           <div>
-            <p class="eyebrow">Todo tranquilo</p>
-            <h2>No hay comunicados para este alumno</h2>
-            <p>{{ data.message }}</p>
+            <h2>Sin comunicados</h2>
+            <p>No hay publicaciones vigentes.</p>
           </div>
         </section>
 
@@ -140,36 +135,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
-import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
 import type { CommunicationAttachmentKind, FamilyCommunicationItem, FamilyCommunicationsResponse } from '~/types/communications'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 type FilterValue = 'all' | 'unread' | 'important' | 'attachments'
 
-const { theme, studentName } = usePersonasFamilyTheme({ key: 'communications' })
 const { data, pending, error: loadError, refresh } = useFetch<FamilyCommunicationsResponse>('/api/family/comunicados', { timeout: 15000 })
 const activeFilter = ref<FilterValue>('all')
 const selectedId = ref('')
 
 const items = computed(() => data.value?.items || [])
 const pageState = computed(() => loadError.value ? 'error' : pending.value && !data.value ? 'loading' : items.value.length ? 'ready' : 'empty')
-const headerDescription = computed(() => {
-  const student = studentName.value || data.value?.context.student?.nombreA || 'tu alumno'
-  return `Consulta avisos, fechas y documentos relevantes para ${student} sin perderte entre mensajes.`
-})
-const ambassadorTitle = computed(() => {
-  if (loadError.value) return 'Estoy revisando el canal'
-  if (!items.value.length) return 'Sin avisos pendientes'
-  if ((data.value?.metrics.unread || 0) > 0) return 'Hay novedades para ti'
-  return 'Todo leído'
-})
-const ambassadorMessage = computed(() => {
-  if (loadError.value) return 'Te avisaré con un mensaje claro si algo no carga.'
-  if (!items.value.length) return 'Cuando el colegio publique algo para tu grupo, aparecerá aquí.'
-  return `${data.value?.metrics.unread || 0} comunicado${data.value?.metrics.unread === 1 ? '' : 's'} por revisar.`
-})
-const ambassadorTone = computed(() => loadError.value ? 'notice' : !items.value.length ? 'empty' : (data.value?.metrics.unread || 0) ? 'notice' : 'success')
+const contextLabel = computed(() => data.value?.context.audienceLabel || 'Familias')
 const visibleItems = computed(() => items.value.filter((item) => {
   if (activeFilter.value === 'unread') return item.readState === 'unread'
   if (activeFilter.value === 'important') return item.priority !== 'normal'
@@ -181,8 +159,8 @@ const selectedItem = computed<FamilyCommunicationItem | null>(() => {
 })
 const filters = computed(() => [
   { value: 'all' as const, label: 'Todos', count: items.value.length },
-  { value: 'unread' as const, label: 'No leídos', count: items.value.filter((item) => item.readState === 'unread').length },
-  { value: 'important' as const, label: 'Importantes', count: items.value.filter((item) => item.priority !== 'normal').length },
+  { value: 'unread' as const, label: 'Sin leer', count: items.value.filter((item) => item.readState === 'unread').length },
+  { value: 'important' as const, label: 'Prioridad', count: items.value.filter((item) => item.priority !== 'normal').length },
   { value: 'attachments' as const, label: 'Adjuntos', count: items.value.filter((item) => item.attachments.length > 0).length }
 ])
 
@@ -223,41 +201,125 @@ function fileSize(bytes: number) {
 <style scoped>
 .communications-page {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
-.refresh-action {
-  min-height: 42px;
+.communications-header,
+.communications-metrics article,
+.friendly-alert,
+.empty-announcements,
+.communication-row,
+.communication-detail,
+.communication-filters button {
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #e2e8ec;
+  box-shadow: 0 12px 30px rgba(30, 53, 78, .05);
+}
+
+.communications-header {
+  align-items: center;
+  border-radius: 22px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 16px 18px;
+}
+
+.communications-title-block {
+  align-items: center;
+  display: flex;
+  gap: 13px;
+  min-width: 0;
+}
+
+.communications-icon,
+.icon-action,
+.empty-announcements-icon,
+.row-icon,
+.attachment-preview {
+  align-items: center;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  color: var(--pa-primary);
+  display: grid;
+  place-items: center;
+}
+
+.communications-icon {
+  border-radius: 17px;
+  height: 52px;
+  width: 52px;
+}
+
+.communications-title-block div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.communications-title-block p,
+.communications-title-block h1,
+.empty-announcements h2,
+.empty-announcements p,
+.communication-body,
+.communication-detail header p {
+  margin: 0;
+}
+
+.communications-title-block p {
+  color: #728095;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.communications-title-block h1 {
+  color: #1f2d46;
+  font-size: clamp(1.55rem, 2.1vw, 2.05rem);
+  line-height: 1.05;
+}
+
+.icon-action {
+  border-radius: 999px;
+  cursor: pointer;
+  height: 44px;
+  transition: opacity .18s ease, transform .18s ease;
+  width: 44px;
+}
+
+.icon-action:disabled {
+  cursor: wait;
+  opacity: .58;
+}
+
+.icon-action:not(:disabled):hover {
+  transform: translateY(-1px);
 }
 
 .communications-metrics {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.communications-metrics article,
-.friendly-alert,
-.empty-ambassador-card,
-.communication-row,
-.communication-detail,
-.communication-filters button {
-  background: rgba(255, 255, 255, .94);
-  border: 1px solid #e2e8ec;
-  box-shadow: 0 12px 30px rgba(30, 53, 78, .055);
+.communications-metrics article {
+  align-items: center;
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 16px;
 }
 
-.communications-metrics article {
-  border-radius: 18px;
-  display: grid;
-  gap: 4px;
-  padding: 14px 16px;
+.communications-metrics article[data-active='true'] {
+  border-color: rgba(var(--pa-primary-rgb), .24);
 }
 
 .communications-metrics span {
   color: #6f798a;
   font-size: .72rem;
-  font-weight: 900;
+  font-weight: 850;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
@@ -265,7 +327,7 @@ function fileSize(bytes: number) {
 .communications-metrics strong {
   color: #1f2d46;
   font-family: var(--font-title);
-  font-size: 1.75rem;
+  font-size: 1.65rem;
   line-height: 1;
 }
 
@@ -294,13 +356,12 @@ function fileSize(bytes: number) {
 }
 
 .friendly-alert span,
-.empty-ambassador-card p,
+.empty-announcements p,
 .communication-body,
 .communication-detail header p {
   color: #6f798a;
   font-weight: 700;
   line-height: 1.5;
-  margin: 0;
 }
 
 .communications-loading {
@@ -322,17 +383,24 @@ function fileSize(bytes: number) {
   to { opacity: 1; }
 }
 
-.empty-ambassador-card {
+.empty-announcements {
   align-items: center;
-  border-radius: 24px;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: 120px minmax(0, 1fr);
-  padding: 18px;
+  border-radius: 22px;
+  display: flex;
+  gap: 16px;
+  min-height: 124px;
+  padding: 20px;
 }
 
-.empty-ambassador-card h2 {
-  margin-bottom: 4px;
+.empty-announcements-icon {
+  border-radius: 18px;
+  height: 58px;
+  width: 58px;
+}
+
+.empty-announcements h2 {
+  color: #1f2d46;
+  font-size: clamp(1.22rem, 2vw, 1.55rem);
 }
 
 .communication-filters {
@@ -400,14 +468,8 @@ function fileSize(bytes: number) {
 }
 
 .row-icon {
-  align-items: center;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
   border-radius: 14px;
-  color: var(--pa-primary);
-  display: grid;
   height: 42px;
-  place-items: center;
   width: 42px;
 }
 
@@ -525,15 +587,11 @@ function fileSize(bytes: number) {
 }
 
 .attachment-preview {
-  align-items: center;
   background: #fff;
-  border: 1px solid #dfe8ee;
+  border-color: #dfe8ee;
   border-radius: 12px;
-  color: var(--pa-primary);
-  display: grid;
   height: 50px;
   overflow: hidden;
-  place-items: center;
   width: 50px;
 }
 
@@ -568,11 +626,33 @@ function fileSize(bytes: number) {
 }
 
 @media (max-width: 720px) {
+  .communications-header,
   .communications-metrics,
   .communications-loading,
   .friendly-alert,
-  .empty-ambassador-card {
+  .empty-announcements {
     grid-template-columns: 1fr;
+  }
+
+  .communications-header,
+  .empty-announcements {
+    align-items: flex-start;
+  }
+
+  .communications-metrics {
+    gap: 8px;
+  }
+
+  .communications-metrics article {
+    min-height: 64px;
+  }
+
+  .friendly-alert {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .friendly-alert button {
+    grid-column: 1 / -1;
   }
 
   .communication-row {
@@ -586,6 +666,19 @@ function fileSize(bytes: number) {
 
   .communication-detail {
     padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .communications-header,
+  .communications-metrics article,
+  .empty-announcements,
+  .communication-detail {
+    border-radius: 18px;
+  }
+
+  .communications-metrics {
+    grid-template-columns: 1fr;
   }
 }
 </style>

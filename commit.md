@@ -1,1 +1,1 @@
-Compacta topbar familiar, integra contador real de comunicados e incluye .gitignore
+Ajusta comunicados familiares y simplifica la navegación superior
