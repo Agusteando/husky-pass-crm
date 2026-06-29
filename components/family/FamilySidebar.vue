@@ -25,6 +25,8 @@ const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
 const activeProduct = computed(() => {
   if (route.path.startsWith('/familia/personas-autorizadas')) return 'personasAutorizadas'
+  if (route.path.startsWith('/familia/comunicados')) return 'personasAutorizadas'
+  if (route.path.startsWith('/familia/pagos')) return 'personasAutorizadas'
   if (route.path.startsWith('/familia/asistencia')) return 'attendance'
   if (route.path.startsWith('/familia/daycare')) return 'daycare'
   if (hasFamilyScope(props.session?.user, 'daycare') && !hasFamilyScope(props.session?.user, 'personasAutorizadas')) return 'daycare'

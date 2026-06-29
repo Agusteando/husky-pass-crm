@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+node_modules/
+.nuxt/
+.output/
+.vercel/
+
+.agent-artifacts/
+artifacts/
+playwright-report/
+test-results/
+coverage/
+*.trace.zip
+*.har
+*.log

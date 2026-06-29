@@ -20,13 +20,33 @@
           <span class="pa-presence-dot" aria-hidden="true"></span>
         </span>
         <span class="pa-student-copy">
-          <small>Estás consultando a</small>
+          <small>Alumno activo</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
-          <span>{{ contextLine }}</span>
+          <span class="pa-student-chip-row">
+            <span v-for="chip in studentChips" :key="chip">{{ chip }}</span>
+          </span>
         </span>
+        <FamilyPersonasIcon name="chevron" />
       </section>
 
+      <nav class="pa-topbar-quick-nav" aria-label="Accesos principales Husky Pass">
+        <NuxtLink
+          v-for="item in topbarItems"
+          :key="`topbar-${item.to}`"
+          :to="item.to"
+          :class="{ active: isActive(item) }"
+          :data-product-nav="`topbar-${item.key}`"
+        >
+          <FamilyPersonasIcon :name="item.icon" />
+          <span>{{ item.label }}</span>
+        </NuxtLink>
+      </nav>
+
       <div class="pa-topbar-controls">
+        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" aria-label="Abrir comunicados recientes">
+          <FamilyPersonasIcon name="bell" />
+          <span>2</span>
+        </NuxtLink>
         <NuxtLink class="pa-topbar-icon-link" :to="paSecurityRoute" aria-label="Abrir seguridad">
           <FamilyPersonasIcon name="security" />
         </NuxtLink>
@@ -95,11 +115,19 @@ provide(personasFamilyThemeContextKey, { theme })
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
-const contextLine = computed(() => [displayMatricula(primaryChild.value?.matricula), primaryChild.value?.nivelEdu, primaryChild.value?.grado, primaryChild.value?.grupo].filter(Boolean).join(' · ') || 'Cuenta familiar')
+const studentChips = computed<string[]>(() => [
+  displayMatricula(primaryChild.value?.matricula),
+  primaryChild.value?.nivelEdu,
+  primaryChild.value?.grado,
+  primaryChild.value?.grupo ? `Grupo ${primaryChild.value.grupo}` : ''
+].filter((chip): chip is string => Boolean(chip)))
 const paSecurityRoute = '/familia/personas-autorizadas/seguridad'
 
 const navItems = [
+  { key: 'inicio', label: 'Inicio', shortLabel: 'Inicio', icon: 'home', to: '/familia' },
   { key: 'personas', label: 'Personas autorizadas', shortLabel: 'Personas', icon: 'people', to: '/familia/personas-autorizadas' },
+  { key: 'comunicados', label: 'Comunicados', shortLabel: 'Comunicados', icon: 'announcement', to: '/familia/comunicados' },
+  { key: 'pagos', label: 'Pagos', shortLabel: 'Pagos', icon: 'payments', to: '/familia/pagos' },
   { key: 'actualizar', label: 'Datos del alumno', shortLabel: 'Datos', icon: 'edit', to: '/familia/personas-autorizadas/actualizar-datos' },
   { key: 'credencializacion', label: 'Foto del alumno', shortLabel: 'Foto', icon: 'camera', to: '/familia/personas-autorizadas/credencializacion' },
   { key: 'hermanos', label: 'Hermanos', shortLabel: 'Hermanos', icon: 'siblings', to: '/familia/personas-autorizadas/hermanos' },
@@ -108,9 +136,11 @@ const navItems = [
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
   { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: paSecurityRoute }
 ]
+const topbarItems = computed(() => navItems.filter((item) => ['comunicados', 'pagos'].includes(item.key)))
 
 function isActive(item: { to: string }) {
   const target = item.to.split('?')[0] || item.to
+  if (target === '/familia') return route.path === '/familia'
   return route.path === target || (target !== '/familia/personas-autorizadas' && route.path.startsWith(`${target}/`))
 }
 </script>
@@ -125,7 +155,7 @@ function isActive(item: { to: string }) {
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
   --pa-sidebar-width: 260px;
-  --pa-topbar-height: 96px;
+  --pa-topbar-height: 104px;
   --pa-content-gutter: clamp(18px, 2.1vw, 34px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
@@ -141,7 +171,7 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(16px, 1.5vw, 24px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 520px) minmax(280px, 1fr);
+  grid-template-columns: var(--pa-sidebar-width) minmax(380px, 500px) minmax(220px, 310px) minmax(250px, 1fr);
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   padding: 0 var(--pa-content-gutter) 0 28px;
@@ -167,7 +197,7 @@ function isActive(item: { to: string }) {
 }
 
 .pa-product-lockup {
-  gap: 10px;
+  gap: 13px;
 }
 
 .pa-brand img {
@@ -177,20 +207,20 @@ function isActive(item: { to: string }) {
 }
 
 .pa-institution-logo {
-  height: 40px;
-  max-width: 48px;
+  height: 52px;
+  max-width: 60px;
   width: auto;
 }
 
 .pa-lockup-divider {
   background: rgba(var(--pa-primary-rgb), 0.22);
-  height: 26px;
+  height: 34px;
   width: 1px;
 }
 
 .pa-husky-pass-logo {
-  height: 36px;
-  max-width: 88px;
+  height: 54px;
+  max-width: 122px;
   width: auto;
 }
 
@@ -202,9 +232,9 @@ function isActive(item: { to: string }) {
   box-shadow: 0 16px 40px rgba(26, 48, 72, 0.07);
   display: grid;
   gap: 13px;
-  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-columns: 54px minmax(0, 1fr) 16px;
   justify-self: start;
-  max-width: min(520px, 100%);
+  max-width: min(500px, 100%);
   min-height: 64px;
   min-width: 0;
   padding: 8px 18px 8px 10px;
@@ -250,7 +280,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy {
   display: grid;
-  gap: 1px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -263,7 +293,7 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-copy strong,
-.pa-student-copy span {
+.pa-student-copy > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -275,10 +305,72 @@ function isActive(item: { to: string }) {
   line-height: 1.2;
 }
 
-.pa-student-copy span {
-  color: var(--pa-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
+.pa-student-chip-row {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pa-student-chip-row span {
+  background: #f2fbfd;
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.22);
+  border-radius: 999px;
+  color: var(--pa-primary);
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 850;
+  max-width: 118px;
+  overflow: hidden;
+  padding: 4px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pa-student-context > .pa-icon {
+  color: #6d7687;
+  height: 0.96rem;
+  width: 0.96rem;
+}
+
+.pa-topbar-quick-nav {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.pa-topbar-quick-nav a {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e6ebef;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(26, 48, 72, 0.055);
+  color: #24324b;
+  display: inline-flex;
+  flex: 1 1 0;
+  font-size: 0.78rem;
+  font-weight: 850;
+  gap: 9px;
+  justify-content: center;
+  min-height: 54px;
+  min-width: 104px;
+  padding: 0 14px;
+  transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+}
+
+.pa-topbar-quick-nav a:hover,
+.pa-topbar-quick-nav a.active {
+  border-color: rgba(var(--pa-primary-rgb), 0.26);
+  box-shadow: 0 14px 30px rgba(26, 48, 72, 0.08);
+  color: var(--pa-primary);
+  transform: translateY(-1px);
+}
+
+.pa-topbar-quick-nav :deep(.pa-icon) {
+  color: var(--pa-primary);
 }
 
 .pa-topbar-controls {
@@ -299,8 +391,26 @@ function isActive(item: { to: string }) {
   display: inline-flex;
   height: 48px;
   justify-content: center;
+  position: relative;
   transition: border-color .18s ease, color .18s ease, transform .18s ease;
   width: 48px;
+}
+
+.pa-notification-link span {
+  align-items: center;
+  background: var(--pa-primary);
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-weight: 900;
+  height: 19px;
+  justify-content: center;
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  width: 19px;
 }
 
 .pa-topbar-icon-link:hover {
@@ -502,7 +612,7 @@ function isActive(item: { to: string }) {
 
   .pa-product-topbar {
     gap: 16px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 480px) minmax(240px, 1fr);
+    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 450px) minmax(200px, 270px) minmax(220px, 1fr);
     padding-left: 18px;
   }
 
@@ -511,7 +621,7 @@ function isActive(item: { to: string }) {
   }
 
   .pa-husky-pass-logo {
-    max-width: 76px;
+    max-width: 106px;
   }
 
   .pa-product-nav {
@@ -538,16 +648,17 @@ function isActive(item: { to: string }) {
     --pa-sidebar-width: 204px;
   }
 
-  .pa-husky-pass-logo {
-    display: none;
-  }
-
-  .pa-lockup-divider {
-    display: none;
-  }
-
   .pa-student-context {
     max-width: 390px;
+  }
+
+  .pa-product-topbar {
+    grid-template-columns: var(--pa-sidebar-width) minmax(300px, 1fr) minmax(250px, auto);
+  }
+
+  .pa-topbar-quick-nav,
+  .pa-notification-link {
+    display: none;
   }
 
   .pa-help-card {
@@ -595,6 +706,7 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-context,
+  .pa-topbar-quick-nav,
   .pa-topbar-icon-link,
   .pa-product-nav {
     display: none;
@@ -654,7 +766,7 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-context {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr) 14px;
     padding-block: 5px;
   }
 

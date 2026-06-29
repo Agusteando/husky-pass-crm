@@ -14,7 +14,7 @@
         <FamilyPersonasAmbassador
           :theme="resolvedTheme"
           :variant="ambassadorVariant"
-          compact
+          :compact="ambassadorVariant !== 'hero'"
           contained
           decorative
         />
@@ -72,28 +72,37 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 <style scoped>
 .pa-page-header {
   align-items: center;
-  border-bottom: 1px solid #e4eaed;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .98) 0%, rgba(255, 255, 255, .92) 48%, rgba(255, 255, 255, .72) 100%),
+    url('/personas-autorizadas/backdrops/husky-pass-soft-safety-hero.png') right center / cover no-repeat;
+  border: 1px solid #e2e8ec;
+  border-radius: 26px;
+  box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(72px, auto) auto;
-  min-height: 92px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 390px) auto;
+  min-height: 142px;
   overflow: hidden;
-  padding: 2px 0 16px;
+  padding: 22px;
   position: relative;
 }
 
 .pa-page-header::after {
-  background: linear-gradient(90deg, var(--pa-primary), rgba(var(--pa-primary-rgb), 0));
-  bottom: -1px;
+  background: linear-gradient(180deg, rgba(var(--pa-primary-rgb), .18), rgba(var(--pa-primary-rgb), 0));
+  border-radius: 999px;
   content: '';
-  height: 2px;
-  left: 0;
+  height: 110px;
+  left: 54%;
+  opacity: .45;
   position: absolute;
-  width: min(180px, 34%);
+  top: 18px;
+  width: 110px;
 }
 
 .pa-page-header-copy {
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .pa-page-header-eyebrow,
@@ -113,9 +122,9 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 .pa-page-header h1 {
   color: #1f2d46;
-  font-size: clamp(1.7rem, 1.9vw, 2.15rem);
+  font-size: clamp(1.75rem, 2.15vw, 2.35rem);
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
   line-height: 1.04;
 }
 
@@ -142,29 +151,31 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 .pa-page-header-ambassador {
   align-self: end;
   display: grid;
-  height: 72px;
+  height: 92px;
   justify-items: center;
   overflow: hidden;
-  width: 72px;
+  position: relative;
+  width: 96px;
+  z-index: 1;
 }
 
 .pa-page-header-ambassador[data-has-message='true'] {
   align-items: center;
   align-self: center;
   background:
-    radial-gradient(circle at 0 0, rgba(var(--pa-primary-rgb), .1), transparent 70%),
-    linear-gradient(135deg, #fff, rgba(var(--pa-primary-rgb), .045));
-  border: 1px solid rgba(var(--pa-primary-rgb), .18);
-  border-radius: 19px;
-  box-shadow: 0 12px 30px rgba(30, 53, 78, .065);
-  gap: 8px;
-  grid-template-columns: 58px minmax(0, 1fr);
-  height: auto;
+    radial-gradient(circle at 85% 20%, rgba(var(--pa-primary-rgb), .14), transparent 8rem),
+    linear-gradient(135deg, rgba(255, 255, 255, .84), rgba(255, 255, 255, .34));
+  border: 0;
+  border-radius: 24px;
+  box-shadow: none;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  height: 126px;
   justify-items: start;
-  min-height: 74px;
+  min-height: 126px;
   overflow: visible;
-  padding: 7px 11px 7px 7px;
-  width: min(318px, 32vw);
+  padding: 10px 8px 6px 14px;
+  width: min(390px, 30vw);
 }
 
 .pa-page-header-ambassador[data-tone='success'] {
@@ -187,20 +198,35 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 .pa-page-header-ambassador :deep(.pa-ambassador-card),
 .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-  height: 72px;
-  width: 72px;
+  height: 92px;
+  width: 96px;
 }
 
 .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
 .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
-  height: 58px;
-  width: 58px;
+  align-self: end;
+  height: 128px;
+  order: 2;
+  width: 132px;
+}
+
+.pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card img) {
+  object-fit: cover;
+  object-position: center 14%;
+  transform: scale(1.02);
 }
 
 .pa-page-header-ambassador-copy {
+  align-self: center;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(var(--pa-primary-rgb), .14);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(30, 53, 78, .06);
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+  order: 1;
+  padding: 10px 11px;
 }
 
 .pa-page-header-ambassador-copy strong,
@@ -234,7 +260,23 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-width: 900px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) minmax(70px, auto);
+    background-position: right top;
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .pa-page-header-ambassador,
+  .pa-page-header-ambassador[data-has-message='true'] {
+    grid-template-columns: minmax(0, 1fr) 104px;
+    height: 110px;
+    min-height: 110px;
+    width: 100%;
+  }
+
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
+  .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
+    height: 112px;
+    width: 104px;
   }
 
   .pa-page-header-actions {
@@ -245,9 +287,9 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-height: 820px) and (min-width: 901px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) minmax(62px, auto) auto;
-    min-height: 80px;
-    padding-bottom: 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 330px) auto;
+    min-height: 118px;
+    padding: 18px;
   }
 
   .pa-page-header-eyebrow {
@@ -261,29 +303,30 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador,
   .pa-page-header-ambassador :deep(.pa-ambassador-card),
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-    height: 62px;
-    width: 62px;
+    height: 78px;
+    width: 82px;
   }
 
   .pa-page-header-ambassador[data-has-message='true'] {
-    grid-template-columns: 52px minmax(0, 1fr);
-    min-height: 66px;
-    width: min(288px, 30vw);
+    grid-template-columns: minmax(0, 1fr) 96px;
+    height: 102px;
+    min-height: 102px;
+    width: min(330px, 30vw);
   }
 
   .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
   .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
-    height: 52px;
-    width: 52px;
+    height: 104px;
+    width: 96px;
   }
 }
 
 @media (max-width: 620px) {
   .pa-page-header {
     gap: 12px;
-    grid-template-columns: minmax(0, 1fr) 58px;
-    min-height: 88px;
-    padding-bottom: 16px;
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 16px;
   }
 
   .pa-page-header h1 {
@@ -297,23 +340,28 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador,
   .pa-page-header-ambassador :deep(.pa-ambassador-card),
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-    height: 64px;
-    width: 58px;
+    height: 80px;
+    width: 78px;
   }
 
   .pa-page-header-ambassador[data-has-message='true'] {
     border-radius: 16px;
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 78px;
     grid-column: 1 / -1;
-    min-height: 62px;
-    padding: 6px 9px 6px 6px;
+    height: 86px;
+    min-height: 86px;
+    padding: 7px 6px 5px 10px;
     width: 100%;
   }
 
   .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-card),
   .pa-page-header-ambassador[data-has-message='true'] :deep(.pa-ambassador-visual) {
-    height: 48px;
-    width: 48px;
+    height: 88px;
+    width: 78px;
+  }
+
+  .pa-page-header-ambassador-copy {
+    padding: 8px 9px;
   }
 }
 </style>

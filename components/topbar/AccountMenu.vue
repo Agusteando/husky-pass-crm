@@ -56,7 +56,7 @@ const profileName = computed(() => props.session?.user?.displayName || displayMa
 const profileDetail = computed(() => {
   const user = props.session?.user
   if (!user) return ''
-  if (user.kind === 'admin') return user.isSuperAdmin ? 'Super Admin' : (user.unidades[0] || 'Administracion')
+  if (user.kind === 'admin') return user.isSuperAdmin ? 'Super Admin' : (user.unidades[0] || 'Administración')
   if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guarderia'
   return displayMatriculaCandidate(user.username) || user.email || 'Familia escolar'
 })
@@ -113,7 +113,7 @@ async function logout() {
   border-radius: 22px;
   box-shadow: 0 10px 28px rgba(26, 48, 72, 0.06);
   min-height: 62px;
-  min-width: min(330px, 34vw);
+  min-width: min(280px, 28vw);
   padding: 7px 16px 7px 7px;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }

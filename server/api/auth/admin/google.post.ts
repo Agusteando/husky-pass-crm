@@ -5,7 +5,8 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { assertDaycareAdmin } from '~/server/utils/authz'
+import { assertCommunicationsAdmin, assertDaycareAdmin } from '~/server/utils/authz'
+import { hasCommunicationsAdminScope, hasDaycareAdminScope } from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -45,12 +46,21 @@ export default defineEventHandler(async (event) => {
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  assertDaycareAdmin(sessionUser)
+  if (hasDaycareAdminScope(sessionUser)) {
+    assertDaycareAdmin(sessionUser)
+  } else if (hasCommunicationsAdminScope(sessionUser)) {
+    assertCommunicationsAdmin(sessionUser)
+  } else {
+    throw publicError(403, 'Tu cuenta institucional no tiene un módulo administrativo asignado.')
+  }
 
   setAppSession(event, sessionUser)
   setCookie(event, 'user_segment', 'internal', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'ads_suppressed', 'true', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'last_login_type', 'google', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 
-  return { user: sessionUser, loggedin: true, defaultPath: sessionUser.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas' }
+  const defaultPath = sessionUser.isSuperAdmin
+    ? '/admin/superadmin'
+    : hasDaycareAdminScope(sessionUser) ? '/admin/daycare/salas' : '/admin/comunicados'
+  return { user: sessionUser, loggedin: true, defaultPath }
 })

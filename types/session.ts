@@ -1,5 +1,6 @@
 export type SessionKind = 'family' | 'admin'
 export type FamilyProductScope = 'daycare' | 'personasAutorizadas'
+export type AdminProductScope = 'daycareAdmin' | 'communicationsAdmin' | 'accessHistoryAdmin' | 'superAdmin'
 
 export interface LegacyRoutePermission {
   route: string
@@ -58,7 +59,7 @@ export interface AppSessionUser {
   unidades: string[]
   plantel: string[]
   routes: LegacyRoutePermission[]
-  productScopes: FamilyProductScope[]
+  productScopes: Array<FamilyProductScope | AdminProductScope>
   scopes: FamilyProductScopes
   impersonation?: {
     startedAt: number

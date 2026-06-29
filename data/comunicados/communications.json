@@ -1,0 +1,116 @@
+[
+  {
+    "id": "com-2026-06-18-pase-express",
+    "title": "Uso responsable de Pase Express",
+    "summary": "Recordatorio para crear pases temporales solo cuando una persona de confianza vaya a recoger al alumno.",
+    "body": "Familias: les recordamos que Pase Express debe usarse únicamente para apoyos temporales. Verifiquen nombre, parentesco y fotografía antes de guardar el pase. Cada movimiento quedará visible en el historial para mayor tranquilidad.",
+    "status": "sent",
+    "priority": "important",
+    "audience": {
+      "kind": "plantel",
+      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "PREET"],
+      "niveles": [],
+      "grados": [],
+      "grupos": [],
+      "label": "Familias de planteles escolares"
+    },
+    "senderName": "Coordinación Husky Pass",
+    "senderRole": "Seguridad escolar",
+    "createdAt": "2026-06-18T14:30:00.000Z",
+    "updatedAt": "2026-06-18T14:30:00.000Z",
+    "sentAt": "2026-06-18T14:30:00.000Z",
+    "scheduledFor": null,
+    "attachments": [
+      {
+        "id": "att-guia-pase-express",
+        "name": "Guía rápida Pase Express.pdf",
+        "mime": "application/pdf",
+        "size": 248000,
+        "url": "/comunicados/guia-pase-express.pdf",
+        "kind": "pdf",
+        "thumbnailUrl": null,
+        "uploadedAt": "2026-06-18T14:20:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "com-2026-06-20-secundaria-salida",
+    "title": "Ajuste de salida para Secundaria",
+    "summary": "El viernes habrá salida escalonada por actividad interna de cierre.",
+    "body": "Estimadas familias de Secundaria: el viernes la salida será escalonada. Les pedimos revisar que sus personas autorizadas estén actualizadas y llegar en el horario indicado por coordinación.",
+    "status": "sent",
+    "priority": "urgent",
+    "audience": {
+      "kind": "grado",
+      "planteles": ["SM", "ST"],
+      "niveles": ["Secundaria"],
+      "grados": ["1°", "2°", "3°", "Primero", "Segundo", "Tercero"],
+      "grupos": [],
+      "label": "Secundaria"
+    },
+    "senderName": "Coordinación Secundaria",
+    "senderRole": "Dirección académica",
+    "createdAt": "2026-06-20T16:00:00.000Z",
+    "updatedAt": "2026-06-20T16:00:00.000Z",
+    "sentAt": "2026-06-20T16:00:00.000Z",
+    "scheduledFor": null,
+    "attachments": []
+  },
+  {
+    "id": "com-2026-06-24-talleres",
+    "title": "Inscripción a talleres de verano",
+    "summary": "Ya puedes consultar las opciones de talleres y las fechas de pago.",
+    "body": "Abrimos el periodo de inscripción a talleres de verano. En la sección Pagos verás el estado de cuenta informativo y las fechas relevantes. Si tienes dudas, comunícate con administración escolar.",
+    "status": "sent",
+    "priority": "normal",
+    "audience": {
+      "kind": "plantel",
+      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "PREET"],
+      "niveles": [],
+      "grados": [],
+      "grupos": [],
+      "label": "Familias escolares"
+    },
+    "senderName": "Administración escolar",
+    "senderRole": "Pagos y servicios",
+    "createdAt": "2026-06-24T13:00:00.000Z",
+    "updatedAt": "2026-06-24T13:00:00.000Z",
+    "sentAt": "2026-06-24T13:00:00.000Z",
+    "scheduledFor": null,
+    "attachments": [
+      {
+        "id": "att-talleres-verano",
+        "name": "Vista previa talleres.png",
+        "mime": "image/png",
+        "size": 1197870,
+        "url": "/personas-autorizadas/backdrops/husky-pass-soft-safety-hero.png",
+        "kind": "image",
+        "thumbnailUrl": "/personas-autorizadas/backdrops/husky-pass-soft-safety-hero.png",
+        "uploadedAt": "2026-06-24T12:55:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "com-draft-proteccion-civil",
+    "title": "Simulacro de protección civil",
+    "summary": "Borrador para informar fecha, horario y recomendaciones.",
+    "body": "Borrador pendiente de validación por coordinación.",
+    "status": "draft",
+    "priority": "normal",
+    "audience": {
+      "kind": "plantel",
+      "planteles": ["SM"],
+      "niveles": [],
+      "grados": [],
+      "grupos": [],
+      "label": "Plantel SM"
+    },
+    "senderName": "Coordinación escolar",
+    "senderRole": "Operación institucional",
+    "createdAt": "2026-06-25T10:00:00.000Z",
+    "updatedAt": "2026-06-25T10:00:00.000Z",
+    "sentAt": null,
+    "scheduledFor": null,
+    "attachments": []
+  }
+]

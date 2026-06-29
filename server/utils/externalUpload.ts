@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { publicError } from '~/server/utils/httpError'
 
-type UploadArea = 'daycare-registration' | 'daycare-resource' | 'personas-source' | 'personas-face' | 'personas-resource'
+type UploadArea = 'daycare-registration' | 'daycare-resource' | 'personas-source' | 'personas-face' | 'personas-resource' | 'comunicados'
 
 export interface UploadInputFile {
   data: Buffer | Uint8Array
@@ -38,7 +38,8 @@ const AREA_ROOTS: Record<UploadArea, string> = {
   'daycare-resource': 'husky-pass/daycare/recursos',
   'personas-source': 'husky-pass/personas-autorizadas/fuentes',
   'personas-face': 'husky-pass/personas-autorizadas/rostros',
-  'personas-resource': 'husky-pass/personas-autorizadas/recursos'
+  'personas-resource': 'husky-pass/personas-autorizadas/recursos',
+  comunicados: 'husky-pass/comunicados'
 }
 
 function cleanSegment(value?: string | number | null) {

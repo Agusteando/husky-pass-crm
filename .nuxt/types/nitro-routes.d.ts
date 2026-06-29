@@ -12,6 +12,13 @@ declare module "nitropack/types" {
     '/api/admin/access-history': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/access-history/index.get').default>>>>
     }
+    '/api/admin/comunicados': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/comunicados/index.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/comunicados/index.post').default>>>>
+    }
+    '/api/admin/comunicados/uploads': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/comunicados/uploads.post').default>>>>
+    }
     '/api/admin/marbete-templates/:id': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/marbete-templates/[id].get').default>>>>
     }
@@ -131,6 +138,12 @@ declare module "nitropack/types" {
     }
     '/api/family/attendance/motivo': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/family/attendance/motivo.post').default>>>>
+    }
+    '/api/family/comunicados': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/family/comunicados/index.get').default>>>>
+    }
+    '/api/family/payments': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/family/payments/index.get').default>>>>
     }
     '/api/personas-autorizadas/config': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/personas-autorizadas/config.get').default>>>>

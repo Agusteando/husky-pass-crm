@@ -15,7 +15,7 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
 import { useRoute } from 'nuxt/app'
 import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
-import { hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope } from '~/utils/sessionScopes'
 
 const route = useRoute()
 const { data: session } = useAppSession()
@@ -25,16 +25,12 @@ const homeTo = computed(() => {
   const user = session.value?.user
   if (user?.isSuperAdmin) return '/admin/superadmin'
   if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
+  if (hasCommunicationsAdminScope(user)) return '/admin/comunicados'
   if (canAccessHistory.value) return '/admin/historial-accesos'
   return '/admin/login'
 })
 const canAccessHistory = computed(() => {
-  const user = session.value?.user
-  if (!user || user.kind !== 'admin') return false
-  if (user.isSuperAdmin) return true
-  const routeText = user.routes.map((item) => item.route).join(' ')
-  const roleText = user.roles.join(' ')
-  return /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  return hasAccessHistoryAdminScope(session.value?.user)
 })
 const topbarItems = computed(() => {
   const firstUnidad = session.value?.user?.unidades?.[0] || ''
@@ -42,6 +38,9 @@ const topbarItems = computed(() => {
   const items: Array<{ key: string; label: string; to: string; icon: string }> = []
   if (hasDaycareAdminScope(session.value?.user)) {
     items.push({ key: 'guarderia-admin', label: 'Guarderia', to: daycareTo, icon: 'daycare' })
+  }
+  if (hasCommunicationsAdminScope(session.value?.user)) {
+    items.push({ key: 'comunicados', label: 'Comunicados', to: '/admin/comunicados', icon: 'announcement' })
   }
   if (session.value?.user?.isSuperAdmin) {
     items.unshift(

@@ -28,6 +28,18 @@
         <p>Personas, fotos y marbetes.</p>
         <strong>Entrar</strong>
       </NuxtLink>
+      <NuxtLink v-if="canPa" class="choice-card communications-choice" to="/familia/comunicados">
+        <span><FamilyPersonasIcon name="announcement" /></span>
+        <h2>Comunicados</h2>
+        <p>Avisos importantes, adjuntos y mensajes del colegio.</p>
+        <strong>Entrar</strong>
+      </NuxtLink>
+      <NuxtLink v-if="canPa" class="choice-card payments-choice" to="/familia/pagos">
+        <span><FamilyPersonasIcon name="payments" /></span>
+        <h2>Pagos</h2>
+        <p>Estado de cuenta, talleres y próximos conceptos.</p>
+        <strong>Entrar</strong>
+      </NuxtLink>
       <NuxtLink v-if="canPa" class="choice-card attendance-choice" to="/familia/asistencia">
         <span><FamilyPersonasIcon name="calendar" /></span>
         <h2>Asistencia</h2>
@@ -140,6 +152,18 @@ const chooserTheme = computed(() => resolvePersonasTheme({ themeKey: canDaycare.
   background: #fff3db;
   border-color: #f6d997;
   color: #8a5a12;
+}
+
+.choice-card.communications-choice span {
+  background: #ecf8fb;
+  border-color: #cfe8ef;
+  color: #0f7585;
+}
+
+.choice-card.payments-choice span {
+  background: #f1f8ea;
+  border-color: #d6e9c5;
+  color: #4d8731;
 }
 
 .choice-card h2 {

@@ -39,8 +39,9 @@ const props = defineProps<{
 
 const route = useRoute()
 const search = ref('')
-const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : 'Admin Guarderia')
-const subtitle = computed(() => props.session?.user?.isSuperAdmin ? 'Operacion institucional' : (props.session?.user?.unidades?.[0] || 'Guarderia'))
+const hasComunicadosOnly = computed(() => props.items.some((item) => item.key === 'comunicados') && !props.items.some((item) => item.key === 'guarderia-admin'))
+const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : hasComunicadosOnly.value ? 'Comunicados' : 'Admin Guardería')
+const subtitle = computed(() => props.session?.user?.isSuperAdmin ? 'Operación institucional' : hasComunicadosOnly.value ? 'Comunicación institucional' : (props.session?.user?.unidades?.[0] || 'Guardería'))
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to

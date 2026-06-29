@@ -1,6 +1,6 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import { publicError } from '~/server/utils/httpError'
-import { DAYCARE_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, hasCommunicationsAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
   if (user.kind !== 'family') return false
@@ -43,6 +43,19 @@ export function assertDaycareAdmin(user: AppSessionUser) {
   const hasDaycarePermission = hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
   if (!hasDaycarePermission || user.unidades.length === 0) {
     throw publicError(403, 'El usuario no tiene alcance de guardería')
+  }
+}
+
+export function assertCommunicationsAdmin(user: AppSessionUser) {
+  if (user.kind !== 'admin') {
+    throw publicError(403, 'Acceso interno no autorizado')
+  }
+
+  if (isSuperAdmin(user)) return
+
+  const hasPermission = hasCommunicationsAdminScope(user) || hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE)
+  if (!hasPermission) {
+    throw publicError(403, 'El usuario no tiene alcance para gestionar comunicados.')
   }
 }
 

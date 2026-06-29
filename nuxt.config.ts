@@ -107,6 +107,7 @@ export default defineNuxtConfig({
         ...(nitroConfig.serverAssets || []),
         { baseName: 'marbete-templates', dir: '../data/marbete-templates' },
         { baseName: 'personas-config', dir: '../data/personas-autorizadas' },
+        { baseName: 'comunicados-data', dir: '../data/comunicados' },
         { baseName: 'hp-fonts', dir: '../public/fonts' }
       ]
     }

@@ -2,6 +2,7 @@ import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 
 export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
 export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
+export const COMMUNICATIONS_ADMIN_ROLE = 'ROLE_HUSKY_COMUNICADOS'
 
 export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
@@ -29,6 +30,26 @@ export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
   return hasPermission && user.unidades.length > 0
 }
 
+export function hasCommunicationsAdminScope(user: AppSessionUser | null | undefined) {
+  if (!user || user.kind !== 'admin') return false
+  if (user.isSuperAdmin) return true
+  const routeText = user.routes.map((route) => route.route).join(' ')
+  const roleText = user.roles.join(' ')
+  return hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos|familias|plantel/i.test(`${routeText} ${roleText}`)
+}
+
+export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefined) {
+  if (!user || user.kind !== 'admin') return false
+  if (user.isSuperAdmin) return true
+  const routeText = user.routes.map((route) => route.route).join(' ')
+  const roleText = user.roles.join(' ')
+  return /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+}
+
+export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
+  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasDaycareAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
+}
+
 export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
   const daycare = hasFamilyScope(user, 'daycare')
   const personas = hasFamilyScope(user, 'personasAutorizadas')
@@ -54,7 +75,10 @@ export function familyNavItems(user: AppSessionUser | null | undefined, activeSc
   }
 
   if (showPersonas && hasFamilyScope(user, 'personasAutorizadas')) {
+    items.push({ label: 'Inicio', to: '/familia', icon: 'home' })
     items.push({ label: 'Personas autorizadas', to: '/familia/personas-autorizadas', icon: 'people' })
+    items.push({ label: 'Comunicados', to: '/familia/comunicados', icon: 'announcement' })
+    items.push({ label: 'Pagos', to: '/familia/pagos', icon: 'payments' })
     items.push({ label: 'Asistencia', to: '/familia/asistencia', icon: 'calendar' })
   }
 

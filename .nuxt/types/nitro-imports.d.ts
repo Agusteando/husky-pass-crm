@@ -17,6 +17,7 @@ declare global {
   const appendResponseHeader: typeof import('../../node_modules/h3').appendResponseHeader
   const appendResponseHeaders: typeof import('../../node_modules/h3').appendResponseHeaders
   const assertAccessHistoryAdmin: typeof import('../../server/utils/authz').assertAccessHistoryAdmin
+  const assertCommunicationsAdmin: typeof import('../../server/utils/authz').assertCommunicationsAdmin
   const assertDaycareAdmin: typeof import('../../server/utils/authz').assertDaycareAdmin
   const assertDaycareFamily: typeof import('../../server/utils/authz').assertDaycareFamily
   const assertDevOnly: typeof import('../../server/utils/devOnly').assertDevOnly
@@ -257,7 +258,7 @@ export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsUR
 export { defineAppConfig } from 'C:/Users/hp/husky-pass-crm/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
 export { createCaptchaChallenge, verifyCaptchaChallenge, assertRateLimit, assertRegistrationAntibot } from 'C:/Users/hp/husky-pass-crm/server/utils/antibot';
 export { attendanceQuery, attendanceOne, attendanceWrite } from 'C:/Users/hp/husky-pass-crm/server/utils/attendanceMysql';
-export { hasFamilyProductScope, isSuperAdmin, assertDaycareFamily, assertPersonasAutorizadasFamily, assertDaycareAdmin, assertAccessHistoryAdmin, assertUnidadAccess, assertSalaAccess } from 'C:/Users/hp/husky-pass-crm/server/utils/authz';
+export { hasFamilyProductScope, isSuperAdmin, assertDaycareFamily, assertPersonasAutorizadasFamily, assertDaycareAdmin, assertCommunicationsAdmin, assertAccessHistoryAdmin, assertUnidadAccess, assertSalaAccess } from 'C:/Users/hp/husky-pass-crm/server/utils/authz';
 export { DEV_HUSKY_PASS_VARIANTS, DEV_HUSKY_PASS_SCENARIOS, devHuskyPassVariant, devHuskyPassScenario, devHuskyPassPhotoUrl, buildDevPrintableAuthorizedPerson, selectDevHuskyPassTemplate } from 'C:/Users/hp/husky-pass-crm/server/utils/devHuskyPassFixtures';
 export { assertDevOnly } from 'C:/Users/hp/husky-pass-crm/server/utils/devOnly';
 export { buildEnvChecklist } from 'C:/Users/hp/husky-pass-crm/server/utils/envChecklist';

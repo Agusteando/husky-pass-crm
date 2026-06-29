@@ -1,4 +1,4 @@
-export type MiddlewareKey = "access-history-admin" | "admin" | "daycare-family" | "daycare-index" | "dev-only" | "family-index" | "family" | "guest" | "home" | "personas-autorizadas" | "superadmin"
+export type MiddlewareKey = "access-history-admin" | "admin" | "comunicados-admin" | "daycare-family" | "daycare-index" | "dev-only" | "family-index" | "family" | "guest" | "home" | "personas-autorizadas" | "superadmin"
 declare module 'nitropack' {
   interface NitroRouteConfig {
     appMiddleware?: MiddlewareKey | MiddlewareKey[] | Record<MiddlewareKey, boolean>
