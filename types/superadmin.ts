@@ -1,4 +1,5 @@
 import type { FamilyProductScope } from './session'
+import type { CommunicationAdminScopeInput } from './communications'
 import type { MarbeteTemplateMeta, PersonasTheme } from './daycare'
 
 export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
@@ -19,6 +20,8 @@ export interface SuperAdminUserSummary {
   routes: string[]
   productScopes: FamilyProductScope[]
   adminScopes: string[]
+  communicationsScopes: CommunicationAdminScopeInput[]
+  communicationsEnabled: boolean
   audience: 'daycareFamily' | 'schoolFamily' | 'multiProductFamily' | 'internal' | 'unknown'
   canImpersonate: boolean
 }

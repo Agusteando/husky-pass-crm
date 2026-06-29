@@ -51,6 +51,9 @@ declare module "nitropack/types" {
     '/api/admin/superadmin/users': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/superadmin/users.get').default>>>>
     }
+    '/api/admin/superadmin/users/:id/comunicados': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/superadmin/users/[id]/comunicados.post').default>>>>
+    }
     '/api/auth/admin/google': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/admin/google.post').default>>>>
     }

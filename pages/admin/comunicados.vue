@@ -6,10 +6,13 @@
         <h1>Centro de comunicación escolar</h1>
         <p>Redacta, segmenta, revisa y envía avisos claros para familias por plantel, grado o grupo.</p>
       </div>
-      <button class="btn btn-primary" type="button" @click="resetDraft">
-        <FamilyPersonasIcon name="plus" />
-        Nuevo comunicado
-      </button>
+      <div class="head-action-stack">
+        <span v-if="data" class="permission-chip" :data-global="data.permissions.isGlobal">{{ data.permissions.isGlobal ? 'Global' : 'Alcance asignado' }}</span>
+        <button class="btn btn-primary" type="button" @click="resetDraft">
+          <FamilyPersonasIcon name="plus" />
+          Nuevo comunicado
+        </button>
+      </div>
     </header>
 
     <div v-if="loadError" class="alert-row" data-state="error">
@@ -129,11 +132,11 @@
 
           <div class="composer-actions">
             <button class="btn btn-secondary" type="submit" :disabled="Boolean(saving)">Guardar borrador</button>
-            <button class="btn btn-secondary" type="button" :disabled="Boolean(saving) || !draft.scheduledFor" @click="scheduleCommunication">
+            <button class="btn btn-secondary" type="button" :disabled="Boolean(saving) || !draft.scheduledFor || !canPublish" @click="scheduleCommunication">
               <FamilyPersonasIcon name="clock" />
               Programar
             </button>
-            <button class="btn btn-primary" type="button" :disabled="Boolean(saving)" @click="sendCommunication">
+            <button class="btn btn-primary" type="button" :disabled="Boolean(saving) || !canPublish" @click="sendCommunication">
               <FamilyPersonasIcon name="send" />
               Enviar
             </button>
@@ -190,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type {
   AdminCommunicationsResponse,
@@ -235,11 +238,20 @@ const plantelOptions = computed(() => data.value?.options.planteles.length ? dat
 const nivelOptions = computed(() => data.value?.options.niveles.length ? data.value.options.niveles : ['Preescolar', 'Primaria', 'Secundaria'])
 const gradoOptions = computed(() => data.value?.options.grados.length ? data.value.options.grados : ['1°', '2°', '3°'])
 const grupoOptions = computed(() => data.value?.options.grupos.length ? data.value.options.grupos : ['A', 'B', 'C', 'G'])
+const canPublish = computed(() => Boolean(data.value?.permissions.canPublish))
 const audienceLabel = computed(() => {
   if (draft.audienceKind === 'plantel') return `Plantel ${draft.plantel}`
   if (draft.audienceKind === 'grado') return `${draft.plantel} · ${draft.nivel} · ${draft.grado}`
   return `${draft.plantel} · ${draft.nivel} · ${draft.grado} · Grupo ${draft.grupo}`
 })
+
+watch(data, (value) => {
+  if (!value || draft.id) return
+  if (value.options.planteles[0] && !value.options.planteles.includes(draft.plantel)) draft.plantel = value.options.planteles[0]
+  if (value.options.niveles[0] && !value.options.niveles.includes(draft.nivel)) draft.nivel = value.options.niveles[0]
+  if (value.options.grados[0] && !value.options.grados.includes(draft.grado)) draft.grado = value.options.grados[0]
+  if (value.options.grupos[0] && !value.options.grupos.includes(draft.grupo)) draft.grupo = value.options.grupos[0]
+}, { immediate: true })
 
 function emptyDraft(): DraftState {
   return {
@@ -331,10 +343,18 @@ function saveAsDraft() {
 }
 
 function scheduleCommunication() {
+  if (!canPublish.value) {
+    saveError.value = 'Tu alcance permite preparar borradores, pero no programarlos. Solicita permiso de envío a superadmin.'
+    return undefined
+  }
   return persist('scheduled')
 }
 
 function sendCommunication() {
+  if (!canPublish.value) {
+    saveError.value = 'Tu alcance permite preparar borradores, pero no enviarlos. Solicita permiso de envío a superadmin.'
+    return undefined
+  }
   const ok = window.confirm(`Enviar este comunicado a ${audienceLabel.value}? Las familias podrán verlo de inmediato.`)
   if (!ok) return undefined
   return persist('sent')
@@ -428,6 +448,30 @@ function dateLabel(value?: string | null) {
   font-weight: 700;
   line-height: 1.5;
   margin: 0;
+}
+
+
+.head-action-stack {
+  align-items: flex-end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.permission-chip {
+  background: #eef7ff;
+  border: 1px solid #cfe7fb;
+  border-radius: 999px;
+  color: #236188;
+  font-size: .72rem;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.permission-chip[data-global='true'] {
+  background: var(--color-brand-100);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-800);
 }
 
 .admin-comms-layout {

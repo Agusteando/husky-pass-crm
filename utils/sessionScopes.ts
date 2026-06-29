@@ -35,7 +35,7 @@ export function hasCommunicationsAdminScope(user: AppSessionUser | null | undefi
   if (user.isSuperAdmin) return true
   const routeText = user.routes.map((route) => route.route).join(' ')
   const roleText = user.roles.join(' ')
-  return hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos|familias|plantel/i.test(`${routeText} ${roleText}`)
+  return hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(`${routeText} ${roleText}`)
 }
 
 export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefined) {

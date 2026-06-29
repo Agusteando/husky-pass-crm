@@ -1,1 +1,1 @@
-Rediseña el portal familiar Husky Pass con Comunicados y Pagos
+Mejora topbar e integra comunicados reales con permisos por plantel

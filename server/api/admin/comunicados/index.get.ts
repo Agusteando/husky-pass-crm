@@ -7,5 +7,5 @@ import { withRequestBoundary } from '~/server/utils/logger'
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
   assertCommunicationsAdmin(user)
-  return withRequestBoundary(event, 'admin.communications.list', () => listAdminCommunications(), { userId: user.id })
+  return withRequestBoundary(event, 'admin.communications.list', () => listAdminCommunications(user), { userId: user.id })
 })

@@ -5,7 +5,9 @@ import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminU
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
-import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { getCommunicationScopesForUsers } from '~/server/data/communications'
+import type { CommunicationAdminScopeInput } from '~/types/communications'
 
 interface LegacyUserRow extends RowDataPacket {
   id: number
@@ -309,6 +311,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   const userIds = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id))
   const routeMap = await loadDirectoryRoutes(rows)
+  const communicationScopeMap = await getCommunicationScopesForUsers(userIds)
   const personasUserIds = await loadPersonasAutorizadasUserIds(userIds)
   const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
 
@@ -325,7 +328,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
     routes: routesForDirectoryRow(row, routeMap).join('||'),
     has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
     has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
-  }))
+  }, communicationScopeMap.get(Number(row.id)) || []))
   const visibleUsers = filterDirectoryUsersByScope(users, scope).slice(0, limit)
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
@@ -446,13 +449,14 @@ function filterDirectoryUsersByScope(users: SuperAdminUserSummary[], scope: Supe
   return users
 }
 
-function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
+function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: CommunicationAdminScopeInput[] = []): SuperAdminUserSummary {
   const roles = csvToList(row.role)
   const unidad = csvToList(row.unidad)
   const plantel = csvToList(row.plantel)
   const routes = String(row.routes || '').split('||').map((route) => route.trim()).filter(Boolean)
   const hasDaycareFamilyRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
   const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
+  const hasCommunicationsInternalRole = hasRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE)
   const hasDaycareAdminRoute = routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route))
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
@@ -463,6 +467,7 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
 
   const adminScopes: string[] = []
   if ((hasDaycareInternalRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
+  if (hasCommunicationsInternalRole || communicationsScopes.length) adminScopes.push('communications')
 
   let audience: SuperAdminUserSummary['audience'] = 'unknown'
   if (productScopes.length > 1) audience = 'multiProductFamily'
@@ -486,6 +491,8 @@ function directoryRowToSummary(row: DirectoryUserRow): SuperAdminUserSummary {
     routes,
     productScopes,
     adminScopes,
+    communicationsScopes,
+    communicationsEnabled: hasCommunicationsInternalRole || communicationsScopes.length > 0,
     audience,
     canImpersonate: productScopes.length > 0
   }

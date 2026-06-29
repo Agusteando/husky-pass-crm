@@ -77,6 +77,22 @@ export interface AdminCommunicationsResponse {
     grados: string[]
     grupos: string[]
   }
+  permissions: {
+    canCreate: boolean
+    canPublish: boolean
+    isGlobal: boolean
+  }
+}
+
+
+export interface CommunicationAdminScopeInput {
+  isGlobal?: boolean
+  plantel?: string | null
+  nivel?: string | null
+  grado?: string | null
+  grupo?: string | null
+  canCreate?: boolean
+  canPublish?: boolean
 }
 
 export interface SaveCommunicationInput {

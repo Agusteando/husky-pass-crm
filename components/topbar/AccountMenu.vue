@@ -110,11 +110,11 @@ async function logout() {
 }
 
 .account-trigger {
-  border-radius: 22px;
   box-shadow: 0 10px 28px rgba(26, 48, 72, 0.06);
-  min-height: 62px;
-  min-width: min(280px, 28vw);
-  padding: 7px 16px 7px 7px;
+  border-radius: 18px;
+  min-height: 50px;
+  min-width: clamp(178px, 22vw, 248px);
+  padding: 5px 12px 5px 5px;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
@@ -127,9 +127,9 @@ async function logout() {
 
 .account-trigger img,
 .avatar {
-  border-radius: 16px;
-  height: 48px;
-  width: 48px;
+  border-radius: 14px;
+  height: 40px;
+  width: 40px;
 }
 
 .avatar {
@@ -152,7 +152,7 @@ async function logout() {
 
 .account-copy strong,
 .account-copy small {
-  max-width: 210px;
+  max-width: 168px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -223,6 +223,16 @@ async function logout() {
 .menu-item.danger:hover {
   background: #fff3f0;
   color: #9a3c35;
+}
+
+@media (max-width: 1040px) {
+  .account-trigger {
+    min-width: 0;
+  }
+
+  .account-copy small {
+    display: none;
+  }
 }
 
 @media (max-width: 860px) {

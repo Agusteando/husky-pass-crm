@@ -73,22 +73,23 @@ async function submitSearch() {
 .admin-topbar-inner {
   align-items: center;
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(180px, auto) minmax(220px, 380px) minmax(0, 1fr) auto;
+  gap: 8px;
+  grid-template-columns: minmax(150px, max-content) minmax(190px, 320px) minmax(0, 1fr) minmax(0, auto);
   min-height: var(--topbar-height);
+  padding-block: 6px;
 }
 
 .admin-brand {
   align-items: center;
   display: inline-grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   min-width: 0;
 }
 
 .admin-brand img {
   display: block;
-  max-height: 36px;
+  max-height: 34px;
   object-fit: contain;
 }
 
@@ -123,7 +124,7 @@ async function submitSearch() {
   display: grid;
   gap: 8px;
   grid-template-columns: 18px minmax(0, 1fr);
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 10px;
 }
 
@@ -161,7 +162,7 @@ async function submitSearch() {
   flex: 0 0 auto;
   font-size: 0.8rem;
   gap: 7px;
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 10px;
 }
 
@@ -172,36 +173,77 @@ async function submitSearch() {
   color: var(--color-brand-800);
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1180px) {
   .admin-topbar-inner {
-    grid-template-columns: minmax(160px, auto) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(140px, max-content) minmax(0, 1fr) auto;
   }
 
   .admin-search {
-    order: 4;
     grid-column: 1 / -1;
-    margin-bottom: 7px;
+    margin-bottom: 2px;
+    order: 4;
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-topbar-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-nav {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .admin-nav a {
+    flex: 1 0 max-content;
+    justify-content: center;
   }
 }
 
 @media (max-width: 720px) {
   .admin-topbar-inner {
     grid-template-columns: minmax(0, 1fr) auto;
-    padding-block: 6px;
+    padding-block: 5px;
   }
 
   .admin-brand {
-    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 8px;
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .admin-brand small {
+    display: none;
   }
 
   .admin-nav {
-    grid-column: 1 / -1;
-    order: 3;
     width: 100%;
+  }
+
+  .admin-nav a {
+    border-radius: 13px;
+    min-height: 40px;
+    padding-inline: 11px;
   }
 
   .admin-search {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-brand strong {
+    font-size: .82rem;
+  }
+
+  .admin-nav a span {
+    display: none;
+  }
+
+  .admin-nav a {
+    flex-basis: 44px;
+    min-width: 44px;
+    padding-inline: 0;
   }
 }
 </style>
