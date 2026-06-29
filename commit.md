@@ -1,1 +1,1 @@
-Rediseña el topbar familiar para escalado responsivo
+Ajusta el topbar familiar para escritorio y móvil
