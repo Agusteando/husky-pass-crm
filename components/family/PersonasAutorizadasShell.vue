@@ -412,21 +412,22 @@ function isActive(item: { to: string }) {
 
 .pa-topbar-quick-nav a {
   align-items: center;
-  background: #fff;
-  border: 1px solid #e6ebef;
-  border-radius: 18px;
-  box-shadow: 0 10px 26px rgba(26, 48, 72, 0.055);
-  color: #24324b;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid #e3eaf1;
+  border-radius: 17px;
+  box-shadow: 0 10px 24px rgba(26, 48, 72, 0.045);
+  color: #26344e;
   display: inline-flex;
   flex: 0 1 auto;
   font-size: 0.78rem;
   font-weight: 850;
   gap: 10px;
   justify-content: center;
+  letter-spacing: -0.005em;
   min-height: 58px;
-  min-width: 128px;
-  padding: 0 18px 0 15px;
-  transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+  min-width: 118px;
+  padding: 0 18px;
+  transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease, background .18s ease;
 }
 
 .pa-topbar-quick-nav a[data-product-nav='topbar-asistencia'] {
@@ -434,18 +435,19 @@ function isActive(item: { to: string }) {
 }
 
 .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'] {
-  min-width: 166px;
+  min-width: 160px;
 }
 
 .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
-  min-width: 124px;
+  min-width: 120px;
 }
 
 .pa-topbar-quick-nav a:hover,
 .pa-topbar-quick-nav a.active {
-  border-color: rgba(var(--pa-primary-rgb), 0.26);
-  box-shadow: 0 14px 30px rgba(26, 48, 72, 0.08);
-  color: var(--pa-primary);
+  background: #fff;
+  border-color: rgba(var(--pa-primary-rgb), 0.24);
+  box-shadow: 0 14px 28px rgba(26, 48, 72, 0.075);
+  color: #1f2d46;
   transform: translateY(-1px);
 }
 
@@ -458,19 +460,17 @@ function isActive(item: { to: string }) {
 
 .pa-quick-icon {
   align-items: center;
-  background: rgba(var(--pa-primary-rgb), 0.085);
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.13);
-  border-radius: 11px;
   color: var(--pa-primary);
   display: inline-flex;
-  height: 32px;
+  height: 22px;
   justify-content: center;
-  width: 32px;
+  width: 22px;
 }
 
 .pa-quick-icon :deep(.pa-icon) {
-  height: 1.04rem;
-  width: 1.04rem;
+  height: 1.08rem;
+  stroke-width: 2.2;
+  width: 1.08rem;
 }
 
 .pa-topbar-controls {

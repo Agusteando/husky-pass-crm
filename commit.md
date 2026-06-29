@@ -1,1 +1,1 @@
-Ajusta topbar familiar y marcador visual de grupo
+Ajusta estilo de botones del topbar familiar
