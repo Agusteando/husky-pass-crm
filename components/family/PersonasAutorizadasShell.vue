@@ -45,8 +45,8 @@
       </nav>
 
       <div class="pa-topbar-controls">
-        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel" title="Comunicados">
-          <FamilyPersonasIcon name="announcement" />
+        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel" title="Notificaciones">
+          <FamilyPersonasIcon name="bell" />
           <span v-if="unreadCommunications">{{ communicationBadge }}</span>
         </NuxtLink>
         <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" presentation="compact" />
@@ -147,7 +147,7 @@ const navItems = [
   { key: 'convenios', label: 'Convenios', shortLabel: 'Convenios', icon: 'handshake', to: '/familia/personas-autorizadas/convenios' },
   { key: 'seguridad', label: 'Seguridad', shortLabel: 'Seguridad', icon: 'security', to: paSecurityRoute }
 ]
-const topbarItems = computed(() => navItems.filter((item) => item.key === 'pagos'))
+const topbarItems = computed(() => navItems.filter((item) => ['comunicados', 'pagos'].includes(item.key)))
 
 function isActive(item: { to: string }) {
   const target = item.to.split('?')[0] || item.to
@@ -182,7 +182,7 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(10px, 1vw, 16px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(250px, 420px) auto auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(250px, 420px) minmax(190px, 250px) auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   overflow: visible;
@@ -362,16 +362,14 @@ function isActive(item: { to: string }) {
   box-shadow: 0 10px 26px rgba(26, 48, 72, 0.055);
   color: #24324b;
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 1 1 0;
   font-size: 0.76rem;
   font-weight: 850;
-  gap: 0;
-  height: 46px;
+  gap: 7px;
   justify-content: center;
   min-height: 46px;
-  min-width: 46px;
-  padding: 0;
-  width: 46px;
+  min-width: 0;
+  padding: 0 11px;
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
 }
 
@@ -384,9 +382,11 @@ function isActive(item: { to: string }) {
 }
 
 .pa-topbar-quick-nav span {
-  display: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 
 .pa-topbar-quick-nav :deep(.pa-icon) {
   color: var(--pa-primary);
@@ -632,7 +632,7 @@ function isActive(item: { to: string }) {
 
   .pa-product-topbar {
     gap: 12px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) auto auto;
+    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) minmax(176px, 224px) auto;
     padding-left: 16px;
   }
 
@@ -675,6 +675,25 @@ function isActive(item: { to: string }) {
   .pa-student-context {
     grid-template-columns: 46px minmax(0, 1fr);
     padding-right: 12px;
+  }
+}
+
+@media (max-width: 1240px) and (min-width: 1181px) {
+  .pa-product-topbar {
+    grid-template-columns: var(--pa-sidebar-width) minmax(230px, 1fr) auto auto;
+  }
+
+  .pa-topbar-quick-nav a {
+    flex: 0 0 auto;
+    gap: 0;
+    height: 46px;
+    min-width: 46px;
+    padding: 0;
+    width: 46px;
+  }
+
+  .pa-topbar-quick-nav span {
+    display: none;
   }
 }
 
