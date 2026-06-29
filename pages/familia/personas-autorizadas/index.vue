@@ -161,7 +161,7 @@
           </div>
 
           <div v-else class="express-history-empty" aria-label="Sin accesos de Pase Express">
-            <span class="express-history-icon"><FamilyPersonasIcon name="history" /></span>
+            <span class="express-history-icon"><FamilyPersonasIcon name="clock" /></span>
             <div>
               <strong>Sin accesos de Pase Express</strong>
               <span>{{ expressHistoryMeta }}</span>
@@ -1295,10 +1295,32 @@ function normalizeIndice(value: unknown) {
   border: 1px dashed #dce5eb;
   border-radius: 18px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 44px minmax(0, 1fr);
-  min-height: 80px;
-  padding: 14px;
+  gap: 14px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-height: 82px;
+  padding: 14px 16px;
+}
+
+.express-history-empty .express-history-icon {
+  align-self: center;
+  display: flex;
+  flex: 0 0 52px;
+  height: 52px;
+  justify-self: center;
+  place-self: center;
+  width: 52px;
+}
+
+.express-history-empty .express-history-icon :deep(.pa-icon) {
+  display: block;
+  flex: 0 0 auto;
+  height: 1.25rem;
+  margin: 0;
+  width: 1.25rem;
+}
+
+.express-history-empty > div {
+  min-width: 0;
 }
 
 .express-history-empty strong,

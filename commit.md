@@ -1,1 +1,1 @@
-Corrige tipado de resultados en búsqueda superior
+Corrige estado vacío de Pase Express
