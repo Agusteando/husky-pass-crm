@@ -1,6 +1,6 @@
 <template>
   <main class="pa-shell-app" :style="themeVars" data-product-area="personas-autorizadas">
-    <header class="pa-product-topbar">
+    <header ref="topbarRef" class="pa-product-topbar" :data-density="topbarDensity">
       <div class="pa-topbar-brand-zone">
         <NuxtLink class="pa-brand" to="/familia/personas-autorizadas" :aria-label="`${institution} Husky Pass Personas Autorizadas`">
           <span class="pa-product-lockup">
@@ -229,6 +229,10 @@ type TopbarSearchResult = {
 const route = useRoute()
 const selectedMatricula = ref<string | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
+const topbarRef = ref<HTMLElement | null>(null)
+type TopbarDensity = 'comfortable' | 'compact' | 'condensed' | 'stacked'
+const topbarDensity = ref<TopbarDensity>('comfortable')
+let topbarResizeObserver: ResizeObserver | null = null
 const searchOpen = ref(false)
 const searchQuery = ref('')
 const activeSearchId = ref('')
@@ -363,11 +367,29 @@ watch(() => route.fullPath, () => {
 
 onMounted(() => {
   window.addEventListener('keydown', onGlobalSearchShortcut)
+  updateTopbarDensity()
+  topbarResizeObserver = new ResizeObserver(() => updateTopbarDensity())
+  if (topbarRef.value) topbarResizeObserver.observe(topbarRef.value)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onGlobalSearchShortcut)
+  topbarResizeObserver?.disconnect()
+  topbarResizeObserver = null
 })
+
+function updateTopbarDensity() {
+  const width = topbarRef.value?.clientWidth || (import.meta.client ? window.innerWidth : 1600)
+  if (width < 1040) {
+    topbarDensity.value = 'stacked'
+  } else if (width < 1240) {
+    topbarDensity.value = 'condensed'
+  } else if (width < 1480) {
+    topbarDensity.value = 'compact'
+  } else {
+    topbarDensity.value = 'comfortable'
+  }
+}
 
 function normalizeSearch(value?: string | number | null) {
   return String(value || '')
@@ -546,7 +568,7 @@ function isActive(item: { to: string }) {
   --pa-border: rgba(var(--pa-primary-rgb), 0.2);
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
-  --pa-sidebar-width: 308px;
+  --pa-sidebar-width: clamp(252px, 18.6vw, 308px);
   --pa-topbar-height: 86px;
   --pa-content-gutter: clamp(16px, 1.9vw, 30px);
   background:
@@ -556,21 +578,65 @@ function isActive(item: { to: string }) {
   min-height: 100vh;
 }
 
+.pa-product-topbar,
+.pa-product-topbar * {
+  box-sizing: border-box;
+}
+
 .pa-product-topbar {
   align-items: center;
   backdrop-filter: blur(18px);
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid #e7ebee;
   display: grid;
-  gap: clamp(10px, 1vw, 16px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(280px, 460px) minmax(360px, 1fr) auto;
+  gap: clamp(8px, 0.86vw, 14px);
+  grid-template-columns:
+    minmax(210px, var(--pa-sidebar-width))
+    minmax(220px, 1fr)
+    minmax(300px, clamp(320px, 25vw, 432px))
+    minmax(232px, clamp(244px, 21vw, 356px));
   height: var(--pa-topbar-height);
+  max-width: 100vw;
   min-height: var(--pa-topbar-height);
   overflow: visible;
-  padding: 0 clamp(22px, 2.4vw, 42px) 0 clamp(22px, 2.3vw, 44px);
+  padding: 0 clamp(14px, 1.7vw, 30px);
   position: sticky;
   top: 0;
+  width: 100%;
   z-index: 30;
+}
+
+.pa-product-topbar[data-density='compact'] {
+  gap: 8px;
+  grid-template-columns:
+    minmax(196px, 268px)
+    minmax(210px, 1fr)
+    minmax(278px, 342px)
+    minmax(214px, 276px);
+  padding-inline: 16px;
+}
+
+.pa-product-topbar[data-density='condensed'] {
+  --pa-topbar-action-label-width: 68px;
+  gap: 7px;
+  grid-template-columns:
+    minmax(164px, 220px)
+    minmax(190px, 1fr)
+    minmax(228px, 282px)
+    minmax(164px, 224px);
+  padding-inline: 12px;
+}
+
+.pa-product-topbar[data-density='stacked'] {
+  align-content: center;
+  gap: 8px 10px;
+  grid-template-areas:
+    'brand controls'
+    'search actions';
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 50px 52px;
+  height: var(--pa-topbar-height);
+  padding: 8px 12px;
 }
 
 .pa-topbar-brand-zone {
@@ -578,8 +644,10 @@ function isActive(item: { to: string }) {
   align-self: stretch;
   border-right: 1px solid #edf0f2;
   display: flex;
+  grid-area: auto;
   min-width: 0;
-  padding-right: 18px;
+  overflow: hidden;
+  padding-right: clamp(10px, 1.1vw, 18px);
 }
 
 .pa-brand,
@@ -590,7 +658,8 @@ function isActive(item: { to: string }) {
 }
 
 .pa-product-lockup {
-  gap: 10px;
+  gap: clamp(7px, .75vw, 10px);
+  overflow: hidden;
 }
 
 .pa-brand img {
@@ -600,8 +669,8 @@ function isActive(item: { to: string }) {
 }
 
 .pa-institution-logo {
-  height: 48px;
-  max-width: 58px;
+  height: clamp(38px, 3.05vw, 48px);
+  max-width: clamp(42px, 3.75vw, 58px);
   width: auto;
 }
 
@@ -612,14 +681,15 @@ function isActive(item: { to: string }) {
 }
 
 .pa-husky-pass-logo {
-  height: 48px;
-  max-width: 118px;
+  height: clamp(36px, 3.05vw, 48px);
+  max-width: clamp(78px, 7.4vw, 118px);
   width: auto;
 }
 
 .pa-topbar-search {
   min-width: 0;
   position: relative;
+  width: 100%;
   z-index: 36;
 }
 
@@ -634,8 +704,8 @@ function isActive(item: { to: string }) {
   display: grid;
   gap: 10px;
   grid-template-columns: 22px minmax(0, 1fr) auto;
-  min-height: 58px;
-  padding: 0 14px 0 18px;
+  min-height: clamp(50px, 3.8vw, 58px);
+  padding: 0 clamp(10px, 1vw, 14px) 0 clamp(14px, 1.2vw, 18px);
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
@@ -793,7 +863,7 @@ function isActive(item: { to: string }) {
 .pa-search-result-copy small,
 .pa-search-empty {
   color: #747f91;
-  font-size: .72rem;
+  font-size: clamp(.66rem, .6vw, .72rem);
   font-weight: 700;
 }
 
@@ -804,6 +874,7 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-account-menu {
+  flex: 1 1 auto;
   min-width: 0;
   position: relative;
 }
@@ -820,12 +891,13 @@ function isActive(item: { to: string }) {
   cursor: pointer;
   display: grid;
   font: inherit;
-  gap: 12px;
-  grid-template-columns: 54px minmax(0, 1fr) 16px;
-  min-height: 62px;
-  min-width: clamp(260px, 20vw, 340px);
+  gap: clamp(8px, .86vw, 12px);
+  grid-template-columns: clamp(44px, 3.4vw, 54px) minmax(0, 1fr) 16px;
+  min-height: clamp(52px, 4vw, 62px);
+  min-width: 0;
   overflow: hidden;
-  padding: 6px 15px 6px 7px;
+  padding: 6px clamp(10px, .95vw, 15px) 6px 7px;
+  width: 100%;
   position: relative;
   text-align: left;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
@@ -881,10 +953,10 @@ function isActive(item: { to: string }) {
   display: grid;
   font-size: 0.82rem;
   font-weight: 850;
-  height: 52px;
+  height: clamp(42px, 3.3vw, 52px);
   overflow: hidden;
   place-items: center;
-  width: 52px;
+  width: clamp(42px, 3.3vw, 52px);
 }
 
 .pa-presence-dot {
@@ -923,14 +995,14 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy strong {
   color: #172642;
-  font-size: .9rem;
+  font-size: clamp(.78rem, .72vw, .9rem);
   font-weight: 900;
   line-height: 1.12;
 }
 
 .pa-student-copy > span {
   color: #717b8c;
-  font-size: .72rem;
+  font-size: clamp(.66rem, .6vw, .72rem);
   font-weight: 750;
 }
 
@@ -1002,7 +1074,7 @@ function isActive(item: { to: string }) {
 
 .pa-account-summary strong {
   color: #26334b;
-  font-size: .9rem;
+  font-size: clamp(.78rem, .72vw, .9rem);
   font-weight: 900;
 }
 
@@ -1081,11 +1153,14 @@ function isActive(item: { to: string }) {
 }
 
 .pa-topbar-quick-nav {
+  --pa-topbar-action-label-width: 86px;
   align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: end;
+  display: grid;
+  gap: clamp(7px, .75vw, 11px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: stretch;
   min-width: 0;
+  width: 100%;
 }
 
 .pa-topbar-quick-nav a {
@@ -1096,28 +1171,17 @@ function isActive(item: { to: string }) {
   box-shadow: 0 10px 24px rgba(26, 48, 72, 0.045);
   color: #26344e;
   display: inline-flex;
-  flex: 0 1 auto;
-  font-size: 0.78rem;
+  font-size: clamp(0.7rem, .66vw, 0.78rem);
   font-weight: 850;
-  gap: 10px;
+  gap: clamp(7px, .72vw, 10px);
   justify-content: center;
   letter-spacing: -0.005em;
-  min-height: 58px;
-  min-width: 118px;
-  padding: 0 18px;
+  min-height: clamp(50px, 3.8vw, 58px);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 clamp(9px, .95vw, 16px);
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease, background .18s ease;
-}
-
-.pa-topbar-quick-nav a[data-product-nav='topbar-asistencia'] {
-  min-width: 142px;
-}
-
-.pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'] {
-  min-width: 160px;
-}
-
-.pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
-  min-width: 120px;
+  width: 100%;
 }
 
 .pa-topbar-quick-nav a:hover,
@@ -1129,7 +1193,8 @@ function isActive(item: { to: string }) {
   transform: translateY(-1px);
 }
 
-.pa-topbar-quick-nav span {
+.pa-topbar-quick-nav a > span:not(.pa-quick-icon) {
+  max-width: var(--pa-topbar-action-label-width);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1154,9 +1219,10 @@ function isActive(item: { to: string }) {
 .pa-topbar-controls {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: clamp(7px, .75vw, 12px);
   justify-content: flex-end;
   min-width: 0;
+  width: 100%;
 }
 
 .pa-topbar-icon-link {
@@ -1167,11 +1233,12 @@ function isActive(item: { to: string }) {
   box-shadow: 0 8px 22px rgba(26, 48, 72, 0.06);
   color: #536178;
   display: inline-flex;
-  height: 54px;
+  height: clamp(48px, 3.55vw, 54px);
   justify-content: center;
   position: relative;
   transition: border-color .18s ease, color .18s ease, transform .18s ease;
-  width: 54px;
+  flex: 0 0 clamp(48px, 3.55vw, 54px);
+  width: clamp(48px, 3.55vw, 54px);
 }
 
 .pa-notification-link span {
@@ -1195,6 +1262,114 @@ function isActive(item: { to: string }) {
   border-color: rgba(var(--pa-primary-rgb), 0.28);
   color: var(--pa-primary);
   transform: translateY(-1px);
+}
+
+
+.pa-product-topbar[data-density='compact'] .pa-search-control,
+.pa-product-topbar[data-density='condensed'] .pa-search-control {
+  border-radius: 18px;
+}
+
+.pa-product-topbar[data-density='compact'] .pa-topbar-brand-zone,
+.pa-product-topbar[data-density='condensed'] .pa-topbar-brand-zone {
+  padding-right: 8px;
+}
+
+.pa-product-topbar[data-density='compact'] .pa-institution-logo,
+.pa-product-topbar[data-density='compact'] .pa-husky-pass-logo {
+  height: 40px;
+}
+
+.pa-product-topbar[data-density='compact'] .pa-husky-pass-logo {
+  max-width: 92px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-institution-logo {
+  height: 35px;
+  max-width: 39px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-husky-pass-logo {
+  height: 33px;
+  max-width: 70px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-lockup-divider {
+  height: 25px;
+}
+
+.pa-product-topbar[data-density='compact'] .pa-student-copy > span,
+.pa-product-topbar[data-density='condensed'] .pa-student-copy > span {
+  display: none;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-student-account-trigger {
+  border-radius: 18px;
+  grid-template-columns: 42px minmax(0, 1fr) 14px;
+  padding-left: 6px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-student-watermark-mask {
+  height: 86px;
+  right: 16px;
+  width: 86px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-student-watermark-grade {
+  font-size: 3.1rem;
+  right: 6px;
+}
+
+.pa-product-topbar[data-density='condensed'] .pa-topbar-icon-link {
+  flex-basis: 46px;
+  height: 46px;
+  width: 46px;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-topbar-brand-zone {
+  border-right: 0;
+  grid-area: brand;
+  padding-right: 0;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-topbar-search {
+  grid-area: search;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-topbar-quick-nav {
+  grid-area: actions;
+  width: min(100%, 430px);
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-topbar-controls {
+  grid-area: controls;
+  width: auto;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-search-control,
+.pa-product-topbar[data-density='stacked'] .pa-topbar-quick-nav a,
+.pa-product-topbar[data-density='stacked'] .pa-student-account-trigger {
+  min-height: 48px;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-student-account-trigger {
+  border-radius: 17px;
+  grid-template-columns: 40px;
+  padding: 4px;
+  width: 48px;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-student-account-trigger .pa-student-copy,
+.pa-product-topbar[data-density='stacked'] .pa-student-account-trigger > .pa-icon,
+.pa-product-topbar[data-density='stacked'] .pa-student-watermark-mask,
+.pa-product-topbar[data-density='stacked'] .pa-student-watermark-grade {
+  display: none;
+}
+
+.pa-product-topbar[data-density='stacked'] .pa-student-avatar {
+  border-radius: 13px;
+  height: 40px;
+  width: 40px;
 }
 
 .pa-product-layout {
@@ -1326,13 +1501,13 @@ function isActive(item: { to: string }) {
   height: 56px;
   overflow: hidden;
   place-items: end center;
-  width: 52px;
+  width: clamp(42px, 3.3vw, 52px);
 }
 
 .pa-help-ambassador :deep(.pa-ambassador-card),
 .pa-help-ambassador :deep(.pa-ambassador-visual) {
   height: 56px;
-  width: 52px;
+  width: clamp(42px, 3.3vw, 52px);
 }
 
 .pa-help-copy {
@@ -1384,23 +1559,9 @@ function isActive(item: { to: string }) {
 
 @media (max-width: 1399px) {
   .pa-shell-app {
-    --pa-sidebar-width: 282px;
+    --pa-sidebar-width: 268px;
     --pa-topbar-height: 82px;
     --pa-content-gutter: clamp(14px, 1.7vw, 24px);
-  }
-
-  .pa-product-topbar {
-    gap: 10px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(260px, 390px) minmax(330px, 1fr) auto;
-    padding-left: 24px;
-  }
-
-  .pa-topbar-brand-zone {
-    padding-right: 14px;
-  }
-
-  .pa-husky-pass-logo {
-    max-width: 108px;
   }
 
   .pa-product-nav {
@@ -1423,60 +1584,8 @@ function isActive(item: { to: string }) {
 }
 
 @media (max-width: 1280px) {
-  .pa-topbar-quick-nav {
-    gap: 8px;
-  }
-
-  .pa-topbar-quick-nav a,
-  .pa-topbar-quick-nav a[data-product-nav='topbar-asistencia'],
-  .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'],
-  .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
-    min-width: 0;
-    padding-inline: 12px 14px;
-  }
-
-  .pa-student-account-trigger {
-    min-width: 238px;
-  }
-
-  .pa-student-copy > span {
-    max-width: 145px;
-  }
-}
-
-@media (max-width: 1240px) and (min-width: 1181px) {
-  .pa-product-topbar {
-    grid-template-columns: 222px minmax(260px, 1fr) auto auto;
-  }
-
-  .pa-topbar-brand-zone {
-    padding-right: 10px;
-  }
-
-  .pa-institution-logo {
-    max-width: 46px;
-  }
-
-  .pa-husky-pass-logo {
-    max-width: 94px;
-  }
-}
-
-@media (max-width: 1180px) {
   .pa-shell-app {
-    --pa-sidebar-width: 212px;
-  }
-
-  .pa-product-topbar {
-    grid-template-columns: var(--pa-sidebar-width) minmax(280px, 1fr) auto;
-  }
-
-  .pa-topbar-quick-nav {
-    display: none;
-  }
-
-  .pa-student-account-trigger {
-    min-width: 230px;
+    --pa-sidebar-width: 248px;
   }
 
   .pa-help-card {
@@ -1491,21 +1600,42 @@ function isActive(item: { to: string }) {
   }
 }
 
+@media (max-width: 1180px) {
+  .pa-shell-app {
+    --pa-sidebar-width: 212px;
+  }
+}
+
+@media (max-width: 1040px) and (min-width: 901px) {
+  .pa-shell-app {
+    --pa-topbar-height: 118px;
+  }
+}
+
 @media (max-width: 900px) {
   .pa-shell-app {
     --pa-topbar-height: 66px;
   }
 
   .pa-product-topbar {
+    align-content: center;
     gap: 12px;
+    grid-template-areas: none;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: none;
     padding: 0 12px;
   }
 
   .pa-topbar-brand-zone {
     border-right: 0;
+    grid-area: auto;
     justify-content: flex-start;
     padding-right: 0;
+  }
+
+  .pa-topbar-controls {
+    grid-area: auto;
+    width: auto;
   }
 
   .pa-lockup-divider,
@@ -1537,7 +1667,7 @@ function isActive(item: { to: string }) {
     min-height: 52px;
     min-width: 0;
     padding: 5px;
-    width: 52px;
+    width: clamp(42px, 3.3vw, 52px);
   }
 
   .pa-student-account-trigger .pa-student-copy,
@@ -1601,7 +1731,7 @@ function isActive(item: { to: string }) {
   }
 }
 
-@media (max-height: 820px) and (min-width: 901px) {
+@media (max-height: 820px) and (min-width: 1041px) {
   .pa-shell-app {
     --pa-topbar-height: 72px;
   }
