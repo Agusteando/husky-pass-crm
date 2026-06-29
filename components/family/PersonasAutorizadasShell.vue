@@ -101,7 +101,6 @@
             </span>
             <span class="pa-student-copy">
               <strong>{{ studentName || 'Alumno' }}</strong>
-              <span>{{ accountDetail }}</span>
             </span>
             <FamilyPersonasIcon name="chevron" />
           </button>
@@ -594,7 +593,7 @@ function isActive(item: { to: string }) {
     minmax(210px, var(--pa-sidebar-width))
     minmax(260px, 1fr)
     max-content
-    minmax(236px, clamp(252px, 19vw, 344px));
+    minmax(320px, clamp(340px, 23vw, 430px));
   height: var(--pa-topbar-height);
   max-width: 100vw;
   min-height: var(--pa-topbar-height);
@@ -612,9 +611,9 @@ function isActive(item: { to: string }) {
   gap: 8px;
   grid-template-columns:
     minmax(188px, 252px)
-    minmax(230px, 1fr)
+    minmax(220px, 1fr)
     max-content
-    minmax(208px, 268px);
+    minmax(282px, 318px);
   padding-inline: 14px;
 }
 
@@ -626,7 +625,7 @@ function isActive(item: { to: string }) {
     minmax(158px, 208px)
     minmax(210px, 1fr)
     max-content
-    minmax(156px, 212px);
+    minmax(190px, 232px);
   padding-inline: 12px;
 }
 
@@ -648,9 +647,10 @@ function isActive(item: { to: string }) {
   border-right: 1px solid #edf0f2;
   display: flex;
   grid-area: auto;
+  justify-content: center;
   min-width: 0;
   overflow: hidden;
-  padding-right: clamp(10px, 1.1vw, 18px);
+  padding-inline: clamp(10px, 1.1vw, 18px);
 }
 
 .pa-brand,
@@ -989,24 +989,16 @@ function isActive(item: { to: string }) {
   z-index: 1;
 }
 
-.pa-student-copy strong,
-.pa-student-copy > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .pa-student-copy strong {
   color: #172642;
-  font-size: clamp(.78rem, .72vw, .9rem);
+  font-size: clamp(.74rem, .68vw, .88rem);
   font-weight: 900;
-  line-height: 1.12;
-}
-
-.pa-student-copy > span {
-  color: #717b8c;
-  font-size: clamp(.66rem, .6vw, .72rem);
-  font-weight: 750;
+  letter-spacing: -0.018em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  position: relative;
+  text-wrap: balance;
+  white-space: normal;
 }
 
 .pa-student-account-trigger > .pa-icon {
@@ -1070,9 +1062,7 @@ function isActive(item: { to: string }) {
 
 .pa-account-summary strong,
 .pa-account-summary small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .pa-account-summary strong {
@@ -1277,7 +1267,7 @@ function isActive(item: { to: string }) {
 
 .pa-product-topbar[data-density='compact'] .pa-topbar-brand-zone,
 .pa-product-topbar[data-density='condensed'] .pa-topbar-brand-zone {
-  padding-right: 8px;
+  padding-inline: 8px;
 }
 
 .pa-product-topbar[data-density='compact'] .pa-institution-logo,
@@ -1301,11 +1291,6 @@ function isActive(item: { to: string }) {
 
 .pa-product-topbar[data-density='condensed'] .pa-lockup-divider {
   height: 25px;
-}
-
-.pa-product-topbar[data-density='compact'] .pa-student-copy > span,
-.pa-product-topbar[data-density='condensed'] .pa-student-copy > span {
-  display: none;
 }
 
 .pa-product-topbar[data-density='condensed'] .pa-student-account-trigger {
@@ -1346,7 +1331,7 @@ function isActive(item: { to: string }) {
 .pa-product-topbar[data-density='stacked'] .pa-topbar-brand-zone {
   border-right: 0;
   grid-area: brand;
-  padding-right: 0;
+  padding-inline: 0;
 }
 
 .pa-product-topbar[data-density='stacked'] .pa-topbar-search {
@@ -1653,7 +1638,7 @@ function isActive(item: { to: string }) {
     border-right: 0;
     grid-area: brand;
     justify-content: flex-start;
-    padding-right: 0;
+    padding-inline: 0;
   }
 
   .pa-topbar-search,
