@@ -26,7 +26,6 @@ interface _GlobalComponents {
   AdminSalasCommandCenter: typeof import("../../components/admin/AdminSalasCommandCenter.vue")['default']
   AdminFamilyAccountEditor: typeof import("../../components/admin/FamilyAccountEditor.vue")['default']
   AdminResourceEditor: typeof import("../../components/admin/ResourceEditor.vue")['default']
-  FamilyAmbassadorGuide: typeof import("../../components/family/AmbassadorGuide.vue")['default']
   FamilyAuthorizedPersonEditor: typeof import("../../components/family/AuthorizedPersonEditor.vue")['default']
   FamilyResourceList: typeof import("../../components/family/FamilyResourceList.vue")['default']
   FamilySidebar: typeof import("../../components/family/FamilySidebar.vue")['default']
@@ -77,7 +76,6 @@ interface _GlobalComponents {
   LazyAdminSalasCommandCenter: LazyComponent<typeof import("../../components/admin/AdminSalasCommandCenter.vue")['default']>
   LazyAdminFamilyAccountEditor: LazyComponent<typeof import("../../components/admin/FamilyAccountEditor.vue")['default']>
   LazyAdminResourceEditor: LazyComponent<typeof import("../../components/admin/ResourceEditor.vue")['default']>
-  LazyFamilyAmbassadorGuide: LazyComponent<typeof import("../../components/family/AmbassadorGuide.vue")['default']>
   LazyFamilyAuthorizedPersonEditor: LazyComponent<typeof import("../../components/family/AuthorizedPersonEditor.vue")['default']>
   LazyFamilyResourceList: LazyComponent<typeof import("../../components/family/FamilyResourceList.vue")['default']>
   LazyFamilySidebar: LazyComponent<typeof import("../../components/family/FamilySidebar.vue")['default']>

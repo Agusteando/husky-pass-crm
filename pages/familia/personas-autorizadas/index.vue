@@ -12,7 +12,7 @@
         <FamilyPersonasPageHeader
           :eyebrow="levelLabel"
           title="Personas autorizadas"
-          :description="`Tu embajador digital te acompaña para mantener claro, actualizado y seguro quién puede recoger a ${studentFirstName}.`"
+          :description="`Gestiona de forma segura quién puede recoger a ${studentFirstName}.`"
           :theme="theme"
           ambassador-variant="hero"
         >
@@ -39,16 +39,6 @@
           </template>
         </FamilyPersonasPageHeader>
 
-        <FamilyAmbassadorGuide
-          :theme="theme"
-          :tone="journeyGuide.tone"
-          :variant="journeyGuide.variant"
-          :eyebrow="journeyGuide.eyebrow"
-          :title="journeyGuide.title"
-          :message="journeyGuide.message"
-          data-product-panel="ambassador-guidance"
-        />
-
         <section class="authorized-section" data-product-panel="authorized-people" :data-state="completedCount ? 'content' : 'empty'">
           <FamilyPersonasSectionHeading
             title="Personas autorizadas"
@@ -56,17 +46,13 @@
             :meta="registeredPeopleLabel"
           />
 
-          <FamilyAmbassadorGuide
-            v-if="!completedCount"
-            class="empty-guidance"
-            :theme="theme"
-            variant="empty"
-            tone="empty"
-            title="Empieza con una persona autorizada"
-            message="Captura sus datos y foto. Yo te avisaré cuando el Husky Pass esté listo para descargar."
-            compact
-            data-state="empty"
-          />
+          <div v-if="!completedCount" class="empty-guidance" data-state="empty">
+            <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
+            <div>
+              <strong>Empieza con una persona autorizada</strong>
+              <span>Captura sus datos y foto para habilitar su Husky Pass.</span>
+            </div>
+          </div>
 
           <div class="person-slots" aria-label="Espacios de personas autorizadas">
             <article
@@ -139,33 +125,6 @@
                 </button>
               </div>
             </article>
-          </div>
-        </section>
-
-        <section class="express-history-card" data-product-panel="express-history" :data-state="expressHistoryEvents.length ? 'content' : 'empty'">
-          <FamilyPersonasSectionHeading
-            title="Historial de accesos con Pase Express"
-            :description="expressHistoryIntro"
-            :meta="expressHistoryMeta"
-          />
-          <div class="express-history-body">
-            <FamilyAmbassadorGuide
-              :theme="theme"
-              :tone="expressHistoryEvents.length ? 'success' : 'calm'"
-              :variant="expressHistoryEvents.length ? 'preview' : 'help'"
-              :title="expressHistoryGuideTitle"
-              :message="expressHistoryGuideMessage"
-              compact
-            />
-            <ol v-if="expressHistoryEvents.length" class="express-timeline" aria-label="Actividad del Pase Express">
-              <li v-for="event in expressHistoryEvents" :key="event.key">
-                <span class="timeline-dot"><FamilyPersonasIcon :name="event.icon" /></span>
-                <span>
-                  <strong>{{ event.title }}</strong>
-                  <small>{{ event.detail }}</small>
-                </span>
-              </li>
-            </ol>
           </div>
         </section>
 
@@ -269,17 +228,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
-import type { ParentAttendanceResponse } from '~/types/attendance'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const { data, refresh, pending, error: loadError } = usePersonasFamilyPeople()
-const { data: attendanceHistory } = useFetch<ParentAttendanceResponse>('/api/family/attendance', { key: 'pa-express-access-history', timeout: 45000 })
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -315,94 +271,6 @@ const completedCount = computed(() => people.value.filter((person) => person.id)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const expressSlot = computed(() => people.value.find((person) => person.indice === 4) || null)
-const journeyGuide = computed(() => {
-  if (!studentPhoto.value) return {
-    tone: 'notice' as const,
-    variant: 'help' as const,
-    eyebrow: 'Siguiente paso recomendado',
-    title: `Sube la foto de ${studentFirstName.value}`,
-    message: 'La foto del alumno ayuda a que cada Husky Pass sea claro para el personal del colegio.'
-  }
-  if (!completedRegularCount.value) return {
-    tone: 'empty' as const,
-    variant: 'empty' as const,
-    eyebrow: 'Primer registro',
-    title: 'Construyamos tu red de confianza',
-    message: 'Registra al menos una persona permanente para que el proceso de entrega y salida sea más tranquilo.'
-  }
-  if (completedRegularCount.value < 3) return {
-    tone: 'calm' as const,
-    variant: 'help' as const,
-    eyebrow: 'Cobertura familiar',
-    title: 'Puedes agregar más personas de confianza',
-    message: `Tienes ${completedRegularCount.value} de 3 espacios permanentes ocupados. Completar la red reduce prisas ante imprevistos.`
-  }
-  return {
-    tone: 'success' as const,
-    variant: 'preview' as const,
-    eyebrow: 'Todo en orden',
-    title: 'Tu red permanente está completa',
-    message: 'Mantén descargados los Husky Pass y usa Pase Express solo para situaciones temporales.'
-  }
-})
-const expressAccessEvents = computed(() => {
-  const expressId = Number(expressSlot.value?.id || 0)
-  if (!expressId) return []
-  return (attendanceHistory.value?.accessHistory.days || [])
-    .flatMap((day) => (day.actions || [])
-      .filter((action) => Number(action.person.id) === expressId)
-      .map((action) => ({
-        key: `access-${action.id}`,
-        icon: action.type === 'salida' ? 'exit' : 'entry',
-        title: `${action.type === 'salida' ? 'Salida' : 'Entrada'} con Pase Express`,
-        detail: `${formatExpressAccessDate(action.date, action.time)} · ${action.person.name}`,
-        timestamp: action.timestamp
-      })))
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-    .slice(0, 4)
-})
-const expressHistoryEvents = computed(() => {
-  const person = expressSlot.value
-  if (!person?.id) return []
-  const name = fullName(person) || 'Persona temporal'
-  const date = formatExpressDate(person.fechaP)
-  const events = [
-    ...expressAccessEvents.value,
-    { key: 'created', icon: 'check', title: 'Pase Express creado', detail: `${name}${date ? ` · ${date}` : ''}` }
-  ]
-  if (marbeteReady(person)) events.push({ key: 'ready', icon: 'marbete', title: 'Husky Pass temporal listo', detail: 'Disponible para descargar y presentar en el colegio.' })
-  else events.push({ key: 'pending', icon: 'alert', title: 'Validación pendiente', detail: marbeteState(person) })
-  return events
-})
-const expressHistoryIntro = computed(() => {
-  if (expressAccessEvents.value.length) return 'Entradas y salidas reales registradas con el pase temporal.'
-  return expressHistoryEvents.value.length
-    ? 'Actividad reciente del pase temporal registrado para este alumno.'
-    : 'Cuando crees un Pase Express, aquí verás su actividad para dar seguimiento con mayor confianza.'
-})
-const expressHistoryMeta = computed(() => {
-  if (expressAccessEvents.value.length === 1) return '1 acceso registrado'
-  if (expressAccessEvents.value.length > 1) return `${expressAccessEvents.value.length} accesos registrados`
-  return expressHistoryEvents.value.length ? 'Actividad temporal' : 'Sin pase activo'
-})
-const expressHistoryGuideTitle = computed(() => expressAccessEvents.value.length ? 'Ya hay movimiento con Pase Express' : expressHistoryEvents.value.length ? 'Pase temporal bajo seguimiento' : 'Aún no hay actividad temporal')
-const expressHistoryGuideMessage = computed(() => {
-  if (expressAccessEvents.value.length) return 'Tu embajador registra aquí quién usó el pase temporal y cuándo ocurrió la entrada o salida.'
-  return expressHistoryEvents.value.length
-    ? 'Este espacio resume lo que ya está disponible para que puedas coordinar la recogida sin incertidumbre.'
-    : 'Usa Pase Express cuando alguien fuera de tu lista permanente necesite recoger al alumno una sola vez.'
-})
-
-function formatExpressAccessDate(date: string, time: string) {
-  return `${new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${date}T12:00:00`))} · ${time}`
-}
-
-function formatExpressDate(value?: string | null) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
-}
 
 function retryLoad() {
   return refresh()
@@ -604,7 +472,7 @@ async function save(payload: Partial<AuthorizedPerson>) {
     const saved = await $fetch<AuthorizedPerson>('/api/personas-autorizadas/family', { method: 'POST', body: payload })
     applySavedPerson(saved)
     editing.value = null
-    notice.value = selectedIndice.value === 4 ? 'Pase Express guardado. Revisa su actividad en el historial.' : 'Registro guardado. Tu embajador validará que el Husky Pass esté listo.'
+    notice.value = 'Registro guardado.'
     await refresh()
     await refreshMarbeteReadiness()
   } catch (err: unknown) {
@@ -1105,72 +973,6 @@ function normalizeIndice(value: unknown) {
   padding: 10px 12px;
 }
 
-.express-history-card {
-  background: rgba(255, 255, 255, .94);
-  border: 1px solid #e2e8ec;
-  border-radius: 24px;
-  box-shadow: 0 18px 48px rgba(30, 53, 78, .07);
-  display: grid;
-  gap: 16px;
-  padding: 18px;
-}
-
-.express-history-body {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(320px, .82fr) minmax(0, 1fr);
-}
-
-.express-timeline {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.express-timeline li {
-  align-items: center;
-  background: linear-gradient(135deg, #fff, #f8fbfb);
-  border: 1px solid #e2e9ed;
-  border-radius: 16px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 38px minmax(0, 1fr);
-  min-height: 70px;
-  padding: 11px 13px;
-}
-
-.timeline-dot {
-  align-items: center;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 999px;
-  color: var(--pa-primary);
-  display: inline-flex;
-  height: 38px;
-  justify-content: center;
-  width: 38px;
-}
-
-.express-timeline strong,
-.express-timeline small {
-  display: block;
-}
-
-.express-timeline strong {
-  color: var(--pa-gray);
-  font-size: .86rem;
-}
-
-.express-timeline small {
-  color: var(--pa-muted);
-  font-size: .76rem;
-  font-weight: 650;
-  line-height: 1.45;
-  margin-top: 3px;
-}
-
 .support-panel {
   align-items: start;
   display: grid;
@@ -1325,8 +1127,7 @@ function normalizeIndice(value: unknown) {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
 
-  .support-panel,
-  .express-history-body {
+  .support-panel {
     grid-template-columns: 1fr;
   }
 }
@@ -1382,7 +1183,6 @@ function normalizeIndice(value: unknown) {
   }
 
   .authorized-section,
-  .express-history-card,
   .tutorial-card,
   .faq-card {
     border-radius: 20px;
@@ -1422,7 +1222,6 @@ function normalizeIndice(value: unknown) {
 
 @media (max-width: 430px) {
   .authorized-section,
-  .express-history-card,
   .tutorial-card,
   .faq-card {
     padding: 13px;

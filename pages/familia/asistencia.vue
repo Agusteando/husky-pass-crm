@@ -48,17 +48,6 @@
         </template>
       </FamilyPersonasPageHeader>
 
-      <FamilyAmbassadorGuide
-        class="attendance-guide"
-        :theme="theme"
-        :tone="attendanceGuide.tone"
-        :variant="attendanceGuide.variant"
-        :eyebrow="attendanceGuide.eyebrow"
-        :title="attendanceGuide.title"
-        :message="attendanceGuide.message"
-        compact
-      />
-
       <p v-if="loadError" class="alert" data-state="error">No fue posible abrir la bitácora de asistencia.</p>
 
       <section v-else-if="pending && !data" class="loading-layout" data-state="loading">
@@ -544,50 +533,6 @@ const pageState = computed(() => {
   if (emptyState.value) return 'empty'
   return 'content'
 })
-const attendanceGuide = computed(() => {
-  if (loadError.value) return {
-    tone: 'notice' as const,
-    variant: 'help' as const,
-    eyebrow: 'Reintento recomendado',
-    title: 'No pude abrir la bitácora en este momento',
-    message: 'Intenta nuevamente. Si el problema continúa, la escuela puede apoyarte con el expediente.'
-  }
-  if (pending.value && !data.value) return {
-    tone: 'calm' as const,
-    variant: 'help' as const,
-    eyebrow: 'Preparando historial',
-    title: 'Estoy reuniendo asistencia y accesos',
-    message: 'La bitácora integra ausencias, retardos y entradas o salidas para darte una sola vista confiable.'
-  }
-  if (missingAbsences.value.length) return {
-    tone: 'notice' as const,
-    variant: 'help' as const,
-    eyebrow: 'Acción pendiente',
-    title: 'Hay ausencias que requieren motivo',
-    message: 'Agrega el motivo desde la tarjeta prioritaria para dejar el expediente claro ante la escuela.'
-  }
-  if (latestAccessAction.value) return {
-    tone: 'success' as const,
-    variant: 'preview' as const,
-    eyebrow: 'Último movimiento confirmado',
-    title: `${latestAccessAction.value.label} registrada a las ${latestAccessAction.value.action.time}`,
-    message: 'Tu embajador conserva el detalle de la persona autorizada para que puedas revisarlo cuando lo necesites.'
-  }
-  if (emptyState.value) return {
-    tone: 'empty' as const,
-    variant: 'empty' as const,
-    eyebrow: 'Sin registros todavía',
-    title: 'Aún no hay actividad en este ciclo',
-    message: 'Cuando la escuela registre asistencia, retardos o accesos, aparecerán aquí con contexto.'
-  }
-  return {
-    tone: 'success' as const,
-    variant: 'preview' as const,
-    eyebrow: 'Todo en orden',
-    title: 'No hay pendientes críticos en la bitácora',
-    message: 'Puedes abrir el historial completo para revisar fechas anteriores o cambiar de ciclo escolar.'
-  }
-})
 const sourceWarnings = computed(() => {
   const source = data.value?.source
   if (!source) return []
@@ -854,10 +799,6 @@ async function saveMotivo() {
   margin: 0 auto;
   max-width: 1240px;
   width: 100%;
-}
-
-.attendance-guide {
-  max-width: none;
 }
 
 .attendance-page .btn-primary {

@@ -11,18 +11,7 @@
       </div>
     </header>
 
-    <section class="security-workspace">
-      <FamilyAmbassadorGuide
-        :theme="securityTheme"
-        :tone="notice ? 'success' : 'calm'"
-        :variant="notice ? 'preview' : 'help'"
-        eyebrow="Protección de cuenta"
-        :title="notice ? 'Contraseña actualizada' : 'Mantén tu acceso familiar protegido'"
-        :message="notice ? 'Tu embajador confirma que el cambio quedó aplicado en la cuenta familiar.' : 'Usa una contraseña única y compártela solo con los adultos que administran esta cuenta.'"
-        compact
-      />
-
-      <form class="security-form card" @submit.prevent="submit">
+    <form class="security-form card" @submit.prevent="submit">
       <label class="label" for="current-password">
         Contrase&ntilde;a actual
         <input
@@ -69,8 +58,7 @@
       <div class="security-actions">
         <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Guardando...' : 'Guardar contraseña' }}</button>
       </div>
-      </form>
-    </section>
+    </form>
   </section>
 </template>
 
@@ -80,7 +68,6 @@ import { computed, reactive, ref } from 'vue'
 import { useRoute } from 'nuxt/app'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { experienceThemeVars, normalizeExperienceName, resolveVisualIdentity } from '~/utils/experienceIdentity'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: 'family' })
 
@@ -96,13 +83,6 @@ const identity = computed(() => resolveVisualIdentity({
   user: session.value?.user
 }).identity)
 const identityVars = computed(() => experienceThemeVars(identity.value))
-const securityTheme = computed(() => resolvePersonasTheme({
-  experience: identity.value.context.experience,
-  institution: identity.value.context.institution,
-  nivel: identity.value.context.nivel,
-  plantel: identity.value.context.plantel,
-  matricula: session.value?.user?.username
-}))
 
 const accountLabel = computed(() => {
   const user = session.value?.user
@@ -136,14 +116,7 @@ async function submit() {
 .security-page {
   display: grid;
   gap: 14px;
-  max-width: 920px;
-}
-
-.security-workspace {
-  align-items: start;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(280px, .72fr) minmax(0, 1fr);
+  max-width: 720px;
 }
 
 .security-header {
@@ -210,12 +183,6 @@ async function submit() {
   font-weight: 700;
   margin: 0;
   padding: 10px 12px;
-}
-
-@media (max-width: 820px) {
-  .security-workspace {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 640px) {

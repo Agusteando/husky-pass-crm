@@ -64,8 +64,8 @@ const cropMode = computed(() => {
   --ambassador-width: 136px;
   --ambassador-image-scale: 0.9;
   --ambassador-object-position: center bottom;
-  --ambassador-padding-top: 8px;
-  --ambassador-padding-inline: 8px;
+  --ambassador-padding-top: 7px;
+  --ambassador-padding-inline: 7px;
   --ambassador-padding-bottom: 2px;
   align-items: center;
   display: grid;
@@ -128,7 +128,7 @@ const cropMode = computed(() => {
 }
 
 .pa-ambassador-card[data-crop='peek'] {
-  --ambassador-image-scale: 0.94;
+  --ambassador-image-scale: 0.92;
   --ambassador-padding-top: 6px;
   --ambassador-padding-inline: 6px;
   --ambassador-padding-bottom: 1px;
@@ -136,7 +136,7 @@ const cropMode = computed(() => {
 }
 
 .pa-ambassador-card[data-crop='preview'] {
-  --ambassador-image-scale: 0.8;
+  --ambassador-image-scale: 0.82;
   --ambassador-padding-top: 9px;
   --ambassador-padding-inline: 9px;
   --ambassador-padding-bottom: 3px;

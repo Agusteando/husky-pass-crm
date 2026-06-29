@@ -1,1 +1,1 @@
-Ajusta el encuadre de embajadores para evitar recortes
+Revierte rediseño excesivo y ajusta encuadre de embajadores

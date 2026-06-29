@@ -64,7 +64,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   border-bottom: 1px solid #e4eaed;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) 82px auto;
+  grid-template-columns: minmax(0, 1fr) 72px auto;
   min-height: 92px;
   overflow: hidden;
   padding: 2px 0 16px;
@@ -131,16 +131,16 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 .pa-page-header-ambassador {
   align-self: end;
   display: grid;
-  height: 82px;
+  height: 72px;
   justify-items: center;
   overflow: hidden;
-  width: 82px;
+  width: 72px;
 }
 
 .pa-page-header-ambassador :deep(.pa-ambassador-card),
 .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-  height: 82px;
-  width: 82px;
+  height: 72px;
+  width: 72px;
 }
 
 .pa-page-header-actions {
@@ -153,7 +153,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-width: 900px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) 76px;
+    grid-template-columns: minmax(0, 1fr) 70px;
   }
 
   .pa-page-header-actions {
@@ -164,7 +164,7 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
 
 @media (max-height: 820px) and (min-width: 901px) {
   .pa-page-header {
-    grid-template-columns: minmax(0, 1fr) 72px auto;
+    grid-template-columns: minmax(0, 1fr) 62px auto;
     min-height: 80px;
     padding-bottom: 12px;
   }
@@ -180,15 +180,15 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador,
   .pa-page-header-ambassador :deep(.pa-ambassador-card),
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-    height: 72px;
-    width: 72px;
+    height: 62px;
+    width: 62px;
   }
 }
 
 @media (max-width: 620px) {
   .pa-page-header {
     gap: 12px;
-    grid-template-columns: minmax(0, 1fr) 68px;
+    grid-template-columns: minmax(0, 1fr) 58px;
     min-height: 88px;
     padding-bottom: 16px;
   }
@@ -204,8 +204,8 @@ const showVisual = computed(() => props.showAmbassador || Boolean(slots.visual))
   .pa-page-header-ambassador,
   .pa-page-header-ambassador :deep(.pa-ambassador-card),
   .pa-page-header-ambassador :deep(.pa-ambassador-visual) {
-    height: 72px;
-    width: 68px;
+    height: 64px;
+    width: 58px;
   }
 }
 </style>

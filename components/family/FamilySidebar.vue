@@ -10,16 +10,6 @@
       <NuxtLink v-for="item in items" :key="item.to" :to="item.to"><FamilyPersonasIcon :name="item.icon" /><span>{{ item.label }}</span></NuxtLink>
     </nav>
 
-    <FamilyAmbassadorGuide
-      class="family-sidebar-guide"
-      :theme="sidebarTheme"
-      :title="sidebarGuide.title"
-      :message="sidebarGuide.message"
-      :variant="sidebarGuide.variant"
-      :tone="sidebarGuide.tone"
-      compact
-    />
-
     <button v-if="session.user.impersonation" class="btn btn-primary exit-preview" type="button" @click="exitPreview">Volver a admin</button>
   </aside>
 </template>
@@ -30,7 +20,6 @@ import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
@@ -59,33 +48,6 @@ const secondaryName = computed(() => {
   if (!user) return ''
   if (activeProduct.value === 'daycare') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' · ')
   return user.email || ''
-})
-const sidebarTheme = computed(() => {
-  const theme = resolvePersonasTheme({
-    matricula: props.session?.user?.username,
-    themeKey: activeProduct.value === 'daycare' ? 'daycare' : undefined
-  })
-  return theme.mascot ? theme : resolvePersonasTheme({ themeKey: activeProduct.value === 'daycare' ? 'daycare' : 'primaria' })
-})
-const sidebarGuide = computed(() => {
-  if (activeProduct.value === 'daycare') return {
-    tone: 'calm' as const,
-    variant: 'help' as const,
-    title: 'Tu guía diaria',
-    message: 'Te ayudo a priorizar avisos, tareas y eventos.'
-  }
-  if (activeProduct.value === 'attendance') return {
-    tone: 'notice' as const,
-    variant: 'preview' as const,
-    title: 'Bitácora clara',
-    message: 'Revisa motivos, retardos y accesos desde un solo lugar.'
-  }
-  return {
-    tone: 'calm' as const,
-    variant: 'help' as const,
-    title: 'Acompañamiento',
-    message: 'Te señalaré los siguientes pasos importantes.'
-  }
 })
 
 async function exitPreview() {
@@ -170,11 +132,6 @@ async function exitPreview() {
   box-shadow: var(--shadow-line);
 }
 
-.family-sidebar-guide {
-  box-shadow: none;
-  margin-top: auto;
-}
-
 .exit-preview {
   width: 100%;
 }
@@ -189,8 +146,7 @@ async function exitPreview() {
     display: none;
   }
 
-  .family-nav,
-  .family-sidebar-guide {
+  .family-nav {
     display: none;
   }
 }

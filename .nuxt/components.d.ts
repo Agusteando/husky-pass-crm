@@ -26,7 +26,6 @@ export const AdminResourceModule: typeof import("../components/admin/AdminResour
 export const AdminSalasCommandCenter: typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']
 export const AdminFamilyAccountEditor: typeof import("../components/admin/FamilyAccountEditor.vue")['default']
 export const AdminResourceEditor: typeof import("../components/admin/ResourceEditor.vue")['default']
-export const FamilyAmbassadorGuide: typeof import("../components/family/AmbassadorGuide.vue")['default']
 export const FamilyAuthorizedPersonEditor: typeof import("../components/family/AuthorizedPersonEditor.vue")['default']
 export const FamilyResourceList: typeof import("../components/family/FamilyResourceList.vue")['default']
 export const FamilySidebar: typeof import("../components/family/FamilySidebar.vue")['default']
@@ -77,7 +76,6 @@ export const LazyAdminResourceModule: LazyComponent<typeof import("../components
 export const LazyAdminSalasCommandCenter: LazyComponent<typeof import("../components/admin/AdminSalasCommandCenter.vue")['default']>
 export const LazyAdminFamilyAccountEditor: LazyComponent<typeof import("../components/admin/FamilyAccountEditor.vue")['default']>
 export const LazyAdminResourceEditor: LazyComponent<typeof import("../components/admin/ResourceEditor.vue")['default']>
-export const LazyFamilyAmbassadorGuide: LazyComponent<typeof import("../components/family/AmbassadorGuide.vue")['default']>
 export const LazyFamilyAuthorizedPersonEditor: LazyComponent<typeof import("../components/family/AuthorizedPersonEditor.vue")['default']>
 export const LazyFamilyResourceList: LazyComponent<typeof import("../components/family/FamilyResourceList.vue")['default']>
 export const LazyFamilySidebar: LazyComponent<typeof import("../components/family/FamilySidebar.vue")['default']>

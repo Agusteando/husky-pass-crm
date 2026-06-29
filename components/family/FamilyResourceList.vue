@@ -1,13 +1,10 @@
 <template>
   <section class="resource-page">
     <header class="resource-hero">
-      <div class="resource-hero-copy">
+      <div>
         <p class="eyebrow">Guardería</p>
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
-      </div>
-      <div class="resource-hero-ambassador" aria-hidden="true">
-        <FamilyPersonasAmbassador :theme="resourceTheme" :variant="resourceVariant" contained decorative />
       </div>
       <NuxtLink class="btn btn-secondary" to="/familia/daycare">Inicio</NuxtLink>
     </header>
@@ -20,15 +17,6 @@
 
     <section v-else-if="items?.length" class="publication-workspace" :class="{ 'calendar-workspace': type === 'cal' }">
       <aside class="publication-summary">
-        <FamilyAmbassadorGuide
-          :theme="resourceTheme"
-          :tone="resourceGuide.tone"
-          :variant="resourceGuide.variant"
-          :eyebrow="resourceGuide.eyebrow"
-          :title="resourceGuide.title"
-          :message="resourceGuide.message"
-          compact
-        />
         <div class="summary-card card">
           <p class="eyebrow">{{ summaryEyebrow }}</p>
           <h2>{{ items.length }} {{ items.length === 1 ? 'publicación' : 'publicaciones' }}</h2>
@@ -78,15 +66,7 @@
       </main>
     </section>
 
-    <FamilyAmbassadorGuide
-      v-else
-      class="resource-empty-guide"
-      :theme="resourceTheme"
-      variant="empty"
-      tone="empty"
-      :title="emptyTitle"
-      :message="emptyMessage"
-    />
+    <EmptyState v-else title="Sin publicaciones" description="No hay registros vigentes para esta sección." />
   </section>
 </template>
 
@@ -95,7 +75,6 @@ import { useFetch } from 'nuxt/app'
 import { computed } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 import { formatDate, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -108,39 +87,8 @@ const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycar
   timeout: 15000
 })
 
-const resourceTheme = computed(() => resolvePersonasTheme({ themeKey: 'daycare' }))
 const featuredItem = computed(() => items.value?.[0] || null)
 const remainingItems = computed(() => items.value?.slice(1) || [])
-const resourceVariant = computed(() => props.type === 'hw' ? 'help' : props.type === 'cal' ? 'preview' : 'hero')
-const resourceGuide = computed(() => {
-  if (props.type === 'hw') return {
-    tone: 'notice' as const,
-    variant: 'help' as const,
-    eyebrow: 'Guía de tareas',
-    title: 'Revisa primero lo más reciente',
-    message: 'Si hay archivo adjunto, ábrelo desde el recurso destacado para evitar perder instrucciones de la sala.'
-  }
-  if (props.type === 'cal') return {
-    tone: 'calm' as const,
-    variant: 'preview' as const,
-    eyebrow: 'Agenda familiar',
-    title: 'El próximo evento queda arriba',
-    message: 'Tu embajador ordena la agenda para que confirmes fechas importantes sin recorrer toda la lista.'
-  }
-  return {
-    tone: 'calm' as const,
-    variant: 'hero' as const,
-    eyebrow: 'Comunicados',
-    title: 'Empieza por el aviso destacado',
-    message: 'Los avisos se conservan como historial para que puedas volver a consultarlos cuando lo necesites.'
-  }
-})
-const emptyTitle = computed(() => props.type === 'hw' ? 'Sin tareas por ahora' : props.type === 'cal' ? 'Sin eventos próximos' : 'Sin avisos nuevos')
-const emptyMessage = computed(() => props.type === 'hw'
-  ? 'Cuando la sala publique una tarea, tu embajador la colocará aquí con el recurso principal.'
-  : props.type === 'cal'
-    ? 'Cuando haya eventos publicados, aparecerán ordenados por fecha para que puedas planear con calma.'
-    : 'Cuando la escuela publique un comunicado, aparecerá aquí como prioridad de lectura.')
 const summaryEyebrow = computed(() => props.type === 'hw' ? 'Tareas activas' : props.type === 'cal' ? 'Agenda' : 'Comunicados')
 const featuredLabel = computed(() => props.type === 'hw' ? 'Tarea principal' : props.type === 'cal' ? 'Próximo evento' : 'Aviso más reciente')
 const titleFallback = computed(() => props.type === 'hw' ? 'Tarea publicada' : props.type === 'cal' ? 'Evento publicado' : 'Aviso publicado')
@@ -176,24 +124,8 @@ function resourceCopy(resource?: DaycareResource | null) {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1fr) 104px auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: clamp(18px, 2.4vw, 26px);
-}
-
-.resource-hero-copy {
-  min-width: 0;
-}
-
-.resource-hero-ambassador {
-  height: 96px;
-  overflow: hidden;
-  width: 104px;
-}
-
-.resource-hero-ambassador :deep(.pa-ambassador-card),
-.resource-hero-ambassador :deep(.pa-ambassador-visual) {
-  height: 100%;
-  width: 100%;
 }
 
 .resource-hero h1,
@@ -375,20 +307,6 @@ function resourceCopy(resource?: DaycareResource | null) {
 @media (max-width: 1100px) {
   .publication-workspace {
     grid-template-columns: 1fr;
-  }
-
-  .resource-hero {
-    grid-template-columns: minmax(0, 1fr) 78px;
-  }
-
-  .resource-hero .btn {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
-  .resource-hero-ambassador {
-    height: 78px;
-    width: 78px;
   }
 
   .publication-summary {
