@@ -20,7 +20,7 @@
           <span class="pa-presence-dot" aria-hidden="true"></span>
         </span>
         <span class="pa-student-copy">
-          <small>Expediente</small>
+          <small>Alumno activo</small>
           <strong>{{ studentName || 'Alumno' }}</strong>
           <span class="pa-student-chip-row">
             <span v-for="chip in studentChips" :key="chip">{{ chip }}</span>
@@ -49,7 +49,17 @@
           <FamilyPersonasIcon name="bell" />
           <span v-if="unreadCommunications">{{ communicationBadge }}</span>
         </NuxtLink>
-        <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" presentation="compact" />
+        <NuxtLink class="pa-security-control" :to="paSecurityRoute" aria-label="Seguridad de la cuenta" title="Seguridad">
+          <span><FamilyPersonasIcon name="security" /></span>
+          <small>Seguridad</small>
+        </NuxtLink>
+        <TopbarAccountMenu
+          :session="session"
+          experience="escolar"
+          :security-to="paSecurityRoute"
+          :profile-name="accountName"
+          :profile-detail="accountDetail"
+        />
       </div>
     </header>
 
@@ -112,6 +122,9 @@ const route = useRoute()
 const { session, primaryChild, studentName, studentPhoto, theme, themeVars } = usePersonasFamilyTheme({ key: 'shell' })
 provide(personasFamilyThemeContextKey, { theme })
 const studentInitials = computed(() => (studentName.value || 'A').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(''))
+const studentFirstName = computed(() => String(primaryChild.value?.nombreA || studentName.value || 'tu familia').split(/\s+/).filter(Boolean)[0] || 'tu familia')
+const accountName = computed(() => primaryChild.value?.parentName || session.value?.user?.displayName || session.value?.user?.email || 'Familia')
+const accountDetail = computed(() => primaryChild.value ? `${primaryChild.value.parentRole || 'Familia'} de ${studentFirstName.value}` : 'Cuenta familiar')
 const institution = computed(() => personasInstitutionName(theme.value))
 const institutionLogo = computed(() => personasInstitutionLogo(theme.value))
 const studentChips = computed<string[]>(() => [
@@ -165,8 +178,8 @@ function isActive(item: { to: string }) {
   --pa-border: rgba(var(--pa-primary-rgb), 0.2);
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
-  --pa-sidebar-width: 248px;
-  --pa-topbar-height: 84px;
+  --pa-sidebar-width: 308px;
+  --pa-topbar-height: 86px;
   --pa-content-gutter: clamp(16px, 1.9vw, 30px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
@@ -182,11 +195,11 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(10px, 1vw, 16px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(250px, 420px) minmax(190px, 250px) auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 460px) minmax(280px, 1fr) auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   overflow: visible;
-  padding: 0 var(--pa-content-gutter) 0 22px;
+  padding: 0 clamp(22px, 2.4vw, 42px) 0 clamp(22px, 2.3vw, 44px);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -219,8 +232,8 @@ function isActive(item: { to: string }) {
 }
 
 .pa-institution-logo {
-  height: 44px;
-  max-width: 54px;
+  height: 48px;
+  max-width: 58px;
   width: auto;
 }
 
@@ -231,8 +244,8 @@ function isActive(item: { to: string }) {
 }
 
 .pa-husky-pass-logo {
-  height: 46px;
-  max-width: 104px;
+  height: 48px;
+  max-width: 118px;
   width: auto;
 }
 
@@ -240,16 +253,16 @@ function isActive(item: { to: string }) {
   align-items: center;
   background: linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.035));
   border: 1px solid rgba(var(--pa-primary-rgb), 0.18);
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow: 0 12px 30px rgba(26, 48, 72, 0.06);
   display: grid;
   gap: 10px;
-  grid-template-columns: 46px minmax(0, 1fr) 14px;
+  grid-template-columns: 52px minmax(0, 1fr) 14px;
   justify-self: stretch;
   max-width: min(420px, 100%);
-  min-height: 56px;
+  min-height: 62px;
   min-width: 0;
-  padding: 6px 14px 6px 8px;
+  padding: 7px 16px 7px 8px;
 }
 
 .pa-student-avatar-wrap {
@@ -266,10 +279,10 @@ function isActive(item: { to: string }) {
   display: grid;
   font-size: 0.74rem;
   font-weight: 800;
-  height: 46px;
+  height: 52px;
   overflow: hidden;
   place-items: center;
-  width: 46px;
+  width: 52px;
 }
 
 .pa-presence-dot {
@@ -298,7 +311,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy small {
   color: #44b23f;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -313,7 +326,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy strong {
   color: var(--pa-gray);
-  font-size: 0.94rem;
+  font-size: 0.96rem;
   line-height: 1.2;
 }
 
@@ -331,7 +344,7 @@ function isActive(item: { to: string }) {
   border-radius: 999px;
   color: var(--pa-primary);
   flex: 0 0 auto;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 850;
   max-width: 118px;
   overflow: hidden;
@@ -349,7 +362,7 @@ function isActive(item: { to: string }) {
 .pa-topbar-quick-nav {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   justify-content: end;
   min-width: 0;
 }
@@ -362,15 +375,23 @@ function isActive(item: { to: string }) {
   box-shadow: 0 10px 26px rgba(26, 48, 72, 0.055);
   color: #24324b;
   display: inline-flex;
-  flex: 1 1 0;
-  font-size: 0.76rem;
+  flex: 0 1 auto;
+  font-size: 0.78rem;
   font-weight: 850;
-  gap: 7px;
+  gap: 9px;
   justify-content: center;
-  min-height: 46px;
-  min-width: 0;
-  padding: 0 11px;
+  min-height: 58px;
+  min-width: 128px;
+  padding: 0 18px;
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+}
+
+.pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'] {
+  min-width: 164px;
+}
+
+.pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
+  min-width: 118px;
 }
 
 .pa-topbar-quick-nav a:hover,
@@ -395,7 +416,7 @@ function isActive(item: { to: string }) {
 .pa-topbar-controls {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   justify-content: flex-end;
   min-width: 0;
 }
@@ -408,11 +429,11 @@ function isActive(item: { to: string }) {
   box-shadow: 0 8px 22px rgba(26, 48, 72, 0.06);
   color: #536178;
   display: inline-flex;
-  height: 46px;
+  height: 54px;
   justify-content: center;
   position: relative;
   transition: border-color .18s ease, color .18s ease, transform .18s ease;
-  width: 46px;
+  width: 54px;
 }
 
 .pa-notification-link span {
@@ -436,6 +457,61 @@ function isActive(item: { to: string }) {
   border-color: rgba(var(--pa-primary-rgb), 0.28);
   color: var(--pa-primary);
   transform: translateY(-1px);
+}
+
+.pa-security-control {
+  align-items: center;
+  color: #4f5f77;
+  display: inline-grid;
+  font-size: .68rem;
+  font-weight: 800;
+  gap: 5px;
+  justify-items: center;
+  line-height: 1;
+  min-width: 64px;
+}
+
+.pa-security-control > span {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e6ebef;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(26, 48, 72, 0.055);
+  display: inline-flex;
+  height: 54px;
+  justify-content: center;
+  width: 54px;
+}
+
+.pa-security-control:hover {
+  color: var(--pa-primary);
+}
+
+.pa-security-control:hover > span {
+  border-color: rgba(var(--pa-primary-rgb), .28);
+}
+
+.pa-topbar-controls :deep(.account-trigger) {
+  border-radius: 20px;
+  min-height: 58px;
+  min-width: clamp(212px, 16vw, 260px);
+  padding: 5px 13px 5px 6px;
+}
+
+.pa-topbar-controls :deep(.account-trigger img),
+.pa-topbar-controls :deep(.account-trigger .avatar) {
+  border-radius: 15px;
+  height: 48px;
+  width: 48px;
+}
+
+.pa-topbar-controls :deep(.account-copy strong) {
+  font-size: .82rem;
+  max-width: 150px;
+}
+
+.pa-topbar-controls :deep(.account-copy small) {
+  max-width: 150px;
 }
 
 .pa-product-layout {
@@ -625,15 +701,15 @@ function isActive(item: { to: string }) {
 
 @media (max-width: 1399px) {
   .pa-shell-app {
-    --pa-sidebar-width: 236px;
-    --pa-topbar-height: 80px;
+    --pa-sidebar-width: 282px;
+    --pa-topbar-height: 82px;
     --pa-content-gutter: clamp(14px, 1.7vw, 24px);
   }
 
   .pa-product-topbar {
     gap: 12px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) minmax(176px, 224px) auto;
-    padding-left: 16px;
+    grid-template-columns: var(--pa-sidebar-width) minmax(330px, 430px) minmax(260px, 1fr) auto;
+    padding-left: 24px;
   }
 
   .pa-topbar-brand-zone {
@@ -641,7 +717,7 @@ function isActive(item: { to: string }) {
   }
 
   .pa-husky-pass-logo {
-    max-width: 96px;
+    max-width: 108px;
   }
 
   .pa-product-nav {
@@ -673,27 +749,43 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-context {
-    grid-template-columns: 46px minmax(0, 1fr);
+    grid-template-columns: 48px minmax(0, 1fr);
     padding-right: 12px;
   }
 }
 
 @media (max-width: 1240px) and (min-width: 1181px) {
   .pa-product-topbar {
-    grid-template-columns: var(--pa-sidebar-width) minmax(230px, 1fr) auto auto;
+    grid-template-columns: var(--pa-sidebar-width) minmax(300px, 1fr) auto auto;
   }
 
-  .pa-topbar-quick-nav a {
+  .pa-topbar-quick-nav a,
+  .pa-topbar-quick-nav a[data-product-nav='topbar-comunicados'],
+  .pa-topbar-quick-nav a[data-product-nav='topbar-pagos'] {
     flex: 0 0 auto;
     gap: 0;
-    height: 46px;
-    min-width: 46px;
+    height: 52px;
+    min-width: 52px;
     padding: 0;
-    width: 46px;
+    width: 52px;
   }
 
-  .pa-topbar-quick-nav span {
+  .pa-topbar-quick-nav span,
+  .pa-security-control small {
     display: none;
+  }
+
+  .pa-security-control {
+    min-width: 52px;
+  }
+
+  .pa-security-control > span {
+    height: 52px;
+    width: 52px;
+  }
+
+  .pa-topbar-controls :deep(.account-trigger) {
+    min-width: 190px;
   }
 }
 
@@ -711,11 +803,15 @@ function isActive(item: { to: string }) {
   }
 
   .pa-product-topbar {
-    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) auto;
+    grid-template-columns: var(--pa-sidebar-width) minmax(280px, 1fr) auto;
   }
 
   .pa-topbar-quick-nav {
     display: none;
+  }
+
+  .pa-topbar-controls :deep(.account-trigger) {
+    min-width: 190px;
   }
 
   .pa-help-card {
@@ -765,6 +861,7 @@ function isActive(item: { to: string }) {
   .pa-student-context,
   .pa-topbar-quick-nav,
   .pa-topbar-icon-link,
+  .pa-security-control,
   .pa-product-nav {
     display: none;
   }
@@ -823,13 +920,29 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-context {
-    grid-template-columns: 40px minmax(0, 1fr) 14px;
+    grid-template-columns: 42px minmax(0, 1fr) 14px;
     padding-block: 5px;
   }
 
   .pa-student-avatar {
-    height: 44px;
-    width: 44px;
+    height: 42px;
+    width: 42px;
+  }
+
+  .pa-topbar-icon-link,
+  .pa-security-control > span {
+    height: 48px;
+    width: 48px;
+  }
+
+  .pa-topbar-controls :deep(.account-trigger) {
+    min-height: 52px;
+  }
+
+  .pa-topbar-controls :deep(.account-trigger img),
+  .pa-topbar-controls :deep(.account-trigger .avatar) {
+    height: 42px;
+    width: 42px;
   }
 
   .pa-product-nav {

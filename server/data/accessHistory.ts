@@ -8,7 +8,9 @@ import type {
   AccessHistoryRange,
   AccessHistoryStudent,
   AdminAccessHistoryResponse,
-  FamilyAccessHistoryResponse
+  FamilyAccessHistoryResponse,
+  FamilyExpressAccessHistoryResponse,
+  ExpressAccessHistoryItem
 } from '~/types/accessHistory'
 import type { AttendanceChild } from '~/types/attendance'
 import type { AppSessionUser } from '~/types/session'
@@ -252,6 +254,7 @@ async function queryAccessRows(input: {
   userIds?: number[]
   search?: string | null
   limit?: number
+  indice?: number | null
 }) {
   const where = [
     'A.timestamp BETWEEN ? AND ?',
@@ -262,6 +265,12 @@ async function queryAccessRows(input: {
   if (input.userIds?.length) {
     where.push(`P.user_id IN (${input.userIds.map(() => '?').join(',')})`)
     params.push(...input.userIds)
+  }
+
+  const indice = Number(input.indice || 0)
+  if (Number.isInteger(indice) && indice > 0) {
+    where.push('P.indice = ?')
+    params.push(indice)
   }
 
   const search = clean(input.search)
@@ -350,6 +359,75 @@ export async function getFamilyAccessHistory(user: AppSessionUser, input: {
     selectedChild: selected,
     children,
     ...grouped
+  }
+}
+
+
+export async function getFamilyExpressAccessHistory(user: AppSessionUser, input: {
+  matricula?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  limit?: number | null
+} = {}): Promise<FamilyExpressAccessHistoryResponse> {
+  const range = resolveAccessHistoryRange(input)
+  const { selected, children } = await resolveAttendanceChild(user, input.matricula)
+  const childMatricula = normalizeMatricula(selected.matricula)
+  const childByMatricula = new Map(children.map((child) => [normalizeMatricula(child.matricula), child]))
+  const users = await userIdsForMatriculas([childMatricula])
+  const emptySummary = { days: 0, entries: 0, exits: 0, uniquePeople: 0, students: 0 }
+  const safeLimit = Math.min(Math.max(Number(input.limit || 6), 1), 25)
+
+  if (!users.length) {
+    return {
+      scope: 'family-express',
+      range,
+      selectedChild: selected,
+      children,
+      items: [],
+      people: [],
+      summary: emptySummary
+    }
+  }
+
+  const rows = await queryAccessRows({
+    range,
+    userIds: users.map((row) => Number(row.id)),
+    limit: safeLimit,
+    indice: 4
+  })
+  const items: ExpressAccessHistoryItem[] = []
+  const people = new Map<number, AccessHistoryPerson>()
+  const dates = new Set<string>()
+
+  for (const row of rows) {
+    const mapped = rowToAction(row)
+    if (!mapped) continue
+    const knownChild = childByMatricula.get(normalizeMatricula(row.matricula))
+    const student = knownChild ? studentFromRow(row, knownChild) : mapped.student
+    const action = mapped.action
+    items.push({
+      key: `${student.matricula}:${action.date}:${action.id}`,
+      student,
+      action
+    })
+    people.set(action.person.id, action.person)
+    dates.add(action.date)
+  }
+
+  return {
+    scope: 'family-express',
+    range,
+    selectedChild: selected,
+    children,
+    items,
+    people: Array.from(people.values()).sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    summary: {
+      days: dates.size,
+      entries: items.filter((item) => item.action.type === 'entrada').length,
+      exits: items.filter((item) => item.action.type === 'salida').length,
+      uniquePeople: people.size,
+      students: new Set(items.map((item) => item.student.matricula)).size
+    }
   }
 }
 

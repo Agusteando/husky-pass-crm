@@ -64,6 +64,22 @@ export interface FamilyAccessHistoryResponse {
   summary: AccessHistorySummary
 }
 
+export interface ExpressAccessHistoryItem {
+  key: string
+  student: AccessHistoryStudent
+  action: AccessHistoryAction
+}
+
+export interface FamilyExpressAccessHistoryResponse {
+  scope: 'family-express'
+  range: AccessHistoryRange
+  selectedChild: AttendanceChild
+  children: AttendanceChild[]
+  items: ExpressAccessHistoryItem[]
+  people: AccessHistoryPerson[]
+  summary: AccessHistorySummary
+}
+
 export interface AdminAccessHistoryResponse {
   scope: 'admin'
   range: AccessHistoryRange

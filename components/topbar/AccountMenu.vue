@@ -48,13 +48,16 @@ const props = withDefaults(defineProps<{
   experience: ExperienceName
   securityTo?: string
   presentation?: 'standard' | 'compact'
-}>(), { presentation: 'standard' })
+  profileName?: string | null
+  profileDetail?: string | null
+}>(), { presentation: 'standard', profileName: null, profileDetail: null })
 
 const route = useRoute()
 const open = ref(false)
 
-const profileName = computed(() => props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Usuario')
+const profileName = computed(() => props.profileName || props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Usuario')
 const profileDetail = computed(() => {
+  if (props.profileDetail) return props.profileDetail
   const user = props.session?.user
   if (!user) return ''
   if (user.kind === 'admin') return user.isSuperAdmin ? 'Super Admin' : (user.unidades[0] || 'Administración')

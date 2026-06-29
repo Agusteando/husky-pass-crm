@@ -132,28 +132,39 @@
         </section>
 
         <section class="express-history-panel" data-product-panel="pase-express-history" :data-state="expressAccessItems.length ? 'content' : expressSlot?.id ? 'active' : 'empty'">
-          <FamilyPersonasSectionHeading
-            title="Historial de accesos con Pase Express"
-            :description="expressHistoryDescription"
-            :meta="expressHistoryMeta"
-          />
+          <header class="express-history-header">
+            <span class="express-history-mark"><FamilyPersonasIcon name="clock" /></span>
+            <div class="express-history-title">
+              <h2>Historial de accesos con Pase Express</h2>
+              <p>Últimos pases temporales utilizados.</p>
+            </div>
+            <NuxtLink class="express-history-all" to="/familia/asistencia" aria-label="Ver historial completo de accesos">Ver todos</NuxtLink>
+          </header>
 
-          <div v-if="expressAccessItems.length" class="express-timeline" aria-label="Historial reciente de Pase Express">
-            <article v-for="item in expressAccessItems" :key="item.key" class="express-timeline-item" :data-type="item.action.type">
-              <span class="express-timeline-icon"><FamilyPersonasIcon :name="item.action.type === 'entrada' ? 'entry' : 'exit'" /></span>
-              <div class="express-timeline-copy">
-                <strong>{{ item.label }} con {{ item.action.person.name }}</strong>
-                <span>{{ formatAccessDate(item.action.timestamp || item.action.date) }} · {{ item.action.time }} · {{ item.action.person.parentesco || 'Pase Express' }}</span>
+          <div v-if="expressHistoryPending" class="express-history-grid" aria-hidden="true">
+            <div v-for="index in 3" :key="`express-skeleton-${index}`" class="express-access-card express-access-card-skeleton">
+              <span></span>
+              <div><strong></strong><em></em></div>
+            </div>
+          </div>
+
+          <div v-else-if="expressAccessItems.length" class="express-history-grid" aria-label="Historial reciente de Pase Express">
+            <article v-for="item in expressAccessItems" :key="item.key" class="express-access-card" :data-type="item.action.type">
+              <span class="express-access-icon"><FamilyPersonasIcon :name="item.action.type === 'entrada' ? 'entry' : 'exit'" /></span>
+              <div class="express-access-copy">
+                <strong>{{ item.action.person.name }}</strong>
+                <span>Pase usado · {{ formatExpressAccessDate(item.action) }}</span>
               </div>
-              <span class="express-timeline-status">Verificado</span>
+              <span class="express-access-status"><FamilyPersonasIcon name="check" /> Usado</span>
+              <span class="express-access-chevron" aria-hidden="true"><FamilyPersonasIcon name="chevron" /></span>
             </article>
           </div>
 
-          <div v-else class="express-history-empty">
-            <span class="express-history-icon"><FamilyPersonasIcon :name="expressSlot?.id ? 'clock' : 'history'" /></span>
+          <div v-else class="express-history-empty" aria-label="Sin accesos de Pase Express">
+            <span class="express-history-icon"><FamilyPersonasIcon name="history" /></span>
             <div>
-              <strong>{{ expressSlot?.id ? 'Pase Express listo para usarse' : 'Sin actividad temporal todavía' }}</strong>
-              <span>{{ expressSlot?.id ? 'Cuando se registre una entrada o salida con este pase, quedará visible aquí.' : 'Este historial se activará automáticamente cuando generes y usen un Pase Express.' }}</span>
+              <strong>Sin accesos de Pase Express</strong>
+              <span>{{ expressHistoryMeta }}</span>
             </div>
           </div>
         </section>
@@ -261,8 +272,7 @@ import { computed, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
-import type { AccessHistoryAction } from '~/types/accessHistory'
-import type { ParentAttendanceResponse } from '~/types/attendance'
+import type { AccessHistoryAction, FamilyExpressAccessHistoryResponse } from '~/types/accessHistory'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -304,31 +314,24 @@ const completedCount = computed(() => people.value.filter((person) => person.id)
 const completedRegularCount = computed(() => people.value.filter((person) => person.id && person.indice < 4).length)
 const registeredPeopleLabel = computed(() => completedRegularCount.value === 1 ? '1 persona registrada' : `${completedRegularCount.value} personas registradas`)
 const expressSlot = computed(() => people.value.find((person) => person.indice === 4) || null)
-const { data: attendanceOverview } = useFetch<ParentAttendanceResponse>('/api/family/attendance', {
-  query: computed(() => ({ matricula: primaryChild.value?.matricula || '' })),
-  timeout: 15000
+const { data: expressHistory, pending: expressHistoryPending } = useFetch<FamilyExpressAccessHistoryResponse>('/api/family/pase-express/history', {
+  query: computed(() => ({ matricula: primaryChild.value?.matricula || '', limit: 3 })),
+  timeout: 15000,
+  default: () => ({
+    scope: 'family-express',
+    range: { startDate: '', endDate: '' },
+    selectedChild: { matricula: '', name: '', plantelCode: '' },
+    children: [],
+    items: [],
+    people: [],
+    summary: { days: 0, entries: 0, exits: 0, uniquePeople: 0, students: 0 }
+  } as FamilyExpressAccessHistoryResponse)
 })
-const expressAccessItems = computed(() => {
-  const days = attendanceOverview.value?.accessHistory?.days || []
-  return days
-    .flatMap((day) => day.actions.map((action) => ({ day, action })))
-    .filter(({ action }) => Number(action.person.indice || 0) === 4)
-    .slice(0, 5)
-    .map(({ day, action }) => ({
-      key: `${day.key}-${action.id}`,
-      label: accessActionLabel(action),
-      action
-    }))
-})
+const expressAccessItems = computed(() => expressHistory.value?.items || [])
 const expressHistoryMeta = computed(() => {
   if (expressAccessItems.value.length === 1) return '1 movimiento'
   if (expressAccessItems.value.length > 1) return `${expressAccessItems.value.length} movimientos`
-  return expressSlot.value?.id ? 'Pendiente de uso' : 'Sin pase activo'
-})
-const expressHistoryDescription = computed(() => {
-  if (expressAccessItems.value.length) return `Visibilidad reciente sobre quién usó un pase temporal para ${studentFirstName.value}.`
-  if (expressSlot.value?.id) return 'El pase temporal está preparado; aquí aparecerán sus entradas o salidas cuando se registren.'
-  return 'Crea un pase temporal solo cuando alguien fuera de tu red permanente necesite recoger al alumno.'
+  return expressSlot.value?.id ? 'Pase activo, sin uso registrado' : 'Sin pase activo'
 })
 const ambassadorState = computed(() => {
   if (!studentPhoto.value) {
@@ -421,14 +424,17 @@ watch(() => people.value.map((person) => `${person.id || 'empty'}:${person.foto 
   void refreshMarbeteReadiness()
 }, { immediate: true })
 
-function accessActionLabel(action: AccessHistoryAction) {
-  return action.type === 'entrada' ? 'Entrada registrada' : 'Salida registrada'
-}
-function formatAccessDate(value?: string | null) {
-  if (!value) return 'Fecha no disponible'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+function formatExpressAccessDate(action: AccessHistoryAction) {
+  const timestamp = String(action.timestamp || `${action.date} ${action.time || ''}`).trim()
+  const date = new Date(timestamp.includes('T') ? timestamp : timestamp.replace(' ', 'T'))
+  if (Number.isNaN(date.getTime())) return [action.date, action.time].filter(Boolean).join(', ')
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(date)
 }
 
 function fullName(person: AuthorizedPerson | Partial<AuthorizedPerson>) {
@@ -1081,98 +1087,208 @@ function normalizeIndice(value: unknown) {
 }
 
 .express-history-panel {
-  background:
-    radial-gradient(circle at 100% 0, rgba(var(--pa-primary-rgb), .08), transparent 14rem),
-    rgba(255, 255, 255, .94);
+  background: rgba(255, 255, 255, .96);
   border: 1px solid #e2e8ec;
   border-radius: 24px;
-  box-shadow: 0 18px 48px rgba(30, 53, 78, .06);
+  box-shadow: 0 18px 48px rgba(30, 53, 78, .055);
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 1.8vw, 24px);
+}
+
+.express-history-header {
+  align-items: center;
   display: grid;
   gap: 14px;
-  padding: 18px;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
 }
 
-.express-timeline {
-  display: grid;
-  gap: 9px;
-}
-
-.express-timeline-item {
+.express-history-mark {
   align-items: center;
-  background: #fff;
-  border: 1px solid #e4ebef;
-  border-radius: 16px;
-  display: grid;
-  gap: 11px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  min-height: 64px;
-  padding: 10px 12px;
-}
-
-.express-timeline-icon,
-.express-history-icon {
-  align-items: center;
-  background: var(--pa-soft);
-  border: 1px solid var(--pa-border);
-  border-radius: 999px;
-  color: var(--pa-primary);
+  background: #f2fbf2;
+  border: 1px solid #dcefd8;
+  border-radius: 18px;
+  color: #55a63b;
   display: inline-flex;
-  height: 38px;
+  height: 50px;
   justify-content: center;
-  width: 38px;
+  width: 50px;
 }
 
-.express-timeline-item[data-type='salida'] .express-timeline-icon {
-  background: #fff3db;
-  border-color: #f2d18f;
-  color: #93610f;
-}
-
-.express-timeline-copy {
+.express-history-title {
   display: grid;
-  gap: 3px;
+  gap: 5px;
   min-width: 0;
 }
 
-.express-timeline-copy strong,
-.express-timeline-copy span {
+.express-history-title h2,
+.express-history-title p {
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.express-timeline-copy strong {
-  color: #26334b;
-  font-size: .84rem;
-  font-weight: 850;
-}
-
-.express-timeline-copy span {
-  color: #747f90;
-  font-size: .74rem;
-  font-weight: 700;
-}
-
-.express-timeline-status {
-  background: #f2faee;
-  border: 1px solid #cfe6c3;
-  border-radius: 999px;
-  color: #4a8d32;
-  font-size: .68rem;
-  font-weight: 850;
-  padding: 5px 9px;
   white-space: nowrap;
+}
+
+.express-history-title h2 {
+  color: #22304a;
+  font-size: clamp(1rem, 1.15vw, 1.18rem);
+  font-weight: 850;
+}
+
+.express-history-title p {
+  color: #6b7587;
+  font-size: .78rem;
+  font-weight: 750;
+}
+
+.express-history-all {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e3e8ec;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(26, 48, 72, .045);
+  color: #24324b;
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 850;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.express-history-all:hover {
+  border-color: rgba(var(--pa-primary-rgb), .24);
+  color: var(--pa-primary);
+}
+
+.express-history-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.express-access-card {
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff, #fbfcfd);
+  border: 1px solid #e7ecef;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(26, 48, 72, .045);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 44px minmax(0, 1fr) auto 16px;
+  min-height: 76px;
+  padding: 12px 14px;
+}
+
+.express-access-icon,
+.express-history-icon {
+  align-items: center;
+  background: #f3fbf2;
+  border: 1px solid #cfe9c9;
+  border-radius: 13px;
+  color: #4ba737;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.express-access-card[data-type='salida'] .express-access-icon {
+  background: #f4fbff;
+  border-color: rgba(var(--pa-primary-rgb), .18);
+  color: var(--pa-primary);
+}
+
+.express-access-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.express-access-copy strong,
+.express-access-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.express-access-copy strong {
+  color: #22304a;
+  font-size: .83rem;
+  font-weight: 850;
+}
+
+.express-access-copy span {
+  color: #627086;
+  font-size: .72rem;
+  font-weight: 720;
+}
+
+.express-access-status {
+  align-items: center;
+  color: #328827;
+  display: inline-flex;
+  font-size: .68rem;
+  font-weight: 900;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.express-access-status :deep(.pa-icon) {
+  background: #e9f8e7;
+  border-radius: 999px;
+  color: #4aa53a;
+  height: 18px;
+  padding: 3px;
+  width: 18px;
+}
+
+.express-access-chevron {
+  color: #536178;
+  display: inline-flex;
+}
+
+.express-access-card-skeleton span,
+.express-access-card-skeleton strong,
+.express-access-card-skeleton em {
+  animation: expressPulse 1.25s ease-in-out infinite;
+  background: #eef3f6;
+  border-radius: 999px;
+  display: block;
+}
+
+.express-access-card-skeleton > span {
+  height: 44px;
+  width: 44px;
+}
+
+.express-access-card-skeleton strong {
+  height: 12px;
+  width: 60%;
+}
+
+.express-access-card-skeleton em {
+  height: 10px;
+  margin-top: 8px;
+  width: 88%;
+}
+
+@keyframes expressPulse {
+  0%, 100% { opacity: .55; }
+  50% { opacity: 1; }
 }
 
 .express-history-empty {
   align-items: center;
   background: linear-gradient(135deg, #fbfdfd, #fff);
-  border: 1px dashed rgba(var(--pa-primary-rgb), .28);
-  border-radius: 17px;
+  border: 1px dashed #dce5eb;
+  border-radius: 18px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 42px minmax(0, 1fr);
-  min-height: 74px;
-  padding: 13px 14px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 80px;
+  padding: 14px;
 }
 
 .express-history-empty strong,
@@ -1183,13 +1299,13 @@ function normalizeIndice(value: unknown) {
 .express-history-empty strong {
   color: #26334b;
   font-size: .86rem;
+  font-weight: 850;
 }
 
 .express-history-empty span {
   color: #717c8e;
-  font-size: .76rem;
-  font-weight: 700;
-  line-height: 1.45;
+  font-size: .74rem;
+  font-weight: 720;
   margin-top: 3px;
 }
 
@@ -1410,13 +1526,29 @@ function normalizeIndice(value: unknown) {
   }
 }
 
+@media (max-width: 1080px) {
+  .express-history-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 760px) {
-  .express-timeline-item {
-    align-items: start;
-    grid-template-columns: 38px minmax(0, 1fr);
+  .express-history-header {
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
-  .express-timeline-status {
+  .express-history-all {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .express-access-card {
+    align-items: start;
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .express-access-status,
+  .express-access-chevron {
     grid-column: 2;
     justify-self: start;
   }

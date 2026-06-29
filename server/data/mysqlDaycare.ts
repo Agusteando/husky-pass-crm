@@ -35,6 +35,26 @@ function normalizeString(value: unknown) {
   return normalized || null
 }
 
+function compactFamilyName(...parts: unknown[]) {
+  return parts.map((part) => normalizeString(part)).filter(Boolean).join(' ')
+}
+
+function normalizedEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function parentIdentityFromRow(row: RowDataPacket, user?: AppSessionUser | null) {
+  const userEmail = normalizedEmail(user?.email)
+  const fatherEmail = normalizedEmail(row.email_padre)
+  const motherEmail = normalizedEmail(row.email_madre)
+  const fatherName = compactFamilyName(row.nombre_padre, row.apellido_paterno_padre, row.apellido_materno_padre)
+  const motherName = compactFamilyName(row.nombre_madre, row.apellido_paterno_madre, row.apellido_materno_madre)
+
+  if (userEmail && motherEmail && userEmail === motherEmail && motherName) return { parentName: motherName, parentRole: 'Madre' as const }
+  if (userEmail && fatherEmail && userEmail === fatherEmail && fatherName) return { parentName: fatherName, parentRole: 'Padre' as const }
+  return { parentName: null, parentRole: null }
+}
+
 const LIGHTWEIGHT_PHOTO_MAX_BYTES = 2048
 
 function lightweightPhotoSelect(column: string) {
@@ -154,9 +174,10 @@ function completeParentSignature(row: Partial<Record<ParentNameField, unknown>> 
   return `${father}|${mother}`
 }
 
-function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbackCampus?: string | null): AuthorizedChild {
+function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbackCampus?: string | null, user?: AppSessionUser | null): AuthorizedChild {
   const matricula = normalizeMatricula(row.matricula) || null
   const isCurrent = matricula === currentMatricula
+  const parentIdentity = parentIdentityFromRow(row, user)
   return {
     id: row.user_id ? Number(row.user_id) : null,
     paternoA: row.apellido_paterno || null,
@@ -173,7 +194,9 @@ function mapMatriculaChild(row: RowDataPacket, currentMatricula: string, fallbac
     user_id: row.user_id ? Number(row.user_id) : null,
     isCurrent,
     canSwitch: Boolean(!isCurrent && row.user_id && matricula),
-    siblingMatch: isCurrent ? 'current' : 'parents'
+    siblingMatch: isCurrent ? 'current' : 'parents',
+    parentName: parentIdentity.parentName,
+    parentRole: parentIdentity.parentRole
   }
 }
 
@@ -433,6 +456,8 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${lightweightPhotoSelect(matriculaSelect(columnSet, 'foto'))} AS foto`,
     `${matriculaSelect(columnSet, PARENT_SIGNATURE_COLUMN)} AS parent_signature`,
     ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
+    `${matriculaSelect(columnSet, 'email_padre')} AS email_padre`,
+    `${matriculaSelect(columnSet, 'email_madre')} AS email_madre`,
     `${usersSelect(userColumnSet, 'id')} AS user_id`,
     `${usersSelect(userColumnSet, 'campus')} AS campus`
   ].join(',\n       ')
@@ -452,7 +477,7 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     return []
   }
 
-  const currentChild = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa)
+  const currentChild = mapMatriculaChild({ ...current, user_id: current.user_id || user.id, campus: current.campus || user.campus } as RowDataPacket, currentMatricula, user.campus || user.empresa, user)
   const unavailableCurrent = (context: Record<string, unknown>) => [{ ...currentChild, siblingMatch: 'unavailable' as const, canSwitch: false, siblingDiagnostics: context }]
 
   const missingParentColumns = REQUIRED_PARENT_NAME_FIELDS.filter((field) => !columnSet.has(field))
@@ -483,6 +508,9 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
     `${matriculaSelect(columnSet, 'grado')} AS grado`,
     `${matriculaSelect(columnSet, 'nivel')} AS nivel`,
     `${lightweightPhotoSelect(matriculaSelect(columnSet, 'foto'))} AS foto`,
+    ...REQUIRED_PARENT_NAME_FIELDS.map((field) => `${matriculaSelect(columnSet, field)} AS ${field}`),
+    `${matriculaSelect(columnSet, 'email_padre')} AS email_padre`,
+    `${matriculaSelect(columnSet, 'email_madre')} AS email_madre`,
     `${usersSelect(userColumnSet, 'id')} AS user_id`,
     `${usersSelect(userColumnSet, 'campus')} AS campus`
   ].join(',\n       ')
@@ -503,7 +531,7 @@ export async function getFamilyChildren(user: AppSessionUser): Promise<Authorize
   const children = [
     currentChild,
     ...candidates
-      .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa))
+      .map((row) => mapMatriculaChild(row, currentMatricula, user.campus || user.empresa, user))
       .filter((child) => {
         const key = child.matricula || String(child.user_id || '')
         if (!key || seen.has(key)) return false
