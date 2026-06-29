@@ -26,6 +26,11 @@
         </span>
       </section>
 
+      <div class="pa-topbar-ambassador" aria-label="Guía digital">
+        <FamilyPersonasAmbassador :theme="theme" variant="header" compact contained decorative />
+        <span>Tu guía de confianza</span>
+      </div>
+
       <div class="pa-topbar-controls">
         <NuxtLink class="pa-topbar-icon-link" :to="paSecurityRoute" aria-label="Abrir seguridad">
           <FamilyPersonasIcon name="security" />
@@ -50,16 +55,17 @@
           </NuxtLink>
         </nav>
 
-        <section class="pa-help-card" aria-label="Centro de ayuda">
-          <div class="pa-help-ambassador" aria-hidden="true">
-            <FamilyPersonasAmbassador :theme="theme" variant="help" compact contained decorative />
-          </div>
-          <div class="pa-help-copy">
-            <strong>¿Necesitas ayuda?</strong>
-            <span>Consulta la guía o contacta a tu colegio.</span>
-          </div>
+        <FamilyAmbassadorGuide
+          class="pa-sidebar-guide"
+          :theme="theme"
+          variant="help"
+          eyebrow="Acompañamiento"
+          title="Estoy aquí para ayudarte"
+          message="Te señalaré pendientes, siguientes pasos y mensajes importantes de la escuela."
+          compact
+        >
           <NuxtLink to="/familia/personas-autorizadas#ayuda">Centro de ayuda</NuxtLink>
-        </section>
+        </FamilyAmbassadorGuide>
       </aside>
 
       <section class="pa-route-content">
@@ -141,7 +147,7 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(16px, 1.5vw, 24px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 520px) minmax(280px, 1fr);
+  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 520px) minmax(160px, 1fr) auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
   padding: 0 var(--pa-content-gutter) 0 28px;
@@ -279,6 +285,24 @@ function isActive(item: { to: string }) {
   color: var(--pa-muted);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.pa-topbar-ambassador {
+  align-items: center;
+  color: var(--pa-primary);
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 850;
+  gap: 10px;
+  justify-self: end;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.pa-topbar-ambassador :deep(.pa-ambassador-card),
+.pa-topbar-ambassador :deep(.pa-ambassador-visual) {
+  height: 58px;
+  width: 58px;
 }
 
 .pa-topbar-controls {
@@ -502,7 +526,7 @@ function isActive(item: { to: string }) {
 
   .pa-product-topbar {
     gap: 16px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 480px) minmax(240px, 1fr);
+    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 480px) minmax(70px, 1fr) auto;
     padding-left: 18px;
   }
 
