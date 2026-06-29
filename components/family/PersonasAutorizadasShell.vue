@@ -301,8 +301,8 @@ function isActive(item: { to: string }) {
 
 .pa-topbar-ambassador :deep(.pa-ambassador-card),
 .pa-topbar-ambassador :deep(.pa-ambassador-visual) {
-  height: 58px;
-  width: 58px;
+  height: 64px;
+  width: 64px;
 }
 
 .pa-topbar-controls {

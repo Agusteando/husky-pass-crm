@@ -1,1 +1,1 @@
-Rediseña la experiencia familiar con embajador digital
+Ajusta el encuadre de embajadores para evitar recortes
