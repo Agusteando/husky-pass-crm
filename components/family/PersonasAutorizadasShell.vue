@@ -315,7 +315,7 @@ const studentSearchResults = computed<TopbarSearchResult[]>(() => children.value
   const matricula = normalizeMatricula(child.matricula)
   return {
     id: `student-${matricula || child.id || name}`,
-    kind: 'student',
+    kind: 'student' as const,
     label: name,
     detail: matricula || 'Estudiante',
     icon: 'person',
@@ -331,7 +331,7 @@ const personSearchResults = computed<TopbarSearchResult[]>(() => people.value
     const name = authorizedPersonName(person)
     return {
       id: `person-${person.id}`,
-      kind: 'person',
+      kind: 'person' as const,
       label: name,
       detail: person.parenP || 'Persona autorizada',
       icon: 'authorized',

@@ -1,1 +1,1 @@
-Rediseña topbar familiar con búsqueda contextual
+Corrige tipado de resultados en búsqueda superior
