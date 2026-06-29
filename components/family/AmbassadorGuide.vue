@@ -1,5 +1,5 @@
 <template>
-  <article class="pa-guide" :data-tone="tone" :data-compact="compact ? 'true' : 'false'">
+  <article class="pa-guide" :data-tone="tone" :data-compact="compact ? 'true' : 'false'" :style="guideVars">
     <div class="pa-guide-portrait" aria-hidden="true">
       <FamilyPersonasAmbassador :theme="theme" :variant="variant" contained compact decorative />
     </div>
@@ -13,10 +13,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PersonasTheme } from '~/types/daycare'
-import type { PersonasMascotVariant } from '~/utils/personasTheme'
+import { personasThemeStyle, resolvePersonasTheme, type PersonasMascotVariant } from '~/utils/personasTheme'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   theme?: PersonasTheme | null
   variant?: PersonasMascotVariant
   eyebrow?: string
@@ -29,6 +30,9 @@ withDefaults(defineProps<{
   tone: 'calm',
   compact: false
 })
+
+const resolvedTheme = computed(() => props.theme || resolvePersonasTheme({}))
+const guideVars = computed(() => personasThemeStyle(resolvedTheme.value))
 </script>
 
 <style scoped>

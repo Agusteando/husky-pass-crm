@@ -269,14 +269,17 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
 import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
+import type { ParentAttendanceResponse } from '~/types/attendance'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { personasLevelName, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const { data, refresh, pending, error: loadError } = usePersonasFamilyPeople()
+const { data: attendanceHistory } = useFetch<ParentAttendanceResponse>('/api/family/attendance', { key: 'pa-express-access-history', timeout: 45000 })
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -342,26 +345,57 @@ const journeyGuide = computed(() => {
     message: 'Mantén descargados los Husky Pass y usa Pase Express solo para situaciones temporales.'
   }
 })
+const expressAccessEvents = computed(() => {
+  const expressId = Number(expressSlot.value?.id || 0)
+  if (!expressId) return []
+  return (attendanceHistory.value?.accessHistory.days || [])
+    .flatMap((day) => (day.actions || [])
+      .filter((action) => Number(action.person.id) === expressId)
+      .map((action) => ({
+        key: `access-${action.id}`,
+        icon: action.type === 'salida' ? 'exit' : 'entry',
+        title: `${action.type === 'salida' ? 'Salida' : 'Entrada'} con Pase Express`,
+        detail: `${formatExpressAccessDate(action.date, action.time)} · ${action.person.name}`,
+        timestamp: action.timestamp
+      })))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 4)
+})
 const expressHistoryEvents = computed(() => {
   const person = expressSlot.value
   if (!person?.id) return []
   const name = fullName(person) || 'Persona temporal'
   const date = formatExpressDate(person.fechaP)
   const events = [
+    ...expressAccessEvents.value,
     { key: 'created', icon: 'check', title: 'Pase Express creado', detail: `${name}${date ? ` · ${date}` : ''}` }
   ]
   if (marbeteReady(person)) events.push({ key: 'ready', icon: 'marbete', title: 'Husky Pass temporal listo', detail: 'Disponible para descargar y presentar en el colegio.' })
   else events.push({ key: 'pending', icon: 'alert', title: 'Validación pendiente', detail: marbeteState(person) })
   return events
 })
-const expressHistoryIntro = computed(() => expressHistoryEvents.value.length
-  ? 'Actividad reciente del pase temporal registrado para este alumno.'
-  : 'Cuando crees un Pase Express, aquí verás su actividad para dar seguimiento con mayor confianza.')
-const expressHistoryMeta = computed(() => expressHistoryEvents.value.length ? 'Actividad temporal' : 'Sin pase activo')
-const expressHistoryGuideTitle = computed(() => expressHistoryEvents.value.length ? 'Pase temporal bajo seguimiento' : 'Aún no hay actividad temporal')
-const expressHistoryGuideMessage = computed(() => expressHistoryEvents.value.length
-  ? 'Este espacio resume lo que ya está disponible para que puedas coordinar la recogida sin incertidumbre.'
-  : 'Usa Pase Express cuando alguien fuera de tu lista permanente necesite recoger al alumno una sola vez.')
+const expressHistoryIntro = computed(() => {
+  if (expressAccessEvents.value.length) return 'Entradas y salidas reales registradas con el pase temporal.'
+  return expressHistoryEvents.value.length
+    ? 'Actividad reciente del pase temporal registrado para este alumno.'
+    : 'Cuando crees un Pase Express, aquí verás su actividad para dar seguimiento con mayor confianza.'
+})
+const expressHistoryMeta = computed(() => {
+  if (expressAccessEvents.value.length === 1) return '1 acceso registrado'
+  if (expressAccessEvents.value.length > 1) return `${expressAccessEvents.value.length} accesos registrados`
+  return expressHistoryEvents.value.length ? 'Actividad temporal' : 'Sin pase activo'
+})
+const expressHistoryGuideTitle = computed(() => expressAccessEvents.value.length ? 'Ya hay movimiento con Pase Express' : expressHistoryEvents.value.length ? 'Pase temporal bajo seguimiento' : 'Aún no hay actividad temporal')
+const expressHistoryGuideMessage = computed(() => {
+  if (expressAccessEvents.value.length) return 'Tu embajador registra aquí quién usó el pase temporal y cuándo ocurrió la entrada o salida.'
+  return expressHistoryEvents.value.length
+    ? 'Este espacio resume lo que ya está disponible para que puedas coordinar la recogida sin incertidumbre.'
+    : 'Usa Pase Express cuando alguien fuera de tu lista permanente necesite recoger al alumno una sola vez.'
+})
+
+function formatExpressAccessDate(date: string, time: string) {
+  return `${new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${date}T12:00:00`))} · ${time}`
+}
 
 function formatExpressDate(value?: string | null) {
   if (!value) return ''

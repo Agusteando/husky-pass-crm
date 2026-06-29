@@ -22,6 +22,10 @@
             <NuxtLink class="btn btn-primary" to="/familia/daycare/avisos">Revisar avisos</NuxtLink>
             <NuxtLink class="btn btn-secondary" to="/familia/daycare/calendario">Ver calendario</NuxtLink>
           </div>
+
+          <div class="command-ambassador" aria-hidden="true">
+            <FamilyPersonasAmbassador :theme="daycareTheme" variant="hero" contained decorative />
+          </div>
         </article>
 
         <aside class="command-side">
@@ -59,6 +63,17 @@
           </nav>
         </aside>
       </section>
+
+      <FamilyAmbassadorGuide
+        class="daycare-guidance"
+        :theme="daycareTheme"
+        :tone="daycareGuide.tone"
+        :variant="daycareGuide.variant"
+        :eyebrow="daycareGuide.eyebrow"
+        :title="daycareGuide.title"
+        :message="daycareGuide.message"
+        compact
+      />
 
       <section class="today-grid">
         <article class="card focus-panel">
@@ -133,6 +148,7 @@ import { useRuntimeConfig, useFetch } from 'nuxt/app'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, formatDate, stripHtml } from '~/utils/daycare'
 import { hasFamilyScope } from '~/utils/sessionScopes'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 
 definePageMeta({ layout: 'family', middleware: ['family', 'daycare-family'] })
 
@@ -145,9 +161,33 @@ const { data: dashboard, pending, error } = useFetch<{
   valor: Array<{ valor: string }>
 }>('/api/daycare/family/dashboard', { timeout: 15000 })
 
+const daycareTheme = computed(() => resolvePersonasTheme({ themeKey: 'daycare' }))
 const canUsePersonasAutorizadas = computed(() => hasFamilyScope(session.value?.user, 'personasAutorizadas'))
 const latestNotice = computed(() => dashboard.value?.circulares?.[0] || null)
 const nextCalendar = computed(() => dashboard.value?.calendario?.[0] || null)
+const daycareGuide = computed(() => {
+  if (dashboard.value?.tareas?.length) return {
+    tone: 'notice' as const,
+    variant: 'help' as const,
+    eyebrow: 'Siguiente paso',
+    title: 'Hay tarea lista para revisar',
+    message: 'Empieza por la tarea más reciente y conserva este espacio como tu guía diaria de guardería.'
+  }
+  if (latestNotice.value) return {
+    tone: 'calm' as const,
+    variant: 'preview' as const,
+    eyebrow: 'Prioridad de hoy',
+    title: 'El comunicado más reciente queda destacado',
+    message: 'Tu embajador te ayuda a identificar primero lo importante y después explorar el resto de publicaciones.'
+  }
+  return {
+    tone: 'success' as const,
+    variant: 'empty' as const,
+    eyebrow: 'Todo tranquilo',
+    title: 'Sin pendientes urgentes por ahora',
+    message: 'Cuando la sala publique tareas, avisos o eventos, aparecerán aquí con una ruta clara de revisión.'
+  }
+})
 const salaLine = computed(() => {
   const user = session.value?.user
   return [user?.scopes.daycare?.unidad || 'Unidad', user?.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' · ')
@@ -182,7 +222,7 @@ const salaLine = computed(() => {
 }
 
 .command-main::after {
-  background: url('/brand/husky-pass-logo.png') center / contain no-repeat;
+  background: radial-gradient(circle, rgba(255, 255, 255, .24), transparent 62%);
   content: '';
   height: 220px;
   opacity: .16;
@@ -190,6 +230,26 @@ const salaLine = computed(() => {
   right: 28px;
   top: 22px;
   width: 220px;
+}
+
+.command-ambassador {
+  bottom: -8px;
+  height: min(78%, 250px);
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  right: clamp(8px, 3vw, 38px);
+  width: min(34%, 250px);
+}
+
+.command-ambassador :deep(.pa-ambassador-card),
+.command-ambassador :deep(.pa-ambassador-visual) {
+  height: 100%;
+  width: 100%;
+}
+
+.daycare-guidance {
+  max-width: none;
 }
 
 .command-copy,
@@ -492,6 +552,13 @@ const salaLine = computed(() => {
     right: -18px;
     top: 22px;
     width: 150px;
+  }
+
+  .command-ambassador {
+    bottom: -10px;
+    opacity: .78;
+    right: -18px;
+    width: 132px;
   }
 
   .command-copy h1 {
