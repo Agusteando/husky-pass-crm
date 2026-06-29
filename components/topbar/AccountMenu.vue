@@ -110,10 +110,11 @@ async function logout() {
 }
 
 .account-trigger {
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(26, 48, 72, 0.06);
-  min-height: 52px;
-  padding: 5px 11px 5px 5px;
+  border-radius: 22px;
+  box-shadow: 0 10px 28px rgba(26, 48, 72, 0.06);
+  min-height: 62px;
+  min-width: min(330px, 34vw);
+  padding: 7px 16px 7px 7px;
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
@@ -126,9 +127,9 @@ async function logout() {
 
 .account-trigger img,
 .avatar {
-  border-radius: 13px;
-  height: 40px;
-  width: 40px;
+  border-radius: 16px;
+  height: 48px;
+  width: 48px;
 }
 
 .avatar {
@@ -159,12 +160,12 @@ async function logout() {
 
 .account-copy strong {
   color: #26334b;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
 }
 
 .account-copy small {
   color: #717b8c;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
 }
 
 .account-trigger :deep(.pa-icon) {
@@ -228,6 +229,7 @@ async function logout() {
   .account-trigger {
     border-radius: 14px;
     min-height: 44px;
+    min-width: 0;
     padding: 4px;
   }
 

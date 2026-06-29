@@ -5,6 +5,7 @@
     :data-variant="variant"
     :data-compact="compact ? 'true' : 'false'"
     :data-contained="contained ? 'true' : 'false'"
+    :data-crop="cropMode"
     :aria-label="decorative ? undefined : computedAlt"
   >
     <span v-if="imageSrc" class="pa-ambassador-visual">
@@ -49,12 +50,20 @@ const resolvedTheme = computed(() => props.theme || neutralTheme)
 const imageSrc = computed(() => personasMascot(resolvedTheme.value, props.variant))
 const levelName = computed(() => personasLevelName(resolvedTheme.value))
 const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Personas Autorizadas`)
+const cropMode = computed(() => {
+  if (props.contained && props.compact && props.variant === 'help') return 'peek'
+  if (props.contained && props.variant === 'hero') return 'header'
+  if (props.compact) return 'badge'
+  return props.variant
+})
 </script>
 
 <style scoped>
 .pa-ambassador-card {
   --ambassador-height: 132px;
   --ambassador-width: 136px;
+  --ambassador-image-scale: 1;
+  --ambassador-object-position: center bottom;
   align-items: center;
   display: grid;
   gap: 8px;
@@ -79,11 +88,44 @@ const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Pers
   display: block;
   filter: drop-shadow(0 8px 12px rgba(20, 45, 66, 0.1));
   height: 100%;
-  max-height: 100%;
-  max-width: 100%;
+  max-height: none;
+  max-width: none;
   object-fit: contain;
-  object-position: center bottom;
+  object-position: var(--ambassador-object-position);
+  transform: scale(var(--ambassador-image-scale));
+  transform-origin: var(--ambassador-object-position);
   width: 100%;
+}
+
+.pa-ambassador-card[data-crop='hero'] {
+  --ambassador-image-scale: 0.94;
+  --ambassador-object-position: center bottom;
+}
+
+.pa-ambassador-card[data-crop='header'] {
+  --ambassador-image-scale: 1.08;
+  --ambassador-object-position: center bottom;
+}
+
+.pa-ambassador-card[data-crop='badge'],
+.pa-ambassador-card[data-crop='empty'] {
+  --ambassador-image-scale: 0.9;
+  --ambassador-object-position: center bottom;
+}
+
+.pa-ambassador-card[data-crop='peek'] {
+  --ambassador-image-scale: 1.32;
+  --ambassador-object-position: center bottom;
+}
+
+.pa-ambassador-card[data-crop='preview'] {
+  --ambassador-image-scale: 0.86;
+  --ambassador-object-position: center center;
+}
+
+.pa-ambassador-card[data-crop='transition'] {
+  --ambassador-image-scale: 0.96;
+  --ambassador-object-position: center bottom;
 }
 
 .pa-ambassador-card[data-variant='header'],
@@ -109,6 +151,10 @@ const computedAlt = computed(() => props.alt || `${levelName.value.spanish} Pers
   height: 100%;
   overflow: hidden;
   width: 100%;
+}
+
+.pa-ambassador-card[data-contained='true'] .pa-ambassador-visual {
+  padding: 0;
 }
 
 .pa-ambassador-card figcaption {

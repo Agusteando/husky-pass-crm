@@ -12,9 +12,12 @@
       </div>
 
       <section v-if="primaryChild" class="pa-student-context" data-product-panel="active-student" aria-label="Contexto del alumno">
-        <span class="pa-student-avatar">
-          <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
-          <b v-else>{{ studentInitials }}</b>
+        <span class="pa-student-avatar-wrap">
+          <span class="pa-student-avatar">
+            <FamilyPersonasProcessedPhoto v-if="studentPhoto" :src="studentPhoto" namespace="pa-active-student" />
+            <b v-else>{{ studentInitials }}</b>
+          </span>
+          <span class="pa-presence-dot" aria-hidden="true"></span>
         </span>
         <span class="pa-student-copy">
           <small>Estás consultando a</small>
@@ -23,7 +26,12 @@
         </span>
       </section>
 
-      <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" />
+      <div class="pa-topbar-controls">
+        <NuxtLink class="pa-topbar-icon-link" :to="paSecurityRoute" aria-label="Abrir seguridad">
+          <FamilyPersonasIcon name="security" />
+        </NuxtLink>
+        <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" />
+      </div>
     </header>
 
     <div class="pa-product-layout">
@@ -116,8 +124,8 @@ function isActive(item: { to: string }) {
   --pa-border: rgba(var(--pa-primary-rgb), 0.2);
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
-  --pa-sidebar-width: 224px;
-  --pa-topbar-height: 80px;
+  --pa-sidebar-width: 260px;
+  --pa-topbar-height: 96px;
   --pa-content-gutter: clamp(18px, 2.1vw, 34px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
@@ -133,10 +141,10 @@ function isActive(item: { to: string }) {
   border-bottom: 1px solid #e7ebee;
   display: grid;
   gap: clamp(16px, 1.5vw, 24px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(0, 1fr) auto;
+  grid-template-columns: var(--pa-sidebar-width) minmax(360px, 520px) minmax(280px, 1fr);
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
-  padding: 0 var(--pa-content-gutter) 0 18px;
+  padding: 0 var(--pa-content-gutter) 0 28px;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -189,31 +197,49 @@ function isActive(item: { to: string }) {
 .pa-student-context {
   align-items: center;
   background: linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.035));
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.12);
-  border-radius: 18px;
-  box-shadow: 0 12px 30px rgba(26, 48, 72, 0.06);
+  border: 1px solid rgba(var(--pa-primary-rgb), 0.18);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(26, 48, 72, 0.07);
   display: grid;
-  gap: 12px;
-  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 13px;
+  grid-template-columns: 54px minmax(0, 1fr);
   justify-self: start;
-  max-width: min(560px, 100%);
+  max-width: min(520px, 100%);
+  min-height: 64px;
   min-width: 0;
-  padding: 7px 14px 7px 7px;
+  padding: 8px 18px 8px 10px;
+}
+
+.pa-student-avatar-wrap {
+  display: grid;
+  position: relative;
 }
 
 .pa-student-avatar {
   aspect-ratio: 1;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 14px;
+  border-radius: 16px;
   color: var(--pa-primary);
   display: grid;
   font-size: 0.76rem;
   font-weight: 800;
-  height: 46px;
+  height: 54px;
   overflow: hidden;
   place-items: center;
-  width: 46px;
+  width: 54px;
+}
+
+.pa-presence-dot {
+  background: #48b946;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(47, 139, 42, 0.25);
+  height: 14px;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 14px;
 }
 
 .pa-student-avatar img {
@@ -229,7 +255,7 @@ function isActive(item: { to: string }) {
 }
 
 .pa-student-copy small {
-  color: var(--pa-primary);
+  color: #44b23f;
   font-size: 0.66rem;
   font-weight: 850;
   letter-spacing: 0.07em;
@@ -245,7 +271,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy strong {
   color: var(--pa-gray);
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   line-height: 1.2;
 }
 
@@ -253,6 +279,34 @@ function isActive(item: { to: string }) {
   color: var(--pa-muted);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.pa-topbar-controls {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.pa-topbar-icon-link {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e6ebef;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(26, 48, 72, 0.06);
+  color: #536178;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  transition: border-color .18s ease, color .18s ease, transform .18s ease;
+  width: 48px;
+}
+
+.pa-topbar-icon-link:hover {
+  border-color: rgba(var(--pa-primary-rgb), 0.28);
+  color: var(--pa-primary);
+  transform: translateY(-1px);
 }
 
 .pa-product-layout {
@@ -442,13 +496,14 @@ function isActive(item: { to: string }) {
 
 @media (max-width: 1399px) {
   .pa-shell-app {
-    --pa-sidebar-width: 208px;
+    --pa-sidebar-width: 242px;
     --pa-content-gutter: clamp(16px, 1.8vw, 26px);
   }
 
   .pa-product-topbar {
     gap: 16px;
-    padding-left: 16px;
+    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 480px) minmax(240px, 1fr);
+    padding-left: 18px;
   }
 
   .pa-topbar-brand-zone {
@@ -540,6 +595,7 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-context,
+  .pa-topbar-icon-link,
   .pa-product-nav {
     display: none;
   }
@@ -603,8 +659,8 @@ function isActive(item: { to: string }) {
   }
 
   .pa-student-avatar {
-    height: 40px;
-    width: 40px;
+    height: 44px;
+    width: 44px;
   }
 
   .pa-product-nav {
