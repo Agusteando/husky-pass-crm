@@ -89,3 +89,6 @@ Desktop.ini
 # Vercel / deployment verification outputs
 .vercel/output/
 .vercel/.env*.local
+.nuxt/
+node_modules/
+.env
