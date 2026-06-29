@@ -1,1 +1,1 @@
-Mejora topbar e integra comunicados reales con permisos por plantel
+Compacta topbar familiar, integra contador real de comunicados e incluye .gitignore

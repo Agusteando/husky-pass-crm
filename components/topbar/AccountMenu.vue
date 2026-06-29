@@ -1,6 +1,6 @@
 <template>
-  <div v-if="session?.user" class="account-menu" :data-account-kind="session.user.kind">
-    <button class="account-trigger" type="button" data-diagnostic-action="abrir-menu-cuenta" :aria-expanded="open" @click="open = !open">
+  <div v-if="session?.user" class="account-menu" :class="{ 'is-compact': props.presentation === 'compact' }" :data-account-kind="session.user.kind">
+    <button class="account-trigger" type="button" data-diagnostic-action="abrir-menu-cuenta" :aria-expanded="open" :aria-label="`Abrir menu de cuenta de ${profileName}`" @click="open = !open">
       <img v-if="session.user.picture" :src="session.user.picture" alt="" />
       <span v-else class="avatar">{{ initials }}</span>
       <span class="account-copy">
@@ -43,11 +43,12 @@ import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   session?: PublicSession | null
   experience: ExperienceName
   securityTo?: string
-}>()
+  presentation?: 'standard' | 'compact'
+}>(), { presentation: 'standard' })
 
 const route = useRoute()
 const open = ref(false)
@@ -172,6 +173,27 @@ async function logout() {
   color: #7b8493;
   height: .92rem;
   width: .92rem;
+}
+
+
+.account-menu.is-compact .account-trigger {
+  border-radius: 15px;
+  min-height: 46px;
+  min-width: 0;
+  padding: 4px;
+  width: 46px;
+}
+
+.account-menu.is-compact .account-copy,
+.account-menu.is-compact .account-trigger > :deep(.pa-icon) {
+  display: none;
+}
+
+.account-menu.is-compact .account-trigger img,
+.account-menu.is-compact .avatar {
+  border-radius: 12px;
+  height: 36px;
+  width: 36px;
 }
 
 .account-popover {

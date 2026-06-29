@@ -38,19 +38,16 @@
           :data-product-nav="`topbar-${item.key}`"
         >
           <FamilyPersonasIcon :name="item.icon" />
-          <span>{{ item.label }}</span>
+          <span>{{ item.shortLabel || item.label }}</span>
         </NuxtLink>
       </nav>
 
       <div class="pa-topbar-controls">
-        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" aria-label="Abrir comunicados recientes">
+        <NuxtLink class="pa-topbar-icon-link pa-notification-link" to="/familia/comunicados" :aria-label="communicationNotificationLabel">
           <FamilyPersonasIcon name="bell" />
-          <span>2</span>
+          <span v-if="unreadCommunications">{{ communicationBadge }}</span>
         </NuxtLink>
-        <NuxtLink class="pa-topbar-icon-link" :to="paSecurityRoute" aria-label="Abrir seguridad">
-          <FamilyPersonasIcon name="security" />
-        </NuxtLink>
-        <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" />
+        <TopbarAccountMenu :session="session" experience="escolar" :security-to="paSecurityRoute" presentation="compact" />
       </div>
     </header>
 
@@ -103,7 +100,7 @@
 
 <script setup lang="ts">
 import { computed, provide } from 'vue'
-import { useRoute } from 'nuxt/app'
+import { useFetch, useRoute } from 'nuxt/app'
 import { personasInstitutionLogo, personasInstitutionName } from '~/utils/personasTheme'
 import { personasFamilyThemeContextKey, usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
 import { displayMatricula } from '~/utils/matricula'
@@ -122,6 +119,18 @@ const studentChips = computed<string[]>(() => [
   primaryChild.value?.grupo ? `Grupo ${primaryChild.value.grupo}` : ''
 ].filter((chip): chip is string => Boolean(chip)))
 const paSecurityRoute = '/familia/personas-autorizadas/seguridad'
+const { data: communicationsSummary } = useFetch<{ unread: number; total: number }>('/api/family/comunicados/summary', {
+  key: 'pa-shell-communications-summary',
+  lazy: true,
+  server: false,
+  default: () => ({ unread: 0, total: 0 })
+})
+const unreadCommunications = computed(() => Math.max(0, Number(communicationsSummary.value?.unread || 0)))
+const communicationBadge = computed(() => unreadCommunications.value > 9 ? '9+' : String(unreadCommunications.value))
+const communicationNotificationLabel = computed(() => {
+  if (!unreadCommunications.value) return 'Abrir comunicados recientes'
+  return `Abrir comunicados recientes, ${unreadCommunications.value} sin leer`
+})
 
 const navItems = [
   { key: 'inicio', label: 'Inicio', shortLabel: 'Inicio', icon: 'home', to: '/familia' },
@@ -154,9 +163,9 @@ function isActive(item: { to: string }) {
   --pa-border: rgba(var(--pa-primary-rgb), 0.2);
   --pa-gray: #1f2d46;
   --pa-muted: #6d7687;
-  --pa-sidebar-width: 260px;
-  --pa-topbar-height: 104px;
-  --pa-content-gutter: clamp(18px, 2.1vw, 34px);
+  --pa-sidebar-width: 248px;
+  --pa-topbar-height: 84px;
+  --pa-content-gutter: clamp(16px, 1.9vw, 30px);
   background:
     radial-gradient(circle at 82% 5%, rgba(var(--pa-primary-rgb), 0.065), transparent 22rem),
     linear-gradient(180deg, #fcfdfd 0%, #f5f8f8 100%);
@@ -170,11 +179,12 @@ function isActive(item: { to: string }) {
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid #e7ebee;
   display: grid;
-  gap: clamp(16px, 1.5vw, 24px);
-  grid-template-columns: var(--pa-sidebar-width) minmax(380px, 500px) minmax(220px, 310px) minmax(250px, 1fr);
+  gap: clamp(10px, 1vw, 16px);
+  grid-template-columns: var(--pa-sidebar-width) minmax(270px, 420px) minmax(190px, 240px) auto;
   height: var(--pa-topbar-height);
   min-height: var(--pa-topbar-height);
-  padding: 0 var(--pa-content-gutter) 0 28px;
+  overflow: visible;
+  padding: 0 var(--pa-content-gutter) 0 22px;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -186,7 +196,7 @@ function isActive(item: { to: string }) {
   border-right: 1px solid #edf0f2;
   display: flex;
   min-width: 0;
-  padding-right: 22px;
+  padding-right: 18px;
 }
 
 .pa-brand,
@@ -197,7 +207,7 @@ function isActive(item: { to: string }) {
 }
 
 .pa-product-lockup {
-  gap: 13px;
+  gap: 10px;
 }
 
 .pa-brand img {
@@ -207,20 +217,20 @@ function isActive(item: { to: string }) {
 }
 
 .pa-institution-logo {
-  height: 52px;
-  max-width: 60px;
+  height: 44px;
+  max-width: 54px;
   width: auto;
 }
 
 .pa-lockup-divider {
   background: rgba(var(--pa-primary-rgb), 0.22);
-  height: 34px;
+  height: 30px;
   width: 1px;
 }
 
 .pa-husky-pass-logo {
-  height: 54px;
-  max-width: 122px;
+  height: 46px;
+  max-width: 104px;
   width: auto;
 }
 
@@ -228,16 +238,16 @@ function isActive(item: { to: string }) {
   align-items: center;
   background: linear-gradient(135deg, #ffffff, rgba(var(--pa-primary-rgb), 0.035));
   border: 1px solid rgba(var(--pa-primary-rgb), 0.18);
-  border-radius: 24px;
-  box-shadow: 0 16px 40px rgba(26, 48, 72, 0.07);
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(26, 48, 72, 0.06);
   display: grid;
-  gap: 13px;
-  grid-template-columns: 54px minmax(0, 1fr) 16px;
-  justify-self: start;
-  max-width: min(500px, 100%);
-  min-height: 64px;
+  gap: 10px;
+  grid-template-columns: 46px minmax(0, 1fr) 14px;
+  justify-self: stretch;
+  max-width: min(420px, 100%);
+  min-height: 56px;
   min-width: 0;
-  padding: 8px 18px 8px 10px;
+  padding: 6px 14px 6px 8px;
 }
 
 .pa-student-avatar-wrap {
@@ -249,15 +259,15 @@ function isActive(item: { to: string }) {
   aspect-ratio: 1;
   background: var(--pa-soft);
   border: 1px solid var(--pa-border);
-  border-radius: 16px;
+  border-radius: 14px;
   color: var(--pa-primary);
   display: grid;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 800;
-  height: 54px;
+  height: 46px;
   overflow: hidden;
   place-items: center;
-  width: 54px;
+  width: 46px;
 }
 
 .pa-presence-dot {
@@ -265,11 +275,11 @@ function isActive(item: { to: string }) {
   border: 3px solid #fff;
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(47, 139, 42, 0.25);
-  height: 14px;
+  height: 13px;
   position: absolute;
   right: -2px;
   top: -2px;
-  width: 14px;
+  width: 13px;
 }
 
 .pa-student-avatar img {
@@ -301,7 +311,7 @@ function isActive(item: { to: string }) {
 
 .pa-student-copy strong {
   color: var(--pa-gray);
-  font-size: 1.02rem;
+  font-size: 0.94rem;
   line-height: 1.2;
 }
 
@@ -337,8 +347,8 @@ function isActive(item: { to: string }) {
 .pa-topbar-quick-nav {
   align-items: center;
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  gap: 8px;
+  justify-content: end;
   min-width: 0;
 }
 
@@ -351,13 +361,13 @@ function isActive(item: { to: string }) {
   color: #24324b;
   display: inline-flex;
   flex: 1 1 0;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 850;
-  gap: 9px;
+  gap: 7px;
   justify-content: center;
-  min-height: 54px;
-  min-width: 104px;
-  padding: 0 14px;
+  min-height: 46px;
+  min-width: 0;
+  padding: 0 11px;
   transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
 }
 
@@ -369,6 +379,13 @@ function isActive(item: { to: string }) {
   transform: translateY(-1px);
 }
 
+.pa-topbar-quick-nav span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pa-topbar-quick-nav :deep(.pa-icon) {
   color: var(--pa-primary);
 }
@@ -376,7 +393,7 @@ function isActive(item: { to: string }) {
 .pa-topbar-controls {
   align-items: center;
   display: flex;
-  gap: 14px;
+  gap: 8px;
   justify-content: flex-end;
   min-width: 0;
 }
@@ -389,11 +406,11 @@ function isActive(item: { to: string }) {
   box-shadow: 0 8px 22px rgba(26, 48, 72, 0.06);
   color: #536178;
   display: inline-flex;
-  height: 48px;
+  height: 46px;
   justify-content: center;
   position: relative;
   transition: border-color .18s ease, color .18s ease, transform .18s ease;
-  width: 48px;
+  width: 46px;
 }
 
 .pa-notification-link span {
@@ -606,22 +623,23 @@ function isActive(item: { to: string }) {
 
 @media (max-width: 1399px) {
   .pa-shell-app {
-    --pa-sidebar-width: 242px;
-    --pa-content-gutter: clamp(16px, 1.8vw, 26px);
+    --pa-sidebar-width: 236px;
+    --pa-topbar-height: 80px;
+    --pa-content-gutter: clamp(14px, 1.7vw, 24px);
   }
 
   .pa-product-topbar {
-    gap: 16px;
-    grid-template-columns: var(--pa-sidebar-width) minmax(320px, 450px) minmax(200px, 270px) minmax(220px, 1fr);
-    padding-left: 18px;
+    gap: 12px;
+    grid-template-columns: var(--pa-sidebar-width) minmax(250px, 1fr) minmax(178px, 220px) auto;
+    padding-left: 16px;
   }
 
   .pa-topbar-brand-zone {
-    padding-right: 16px;
+    padding-right: 14px;
   }
 
   .pa-husky-pass-logo {
-    max-width: 106px;
+    max-width: 96px;
   }
 
   .pa-product-nav {
@@ -643,21 +661,39 @@ function isActive(item: { to: string }) {
   }
 }
 
-@media (max-width: 1099px) {
-  .pa-shell-app {
-    --pa-sidebar-width: 204px;
+@media (max-width: 1280px) {
+  .pa-student-chip-row span {
+    max-width: 92px;
+  }
+
+  .pa-student-context > .pa-icon {
+    display: none;
   }
 
   .pa-student-context {
-    max-width: 390px;
+    grid-template-columns: 46px minmax(0, 1fr);
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .pa-shell-app {
+    --pa-sidebar-width: 212px;
+  }
+
+  .pa-student-context {
+    max-width: 370px;
+  }
+
+  .pa-student-chip-row {
+    display: none;
   }
 
   .pa-product-topbar {
-    grid-template-columns: var(--pa-sidebar-width) minmax(300px, 1fr) minmax(250px, auto);
+    grid-template-columns: var(--pa-sidebar-width) minmax(240px, 1fr) auto;
   }
 
-  .pa-topbar-quick-nav,
-  .pa-notification-link {
+  .pa-topbar-quick-nav {
     display: none;
   }
 
