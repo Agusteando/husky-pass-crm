@@ -1,9 +1,0 @@
-{
-  "pid": 21516,
-  "startedAt": 1782761149650,
-  "command": "dev",
-  "cwd": "C:/Users/hp/husky-pass-crm",
-  "port": 3000,
-  "hostname": "127.0.0.1",
-  "url": "http://127.0.0.1:3000"
-}
