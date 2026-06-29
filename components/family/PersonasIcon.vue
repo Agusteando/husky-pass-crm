@@ -43,6 +43,7 @@ import {
   Plus,
   ReceiptText,
   RefreshCw,
+  Search,
   Send,
   Sparkles,
   Trash2,
@@ -90,7 +91,8 @@ const iconMap: Record<string, FunctionalComponent> = {
   replace: RefreshCw,
   trash: Trash2,
   document: FileCheck,
-  security: ShieldCheck
+  security: ShieldCheck,
+  search: Search
 }
 
 const iconComponent = computed(() => iconMap[props.name] || Sparkles)
