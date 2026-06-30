@@ -44,6 +44,12 @@ export default defineNuxtConfig({
       apiBaseUrl: process.env.SIPAE_API_BASE_URL || 'https://the-sipae-api.casitaapps.com',
       timeoutMs: Number(process.env.SIPAE_API_TIMEOUT_MS || 10000)
     },
+    aurora: {
+      apiBaseUrl: process.env.AURORA_API_BASE_URL || process.env.HUSKY_PASS_AURORA_API_BASE_URL || '',
+      apiToken: process.env.AURORA_API_TOKEN || process.env.HUSKY_PASS_AURORA_API_TOKEN || '',
+      timeoutMs: Number(process.env.AURORA_API_TIMEOUT_MS || process.env.HUSKY_PASS_AURORA_TIMEOUT_MS || 10000),
+      ciclo: process.env.AURORA_CICLO || process.env.HUSKY_PASS_AURORA_CICLO || ''
+    },
     externalUpload: {
       url: process.env.EXPEDIENTE_UPLOAD_URL || 'https://expediente.casitaapps.com'
     },

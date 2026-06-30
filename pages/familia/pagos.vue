@@ -2,8 +2,8 @@
   <FamilyPersonasAutorizadasShell title="Pagos">
     <section class="payments-page" :data-state="pageState" data-product-panel="family-payments">
       <FamilyPersonasPageHeader
-        eyebrow="Pagos"
-        title="Estado de cuenta familiar"
+        eyebrow="Aurora"
+        title="Estado de cuenta"
         :description="headerDescription"
         ambassador-variant="hero"
         :ambassador-title="ambassadorTitle"
@@ -21,8 +21,8 @@
       <div v-if="loadError" class="friendly-alert" data-state="error">
         <FamilyPersonasIcon name="payments" />
         <div>
-          <strong>No pudimos abrir pagos</strong>
-          <span>La información de pagos no está disponible por ahora. Intenta más tarde o consulta directamente a administración escolar.</span>
+          <strong>No pudimos abrir Aurora</strong>
+          <span>El estado de cuenta no está disponible por ahora.</span>
         </div>
         <button class="btn btn-secondary" type="button" @click="reload">Reintentar</button>
       </div>
@@ -32,37 +32,56 @@
       </section>
 
       <template v-else-if="data">
-        <section class="account-summary" aria-label="Resumen de pagos">
-          <article class="summary-hero" :data-state="data.summary.overdueCount ? 'attention' : 'ready'">
-            <p class="eyebrow">{{ data.summary.overdueCount ? 'Requiere atención' : 'Al día' }}</p>
+        <section class="account-summary" aria-label="Resumen de cuenta">
+          <article class="summary-hero" :data-state="data.summary.overdueCount ? 'attention' : data.summary.balanceDue > 0 ? 'pending' : 'ready'">
+            <p class="eyebrow">{{ summaryEyebrow }}</p>
             <h2>{{ money(data.summary.balanceDue) }}</h2>
-            <p>{{ data.summary.pendingCount }} pendiente{{ data.summary.pendingCount === 1 ? '' : 's' }} · {{ data.summary.overdueCount }} vencido{{ data.summary.overdueCount === 1 ? '' : 's' }}</p>
+            <p>{{ data.summary.cycleLabel || 'Ciclo vigente' }} · {{ data.integration.label }}</p>
           </article>
           <article>
-            <span>Pagado este ciclo</span>
+            <span>Pagado</span>
             <strong>{{ money(data.summary.paidThisCycle) }}</strong>
           </article>
           <article>
-            <span>Última actualización</span>
-            <strong>{{ shortDate(data.summary.lastUpdated) }}</strong>
+            <span>Recibos</span>
+            <strong>{{ data.summary.receiptCount }}</strong>
           </article>
           <article>
-            <span>Origen</span>
-            <strong>{{ data.integration.label }}</strong>
+            <span>Servicios</span>
+            <strong>{{ data.summary.serviceCount }}</strong>
           </article>
         </section>
 
-        <section v-if="!data.items.length" class="empty-ambassador-card" data-state="empty">
+        <section v-if="data.integration.status === 'unavailable'" class="empty-ambassador-card" data-state="unavailable">
+          <FamilyPersonasAmbassador :theme="theme" variant="help" contained decorative />
+          <div>
+            <p class="eyebrow">Aurora</p>
+            <h2>Estado de cuenta no disponible</h2>
+            <p>{{ data.message }}</p>
+          </div>
+        </section>
+
+        <section v-else-if="!data.items.length && !data.receipts.length && !data.services.length" class="empty-ambassador-card" data-state="empty">
           <FamilyPersonasAmbassador :theme="theme" variant="empty" contained decorative />
           <div>
-            <p class="eyebrow">Sin conceptos publicados</p>
-            <h2>No hay pagos para mostrar</h2>
+            <p class="eyebrow">Sin movimientos</p>
+            <h2>Cuenta sin cargos publicados</h2>
             <p>{{ data.message }}</p>
           </div>
         </section>
 
         <template v-else>
-          <nav class="payment-filters" aria-label="Filtrar pagos">
+          <section v-if="data.services.length" class="services-strip" aria-label="Talleres y servicios">
+            <article v-for="service in data.services" :key="service.clave || service.nombre" class="service-pill" :data-state="service.estado">
+              <span class="service-dot"></span>
+              <div>
+                <strong>{{ service.nombre }}</strong>
+                <small>{{ serviceStateLabel(service.estado) }}</small>
+              </div>
+            </article>
+          </section>
+
+          <nav class="payment-filters" aria-label="Filtrar estado de cuenta">
             <button
               v-for="filter in filters"
               :key="filter.value"
@@ -75,7 +94,7 @@
             </button>
           </nav>
 
-          <section class="payments-list" aria-label="Conceptos de pago">
+          <section class="account-ledger" aria-label="Estado de cuenta Aurora">
             <article v-for="item in visibleItems" :key="item.id" class="payment-card" :data-state="item.status">
               <div class="payment-icon">
                 <FamilyPersonasIcon :name="item.status === 'paid' ? 'check' : item.status === 'info' ? 'announcement' : 'payments'" />
@@ -87,15 +106,35 @@
                 <div class="payment-meta">
                   <span>{{ categoryLabel(item.category) }}</span>
                   <span v-if="item.period">{{ item.period }}</span>
-                  <span v-if="item.dueDate">Vence {{ shortDate(item.dueDate) }}</span>
+                  <span v-if="item.dueDate && item.status !== 'paid'">Vence {{ shortDate(item.dueDate) }}</span>
                   <span v-if="item.paidAt">Pagado {{ shortDate(item.paidAt) }}</span>
+                  <span v-if="item.receiptFolios?.length">Recibo {{ item.receiptFolios.join(', ') }}</span>
                 </div>
               </div>
               <div class="payment-amount">
-                <strong>{{ item.amount === null || item.amount === undefined ? 'Informativo' : money(item.amount) }}</strong>
-                <button class="btn btn-secondary" type="button" disabled>{{ item.actionLabel || 'Próximamente' }}</button>
+                <strong>{{ itemAmount(item) }}</strong>
+                <span>{{ itemBalanceLabel(item) }}</span>
               </div>
             </article>
+          </section>
+
+          <section v-if="data.receipts.length" class="receipts-panel" aria-label="Recibos de pago">
+            <header>
+              <p class="eyebrow">Recibos</p>
+              <h2>Pagos registrados</h2>
+            </header>
+            <div class="receipt-list">
+              <article v-for="receipt in data.receipts" :key="receipt.folio" class="receipt-row">
+                <div>
+                  <strong>{{ receiptTitle(receipt) }}</strong>
+                  <span>{{ receipt.period || 'Movimiento' }} · {{ receipt.paymentMethod || 'Pago' }}</span>
+                </div>
+                <div>
+                  <strong>{{ money(receipt.amount) }}</strong>
+                  <span>{{ shortDate(receipt.paidAt) }}</span>
+                </div>
+              </article>
+            </div>
           </section>
         </template>
       </template>
@@ -107,7 +146,7 @@
 import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
-import type { FamilyPaymentsResponse, PaymentCategory, PaymentStatus } from '~/types/payments'
+import type { FamilyPaymentsResponse, PaymentCategory, PaymentItem, PaymentReceipt, PaymentServiceBadge, PaymentStatus } from '~/types/payments'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
@@ -118,28 +157,32 @@ const { data, pending, error: loadError, refresh } = useFetch<FamilyPaymentsResp
 const activeFilter = ref<FilterValue>('all')
 
 const items = computed(() => data.value?.items || [])
-const pageState = computed(() => loadError.value ? 'error' : pending.value && !data.value ? 'loading' : items.value.length ? 'ready' : 'empty')
+const pageState = computed(() => loadError.value ? 'error' : pending.value && !data.value ? 'loading' : data.value?.state || 'empty')
 const visibleItems = computed(() => items.value.filter((item) => activeFilter.value === 'all' || item.status === activeFilter.value))
-const headerDescription = computed(() => `Consulta talleres, saldos y avisos de pago de ${studentName.value || 'tu alumno'} con estados fáciles de entender.`)
+const headerDescription = computed(() => `${studentName.value || 'Tu alumno'} · saldos, recibos y servicios sincronizados con Aurora.`)
+const summaryEyebrow = computed(() => {
+  if ((data.value?.summary.overdueCount || 0) > 0) return 'Saldo vencido'
+  if ((data.value?.summary.balanceDue || 0) > 0) return 'Saldo pendiente'
+  return 'Sin adeudo visible'
+})
 const ambassadorTitle = computed(() => {
-  if (loadError.value) return 'Estoy revisando pagos'
-  if (!items.value.length) return 'Sin cargos publicados'
-  if ((data.value?.summary.overdueCount || 0) > 0) return 'Hay algo por atender'
-  if ((data.value?.summary.pendingCount || 0) > 0) return 'Tienes pagos pendientes'
-  return 'Cuenta tranquila'
+  if (loadError.value || data.value?.integration.status === 'unavailable') return 'Aurora sin respuesta'
+  if (!items.value.length && !(data.value?.receipts.length || data.value?.services.length)) return 'Sin movimientos publicados'
+  if ((data.value?.summary.overdueCount || 0) > 0) return 'Saldo por atender'
+  if ((data.value?.summary.pendingCount || 0) > 0) return 'Pagos pendientes'
+  return 'Cuenta al día'
 })
 const ambassadorMessage = computed(() => {
-  if (loadError.value) return 'Te mostraré una explicación clara cuando el servicio responda.'
-  if (!items.value.length) return 'Cuando el colegio publique conceptos, aparecerán aquí.'
-  return `Saldo visible: ${money(data.value?.summary.balanceDue || 0)}.`
+  if (loadError.value || data.value?.integration.status === 'unavailable') return 'Conservaré la vista limpia hasta que Aurora responda.'
+  if (!items.value.length && !(data.value?.receipts.length || data.value?.services.length)) return 'Aurora no reporta cargos para esta matrícula.'
+  return `${money(data.value?.summary.balanceDue || 0)} pendiente · ${data.value?.summary.receiptCount || 0} recibo${(data.value?.summary.receiptCount || 0) === 1 ? '' : 's'}.`
 })
-const ambassadorTone = computed(() => loadError.value ? 'notice' : (data.value?.summary.overdueCount || 0) ? 'notice' : (data.value?.summary.pendingCount || 0) ? 'calm' : 'success')
+const ambassadorTone = computed(() => loadError.value || data.value?.integration.status === 'unavailable' ? 'notice' : (data.value?.summary.overdueCount || 0) ? 'notice' : (data.value?.summary.pendingCount || 0) ? 'calm' : 'success')
 const filters = computed(() => [
-  { value: 'all' as const, label: 'Todos', count: items.value.length },
-  { value: 'pending' as const, label: 'Pendientes', count: items.value.filter((item) => item.status === 'pending').length },
-  { value: 'overdue' as const, label: 'Vencidos', count: items.value.filter((item) => item.status === 'overdue').length },
-  { value: 'paid' as const, label: 'Pagados', count: items.value.filter((item) => item.status === 'paid').length },
-  { value: 'info' as const, label: 'Informativos', count: items.value.filter((item) => item.status === 'info').length }
+  { value: 'all' as const, label: 'Todo', count: items.value.length },
+  { value: 'pending' as const, label: 'Pendiente', count: items.value.filter((item) => item.status === 'pending').length },
+  { value: 'overdue' as const, label: 'Vencido', count: items.value.filter((item) => item.status === 'overdue').length },
+  { value: 'paid' as const, label: 'Pagado', count: items.value.filter((item) => item.status === 'paid').length }
 ])
 
 function money(value: number) {
@@ -160,10 +203,36 @@ function statusLabel(status: PaymentStatus) {
 
 function categoryLabel(category: PaymentCategory) {
   if (category === 'taller') return 'Taller'
-  if (category === 'colegiatura') return 'Estado de cuenta'
+  if (category === 'servicio') return 'Servicio'
+  if (category === 'colegiatura') return 'Colegiatura'
   if (category === 'material') return 'Material'
   if (category === 'evento') return 'Evento'
   return 'Aviso'
+}
+
+function serviceStateLabel(state: PaymentServiceBadge['estado']) {
+  if (state === 'pagado') return 'Pagado'
+  if (state === 'pendiente') return 'Pendiente'
+  return 'Activo'
+}
+
+function itemAmount(item: PaymentItem) {
+  if (item.status === 'paid') return money(item.paidAmount || item.amount || 0)
+  if (item.balance !== null && item.balance !== undefined) return money(item.balance)
+  if (item.amount === null || item.amount === undefined) return 'Informativo'
+  return money(item.amount)
+}
+
+function itemBalanceLabel(item: PaymentItem) {
+  if (item.status === 'paid') return 'Cubierto'
+  if ((item.paidAmount || 0) > 0) return `${money(item.paidAmount || 0)} abonado`
+  if (item.status === 'overdue') return 'Vencido'
+  if (item.status === 'pending') return 'Pendiente'
+  return item.actionLabel || 'Registrado'
+}
+
+function receiptTitle(receipt: PaymentReceipt) {
+  return receipt.folioPlantel ? `Recibo ${receipt.folioPlantel}` : `Recibo ${receipt.folio}`
 }
 
 function reload() {
@@ -185,7 +254,9 @@ function reload() {
 .account-summary article,
 .empty-ambassador-card,
 .payment-card,
-.payment-filters button {
+.payment-filters button,
+.service-pill,
+.receipts-panel {
   background: rgba(255, 255, 255, .94);
   border: 1px solid #e2e8ec;
   box-shadow: 0 12px 30px rgba(30, 53, 78, .055);
@@ -218,9 +289,12 @@ function reload() {
 .friendly-alert span,
 .empty-ambassador-card p,
 .payment-card p,
-.summary-hero p {
+.summary-hero p,
+.service-pill small,
+.receipt-row span,
+.payment-amount span {
   color: #6f798a;
-  font-weight: 700;
+  font-weight: 750;
   line-height: 1.5;
   margin: 0;
 }
@@ -247,7 +321,7 @@ function reload() {
 .account-summary {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(280px, 1.3fr) repeat(3, minmax(160px, .7fr));
+  grid-template-columns: minmax(280px, 1.35fr) repeat(3, minmax(150px, .65fr));
 }
 
 .account-summary article {
@@ -267,7 +341,8 @@ function reload() {
 }
 
 .account-summary article strong,
-.summary-hero h2 {
+.summary-hero h2,
+.receipts-panel h2 {
   color: #1f2d46;
   font-family: var(--font-title);
   font-size: 1.35rem;
@@ -281,7 +356,11 @@ function reload() {
 }
 
 .summary-hero[data-state='attention'] {
-  border-color: #f0c8a6;
+  border-color: #efc8be;
+}
+
+.summary-hero[data-state='pending'] {
+  border-color: #f0d6a9;
 }
 
 .summary-hero h2 {
@@ -296,6 +375,74 @@ function reload() {
   gap: 18px;
   grid-template-columns: 120px minmax(0, 1fr);
   padding: 18px;
+}
+
+.services-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.service-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 10px;
+  min-height: 56px;
+  padding: 9px 14px 9px 10px;
+}
+
+.service-dot {
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  height: 34px;
+  position: relative;
+  width: 34px;
+}
+
+.service-dot::after {
+  background: var(--pa-primary);
+  border-radius: 999px;
+  content: '';
+  height: 10px;
+  left: 11px;
+  position: absolute;
+  top: 11px;
+  width: 10px;
+}
+
+.service-pill[data-state='pagado'] .service-dot {
+  background: #eff9f0;
+  border-color: #cfe5d1;
+}
+
+.service-pill[data-state='pagado'] .service-dot::after {
+  background: #33844a;
+}
+
+.service-pill[data-state='pendiente'] .service-dot {
+  background: #fff7e6;
+  border-color: #f0d6a9;
+}
+
+.service-pill[data-state='pendiente'] .service-dot::after {
+  background: #94610f;
+}
+
+.service-pill div,
+.receipt-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.service-pill strong {
+  color: #24334b;
+  font-size: .86rem;
+}
+
+.service-pill small {
+  font-size: .7rem;
 }
 
 .payment-filters {
@@ -324,7 +471,7 @@ function reload() {
   color: var(--pa-primary);
 }
 
-.payments-list {
+.account-ledger {
   display: grid;
   gap: 10px;
 }
@@ -423,7 +570,7 @@ function reload() {
 
 .payment-amount {
   display: grid;
-  gap: 8px;
+  gap: 3px;
   justify-items: end;
   text-align: right;
 }
@@ -434,8 +581,48 @@ function reload() {
   font-size: 1.25rem;
 }
 
-.payment-amount .btn {
-  min-height: 36px;
+.receipts-panel {
+  border-radius: 22px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.receipts-panel header {
+  display: grid;
+  gap: 4px;
+}
+
+.receipts-panel h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.receipt-list {
+  display: grid;
+}
+
+.receipt-row {
+  align-items: center;
+  border-top: 1px solid #edf1f5;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 0;
+}
+
+.receipt-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.receipt-row:last-child {
+  padding-bottom: 0;
+}
+
+.receipt-row > div:last-child {
+  justify-items: end;
+  text-align: right;
 }
 
 @media (max-width: 1120px) {
@@ -449,11 +636,13 @@ function reload() {
   .account-summary,
   .empty-ambassador-card,
   .payment-card,
-  .payments-loading {
+  .payments-loading,
+  .receipt-row {
     grid-template-columns: 1fr;
   }
 
-  .payment-amount {
+  .payment-amount,
+  .receipt-row > div:last-child {
     justify-items: start;
     text-align: left;
   }

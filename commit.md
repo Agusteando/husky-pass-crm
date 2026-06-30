@@ -1,1 +1,1 @@
-Implementa Gestion Escolar con permisos por alcance
+Integra pagos de Husky Pass con Aurora
