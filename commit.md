@@ -1,1 +1,1 @@
-Integra pagos de Husky Pass con Aurora
+Agrega selector de ciclo escolar en pagos Aurora

@@ -18,6 +18,30 @@
         </template>
       </FamilyPersonasPageHeader>
 
+      <section class="school-year-panel" aria-label="Ciclo escolar">
+        <div class="school-year-current" :data-state="isHistoricalYear ? 'historical' : 'current'">
+          <span>Ciclo escolar</span>
+          <strong>{{ activeSchoolYearLabel }}</strong>
+        </div>
+        <div class="school-year-picker" role="tablist" aria-label="Elegir ciclo escolar">
+          <button
+            v-for="year in displaySchoolYears"
+            :key="year.key"
+            type="button"
+            role="tab"
+            :aria-selected="year.key === selectedCycle"
+            :class="{ active: year.key === selectedCycle }"
+            :disabled="pending && year.key !== selectedCycle"
+            @click="selectCycle(year.key)"
+          >
+            <span>{{ year.label }}</span>
+            <small v-if="year.isCurrent">Actual</small>
+            <small v-else-if="year.hasData">Histórico</small>
+            <small v-else>Archivo</small>
+          </button>
+        </div>
+      </section>
+
       <div v-if="loadError" class="friendly-alert" data-state="error">
         <FamilyPersonasIcon name="payments" />
         <div>
@@ -146,20 +170,42 @@
 import { computed, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyTheme } from '~/composables/usePersonasTheme'
-import type { FamilyPaymentsResponse, PaymentCategory, PaymentItem, PaymentReceipt, PaymentServiceBadge, PaymentStatus } from '~/types/payments'
+import type { FamilyPaymentsResponse, PaymentCategory, PaymentItem, PaymentReceipt, PaymentSchoolYear, PaymentServiceBadge, PaymentStatus } from '~/types/payments'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
 
 type FilterValue = 'all' | PaymentStatus
 
 const { theme, studentName } = usePersonasFamilyTheme({ key: 'payments' })
-const { data, pending, error: loadError, refresh } = useFetch<FamilyPaymentsResponse>('/api/family/payments', { timeout: 15000 })
+const selectedCycle = ref(deriveCurrentCycle())
+const paymentsQuery = computed(() => ({ ciclo: selectedCycle.value }))
+const { data, pending, error: loadError, refresh } = useFetch<FamilyPaymentsResponse>('/api/family/payments', {
+  timeout: 15000,
+  query: paymentsQuery,
+  watch: [selectedCycle]
+})
 const activeFilter = ref<FilterValue>('all')
 
 const items = computed(() => data.value?.items || [])
+const schoolYears = computed(() => data.value?.schoolYears || [])
+const displaySchoolYears = computed<PaymentSchoolYear[]>(() => {
+  const selectedOption = {
+    key: selectedCycle.value,
+    label: formatCycleLabel(selectedCycle.value),
+    isCurrent: selectedCycle.value === deriveCurrentCycle(),
+    isSelected: true,
+    hasData: false
+  }
+  if (!schoolYears.value.length) return [selectedOption]
+  if (schoolYears.value.some((year) => year.key === selectedCycle.value)) return schoolYears.value
+  return [selectedOption, ...schoolYears.value]
+})
+const selectedSchoolYear = computed(() => displaySchoolYears.value.find((year) => year.key === selectedCycle.value) || displaySchoolYears.value.find((year) => year.isSelected) || displaySchoolYears.value[0] || null)
+const activeSchoolYearLabel = computed(() => selectedSchoolYear.value?.label || formatCycleLabel(selectedCycle.value))
+const isHistoricalYear = computed(() => selectedSchoolYear.value ? !selectedSchoolYear.value.isCurrent : false)
 const pageState = computed(() => loadError.value ? 'error' : pending.value && !data.value ? 'loading' : data.value?.state || 'empty')
 const visibleItems = computed(() => items.value.filter((item) => activeFilter.value === 'all' || item.status === activeFilter.value))
-const headerDescription = computed(() => `${studentName.value || 'Tu alumno'} · saldos, recibos y servicios sincronizados con Aurora.`)
+const headerDescription = computed(() => `${studentName.value || 'Tu alumno'} · ${activeSchoolYearLabel.value} sincronizado con Aurora.`)
 const summaryEyebrow = computed(() => {
   if ((data.value?.summary.overdueCount || 0) > 0) return 'Saldo vencido'
   if ((data.value?.summary.balanceDue || 0) > 0) return 'Saldo pendiente'
@@ -184,6 +230,29 @@ const filters = computed(() => [
   { value: 'overdue' as const, label: 'Vencido', count: items.value.filter((item) => item.status === 'overdue').length },
   { value: 'paid' as const, label: 'Pagado', count: items.value.filter((item) => item.status === 'paid').length }
 ])
+
+function deriveCurrentCycle() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: 'numeric'
+  }).formatToParts(new Date())
+  const year = Number(parts.find((part) => part.type === 'year')?.value || new Date().getFullYear())
+  const month = Number(parts.find((part) => part.type === 'month')?.value || (new Date().getMonth() + 1))
+  return String(month >= 9 ? year : year - 1)
+}
+
+function formatCycleLabel(value: string) {
+  const match = String(value || '').match(/\d{4}/)
+  const key = match?.[0] || deriveCurrentCycle()
+  return `${key}-${Number(key) + 1}`
+}
+
+function selectCycle(cycle: string) {
+  if (!cycle || cycle === selectedCycle.value) return
+  activeFilter.value = 'all'
+  selectedCycle.value = cycle
+}
 
 function money(value: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value)
@@ -250,7 +319,116 @@ function reload() {
   min-height: 42px;
 }
 
+.school-year-panel {
+  align-items: center;
+  border-radius: 24px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(190px, .42fr) minmax(0, 1fr);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.school-year-current {
+  background:
+    radial-gradient(circle at 110% -20%, rgba(var(--pa-primary-rgb), .2), transparent 7rem),
+    var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 20px;
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  padding: 14px;
+}
+
+.school-year-current[data-state='historical'] {
+  background: #f7f9fb;
+  border-color: #dbe3eb;
+}
+
+.school-year-current span {
+  color: #667589;
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.school-year-current strong {
+  color: #1f2d46;
+  font-family: var(--font-title);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1;
+}
+
+.school-year-picker {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+.school-year-picker::-webkit-scrollbar {
+  display: none;
+}
+
+.school-year-picker button {
+  align-items: center;
+  border-radius: 18px;
+  color: #657386;
+  cursor: pointer;
+  display: grid;
+  flex: 0 0 auto;
+  font: inherit;
+  gap: 4px;
+  justify-items: start;
+  min-height: 66px;
+  min-width: 122px;
+  padding: 11px 13px;
+  text-align: left;
+}
+
+.school-year-picker button:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+
+.school-year-picker button.active {
+  background:
+    linear-gradient(135deg, rgba(var(--pa-primary-rgb), .13), rgba(var(--pa-primary-rgb), .04)),
+    #fff;
+  border-color: var(--pa-border);
+  color: var(--pa-primary);
+  box-shadow: 0 14px 32px rgba(var(--pa-primary-rgb), .12);
+}
+
+.school-year-picker span {
+  color: inherit;
+  font-family: var(--font-title);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.school-year-picker small {
+  background: #f3f7fa;
+  border-radius: 999px;
+  color: #718094;
+  font-size: .62rem;
+  font-weight: 950;
+  letter-spacing: .06em;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
+.school-year-picker button.active small {
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+}
+
 .friendly-alert,
+.school-year-panel,
+.school-year-picker button,
 .account-summary article,
 .empty-ambassador-card,
 .payment-card,
@@ -633,6 +811,7 @@ function reload() {
 
 @media (max-width: 720px) {
   .friendly-alert,
+  .school-year-panel,
   .account-summary,
   .empty-ambassador-card,
   .payment-card,
