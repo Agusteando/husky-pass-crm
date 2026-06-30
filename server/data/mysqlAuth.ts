@@ -90,7 +90,7 @@ const baseUserSql = `
 `
 
 export async function findLegacyUserByEmail(email: string) {
-  const rows = await legacyQuery<LegacyUserRow[]>(`${baseUserSql} WHERE A.email = ?`, [email])
+  const rows = await legacyQuery<LegacyUserRow[]>(`${baseUserSql} WHERE LOWER(A.email) = ?`, [normalizeEmail(email)])
   return hydrateUserRows(rows)
 }
 

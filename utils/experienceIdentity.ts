@@ -164,10 +164,8 @@ function userCanUseExperience(user: AppSessionUser | null | undefined, experienc
   return hasFamilyScope(user, 'personasAutorizadas')
 }
 
-export function defaultLoginRouteForExperience(experience: ExperienceName) {
-  if (experience === 'admin') return '/admin/login'
-  if (experience === 'guarderia') return '/login/guarderia'
-  return '/login/escolar'
+export function defaultLoginRouteForExperience(_experience: ExperienceName) {
+  return '/login'
 }
 
 export function recoveryRouteForExperience(experience: ExperienceName) {
@@ -176,8 +174,9 @@ export function recoveryRouteForExperience(experience: ExperienceName) {
 
 export function defaultRouteForExperience(user: AppSessionUser | null | undefined, experience: ExperienceName) {
   if (experience === 'admin') return user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
-  if (experience === 'guarderia') return '/familia/daycare'
-  return '/familia/personas-autorizadas'
+  if (experience === 'guarderia' && hasFamilyScope(user, 'daycare')) return '/familia/daycare'
+  if (experience === 'escolar' && hasFamilyScope(user, 'personasAutorizadas')) return '/familia/personas-autorizadas'
+  return '/login'
 }
 
 export function resolveExperienceContext(input: ExperienceContextInput = {}): ExperienceResolution {

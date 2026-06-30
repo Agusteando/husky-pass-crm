@@ -8,10 +8,8 @@
         <p>{{ description }}</p>
       </div>
       <nav class="error-actions" aria-label="Rutas de regreso">
-        <button class="btn btn-primary" type="button" @click="go('/login')">Elegir experiencia</button>
-        <button class="btn btn-secondary" type="button" @click="go('/login/escolar')">Acceso escolar</button>
-        <button class="btn btn-secondary" type="button" @click="go('/login/guarderia')">Acceso guarderia</button>
-        <button class="btn btn-secondary" type="button" @click="go('/admin/login')">Administracion</button>
+        <button class="btn btn-primary" type="button" @click="go('/login')">Ir al acceso</button>
+
       </nav>
     </section>
   </main>
@@ -28,7 +26,7 @@ const props = defineProps<{
 const statusLabel = computed(() => props.error.statusCode === 404 ? 'Ruta no encontrada' : `Error ${props.error.statusCode || 500}`)
 const title = computed(() => props.error.statusCode === 404 ? 'Esta pagina no esta disponible' : 'No pudimos abrir esta vista')
 const description = computed(() => props.error.statusCode === 404
-  ? 'Vuelve a elegir tu experiencia para continuar con una ruta valida.'
+  ? 'Regresa al acceso de Husky Pass para continuar con una ruta valida.'
   : 'La aplicacion sigue disponible. Regresa al acceso correspondiente e intenta nuevamente.')
 
 async function go(path: string) {

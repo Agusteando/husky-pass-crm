@@ -5,6 +5,6 @@ import { hasCommunicationsAdminScope, hasGestionEscolarAdminScope } from '~/util
 export default defineNuxtRouteMiddleware(async () => {
   const session = await getRouteSession()
   if (!session.user || (!hasCommunicationsAdminScope(session.user) && !hasGestionEscolarAdminScope(session.user))) {
-    return navigateTo('/admin/login')
+    return navigateTo('/login')
   }
 })

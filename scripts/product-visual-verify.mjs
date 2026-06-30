@@ -240,7 +240,7 @@ async function waitForApplicationReady(browser, baseUrl) {
     try {
       await page.goto(target(baseUrl, '/login'), { waitUntil: 'domcontentloaded', timeout: 15000 })
       await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined)
-      await assertUsableProductPage(page, 'launch-readiness', ['[data-login-entry="escolar"]', '[data-login-entry="guarderia"]'])
+      await assertUsableProductPage(page, 'launch-readiness', ['form', 'input[autocomplete="username"]'])
       await context.close()
       return
     } catch (error) {
@@ -345,10 +345,10 @@ async function assertNoCriticalEvents(result, label) {
 
 async function publicLaunchSuite(browser, baseUrl, dirs, evidence) {
   const publicRoutes = [
-    { category: 'launch', name: 'login-selector', path: '/login', selectors: ['[data-login-entry="escolar"]', '[data-login-entry="guarderia"]'] },
+    { category: 'launch', name: 'login-unificado', path: '/login', selectors: ['form', 'input[autocomplete="username"]'] },
     { category: 'launch', name: 'login-escolar', path: '/login/escolar', selectors: ['form', 'input[autocomplete="username"]'] },
     { category: 'launch', name: 'login-guarderia', path: '/login/guarderia', selectors: ['form', 'input[autocomplete="username"]'] },
-    { category: 'launch', name: 'login-admin', path: '/admin/login', selectors: ['#google-signin', 'a[href="/login"]'] },
+    { category: 'launch', name: 'login-admin', path: '/admin/login', selectors: ['form', 'input[autocomplete="username"]'] },
     { category: 'launch', name: 'password-recovery', path: '/recuperar-contrasena?experiencia=escolar', selectors: ['form, main'] },
     { category: 'errors', name: 'unknown-route', path: '/ruta-inexistente-producto', selectors: ['[data-product-screen="not-found"]'] }
   ]
@@ -379,8 +379,8 @@ async function publicLaunchSuite(browser, baseUrl, dirs, evidence) {
 
   const redirectChecks = [
     { name: 'protected-school-redirect', path: '/familia/personas-autorizadas', expected: '/login' },
-    { name: 'protected-daycare-redirect', path: '/familia/daycare', expected: '/login/guarderia' },
-    { name: 'protected-admin-redirect', path: '/admin/superadmin', expected: '/admin/login' }
+    { name: 'protected-daycare-redirect', path: '/familia/daycare', expected: '/login' },
+    { name: 'protected-admin-redirect', path: '/admin/superadmin', expected: '/login' }
   ]
 
   for (const route of redirectChecks) {
@@ -426,7 +426,7 @@ async function escolarSuite(browser, baseUrl, dirs, evidence) {
     }
 
     await logoutThroughAccountMenu(page)
-    await page.waitForURL((url) => url.pathname === '/login/escolar', { timeout: 15000 })
+    await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'escolar', 'escolar-logout-return', page.url(), { selectors: ['.login-page'] }))
 
     return { name: 'escolar-journey', shots, controls: await auditControls(page) }
@@ -451,7 +451,7 @@ async function guarderiaSuite(browser, baseUrl, dirs, evidence) {
     }
 
     await logoutThroughAccountMenu(page)
-    await page.waitForURL((url) => url.pathname === '/login/guarderia', { timeout: 15000 })
+    await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'guarderia', 'guarderia-logout-return', page.url(), { selectors: ['.login-page'] }))
 
     return { name: 'guarderia-journey', shots, controls: await auditControls(page) }
@@ -506,7 +506,7 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
     }
 
     await logoutThroughAccountMenu(page)
-    await page.waitForURL((url) => url.pathname === '/admin/login', { timeout: 15000 })
+    await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-logout-return', page.url(), { selectors: ['.login-page'] }))
 
     return { name: 'admin-journey', shots, controls: await auditControls(page) }

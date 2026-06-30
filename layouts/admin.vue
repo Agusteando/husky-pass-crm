@@ -15,21 +15,13 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
 import { useRoute } from 'nuxt/app'
 import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
-import { hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
+import { defaultAdminRoute, hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
 
 const route = useRoute()
 const { data: session } = useAppSession()
 const adminVars = experienceThemeVars(visualIdentityForContext({ experience: 'admin', institution: null, nivel: null, plantel: null, grupo: null }))
 
-const homeTo = computed(() => {
-  const user = session.value?.user
-  if (user?.isSuperAdmin) return '/admin/superadmin'
-  if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
-  if (hasGestionEscolarAdminScope(user)) return '/admin/gestion-escolar'
-  if (hasCommunicationsAdminScope(user)) return '/admin/comunicados'
-  if (canAccessHistory.value) return '/admin/historial-accesos'
-  return '/admin/login'
-})
+const homeTo = computed(() => defaultAdminRoute(session.value?.user))
 const canAccessHistory = computed(() => {
   return hasAccessHistoryAdminScope(session.value?.user)
 })

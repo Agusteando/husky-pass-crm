@@ -1,7 +1,7 @@
 <template>
   <main class="registration-page" :style="identityVars" data-experience="guarderia">
     <section class="registration-hero">
-      <BrandMark to="/login/guarderia" :logo="identity.assets.logo" :alt="identity.label" />
+      <BrandMark to="/login" :logo="identity.assets.logo" :alt="identity.label" />
       <div>
         <p class="eyebrow">Registro de guardería</p>
         <h1>Activa tu acceso familiar</h1>
@@ -19,7 +19,7 @@
           <p class="eyebrow">Datos familiares</p>
           <h2>Registro</h2>
         </div>
-        <NuxtLink class="btn btn-secondary" to="/login/guarderia">Ya tengo cuenta</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/login">Ya tengo cuenta</NuxtLink>
       </header>
 
       <p v-if="optionsError" class="alert">No fue posible cargar las salas disponibles.</p>
@@ -208,7 +208,7 @@ async function submit() {
 
     const response = await $fetch<{ message: string }>('/api/daycare/registration', { method: 'POST', body })
     notice.value = response.message
-    await navigateTo('/login/guarderia?registro=guarderia')
+    await navigateTo('/login?registro=guarderia')
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible completar el registro.'

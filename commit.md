@@ -1,1 +1,1 @@
-Mejora pagos Aurora con carga automática, privacidad progresiva y loader Husky Pass
+Rediseña el acceso unificado y corrige enrutamiento por permisos

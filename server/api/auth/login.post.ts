@@ -2,20 +2,39 @@ import { defineEventHandler, readBody, setCookie } from 'h3'
 import { z } from 'zod'
 import { findLegacyFamilyByLogin, validateLegacyPassword } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { hasFamilyScope } from '~/utils/sessionScopes'
+import { hasFamilyScope, hasAnyAdminScope, defaultAdminRoute, defaultFamilyRoute } from '~/utils/sessionScopes'
 import { defaultRouteForExperience, normalizeExperienceName } from '~/utils/experienceIdentity'
-import { logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
+import { normalizeEmail } from '~/utils/superAdmin'
 import { publicError } from '~/server/utils/httpError'
+import type { AppSessionUser } from '~/types/session'
 
 const schema = z.object({
   login: z.string().min(1),
   password: z.string().min(1),
-  experience: z.enum(['escolar', 'guarderia'])
+  experience: z.enum(['escolar', 'guarderia']).optional()
 })
+
+function isInstitutionalIdentity(input: string, sessionUser: AppSessionUser) {
+  const login = input.trim().toLowerCase()
+  const email = normalizeEmail(sessionUser.email)
+  return login.endsWith('@casitaiedis.edu.mx') || email.endsWith('@casitaiedis.edu.mx')
+}
+
+function preferredFamilyRoute(user: AppSessionUser, requestedExperience?: 'escolar' | 'guarderia') {
+  const requested = normalizeExperienceName(requestedExperience || '')
+  const canUseRequestedExperience = requested === 'guarderia'
+    ? hasFamilyScope(user, 'daycare')
+    : requested === 'escolar' && hasFamilyScope(user, 'personasAutorizadas')
+
+  return requested && canUseRequestedExperience
+    ? defaultRouteForExperience(user, requested)
+    : defaultFamilyRoute(user)
+}
 
 export default defineEventHandler(async (event) => {
   const body = schema.parse(await readBody(event))
-  const legacyUser = await findLegacyFamilyByLogin(body.login.trim())
+  const login = body.login.trim()
+  const legacyUser = await findLegacyFamilyByLogin(login)
   if (!legacyUser) {
     throw publicError(401, 'Usuario o contraseña incorrectos.')
   }
@@ -25,28 +44,30 @@ export default defineEventHandler(async (event) => {
     throw publicError(401, 'Usuario o contraseña incorrectos.')
   }
 
-  const sessionUser = legacyUser.toSession('family')
-  if (!sessionUser.productScopes.length) {
-    throw publicError(403, 'La cuenta no tiene un acceso familiar habilitado.')
+  const familySession = legacyUser.toSession('family')
+  const adminSession = legacyUser.toSession('admin')
+  const canUseFamily = familySession.productScopes.length > 0
+  const canUseAdmin = hasAnyAdminScope(adminSession)
+
+  if (!canUseFamily && !canUseAdmin) {
+    throw publicError(403, 'La cuenta no tiene un acceso habilitado en Husky Pass.')
   }
 
-  const requestedExperience = normalizeExperienceName(body.experience)
-  const canUseRequestedExperience = requestedExperience === 'guarderia'
-    ? hasFamilyScope(sessionUser, 'daycare')
-    : requestedExperience === 'escolar' && hasFamilyScope(sessionUser, 'personasAutorizadas')
-
-  if (!requestedExperience || !canUseRequestedExperience) {
-    logSecurityWarning('identity-login-experience-mismatch', {
-      requestedExperience: body.experience,
-      resolvedScopes: sessionUser.productScopes,
-      userId: sessionUser.id,
-      loginHash: securityHash(body.login.trim().toLowerCase())
-    })
-    throw publicError(403, 'Este acceso no corresponde a la cuenta indicada. Revisa que estes entrando desde la experiencia correcta.')
-  }
+  const sessionUser = canUseAdmin && (!canUseFamily || isInstitutionalIdentity(login, adminSession))
+    ? adminSession
+    : familySession
 
   setAppSession(event, sessionUser)
-  setCookie(event, 'user_segment', requestedExperience === 'guarderia' ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
-  setCookie(event, 'last_login_type', 'php', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
-  return { user: sessionUser, loggedin: true, defaultPath: defaultRouteForExperience(sessionUser, requestedExperience) }
+
+  if (sessionUser.kind === 'admin') {
+    setCookie(event, 'user_segment', 'internal', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    setCookie(event, 'ads_suppressed', 'true', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    setCookie(event, 'last_login_type', 'password', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    return { user: sessionUser, loggedin: true, defaultPath: defaultAdminRoute(sessionUser) }
+  }
+
+  const defaultPath = preferredFamilyRoute(sessionUser, body.experience)
+  setCookie(event, 'user_segment', defaultPath.startsWith('/familia/daycare') ? 'guarderia' : 'escolar', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  setCookie(event, 'last_login_type', 'password', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+  return { user: sessionUser, loggedin: true, defaultPath }
 })

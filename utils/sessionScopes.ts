@@ -54,7 +54,17 @@ export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefin
 }
 
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
-  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasDaycareAdminScope(user) || hasGestionEscolarAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
+  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasGestionEscolarAdminScope(user) || hasDaycareAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
+}
+
+export function defaultAdminRoute(user: AppSessionUser | null | undefined) {
+  if (!user || user.kind !== 'admin') return '/login'
+  if (user.isSuperAdmin) return '/admin/superadmin'
+  if (hasGestionEscolarAdminScope(user)) return '/admin/gestion-escolar'
+  if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
+  if (hasCommunicationsAdminScope(user)) return '/admin/comunicados'
+  if (hasAccessHistoryAdminScope(user)) return '/admin/historial-accesos'
+  return '/login'
 }
 
 export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
@@ -64,6 +74,12 @@ export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
   if (daycare) return '/familia/daycare'
   if (personas) return '/familia/personas-autorizadas'
   return '/login'
+}
+
+export function defaultSessionRoute(user: AppSessionUser | null | undefined) {
+  if (!user) return '/login'
+  if (user.kind === 'admin') return defaultAdminRoute(user)
+  return defaultFamilyRoute(user)
 }
 
 export function familyNavItems(user: AppSessionUser | null | undefined, activeScope?: FamilyProductScope | 'attendance' | 'chooser') {

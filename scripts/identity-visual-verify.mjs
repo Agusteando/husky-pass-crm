@@ -64,23 +64,23 @@ const contexts = [
     id: 'guarderia',
     query: 'experience=guarderia&nivel=guarderia&plantel=CM&grupo=Maternal%20A',
     expected: { experience: 'guarderia', institution: 'neutral' },
-    forbidden: ['iecs-logo', 'iedis-logo', 'joy-preescolar', 'brave-primaria', 'hope-secundaria']
+    forbidden: ['joy-preescolar', 'brave-primaria', 'hope-secundaria']
   },
   {
     id: 'administrativa',
     query: 'experience=admin',
     expected: { experience: 'admin', institution: 'neutral' },
-    forbidden: ['iecs-logo', 'iedis-logo', 'daycare-sunny', 'sunny-guarderia', 'joy-preescolar', 'brave-primaria', 'hope-secundaria']
+    forbidden: ['daycare-sunny', 'sunny-guarderia', 'joy-preescolar', 'brave-primaria', 'hope-secundaria']
   }
 ]
 
 const loginRoutes = [
   { id: 'login-selector', path: '/login', expected: { experience: 'admin' }, forbidden: ['daycare-sunny', 'sunny-guarderia', 'joy-preescolar', 'brave-primaria', 'hope-secundaria'] },
-  { id: 'login-escolar', path: '/login/escolar', expected: { experience: 'escolar' }, forbidden: ['daycare-sunny', 'sunny-guarderia', 'iedis-logo', 'iecs-logo'] },
-  { id: 'login-guarderia', path: '/login/guarderia', expected: { experience: 'guarderia' }, forbidden: ['iecs-logo', 'iedis-logo', 'joy-preescolar', 'brave-primaria', 'hope-secundaria'] },
-  { id: 'login-admin', path: '/admin/login', expected: { experience: 'admin' }, forbidden: ['iecs-logo', 'iedis-logo', 'daycare-sunny', 'sunny-guarderia', 'joy-preescolar', 'brave-primaria', 'hope-secundaria'] },
-  { id: 'recovery-escolar', path: '/recuperar-contrasena?experiencia=escolar', expected: { experience: 'escolar' }, forbidden: ['daycare-sunny', 'sunny-guarderia', 'iedis-logo', 'iecs-logo'] },
-  { id: 'recovery-guarderia', path: '/recuperar-contrasena?experiencia=guarderia', expected: { experience: 'guarderia' }, forbidden: ['iecs-logo', 'iedis-logo', 'joy-preescolar', 'brave-primaria', 'hope-secundaria'] }
+  { id: 'login-escolar', path: '/login/escolar', expected: { experience: 'escolar' }, forbidden: ['daycare-sunny', 'sunny-guarderia'] },
+  { id: 'login-guarderia', path: '/login/guarderia', expected: { experience: 'guarderia' }, forbidden: ['joy-preescolar', 'brave-primaria', 'hope-secundaria'] },
+  { id: 'login-admin', path: '/admin/login', expected: { experience: 'admin' }, forbidden: ['daycare-sunny', 'sunny-guarderia', 'joy-preescolar', 'brave-primaria', 'hope-secundaria'] },
+  { id: 'recovery-escolar', path: '/recuperar-contrasena?experiencia=escolar', expected: { experience: 'escolar' }, forbidden: ['daycare-sunny', 'sunny-guarderia'] },
+  { id: 'recovery-guarderia', path: '/recuperar-contrasena?experiencia=guarderia', expected: { experience: 'guarderia' }, forbidden: ['joy-preescolar', 'brave-primaria', 'hope-secundaria'] }
 ]
 
 async function pageSnapshot(page) {

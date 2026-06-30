@@ -1,12 +1,12 @@
 <template>
   <LoginPanel
-    brand-to="/login/escolar"
+    brand-to="/login"
     eyebrow="Experiencia Escolar"
-    title="Acceso familiar escolar"
-    description="Ingresa con la cuenta familiar vinculada a IECS o IEDIS."
+    title="Acceso Husky Pass"
+    description="El acceso familiar escolar se abre automáticamente cuando la cuenta tiene permisos IECS o IEDIS."
     experience="escolar"
   >
-    <ExperienceLoginForm experience="escolar" heading="Entrar a Experiencia Escolar" />
+    <UnifiedLoginForm context="escolar" />
   </LoginPanel>
 </template>
 

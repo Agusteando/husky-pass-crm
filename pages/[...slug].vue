@@ -5,13 +5,11 @@
       <div class="not-found-copy">
         <p class="eyebrow">Ruta no encontrada</p>
         <h1>Esta pagina no esta disponible</h1>
-        <p>Vuelve a elegir tu experiencia para continuar con una ruta valida.</p>
+        <p>Regresa al acceso de Husky Pass para continuar con una ruta valida.</p>
       </div>
       <nav class="not-found-actions" aria-label="Rutas de regreso">
-        <NuxtLink class="btn btn-primary" to="/login">Elegir experiencia</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/login/escolar">Acceso escolar</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/login/guarderia">Acceso guarderia</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/login">Administracion</NuxtLink>
+        <NuxtLink class="btn btn-primary" to="/login">Ir al acceso</NuxtLink>
+        
       </nav>
     </section>
   </main>

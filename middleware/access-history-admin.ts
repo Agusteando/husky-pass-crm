@@ -13,5 +13,5 @@ function canOpenAccessHistory(session: PublicSession) {
 
 export default defineNuxtRouteMiddleware(async () => {
   const session = await getRouteSession()
-  if (!canOpenAccessHistory(session)) return navigateTo('/admin/login')
+  if (!canOpenAccessHistory(session)) return navigateTo('/login')
 })

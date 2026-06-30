@@ -5,8 +5,8 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { assertCommunicationsAdmin, assertDaycareAdmin, assertGestionEscolarAdmin } from '~/server/utils/authz'
-import { hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
+import { assertAccessHistoryAdmin, assertCommunicationsAdmin, assertDaycareAdmin, assertGestionEscolarAdmin } from '~/server/utils/authz'
+import { defaultAdminRoute, hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -46,12 +46,14 @@ export default defineEventHandler(async (event) => {
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  if (hasDaycareAdminScope(sessionUser)) {
-    assertDaycareAdmin(sessionUser)
-  } else if (hasGestionEscolarAdminScope(sessionUser)) {
+  if (hasGestionEscolarAdminScope(sessionUser)) {
     assertGestionEscolarAdmin(sessionUser)
+  } else if (hasDaycareAdminScope(sessionUser)) {
+    assertDaycareAdmin(sessionUser)
   } else if (hasCommunicationsAdminScope(sessionUser)) {
     assertCommunicationsAdmin(sessionUser)
+  } else if (hasAccessHistoryAdminScope(sessionUser)) {
+    assertAccessHistoryAdmin(sessionUser)
   } else {
     throw publicError(403, 'Tu cuenta institucional no tiene un módulo administrativo asignado.')
   }
@@ -61,8 +63,5 @@ export default defineEventHandler(async (event) => {
   setCookie(event, 'ads_suppressed', 'true', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
   setCookie(event, 'last_login_type', 'google', { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 
-  const defaultPath = sessionUser.isSuperAdmin
-    ? '/admin/superadmin'
-    : hasDaycareAdminScope(sessionUser) ? '/admin/daycare/salas' : hasGestionEscolarAdminScope(sessionUser) ? '/admin/gestion-escolar' : '/admin/comunicados'
-  return { user: sessionUser, loggedin: true, defaultPath }
+  return { user: sessionUser, loggedin: true, defaultPath: defaultAdminRoute(sessionUser) }
 })

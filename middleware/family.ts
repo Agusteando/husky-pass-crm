@@ -5,7 +5,7 @@ import { defaultFamilyRoute } from '~/utils/sessionScopes'
 export default defineNuxtRouteMiddleware(async (to) => {
   const session = await getRouteSession()
   if (!session.user || session.user.kind !== 'family') {
-    if (to.path.startsWith('/familia/daycare')) return navigateTo('/login/guarderia')
+    if (to.path.startsWith('/familia/daycare')) return navigateTo('/login')
     return navigateTo('/login')
   }
 

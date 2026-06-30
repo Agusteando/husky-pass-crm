@@ -1,23 +1,15 @@
 <template>
   <LoginPanel
-    brand-to="/login/guarderia"
+    brand-to="/login"
     eyebrow="Experiencia Guardería"
-    title="Acceso familiar Guardería"
-    description="Ingresa con la cuenta familiar asignada a tu sala."
+    title="Acceso Husky Pass"
+    description="La cuenta familiar abre guardería, avisos, tareas o seguridad según sus permisos activos."
     experience="guarderia"
   >
-    <ExperienceLoginForm experience="guarderia" heading="Entrar a Experiencia Guardería" />
-    <NuxtLink class="btn btn-secondary create-link" to="/registro-guarderia">Crear acceso de Guardería</NuxtLink>
+    <UnifiedLoginForm context="guarderia" :show-registration="true" />
   </LoginPanel>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ middleware: 'guest' })
 </script>
-
-<style scoped>
-.create-link {
-  margin-top: 8px;
-  width: 100%;
-}
-</style>
