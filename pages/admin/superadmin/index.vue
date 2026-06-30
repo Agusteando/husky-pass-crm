@@ -192,58 +192,16 @@
           </dl>
 
 
-          <section class="comms-permissions" aria-label="Permisos de comunicados">
+          <section class="comms-permissions" aria-label="Gestion Escolar">
             <div class="section-head compact-headline">
               <div>
-                <p class="eyebrow">Comunicados</p>
-                <h3>Generación por alcance</h3>
+                <p class="eyebrow">Gestion Escolar</p>
+                <h3>Permisos escuela-familia</h3>
               </div>
-              <label class="switch-row">
-                <input v-model="communicationsEnabled" type="checkbox" />
-                <span>{{ communicationsEnabled ? 'Activo' : 'Inactivo' }}</span>
-              </label>
+              <NuxtLink class="btn btn-primary compact" to="/admin/superadmin/gestion-escolar">Abrir cockpit</NuxtLink>
             </div>
-
-            <div v-if="communicationsEnabled" class="scope-editor">
-              <article v-for="(scope, index) in communicationsScopes" :key="index" class="scope-editor-row" :data-global="Boolean(scope.isGlobal)">
-                <label class="check-card">
-                  <input v-model="scope.isGlobal" type="checkbox" @change="normalizeCommunicationScope(index)" />
-                  Global
-                </label>
-                <label v-if="!scope.isGlobal" class="label">
-                  <span>Plantel</span>
-                  <select v-model="scope.plantel" class="select">
-                    <option v-for="plantel in communicationPlantelOptions" :key="plantel" :value="plantel">{{ plantel }}</option>
-                  </select>
-                </label>
-                <label v-if="!scope.isGlobal" class="label">
-                  <span>Nivel</span>
-                  <input v-model="scope.nivel" class="input" placeholder="Opcional" />
-                </label>
-                <label v-if="!scope.isGlobal" class="label">
-                  <span>Grado</span>
-                  <input v-model="scope.grado" class="input" placeholder="Opcional" />
-                </label>
-                <label v-if="!scope.isGlobal" class="label">
-                  <span>Grupo</span>
-                  <input v-model="scope.grupo" class="input" placeholder="Opcional" />
-                </label>
-                <label class="check-card">
-                  <input v-model="scope.canPublish" type="checkbox" />
-                  Enviar
-                </label>
-                <button class="btn btn-secondary compact icon-only" type="button" aria-label="Quitar alcance" :disabled="communicationsScopes.length <= 1" @click="removeCommunicationScope(index)">
-                  <FamilyPersonasIcon name="trash" />
-                </button>
-              </article>
-            </div>
-
-            <div class="comms-actions">
-              <button v-if="communicationsEnabled" class="btn btn-secondary compact" type="button" @click="addCommunicationScope">Agregar alcance</button>
-              <button class="btn btn-primary compact" type="button" :disabled="communicationsSavingId === selectedUser.id" @click="saveCommunicationScopes">
-                {{ communicationsSavingId === selectedUser.id ? 'Guardando…' : 'Guardar permisos' }}
-              </button>
-            </div>
+            <p class="muted">Comunicados, encuestas, convenios, visibilidad familiar e impersonacion se asignan ahora desde el cockpit dedicado.</p>
+            <p v-if="selectedUser.communicationsEnabled" class="muted">Esta cuenta conserva compatibilidad legacy de Comunicados durante la migracion.</p>
           </section>
         </template>
         <EmptyState v-else title="Selecciona un usuario" description="Verás su rol, producto, plantel y rutas heredadas sin salir del directorio." />
@@ -258,7 +216,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
-import type { CommunicationAdminScopeInput } from '~/types/communications'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { displayMatricula } from '~/utils/matricula'
@@ -286,9 +243,6 @@ const actionError = ref('')
 const actionNotice = ref('')
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
-const communicationsSavingId = ref<number | null>(null)
-const communicationsEnabled = ref(false)
-const communicationsScopes = ref<CommunicationAdminScopeInput[]>([])
 
 const query = computed(() => ({
   plantel: selectedPlantel.value,
@@ -298,7 +252,6 @@ const query = computed(() => ({
 }))
 
 const activeScopeLabel = computed(() => scopeOptions.find((option) => option.value === selectedScope.value)?.label || 'Todos')
-const communicationPlantelOptions = computed(() => directory.value?.planteles?.length ? directory.value.planteles : ['PREEM', 'PM', 'PT', 'SM', 'ST'])
 
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
   query,
@@ -391,10 +344,6 @@ watch(directory, (value) => {
   }
 }, { immediate: true })
 
-watch(selectedUser, (user) => {
-  syncCommunicationForm(user)
-})
-
 async function refreshDirectory() {
   actionError.value = ''
   actionNotice.value = ''
@@ -418,7 +367,6 @@ function selectScope(scope: SuperAdminDirectoryScope) {
 
 function selectUser(user: SuperAdminUserSummary) {
   selectedUser.value = user
-  syncCommunicationForm(user)
   actionError.value = ''
   actionNotice.value = ''
   syncQuery(user.id)
@@ -478,93 +426,6 @@ function audienceLabel(user: SuperAdminUserSummary) {
   return 'Sin clasificar'
 }
 
-
-function blankCommunicationScope(): CommunicationAdminScopeInput {
-  return {
-    isGlobal: false,
-    plantel: selectedPlantel.value || communicationPlantelOptions.value[0] || 'SM',
-    nivel: '',
-    grado: '',
-    grupo: '',
-    canCreate: true,
-    canPublish: false
-  }
-}
-
-function syncCommunicationForm(user: SuperAdminUserSummary | null) {
-  communicationsEnabled.value = Boolean(user?.communicationsEnabled)
-  communicationsScopes.value = user?.communicationsScopes?.length
-    ? user.communicationsScopes.map((scope) => ({
-        isGlobal: Boolean(scope.isGlobal),
-        plantel: scope.plantel || communicationPlantelOptions.value[0] || 'SM',
-        nivel: scope.nivel || '',
-        grado: scope.grado || '',
-        grupo: scope.grupo || '',
-        canCreate: scope.canCreate !== false,
-        canPublish: Boolean(scope.canPublish)
-      }))
-    : [blankCommunicationScope()]
-}
-
-function normalizeCommunicationScope(index: number) {
-  const scope = communicationsScopes.value[index]
-  if (!scope) return
-  if (scope.isGlobal) {
-    scope.plantel = null
-    scope.nivel = null
-    scope.grado = null
-    scope.grupo = null
-  } else if (!scope.plantel) {
-    scope.plantel = communicationPlantelOptions.value[0] || 'SM'
-  }
-}
-
-function addCommunicationScope() {
-  communicationsScopes.value.push(blankCommunicationScope())
-}
-
-function removeCommunicationScope(index: number) {
-  if (communicationsScopes.value.length <= 1) return
-  communicationsScopes.value.splice(index, 1)
-}
-
-async function saveCommunicationScopes() {
-  if (!selectedUser.value) return
-  actionError.value = ''
-  actionNotice.value = ''
-  communicationsSavingId.value = selectedUser.value.id
-  try {
-    const response = await $fetch<{ enabled: boolean; scopes: CommunicationAdminScopeInput[] }>(`/api/admin/superadmin/users/${selectedUser.value.id}/comunicados`, {
-      method: 'POST',
-      body: {
-        enabled: communicationsEnabled.value,
-        scopes: communicationsEnabled.value ? communicationsScopes.value : []
-      }
-    })
-    selectedUser.value = {
-      ...selectedUser.value,
-      communicationsEnabled: response.enabled,
-      communicationsScopes: response.scopes,
-      adminScopes: response.enabled ? Array.from(new Set([...selectedUser.value.adminScopes, 'communications'])) : selectedUser.value.adminScopes.filter((scope) => scope !== 'communications'),
-      role: mergeCommunicationsRole(selectedUser.value.role, response.enabled)
-    }
-    syncCommunicationForm(selectedUser.value)
-    actionNotice.value = response.enabled ? 'Permisos de Comunicados actualizados.' : 'Permisos de Comunicados desactivados.'
-    await refresh()
-  } catch (err: unknown) {
-    const error = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = error?.data?.statusMessage || error?.statusMessage || error?.message || 'No fue posible guardar permisos de Comunicados.'
-  } finally {
-    communicationsSavingId.value = null
-  }
-}
-
-function mergeCommunicationsRole(role: string | null, enabled: boolean) {
-  const roles = new Set(String(role || '').split(',').map((item) => item.trim()).filter(Boolean))
-  if (enabled) roles.add('ROLE_HUSKY_COMUNICADOS')
-  else roles.delete('ROLE_HUSKY_COMUNICADOS')
-  return Array.from(roles).join(',') || null
-}
 
 function impersonationButtonLabel(user: SuperAdminUserSummary) {
   if (!user.canImpersonate) return 'No disponible'

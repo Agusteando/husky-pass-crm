@@ -1,27 +1,29 @@
 import { defineEventHandler, readBody, setCookie } from 'h3'
 import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
-import { findLegacyUserById } from '~/server/data/mysqlAuth'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
+import { assertTargetIsFamilyOnly, auditGestionImpersonation, canGestionImpersonateFamily } from '~/server/data/gestionEscolar'
+import { parseOrBadRequest } from '~/server/utils/validation'
 
 const schema = z.object({ userId: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
   const current = getAppSession(event).user
   if (!current) throw publicError(401, 'Sesión no válida')
+
+  const body = parseOrBadRequest(schema, await readBody(event), 'Indica una familia valida para iniciar la vista de soporte.')
+  const { familyUser } = await assertTargetIsFamilyOnly(body.userId)
   if (!isSuperAdmin(current)) {
-    throw publicError(403, 'La impersonación de cuentas está reservada para superadmin')
-  }
-
-  const body = schema.parse(await readBody(event))
-  const legacyUser = await findLegacyUserById(body.userId)
-  if (!legacyUser) throw publicError(404, 'Cuenta familiar no encontrada')
-
-  const familyUser = legacyUser.toSession('family')
-  if (!familyUser.productScopes.length) {
-    throw publicError(403, 'La cuenta no tiene acceso familiar habilitado')
+    const eligibility = await canGestionImpersonateFamily(current, body.userId)
+    if (!eligibility.allowed) {
+      await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'denied', reason: eligibility.reason || 'Fuera de alcance' })
+      throw publicError(403, eligibility.reason || 'No tienes permiso para ver esta familia.')
+    }
+    await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'start', reason: 'Soporte Gestion Escolar', scope: eligibility.scope })
+  } else {
+    await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'start', reason: 'Soporte Superadmin', scope: { isGlobal: true } })
   }
 
   familyUser.impersonation = {

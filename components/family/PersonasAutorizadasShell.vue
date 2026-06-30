@@ -519,7 +519,7 @@ async function exitImpersonation() {
   const impersonation = session.value?.user?.impersonation
   const target = impersonation?.mode === 'daycarePreview'
     ? '/admin/daycare/salas'
-    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
+    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
   setCachedRouteSession(null)
   await navigateTo(target)

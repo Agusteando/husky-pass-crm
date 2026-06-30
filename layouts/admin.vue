@@ -15,7 +15,7 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed } from 'vue'
 import { useRoute } from 'nuxt/app'
 import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
-import { hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
 
 const route = useRoute()
 const { data: session } = useAppSession()
@@ -25,6 +25,7 @@ const homeTo = computed(() => {
   const user = session.value?.user
   if (user?.isSuperAdmin) return '/admin/superadmin'
   if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
+  if (hasGestionEscolarAdminScope(user)) return '/admin/gestion-escolar'
   if (hasCommunicationsAdminScope(user)) return '/admin/comunicados'
   if (canAccessHistory.value) return '/admin/historial-accesos'
   return '/admin/login'
@@ -39,12 +40,16 @@ const topbarItems = computed(() => {
   if (hasDaycareAdminScope(session.value?.user)) {
     items.push({ key: 'guarderia-admin', label: 'Guarderia', to: daycareTo, icon: 'daycare' })
   }
+  if (hasGestionEscolarAdminScope(session.value?.user)) {
+    items.push({ key: 'gestion-escolar', label: 'Gestion Escolar', to: '/admin/gestion-escolar', icon: 'school' })
+  }
   if (hasCommunicationsAdminScope(session.value?.user)) {
     items.push({ key: 'comunicados', label: 'Comunicados', to: '/admin/comunicados', icon: 'announcement' })
   }
   if (session.value?.user?.isSuperAdmin) {
     items.unshift(
       { key: 'superadmin', label: 'Directorio', to: '/admin/superadmin', icon: 'people' },
+      { key: 'gestion-permisos', label: 'Gestion Escolar', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
       { key: 'personas-autorizadas', label: 'Husky Pass', to: '/admin/superadmin/personas-autorizadas', icon: 'marbete' },
       { key: 'historial-accesos', label: 'Historial', to: '/admin/historial-accesos', icon: 'history' },
       { key: 'marbetes', label: 'Plantillas', to: '/admin/superadmin/marbetes', icon: 'document' }

@@ -5,8 +5,8 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { assertCommunicationsAdmin, assertDaycareAdmin } from '~/server/utils/authz'
-import { hasCommunicationsAdminScope, hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { assertCommunicationsAdmin, assertDaycareAdmin, assertGestionEscolarAdmin } from '~/server/utils/authz'
+import { hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -48,6 +48,8 @@ export default defineEventHandler(async (event) => {
 
   if (hasDaycareAdminScope(sessionUser)) {
     assertDaycareAdmin(sessionUser)
+  } else if (hasGestionEscolarAdminScope(sessionUser)) {
+    assertGestionEscolarAdmin(sessionUser)
   } else if (hasCommunicationsAdminScope(sessionUser)) {
     assertCommunicationsAdmin(sessionUser)
   } else {
@@ -61,6 +63,6 @@ export default defineEventHandler(async (event) => {
 
   const defaultPath = sessionUser.isSuperAdmin
     ? '/admin/superadmin'
-    : hasDaycareAdminScope(sessionUser) ? '/admin/daycare/salas' : '/admin/comunicados'
+    : hasDaycareAdminScope(sessionUser) ? '/admin/daycare/salas' : hasGestionEscolarAdminScope(sessionUser) ? '/admin/gestion-escolar' : '/admin/comunicados'
   return { user: sessionUser, loggedin: true, defaultPath }
 })

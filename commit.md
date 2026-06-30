@@ -1,1 +1,1 @@
-Corrige identidad del topbar familiar
+Implementa Gestion Escolar con permisos por alcance

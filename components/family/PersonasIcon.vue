@@ -56,6 +56,7 @@ const props = defineProps<{ name: string }>()
 
 const iconMap: Record<string, FunctionalComponent> = {
   daycare: School,
+  school: School,
   home: House,
   people: UsersRound,
   person: UserRound,

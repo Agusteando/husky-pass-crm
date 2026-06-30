@@ -15,6 +15,7 @@ import type {
 } from '~/types/communications'
 import type { AuthorizedChild } from '~/types/daycare'
 import { getFamilyChildren } from '~/server/data/mysqlDaycare'
+import { getGestionCommunicationScopes } from '~/server/data/gestionEscolar'
 import { csvToList, legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
 
@@ -316,6 +317,28 @@ async function getCommunicationAccess(user: AppSessionUser): Promise<Communicati
     return { isGlobal: true, canCreate: true, canPublish: true, scopes: [{ isGlobal: true, plantel: null, nivel: null, grado: null, grupo: null, canCreate: true, canPublish: true }] }
   }
 
+  const gestionScopes = (await getGestionCommunicationScopes(user)).map((scope) => {
+    const normalized = normalizeScopeInput(scope)
+    return {
+      userId: user.id,
+      isGlobal: Boolean(normalized.isGlobal),
+      plantel: normalized.plantel || null,
+      nivel: normalized.nivel || null,
+      grado: normalized.grado || null,
+      grupo: normalized.grupo || null,
+      canCreate: Boolean(normalized.canCreate),
+      canPublish: Boolean(normalized.canPublish)
+    }
+  })
+  if (gestionScopes.length) {
+    return {
+      isGlobal: gestionScopes.some((scope) => scope.isGlobal),
+      canCreate: gestionScopes.some((scope) => scope.canCreate),
+      canPublish: gestionScopes.some((scope) => scope.canPublish),
+      scopes: gestionScopes
+    }
+  }
+
   const scopes = await loadAdminScopes(user.id)
   const isGlobal = scopes.some((scope) => scope.isGlobal)
   return {
@@ -365,7 +388,9 @@ function accessCoversAudience(access: CommunicationAccess, audience: Communicati
 
 function communicationVisibleForAccess(access: CommunicationAccess, message: SchoolCommunication) {
   if (access.isGlobal) return true
-  return accessCoversAudience(access, message.audience, 'create')
+  const targets = audienceTargets(message.audience)
+  if (!targets.length || targets.some((target) => !target.plantel)) return false
+  return targets.every((target) => access.scopes.some((scope) => (scope.canCreate || scope.canPublish) && scopeCoversTarget(scope, target)))
 }
 
 function childMatchesScope(scope: CommunicationAdminScope, child: AuthorizedChild) {

@@ -4,7 +4,7 @@
       <FamilyPersonasPageHeader
         eyebrow="Participación"
         title="Encuestas"
-        :description="surveyAvailable ? `Hay una encuesta disponible para ${nivelLabel}.` : `No hay una encuesta activa para ${nivelLabel}.`"
+        :description="surveyAvailable ? 'Hay una encuesta disponible para tu familia.' : 'No hay encuestas activas por ahora.'"
         :meta="surveyAvailable ? 'Disponible' : 'Sin formulario publicado'"
         ambassador-variant="help"
         :ambassador-title="surveyAvailable ? 'Tu opinión cuenta' : 'Sin pendientes por ahora'"
@@ -15,9 +15,9 @@
       <section class="card survey-card" :class="{ unavailable: !surveyAvailable }" data-product-panel="surveys" :data-state="surveyAvailable ? 'content' : 'unavailable'">
         <FamilyPersonasSectionHeading
           :title="activeSurvey.title || 'Encuesta'"
-          :description="surveyAvailable ? 'Completa el formulario directamente en esta página.' : 'Cuando el colegio publique una encuesta para este nivel, aparecerá aquí.'"
+          :description="surveyAvailable ? `Disponible para ${scopeLabel}.` : 'Cuando el colegio publique una encuesta para tu contexto familiar, aparecerá aquí.'"
         />
-        <iframe v-if="surveyAvailable" :src="activeSurvey.embedUrl" title="Encuesta Personas Autorizadas" loading="lazy"></iframe>
+        <iframe v-if="surveyAvailable" :src="activeSurvey.embedUrl || activeSurvey.url" title="Encuesta Husky Pass" loading="lazy"></iframe>
         <div v-else class="compact-empty">
           <div class="compact-empty-ambassador" aria-hidden="true">
             <FamilyPersonasAmbassador variant="empty" compact contained decorative />
@@ -35,22 +35,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFetch } from 'nuxt/app'
-import type { PersonasAutorizadasConfig, PersonasSurveyConfig, PersonasSurveyNivelKey } from '~/types/daycare'
+import type { FamilyScopedContentResponse, GestionEscolarScopedContentItem } from '~/types/gestionEscolar'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-const { data: config } = useFetch<PersonasAutorizadasConfig>('/api/personas-autorizadas/config', { key: 'pa-survey-config', timeout: 15000 })
-const emptySurvey: PersonasSurveyConfig = { enabled: false, title: 'Encuesta', embedUrl: '' }
-const activeSurvey = computed(() => config.value?.activeSurvey || emptySurvey)
-const surveyAvailable = computed(() => Boolean(activeSurvey.value.enabled && activeSurvey.value.embedUrl))
-const nivelLabel = computed(() => nivelLabels[config.value?.activeSurveyNivel || 'escolar'])
-
-const nivelLabels: Record<PersonasSurveyNivelKey, string> = {
-  escolar: 'Escolar',
-  preescolar: 'Preescolar',
-  primaria: 'Primaria',
-  secundaria: 'Secundaria',
-  daycare: 'Guardería'
-}
+const { data: response } = useFetch<FamilyScopedContentResponse>('/api/family/gestion-escolar/encuesta', { key: 'pa-scoped-survey', timeout: 15000 })
+const emptySurvey: GestionEscolarScopedContentItem = { id: '', kind: 'encuesta', title: 'Encuesta', summary: '', url: '', embedUrl: '', status: 'inactive', isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null, createdAt: '', updatedAt: '', scopeLabel: '' }
+const activeSurvey = computed(() => response.value?.item || emptySurvey)
+const surveyAvailable = computed(() => Boolean(activeSurvey.value.url))
+const scopeLabel = computed(() => response.value?.context.scopeLabel || 'tu familia')
 </script>
 
 <style scoped>

@@ -1,11 +1,11 @@
 import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
-import type { AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
+import type { AdminProductScope, AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { getCommunicationScopesForUsers } from '~/server/data/communications'
 import type { CommunicationAdminScopeInput } from '~/types/communications'
 
@@ -175,7 +175,7 @@ export async function createSuperAdminSession(input: { email: string; displayNam
     unidades: unidades.length ? unidades : fromLegacy.unidades,
     plantel: fromLegacy.plantel,
     routes,
-    productScopes: [],
+    productScopes: ['superAdmin', 'daycareAdmin', 'gestionEscolarAdmin', 'communicationsAdmin', 'accessHistoryAdmin'],
     scopes: {},
     anonymous: false,
     loggedin: true
@@ -199,7 +199,9 @@ function hydrateUserRows(rows: LegacyUserRow[]) {
       const unidades = csvToList(first.unidad)
       const plantel = csvToList(first.plantel)
       const familyScopes = kind === 'family' ? resolveFamilyProductScopes(first, routes, roles, unidades) : {}
-      const productScopes = Object.keys(familyScopes) as FamilyProductScope[]
+      const productScopes = kind === 'family'
+        ? Object.keys(familyScopes) as FamilyProductScope[]
+        : resolveAdminProductScopes(first, routes, roles, unidades)
       const email = normalizeEmail(first.email)
 
       return {
@@ -251,6 +253,32 @@ function resolveFamilyProductScopes(
   }
 
   return scopes
+}
+
+function resolveAdminProductScopes(
+  row: LegacyUserRow,
+  routes: LegacyRoutePermission[],
+  roles: string[],
+  unidades: string[]
+): AdminProductScope[] {
+  const scopes: AdminProductScope[] = []
+  const routeText = routes.map((route) => route.route).join(' ')
+  if ((hasRoleToken(roles, DAYCARE_ADMIN_ROLE) || /guarder[ií]a|husky|daycare/i.test(routeText)) && unidades.length) {
+    scopes.push('daycareAdmin')
+  }
+  if (hasRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(routeText)) {
+    scopes.push('communicationsAdmin')
+  }
+  if (hasRoleToken(roles, GESTION_ESCOLAR_ROLE)) {
+    scopes.push('gestionEscolarAdmin')
+  }
+  if (/personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roles.join(' ')}`)) {
+    scopes.push('accessHistoryAdmin')
+  }
+  if (isConfiguredSuperAdminEmail(normalizeEmail(row.email))) {
+    scopes.push('superAdmin')
+  }
+  return Array.from(new Set(scopes))
 }
 
 function normalizeLegacyScope(value?: string | null) {
@@ -457,6 +485,7 @@ function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: Comm
   const hasDaycareFamilyRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
   const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
   const hasCommunicationsInternalRole = hasRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE)
+  const hasGestionEscolarInternalRole = hasRoleToken(roles, GESTION_ESCOLAR_ROLE)
   const hasDaycareAdminRoute = routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route))
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
@@ -467,6 +496,7 @@ function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: Comm
 
   const adminScopes: string[] = []
   if ((hasDaycareInternalRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
+  if (hasGestionEscolarInternalRole) adminScopes.push('gestionEscolar')
   if (hasCommunicationsInternalRole || communicationsScopes.length) adminScopes.push('communications')
 
   let audience: SuperAdminUserSummary['audience'] = 'unknown'

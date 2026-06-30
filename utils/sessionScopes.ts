@@ -3,6 +3,7 @@ import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
 export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
 export const COMMUNICATIONS_ADMIN_ROLE = 'ROLE_HUSKY_COMUNICADOS'
+export const GESTION_ESCOLAR_ROLE = 'ROLE_HUSKY_GESTION_ESCOLAR'
 
 export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
@@ -38,6 +39,12 @@ export function hasCommunicationsAdminScope(user: AppSessionUser | null | undefi
   return hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(`${routeText} ${roleText}`)
 }
 
+export function hasGestionEscolarAdminScope(user: AppSessionUser | null | undefined) {
+  if (!user || user.kind !== 'admin') return false
+  if (user.isSuperAdmin) return true
+  return hasRoleToken(user.roles, GESTION_ESCOLAR_ROLE) || user.productScopes.includes('gestionEscolarAdmin')
+}
+
 export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefined) {
   if (!user || user.kind !== 'admin') return false
   if (user.isSuperAdmin) return true
@@ -47,7 +54,7 @@ export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefin
 }
 
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
-  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasDaycareAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
+  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasDaycareAdminScope(user) || hasGestionEscolarAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
 }
 
 export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {

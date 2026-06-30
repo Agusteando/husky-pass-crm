@@ -4,26 +4,26 @@
       <FamilyPersonasPageHeader
         eyebrow="Familias"
         title="Convenios"
-        :description="config?.conveniosUrl ? 'Consulta los beneficios institucionales disponibles para tu familia.' : 'Los beneficios institucionales aparecerán aquí cuando estén disponibles.'"
+        :description="convenioAvailable ? 'Consulta los beneficios institucionales disponibles para tu familia.' : 'Los beneficios institucionales aparecerán aquí cuando estén disponibles.'"
         ambassador-variant="help"
-        :ambassador-title="config?.conveniosUrl ? 'Beneficios disponibles' : 'Sin acción necesaria'"
-        :ambassador-message="config?.conveniosUrl ? 'Abriré el catálogo institucional en una pestaña segura.' : 'Cuando el colegio publique convenios, este acceso se activará.'"
-        :ambassador-tone="config?.conveniosUrl ? 'success' : 'empty'"
+        :ambassador-title="convenioAvailable ? 'Beneficios disponibles' : 'Sin acción necesaria'"
+        :ambassador-message="convenioAvailable ? 'Abriré el catálogo institucional en una pestaña segura.' : 'Cuando el colegio publique convenios, este acceso se activará.'"
+        :ambassador-tone="convenioAvailable ? 'success' : 'empty'"
       >
-        <template v-if="config?.conveniosUrl" #actions>
-          <a class="btn btn-primary pa-primary" :href="config.conveniosUrl" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
+        <template v-if="convenioAvailable" #actions>
+          <a class="btn btn-primary pa-primary" :href="activeConvenio.url" target="_blank" rel="noopener noreferrer">Abrir convenios</a>
         </template>
       </FamilyPersonasPageHeader>
 
-      <section class="card convenios-card" :class="{ unavailable: !config?.conveniosUrl }" data-product-panel="convenios" :data-state="config?.conveniosUrl ? 'content' : 'unavailable'">
+      <section class="card convenios-card" :class="{ unavailable: !convenioAvailable }" data-product-panel="convenios" :data-state="convenioAvailable ? 'content' : 'unavailable'">
         <FamilyPersonasSectionHeading
-          title="Beneficios institucionales"
-          :description="config?.conveniosUrl ? 'El catálogo se abre en el sitio institucional correspondiente.' : 'No hay un catálogo publicado por el momento.'"
-          :meta="config?.conveniosUrl ? 'Disponible' : 'Próximamente'"
+          :title="activeConvenio.title || 'Beneficios institucionales'"
+          :description="convenioAvailable ? `Disponible para ${scopeLabel}.` : 'No hay un catálogo publicado por el momento.'"
+          :meta="convenioAvailable ? 'Disponible' : 'Próximamente'"
         />
         <p>
-          {{ config?.conveniosUrl
-            ? 'Revisa promociones, servicios y acuerdos vigentes para las familias de la comunidad escolar.'
+          {{ convenioAvailable
+            ? (activeConvenio.summary || 'Revisa promociones, servicios y acuerdos vigentes para las familias de la comunidad escolar.')
             : 'No necesitas realizar ninguna acción. El acceso se habilitará automáticamente cuando el colegio publique nuevos convenios.' }}
         </p>
       </section>
@@ -33,10 +33,15 @@
 
 <script setup lang="ts">
 import { useFetch } from 'nuxt/app'
-import type { PersonasAutorizadasConfig } from '~/types/daycare'
+import { computed } from 'vue'
+import type { FamilyScopedContentResponse, GestionEscolarScopedContentItem } from '~/types/gestionEscolar'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-const { data: config } = useFetch<PersonasAutorizadasConfig>('/api/personas-autorizadas/config', { key: 'pa-convenios-config', timeout: 15000 })
+const { data: response } = useFetch<FamilyScopedContentResponse>('/api/family/gestion-escolar/convenio', { key: 'pa-scoped-convenio', timeout: 15000 })
+const emptyConvenio: GestionEscolarScopedContentItem = { id: '', kind: 'convenio', title: 'Beneficios institucionales', summary: '', url: '', embedUrl: '', status: 'inactive', isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null, createdAt: '', updatedAt: '', scopeLabel: '' }
+const activeConvenio = computed(() => response.value?.item || emptyConvenio)
+const convenioAvailable = computed(() => Boolean(activeConvenio.value.url))
+const scopeLabel = computed(() => response.value?.context.scopeLabel || 'tu familia')
 </script>
 
 <style scoped>

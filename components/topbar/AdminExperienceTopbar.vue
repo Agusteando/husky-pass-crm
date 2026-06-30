@@ -39,13 +39,15 @@ const props = defineProps<{
 
 const route = useRoute()
 const search = ref('')
-const hasComunicadosOnly = computed(() => props.items.some((item) => item.key === 'comunicados') && !props.items.some((item) => item.key === 'guarderia-admin'))
-const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : hasComunicadosOnly.value ? 'Comunicados' : 'Admin Guardería')
-const subtitle = computed(() => props.session?.user?.isSuperAdmin ? 'Operación institucional' : hasComunicadosOnly.value ? 'Comunicación institucional' : (props.session?.user?.unidades?.[0] || 'Guardería'))
+const hasGestionOnly = computed(() => props.items.some((item) => item.key === 'gestion-escolar') && !props.items.some((item) => item.key === 'guarderia-admin'))
+const hasComunicadosOnly = computed(() => props.items.some((item) => item.key === 'comunicados') && !props.items.some((item) => item.key === 'guarderia-admin') && !props.items.some((item) => item.key === 'gestion-escolar'))
+const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : hasGestionOnly.value ? 'Gestión Escolar' : hasComunicadosOnly.value ? 'Comunicados' : 'Admin Guardería')
+const subtitle = computed(() => props.session?.user?.isSuperAdmin ? 'Operación institucional' : hasGestionOnly.value ? 'Operación escuela-familia' : hasComunicadosOnly.value ? 'Comunicación institucional' : (props.session?.user?.unidades?.[0] || 'Guardería'))
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
   if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
+  if (targetPath === '/admin/gestion-escolar') return route.path.startsWith('/admin/gestion-escolar')
   if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
 }

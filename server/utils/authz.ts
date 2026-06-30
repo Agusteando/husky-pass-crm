@@ -1,6 +1,6 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import { publicError } from '~/server/utils/httpError'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, hasCommunicationsAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
   if (user.kind !== 'family') return false
@@ -53,9 +53,21 @@ export function assertCommunicationsAdmin(user: AppSessionUser) {
 
   if (isSuperAdmin(user)) return
 
-  const hasPermission = hasCommunicationsAdminScope(user) || hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE)
+  const hasPermission = hasCommunicationsAdminScope(user) || hasGestionEscolarAdminScope(user) || hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE)
   if (!hasPermission) {
     throw publicError(403, 'El usuario no tiene alcance para gestionar comunicados.')
+  }
+}
+
+export function assertGestionEscolarAdmin(user: AppSessionUser) {
+  if (user.kind !== 'admin') {
+    throw publicError(403, 'Acceso interno no autorizado')
+  }
+
+  if (isSuperAdmin(user)) return
+
+  if (!hasGestionEscolarAdminScope(user) && !hasRoleToken(user.roles, GESTION_ESCOLAR_ROLE)) {
+    throw publicError(403, 'El usuario no tiene acceso a Gestion Escolar.')
   }
 }
 
