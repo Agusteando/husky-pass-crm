@@ -1,1 +1,1 @@
-Agregar asignacion de roles administrativos en Superadmin
+Restringe Gestion Escolar por plantel y rediseña sus alcances

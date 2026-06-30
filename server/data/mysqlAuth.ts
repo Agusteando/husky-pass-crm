@@ -432,7 +432,7 @@ function isMissingPermissionTable(error: unknown, tablePattern: RegExp) {
   return candidate.code === 'ER_NO_SUCH_TABLE' || tablePattern.test(candidate.message || '')
 }
 
-async function ensureGestionStarterAccess(actor: AppSessionUser, userId: number, enabled: boolean) {
+async function ensureGestionStarterAccess(_actor: AppSessionUser, userId: number, enabled: boolean) {
   try {
     if (!enabled) {
       await legacyWrite('DELETE FROM gestion_escolar_permissions WHERE user_id = ?', [userId])
@@ -440,16 +440,12 @@ async function ensureGestionStarterAccess(actor: AppSessionUser, userId: number,
     }
 
     const rows = await legacyQuery<(RowDataPacket & { total: number })[]>(
-      'SELECT COUNT(*) AS total FROM gestion_escolar_permissions WHERE user_id = ? AND enabled = 1',
+      `SELECT COUNT(*) AS total FROM gestion_escolar_permissions WHERE user_id = ? AND enabled = 1 AND is_global = 0 AND plantel IS NOT NULL AND TRIM(plantel) <> ''`,
       [userId]
     )
     if (Number(rows[0]?.total || 0) > 0) return
 
-    await legacyWrite(
-      `INSERT INTO gestion_escolar_permissions (user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at)
-       VALUES (?, 'familias.view', 1, 1, NULL, NULL, NULL, NULL, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-      [userId, actor.id, actor.id]
-    )
+    throw publicError(400, 'Asigna Gestion Escolar desde el cockpit con al menos un plantel antes de activar el rol.')
   } catch (error) {
     if (isMissingPermissionTable(error, /gestion_escolar_permissions/i)) {
       throw publicError(503, 'Gestion Escolar requiere aplicar la migracion SQL antes de asignar ese rol.')
@@ -505,8 +501,12 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
   }
 
   const roles = new Set(currentRoles)
+  const currentGestionEscolar = hasRoleToken(currentRoles, GESTION_ESCOLAR_ROLE)
+  const requestedGestionEscolar = Boolean(input.roles.gestionEscolarAdmin)
+  const gestionEscolarChanged = currentGestionEscolar !== requestedGestionEscolar
+
   toggleRoleToken(roles, DAYCARE_ADMIN_ROLE, Boolean(input.roles.daycareAdmin))
-  toggleRoleToken(roles, GESTION_ESCOLAR_ROLE, Boolean(input.roles.gestionEscolarAdmin))
+  toggleRoleToken(roles, GESTION_ESCOLAR_ROLE, requestedGestionEscolar)
   toggleRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE, Boolean(input.roles.communicationsAdmin))
   toggleRoleToken(roles, ACCESS_HISTORY_ADMIN_ROLE, Boolean(input.roles.accessHistoryAdmin))
 
@@ -515,7 +515,9 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
     throw publicError(400, 'Selecciona al menos una unidad para Guarderia interna.')
   }
 
-  await ensureGestionStarterAccess(actor, userId, Boolean(input.roles.gestionEscolarAdmin))
+  if (gestionEscolarChanged) {
+    await ensureGestionStarterAccess(actor, userId, requestedGestionEscolar)
+  }
   await ensureCommunicationStarterAccess(actor, userId, Boolean(input.roles.communicationsAdmin))
 
   const nextUnidad = input.roles.daycareAdmin ? unidades.join(',') : String(target.unidad || '')

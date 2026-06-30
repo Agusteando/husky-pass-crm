@@ -29,7 +29,7 @@ import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { csvToList, legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
 import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/personasConfig'
-import { COMMUNICATIONS_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 import { normalizeEmail } from '~/utils/superAdmin'
 import { displayMatriculaCandidate, normalizeMatricula } from '~/utils/matricula'
 
@@ -148,6 +148,9 @@ const EMPTY_REACH: GestionEscolarReachPreview = {
   grados: [],
   grupos: []
 }
+
+const DAYCARE_GESTION_PLANTELES = new Set(['PREEM', 'PREET'])
+const DAYCARE_GESTION_TEXT = /guarder[ií]a|lactantes|maternal/i
 
 function clean(value: unknown) {
   return String(value ?? '').trim()
@@ -315,7 +318,7 @@ export async function getGestionPermissionsForUser(userId: number) {
   const rows = await gestionQuery<GestionPermissionRow[]>(
     `SELECT id, user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at
      FROM gestion_escolar_permissions
-     WHERE user_id = ? AND enabled = 1
+     WHERE user_id = ? AND enabled = 1 AND is_global = 0
      ORDER BY capability ASC, is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
     [userId]
   )
@@ -329,7 +332,7 @@ async function getPermissionsForUsers(userIds: number[]) {
   const rows = await gestionQuery<GestionPermissionRow[]>(
     `SELECT id, user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at
      FROM gestion_escolar_permissions
-     WHERE user_id IN (${placeholders}) AND enabled = 1
+     WHERE user_id IN (${placeholders}) AND enabled = 1 AND is_global = 0
      ORDER BY capability ASC, is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
     ids
   )
@@ -571,11 +574,18 @@ async function loadSchoolFamilies(limit = 5000) {
   const childByUser = new Map(childRows.map((row) => [Number(row.userId), row]))
   const countByUser = new Map(countRows.map((row) => [Number(row.userId), Number(row.authorizedCount || 0)]))
 
-  return rows.map((row) => familyFromDbRow({
-    ...row,
-    ...(childByUser.get(Number(row.userId)) || {}),
-    authorizedCount: countByUser.get(Number(row.userId)) || 0
-  } as GestionFamilyDbRow))
+  return rows
+    .map((row) => {
+      const merged = {
+        ...row,
+        ...(childByUser.get(Number(row.userId)) || {}),
+        authorizedCount: countByUser.get(Number(row.userId)) || 0
+      } as GestionFamilyDbRow
+      const family = familyFromDbRow(merged)
+      return { family, merged }
+    })
+    .filter(({ family, merged }) => isSchoolGestionFamily(family, merged))
+    .map(({ family }) => family)
 }
 
 function familyFromDbRow(row: GestionFamilyDbRow): GestionEscolarFamilyRow {
@@ -619,6 +629,19 @@ function familyScope(family: GestionEscolarFamilyRow): GestionEscolarScope {
     grado: family.grado,
     grupo: family.grupo
   })
+}
+
+function isSchoolGestionFamily(family: GestionEscolarFamilyRow, row?: Pick<GestionFamilyDbRow, 'role' | 'empresa' | 'unidad' | 'campus' | 'childCampus'>) {
+  const plantel = upper(family.plantel)
+  if (!plantel || DAYCARE_GESTION_PLANTELES.has(plantel)) return false
+
+  const roleTokens = csvToList(String(row?.role || ''))
+  if (hasRoleToken(roleTokens, DAYCARE_FAMILY_ROLE) && DAYCARE_GESTION_PLANTELES.has(plantel)) return false
+
+  const text = [family.nivel, family.grado, family.grupo, row?.empresa, row?.unidad, row?.campus, row?.childCampus].map(clean).join(' ')
+  if (DAYCARE_GESTION_TEXT.test(text)) return false
+
+  return true
 }
 
 function familiesForPermissions(families: GestionEscolarFamilyRow[], permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
@@ -685,11 +708,10 @@ export async function listGestionPermissionUsers(filters: { search?: string; pla
   const users = directory.users.map((user) => {
     const permissions = permissionMap.get(user.id) || []
     const reach = reachFromFamilies(familiesForPermissions(families, permissions))
-    const roles = csvToList(user.role)
     return {
       ...user,
       gestionEscolar: {
-        enabled: hasRoleToken(roles, GESTION_ESCOLAR_ROLE) || permissions.length > 0,
+        enabled: permissions.length > 0,
         capabilities: Array.from(new Set(permissions.map((permission) => permission.capability))),
         permissions,
         reach,
@@ -697,13 +719,21 @@ export async function listGestionPermissionUsers(filters: { search?: string; pla
       }
     }
   })
+  const optionsReach = reachFromFamilies(families)
   return {
     users,
-    planteles: directory.planteles,
+    planteles: optionsReach.planteles,
+    options: {
+      planteles: optionsReach.planteles,
+      niveles: optionsReach.niveles,
+      grados: optionsReach.grados,
+      grupos: optionsReach.grupos
+    },
     metrics: {
       total: users.length,
       enabled: users.filter((user) => user.gestionEscolar.enabled).length,
-      global: users.filter((user) => user.gestionEscolar.permissions.some((permission) => permission.isGlobal)).length,
+      scoped: users.filter((user) => user.gestionEscolar.permissions.length).length,
+      global: 0,
       legacyCommunications: users.filter((user) => user.gestionEscolar.legacyCommunications.length).length
     },
     filters: directory.filters
@@ -714,12 +744,17 @@ function normalizePermissionInput(userId: number, input: GestionEscolarPermissio
   const capability = normalizeCapability(input.capability)
   if (!capability || input.enabled === false) return null
   const scope = normalizeGestionScope(input)
-  if (!scope.isGlobal && !scope.plantel) return null
+  if (scope.isGlobal) {
+    throw publicError(400, 'Gestion Escolar requiere un alcance explicito por plantel.')
+  }
+  if (!scope.plantel) {
+    throw publicError(400, 'Selecciona un plantel para cada alcance de Gestion Escolar.')
+  }
   return {
     userId,
     capability,
     enabled: true,
-    isGlobal: scope.isGlobal,
+    isGlobal: false,
     plantel: scope.plantel,
     nivel: scope.nivel,
     grado: scope.grado,

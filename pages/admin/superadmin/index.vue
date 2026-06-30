@@ -197,7 +197,7 @@
             <div class="section-head compact-headline">
               <div>
                 <p class="eyebrow">Accesos administrativos</p>
-                <h3>Roles y entrada automática</h3>
+                <h3>Roles operativos</h3>
               </div>
               <span class="role-state" :data-active="selectedRoleCount > 0">{{ selectedRoleCount ? `${selectedRoleCount} activos` : 'Sin rol admin' }}</span>
             </div>
@@ -246,7 +246,7 @@
               </div>
               <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">Abrir cockpit</NuxtLink>
             </div>
-            <p class="muted">Comunicados, encuestas, convenios, visibilidad familiar e impersonacion se asignan ahora desde el cockpit dedicado.</p>
+            <p class="muted">Acceso por plantel, grado y módulo. Sin alcance global para usuarios operativos.</p>
             <p v-if="selectedUser.communicationsEnabled" class="muted">Esta cuenta conserva compatibilidad legacy de Comunicados durante la migracion.</p>
           </section>
         </template>
@@ -280,7 +280,6 @@ const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; desc
 ]
 
 const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string; caption: string }> = [
-  { key: 'gestionEscolarAdmin', label: 'Gestión Escolar', caption: 'Familias, comunicados, encuestas y convenios' },
   { key: 'daycareAdmin', label: 'Guardería interna', caption: 'Salas, familias y recursos por unidad' },
   { key: 'communicationsAdmin', label: 'Comunicados', caption: 'Publicación institucional legacy' },
   { key: 'accessHistoryAdmin', label: 'Historial de accesos', caption: 'Reportes, marbetes y validación' }
@@ -315,7 +314,8 @@ const query = computed(() => ({
 }))
 
 const activeScopeLabel = computed(() => scopeOptions.find((option) => option.value === selectedScope.value)?.label || 'Todos')
-const selectedRoleCount = computed(() => assignableRoles.filter((role) => roleDraft.value[role.key]).length)
+const selectedGestionEscolarActive = computed(() => Boolean(selectedUser.value?.adminScopes.includes('gestionEscolar') || roleDraft.value.gestionEscolarAdmin))
+const selectedRoleCount = computed(() => assignableRoles.filter((role) => roleDraft.value[role.key]).length + (selectedGestionEscolarActive.value ? 1 : 0))
 const roleUnidadOptions = computed(() => {
   const values = [
     ...(directory.value?.unidades || []),

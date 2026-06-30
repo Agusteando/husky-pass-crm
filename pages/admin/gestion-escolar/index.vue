@@ -2,14 +2,14 @@
   <section class="ge-workspace" data-product-area="gestion-escolar" data-product-screen="overview">
     <header class="workspace-hero">
       <div>
-        <p class="eyebrow">Centro de operacion</p>
-        <h1>Gestion Escolar</h1>
-        <p>Comunicaciones, participacion, convenios y soporte familiar dentro de tu alcance.</p>
+        <p class="eyebrow">Operación escolar</p>
+        <h1>Gestión Escolar</h1>
+        <div class="scope-ribbon"><span v-for="plantel in overview?.reach.planteles || []" :key="plantel">{{ plantel }}</span><span v-if="!(overview?.reach.planteles || []).length">Sin alcance</span></div>
       </div>
       <div class="reach-card">
-        <span>Alcance visible</span>
+        <span>Alcance</span>
         <strong>{{ overview?.reach.families || 0 }} familias</strong>
-        <small>{{ overview?.reach.planteles.join(', ') || 'Sin planteles asignados' }}</small>
+        <small>{{ overview?.reach.students || 0 }} estudiantes</small>
       </div>
     </header>
 
@@ -30,7 +30,7 @@
     <section v-else class="state-card" data-state="empty">
       <FamilyPersonasIcon name="school" />
       <h2>Tu acceso aun no tiene capacidades</h2>
-      <p>Superadmin puede asignarte modulos y alcances para comenzar.</p>
+      
     </section>
   </section>
 </template>
@@ -97,13 +97,29 @@ h1 {
   line-height: 1.05;
 }
 
-.workspace-hero p,
 .module-card small,
-.reach-card small,
-.state-card p {
+.reach-card small {
   color: #64748b;
   font-weight: 650;
   line-height: 1.55;
+}
+
+
+.scope-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.scope-ribbon span {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #475569;
+  font-size: .78rem;
+  font-weight: 850;
+  padding: 8px 11px;
 }
 
 .reach-card {
