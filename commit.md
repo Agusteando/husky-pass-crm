@@ -1,1 +1,1 @@
-Rediseña el acceso unificado y corrige enrutamiento por permisos
+Agregar asignacion de roles administrativos en Superadmin

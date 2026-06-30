@@ -1,6 +1,6 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import { publicError } from '~/server/utils/httpError'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, ACCESS_HISTORY_ADMIN_ROLE, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
   if (user.kind !== 'family') return false
@@ -80,7 +80,7 @@ export function assertAccessHistoryAdmin(user: AppSessionUser) {
 
   const routeText = user.routes.map((route) => route.route).join(' ')
   const roleText = user.roles.join(' ')
-  const hasReportAccess = /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  const hasReportAccess = hasRoleToken(user.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
   if (!hasReportAccess) {
     throw publicError(403, 'El usuario no tiene alcance para consultar historial de accesos.')
   }

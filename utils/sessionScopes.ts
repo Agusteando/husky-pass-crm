@@ -4,6 +4,7 @@ export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
 export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
 export const COMMUNICATIONS_ADMIN_ROLE = 'ROLE_HUSKY_COMUNICADOS'
 export const GESTION_ESCOLAR_ROLE = 'ROLE_HUSKY_GESTION_ESCOLAR'
+export const ACCESS_HISTORY_ADMIN_ROLE = 'ROLE_HUSKY_ACCESOS'
 
 export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
@@ -50,7 +51,7 @@ export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefin
   if (user.isSuperAdmin) return true
   const routeText = user.routes.map((route) => route.route).join(' ')
   const roleText = user.roles.join(' ')
-  return /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  return hasRoleToken(user.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
 }
 
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {

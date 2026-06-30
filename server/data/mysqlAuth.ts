@@ -1,12 +1,13 @@
 import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AdminProductScope, AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
-import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
-import { csvToList, legacyQuery, legacyWrite } from '~/server/utils/mysql'
+import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
+import { csvToList, legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { ACCESS_HISTORY_ADMIN_ROLE, COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { getCommunicationScopesForUsers } from '~/server/data/communications'
+import { publicError } from '~/server/utils/httpError'
 import type { CommunicationAdminScopeInput } from '~/types/communications'
 
 interface LegacyUserRow extends RowDataPacket {
@@ -272,7 +273,7 @@ function resolveAdminProductScopes(
   if (hasRoleToken(roles, GESTION_ESCOLAR_ROLE)) {
     scopes.push('gestionEscolarAdmin')
   }
-  if (/personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roles.join(' ')}`)) {
+  if (hasRoleToken(roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roles.join(' ')}`)) {
     scopes.push('accessHistoryAdmin')
   }
   if (isConfiguredSuperAdminEmail(normalizeEmail(row.email))) {
@@ -337,12 +338,6 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
     params
   )
 
-  const userIds = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id))
-  const routeMap = await loadDirectoryRoutes(rows)
-  const communicationScopeMap = await getCommunicationScopesForUsers(userIds)
-  const personasUserIds = await loadPersonasAutorizadasUserIds(userIds)
-  const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
-
   const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
     `SELECT NULL AS plantel, unidad, campus
      FROM users
@@ -351,21 +346,18 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
      LIMIT 5000`
   )
 
-  const users = rows.map((row) => directoryRowToSummary({
-    ...row,
-    routes: routesForDirectoryRow(row, routeMap).join('||'),
-    has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
-    has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
-  }, communicationScopeMap.get(Number(row.id)) || []))
+  const users = await summarizeDirectoryRows(rows)
   const visibleUsers = filterDirectoryUsersByScope(users, scope).slice(0, limit)
   const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
     ...csvToList(row.plantel),
     ...csvToList(row.unidad),
     normalizeLegacyScope(row.campus)
   ]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es'))
+  const unidades = Array.from(new Set(plantelRows.flatMap((row) => csvToList(row.unidad)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 
   return {
     planteles,
+    unidades,
     users: visibleUsers,
     metrics: {
       total: visibleUsers.length,
@@ -383,6 +375,155 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       limit
     }
   }
+}
+
+async function summarizeDirectoryRows(rows: DirectoryUserRow[]) {
+  const userIds = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id))
+  const routeMap = await loadDirectoryRoutes(rows)
+  const communicationScopeMap = await getCommunicationScopesForUsers(userIds)
+  const personasUserIds = await loadPersonasAutorizadasUserIds(userIds)
+  const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
+
+  return rows.map((row) => directoryRowToSummary({
+    ...row,
+    routes: routesForDirectoryRow(row, routeMap).join('||'),
+    has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
+    has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
+  }, communicationScopeMap.get(Number(row.id)) || []))
+}
+
+export async function getSuperAdminUserSummaryById(userId: number) {
+  const rows = await legacyQuery<DirectoryUserRow[]>(
+    `SELECT
+      A.id,
+      A.email,
+      A.username,
+      A.picture,
+      A.role,
+      A.displayName,
+      NULL AS plantel,
+      A.campus,
+      A.empresa,
+      A.unidad,
+      A.sala,
+      A.nombre_nino
+     FROM users AS A
+     WHERE A.id = ?
+     LIMIT 1`,
+    [userId]
+  )
+  const users = await summarizeDirectoryRows(rows)
+  return users[0] || null
+}
+
+function normalizeRoleUnidadList(values: unknown) {
+  const raw = Array.isArray(values) ? values : []
+  return Array.from(new Set(raw.map((value) => normalizeLegacyScope(String(value || '').toUpperCase())).filter(Boolean) as string[])).slice(0, 30)
+}
+
+function toggleRoleToken(roles: Set<string>, token: string, enabled: boolean) {
+  if (enabled) roles.add(token)
+  else roles.delete(token)
+}
+
+function isMissingPermissionTable(error: unknown, tablePattern: RegExp) {
+  if (!error || typeof error !== 'object') return false
+  const candidate = error as { code?: string; message?: string }
+  return candidate.code === 'ER_NO_SUCH_TABLE' || tablePattern.test(candidate.message || '')
+}
+
+async function ensureGestionStarterAccess(actor: AppSessionUser, userId: number, enabled: boolean) {
+  try {
+    if (!enabled) {
+      await legacyWrite('DELETE FROM gestion_escolar_permissions WHERE user_id = ?', [userId])
+      return
+    }
+
+    const rows = await legacyQuery<(RowDataPacket & { total: number })[]>(
+      'SELECT COUNT(*) AS total FROM gestion_escolar_permissions WHERE user_id = ? AND enabled = 1',
+      [userId]
+    )
+    if (Number(rows[0]?.total || 0) > 0) return
+
+    await legacyWrite(
+      `INSERT INTO gestion_escolar_permissions (user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at)
+       VALUES (?, 'familias.view', 1, 1, NULL, NULL, NULL, NULL, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+      [userId, actor.id, actor.id]
+    )
+  } catch (error) {
+    if (isMissingPermissionTable(error, /gestion_escolar_permissions/i)) {
+      throw publicError(503, 'Gestion Escolar requiere aplicar la migracion SQL antes de asignar ese rol.')
+    }
+    throw error
+  }
+}
+
+async function ensureCommunicationStarterAccess(actor: AppSessionUser, userId: number, enabled: boolean) {
+  try {
+    if (!enabled) {
+      await legacyWrite('DELETE FROM comunicados_admin_scopes WHERE user_id = ?', [userId])
+      return
+    }
+
+    const rows = await legacyQuery<(RowDataPacket & { total: number })[]>(
+      'SELECT COUNT(*) AS total FROM comunicados_admin_scopes WHERE user_id = ?',
+      [userId]
+    )
+    if (Number(rows[0]?.total || 0) > 0) return
+
+    await legacyWrite(
+      `INSERT INTO comunicados_admin_scopes (user_id, is_global, plantel, nivel, grado, grupo, can_create, can_publish, created_by, updated_by, created_at, updated_at)
+       VALUES (?, 1, NULL, NULL, NULL, NULL, 1, 0, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+      [userId, actor.id, actor.id]
+    )
+  } catch (error) {
+    if (isMissingPermissionTable(error, /comunicados_admin_scopes/i)) {
+      throw publicError(503, 'Comunicados requiere aplicar su tabla de alcances antes de asignar ese rol.')
+    }
+    throw error
+  }
+}
+
+export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser, userId: number, input: { roles: SuperAdminRoleAssignments; unidades?: string[] }) {
+  const target = await legacyOne<RowDataPacket & { id: number; email: string | null; role: string | null; unidad: string | null }>(
+    'SELECT id, email, role, unidad FROM users WHERE id = ? LIMIT 1',
+    [userId]
+  )
+  if (!target) throw publicError(404, 'Usuario no encontrado.')
+
+  const targetEmail = normalizeEmail(target.email)
+  const currentRoles = csvToList(String(target.role || '')).map((role) => role.toUpperCase())
+  const isInternalTarget = targetEmail.endsWith('@casitaiedis.edu.mx') || currentRoles.some((role) => role !== DAYCARE_FAMILY_ROLE)
+  const wantsAdminAccess = Object.values(input.roles).some(Boolean)
+
+  if (isConfiguredSuperAdminEmail(targetEmail) || Number(target.id) === Number(actor.id)) {
+    throw publicError(400, 'El superadmin base no se modifica desde el panel de roles.')
+  }
+
+  if (wantsAdminAccess && !isInternalTarget) {
+    throw publicError(403, 'Solo cuentas institucionales o internas pueden recibir roles administrativos.')
+  }
+
+  const roles = new Set(currentRoles)
+  toggleRoleToken(roles, DAYCARE_ADMIN_ROLE, Boolean(input.roles.daycareAdmin))
+  toggleRoleToken(roles, GESTION_ESCOLAR_ROLE, Boolean(input.roles.gestionEscolarAdmin))
+  toggleRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE, Boolean(input.roles.communicationsAdmin))
+  toggleRoleToken(roles, ACCESS_HISTORY_ADMIN_ROLE, Boolean(input.roles.accessHistoryAdmin))
+
+  const unidades = normalizeRoleUnidadList(input.unidades)
+  if (input.roles.daycareAdmin && !unidades.length) {
+    throw publicError(400, 'Selecciona al menos una unidad para Guarderia interna.')
+  }
+
+  await ensureGestionStarterAccess(actor, userId, Boolean(input.roles.gestionEscolarAdmin))
+  await ensureCommunicationStarterAccess(actor, userId, Boolean(input.roles.communicationsAdmin))
+
+  const nextUnidad = input.roles.daycareAdmin ? unidades.join(',') : String(target.unidad || '')
+  await legacyWrite('UPDATE users SET role = ?, unidad = ? WHERE id = ?', [Array.from(roles).join(','), nextUnidad || null, userId])
+
+  const updated = await getSuperAdminUserSummaryById(userId)
+  if (!updated) throw publicError(404, 'Usuario actualizado, pero no fue posible recargarlo.')
+  return updated
 }
 
 async function loadDirectoryRoutes(rows: DirectoryUserRow[]) {
@@ -460,6 +601,7 @@ function directoryScopePredicate(scope: SuperAdminDirectoryScope) {
 
   if (scope === 'internal') {
     return `(
+      LOWER(COALESCE(A.email, '')) LIKE '%@casitaiedis.edu.mx' OR
       A.role IS NOT NULL AND TRIM(CAST(A.role AS CHAR)) <> '' AND
       A.role <> '${DAYCARE_FAMILY_ROLE}'
     )`
@@ -486,8 +628,10 @@ function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: Comm
   const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
   const hasCommunicationsInternalRole = hasRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE)
   const hasGestionEscolarInternalRole = hasRoleToken(roles, GESTION_ESCOLAR_ROLE)
+  const hasAccessHistoryInternalRole = hasRoleToken(roles, ACCESS_HISTORY_ADMIN_ROLE)
   const hasDaycareAdminRoute = routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route))
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
+  const hasAccessHistoryRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso/i.test(route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
   const productScopes: FamilyProductScope[] = []
 
@@ -498,12 +642,22 @@ function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: Comm
   if ((hasDaycareInternalRole || hasDaycareAdminRoute) && unidad.length) adminScopes.push('daycare')
   if (hasGestionEscolarInternalRole) adminScopes.push('gestionEscolar')
   if (hasCommunicationsInternalRole || communicationsScopes.length) adminScopes.push('communications')
+  if (hasAccessHistoryInternalRole || hasAccessHistoryRoute) adminScopes.push('accessHistory')
+
+  const normalizedEmail = normalizeEmail(row.email)
+  const canManageAdminRoles = normalizedEmail.endsWith('@casitaiedis.edu.mx') || adminScopes.length > 0
+  const roleAssignments: SuperAdminRoleAssignments = {
+    daycareAdmin: hasDaycareInternalRole,
+    gestionEscolarAdmin: hasGestionEscolarInternalRole,
+    communicationsAdmin: hasCommunicationsInternalRole,
+    accessHistoryAdmin: hasAccessHistoryInternalRole
+  }
 
   let audience: SuperAdminUserSummary['audience'] = 'unknown'
   if (productScopes.length > 1) audience = 'multiProductFamily'
   else if (productScopes.includes('daycare')) audience = 'daycareFamily'
   else if (productScopes.includes('personasAutorizadas')) audience = 'schoolFamily'
-  else if (adminScopes.length || roles.some((role) => !hasRoleToken([role], DAYCARE_FAMILY_ROLE)) || routes.length) audience = 'internal'
+  else if (adminScopes.length || canManageAdminRoles || roles.some((role) => !hasRoleToken([role], DAYCARE_FAMILY_ROLE)) || routes.length) audience = 'internal'
 
   return {
     id: Number(row.id),
@@ -524,6 +678,8 @@ function directoryRowToSummary(row: DirectoryUserRow, communicationsScopes: Comm
     communicationsScopes,
     communicationsEnabled: hasCommunicationsInternalRole || communicationsScopes.length > 0,
     audience,
-    canImpersonate: productScopes.length > 0
+    canImpersonate: productScopes.length > 0,
+    canManageAdminRoles,
+    roleAssignments
   }
 }

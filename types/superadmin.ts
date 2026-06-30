@@ -3,6 +3,9 @@ import type { CommunicationAdminScopeInput } from './communications'
 import type { MarbeteTemplateMeta, PersonasTheme } from './daycare'
 
 export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
+export type SuperAdminAssignableRole = 'daycareAdmin' | 'gestionEscolarAdmin' | 'communicationsAdmin' | 'accessHistoryAdmin'
+
+export type SuperAdminRoleAssignments = Record<SuperAdminAssignableRole, boolean>
 
 export interface SuperAdminUserSummary {
   id: number
@@ -24,10 +27,13 @@ export interface SuperAdminUserSummary {
   communicationsEnabled: boolean
   audience: 'daycareFamily' | 'schoolFamily' | 'multiProductFamily' | 'internal' | 'unknown'
   canImpersonate: boolean
+  canManageAdminRoles: boolean
+  roleAssignments: SuperAdminRoleAssignments
 }
 
 export interface SuperAdminDirectoryResponse {
   planteles: string[]
+  unidades: string[]
   users: SuperAdminUserSummary[]
   metrics: {
     total: number

@@ -135,7 +135,9 @@
                   <div class="pills">
                     <span v-for="scope in user.productScopes" :key="scope" class="scope-pill">{{ productScopeLabel(scope) }}</span>
                     <span v-if="user.adminScopes.includes('daycare')" class="scope-pill muted-pill">Guardería interna</span>
+                    <span v-if="user.adminScopes.includes('gestionEscolar')" class="scope-pill ge-pill">Gestión Escolar</span>
                     <span v-if="user.communicationsEnabled" class="scope-pill comms-pill">Comunicados</span>
+                    <span v-if="user.adminScopes.includes('accessHistory')" class="scope-pill history-pill">Historial</span>
                     <span v-if="!user.productScopes.length && !user.adminScopes.length" class="muted">Sin alcance detectado</span>
                   </div>
                 </td>
@@ -191,6 +193,50 @@
             <div><dt>Rutas heredadas</dt><dd>{{ selectedUser.routes.length ? selectedUser.routes.join(' · ') : '—' }}</dd></div>
           </dl>
 
+          <section class="role-console" aria-label="Roles administrativos">
+            <div class="section-head compact-headline">
+              <div>
+                <p class="eyebrow">Accesos administrativos</p>
+                <h3>Roles y entrada automática</h3>
+              </div>
+              <span class="role-state" :data-active="selectedRoleCount > 0">{{ selectedRoleCount ? `${selectedRoleCount} activos` : 'Sin rol admin' }}</span>
+            </div>
+
+            <template v-if="selectedUser.canManageAdminRoles">
+              <div class="role-grid">
+                <label v-for="role in assignableRoles" :key="role.key" class="role-card" :class="{ active: roleDraft[role.key] }">
+                  <input v-model="roleDraft[role.key]" type="checkbox" />
+                  <span class="role-dot" aria-hidden="true"></span>
+                  <span>
+                    <strong>{{ role.label }}</strong>
+                    <small>{{ role.caption }}</small>
+                  </span>
+                </label>
+              </div>
+
+              <div v-if="roleDraft.daycareAdmin" class="unit-picker" aria-label="Unidades de guarderia">
+                <span>Unidades</span>
+                <button
+                  v-for="unidad in roleUnidadOptions"
+                  :key="unidad"
+                  class="unit-chip"
+                  :class="{ active: roleUnidadDraft.includes(unidad) }"
+                  type="button"
+                  @click="toggleRoleUnidad(unidad)"
+                >
+                  {{ unidad }}
+                </button>
+              </div>
+
+              <div class="role-actions">
+                <button class="btn btn-secondary compact" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Restaurar</button>
+                <button class="btn btn-primary compact" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando…' : 'Guardar roles' }}</button>
+              </div>
+            </template>
+
+            <p v-else class="muted">Solo cuentas institucionales o internas pueden recibir roles administrativos.</p>
+          </section>
+
 
           <section class="comms-permissions" aria-label="Gestion Escolar">
             <div class="section-head compact-headline">
@@ -198,7 +244,7 @@
                 <p class="eyebrow">Gestion Escolar</p>
                 <h3>Permisos escuela-familia</h3>
               </div>
-              <NuxtLink class="btn btn-primary compact" to="/admin/superadmin/gestion-escolar">Abrir cockpit</NuxtLink>
+              <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">Abrir cockpit</NuxtLink>
             </div>
             <p class="muted">Comunicados, encuestas, convenios, visibilidad familiar e impersonacion se asignan ahora desde el cockpit dedicado.</p>
             <p v-if="selectedUser.communicationsEnabled" class="muted">Esta cuenta conserva compatibilidad legacy de Comunicados durante la migracion.</p>
@@ -216,7 +262,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
-import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminUserSummary } from '~/types/superadmin'
+import type { SuperAdminAssignableRole, SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { displayMatricula } from '~/utils/matricula'
 
@@ -233,6 +279,20 @@ const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; desc
   { value: 'impersonable', label: 'Soporte', description: 'Cuentas familiares' }
 ]
 
+const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string; caption: string }> = [
+  { key: 'gestionEscolarAdmin', label: 'Gestión Escolar', caption: 'Familias, comunicados, encuestas y convenios' },
+  { key: 'daycareAdmin', label: 'Guardería interna', caption: 'Salas, familias y recursos por unidad' },
+  { key: 'communicationsAdmin', label: 'Comunicados', caption: 'Publicación institucional legacy' },
+  { key: 'accessHistoryAdmin', label: 'Historial de accesos', caption: 'Reportes, marbetes y validación' }
+]
+
+const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
+  daycareAdmin: false,
+  gestionEscolarAdmin: false,
+  communicationsAdmin: false,
+  accessHistoryAdmin: false
+})
+
 const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
 const selectedScope = ref<SuperAdminDirectoryScope>(normalizeScope(route.query.scope))
 const selectedUser = ref<SuperAdminUserSummary | null>(null)
@@ -243,6 +303,9 @@ const actionError = ref('')
 const actionNotice = ref('')
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
+const roleDraft = ref<SuperAdminRoleAssignments>(emptyRoleAssignments())
+const roleUnidadDraft = ref<string[]>([])
+const savingRoles = ref(false)
 
 const query = computed(() => ({
   plantel: selectedPlantel.value,
@@ -252,6 +315,23 @@ const query = computed(() => ({
 }))
 
 const activeScopeLabel = computed(() => scopeOptions.find((option) => option.value === selectedScope.value)?.label || 'Todos')
+const selectedRoleCount = computed(() => assignableRoles.filter((role) => roleDraft.value[role.key]).length)
+const roleUnidadOptions = computed(() => {
+  const values = [
+    ...(directory.value?.unidades || []),
+    ...(directory.value?.planteles || []),
+    ...(selectedUser.value?.unidad || [])
+  ]
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+})
+const roleHasChanges = computed(() => {
+  const current = selectedUser.value?.roleAssignments || emptyRoleAssignments()
+  const roleChanged = assignableRoles.some((role) => Boolean(roleDraft.value[role.key]) !== Boolean(current[role.key]))
+  const currentUnits = normalizedRoleUnits(selectedUser.value?.unidad || [])
+  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
+  const unitsChanged = roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')
+  return roleChanged || unitsChanged
+})
 
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
   query,
@@ -344,6 +424,10 @@ watch(directory, (value) => {
   }
 }, { immediate: true })
 
+watch(selectedUser, (user) => {
+  syncRoleDraft(user)
+})
+
 async function refreshDirectory() {
   actionError.value = ''
   actionNotice.value = ''
@@ -370,6 +454,60 @@ function selectUser(user: SuperAdminUserSummary) {
   actionError.value = ''
   actionNotice.value = ''
   syncQuery(user.id)
+}
+
+function normalizedRoleUnits(values: string[]) {
+  return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+}
+
+function syncRoleDraft(user: SuperAdminUserSummary | null) {
+  roleDraft.value = user?.roleAssignments ? { ...user.roleAssignments } : emptyRoleAssignments()
+  roleUnidadDraft.value = normalizedRoleUnits(user?.unidad || [])
+}
+
+function resetRoleDraft() {
+  syncRoleDraft(selectedUser.value)
+  actionError.value = ''
+  actionNotice.value = ''
+}
+
+function toggleRoleUnidad(unidad: string) {
+  const normalized = String(unidad || '').trim()
+  if (!normalized) return
+  const set = new Set(roleUnidadDraft.value)
+  if (set.has(normalized)) set.delete(normalized)
+  else set.add(normalized)
+  roleUnidadDraft.value = normalizedRoleUnits(Array.from(set))
+}
+
+async function saveAdminRoles() {
+  if (!selectedUser.value) return
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
+    actionError.value = 'Selecciona al menos una unidad para Guardería interna.'
+    return
+  }
+
+  savingRoles.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const updated = await $fetch<SuperAdminUserSummary>(`/api/admin/superadmin/users/${selectedUser.value.id}/roles`, {
+      method: 'POST',
+      body: { roles: roleDraft.value, unidades: roleUnidadDraft.value }
+    })
+
+    selectedUser.value = updated
+    if (directory.value?.users?.length) {
+      directory.value.users = directory.value.users.map((user) => user.id === updated.id ? updated : user)
+      directory.value.metrics.internalUsers = directory.value.users.filter((user) => user.audience === 'internal' || user.adminScopes.length).length
+      directory.value.metrics.daycareAdmins = directory.value.users.filter((user) => user.adminScopes.includes('daycare')).length
+    }
+    actionNotice.value = 'Roles administrativos actualizados.'
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar los roles.'
+  } finally {
+    savingRoles.value = false
+  }
 }
 
 function syncQuery(selectedId: number | null = selectedUser.value?.id || null) {
@@ -639,7 +777,7 @@ function normalizeLimit(value: unknown) {
 .directory-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 410px);
   min-width: 0;
 }
 
@@ -821,6 +959,150 @@ function normalizeLimit(value: unknown) {
   background: #eef7ff;
   border-color: #cfe7fb;
   color: #236188;
+}
+
+.ge-pill {
+  background: #f0f8e7;
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+
+.history-pill {
+  background: #fff7df;
+  border-color: #f1d58a;
+  color: #9a6700;
+}
+
+.role-console,
+.comms-permissions {
+  background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+  border: 1px solid #e2e8ec;
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.role-state {
+  background: #f4f7f1;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: .72rem;
+  font-weight: 850;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.role-state[data-active='true'] {
+  background: #f0f8e7;
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+
+.role-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+
+.role-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8ec;
+  border-radius: 16px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px 12px minmax(0, 1fr);
+  min-height: 58px;
+  padding: 10px;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.role-card:hover,
+.role-card.active {
+  border-color: var(--color-brand-300);
+  box-shadow: var(--shadow-line);
+  transform: translateY(-1px);
+}
+
+.role-card input {
+  accent-color: var(--color-brand-700);
+}
+
+.role-dot {
+  background: #dce9d5;
+  border-radius: 999px;
+  height: 10px;
+  width: 10px;
+}
+
+.role-card.active .role-dot {
+  background: linear-gradient(135deg, var(--color-brand-700), var(--color-blue));
+  box-shadow: 0 0 0 4px rgba(75, 144, 53, .12);
+}
+
+.role-card strong,
+.role-card small {
+  display: block;
+  min-width: 0;
+}
+
+.role-card strong {
+  color: var(--color-ink);
+  font-size: .9rem;
+}
+
+.role-card small {
+  color: var(--color-muted);
+  font-size: .74rem;
+  line-height: 1.25;
+}
+
+.unit-picker {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8ec;
+  border-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px;
+}
+
+.unit-picker > span {
+  color: var(--color-muted);
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  margin-right: 2px;
+  text-transform: uppercase;
+}
+
+.unit-chip {
+  background: #f8fafc;
+  border: 1px solid #dbe5eb;
+  border-radius: 999px;
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 800;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.unit-chip.active {
+  background: var(--color-brand-700);
+  border-color: var(--color-brand-700);
+  color: #fff;
+}
+
+.role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .comms-permissions {

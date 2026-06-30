@@ -137,7 +137,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useFetch } from 'nuxt/app'
+import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { GestionEscolarCapability, GestionEscolarPermissionInput, GestionEscolarReachPreview } from '~/types/gestionEscolar'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
@@ -162,7 +162,9 @@ type CockpitResponse = {
   metrics: { total: number; enabled: number; global: number; legacyCommunications: number }
 }
 
-const search = ref('')
+const route = useRoute()
+const router = useRouter()
+const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const query = computed(() => ({ search: search.value, limit: 120 }))
 const { data, pending, error: loadError, refresh } = useFetch<CockpitResponse>('/api/admin/superadmin/gestion-escolar/users', { query, timeout: 15000 })
 const selectedUser = ref<CockpitUser | null>(null)
@@ -190,14 +192,38 @@ const effectiveSummary = computed(() => {
 })
 
 watch(users, (items) => {
+  const requestedId = Number(route.query.usuario || 0)
+  const requested = requestedId ? items.find((user) => user.id === requestedId) : null
+  if (requested) {
+    selectUser(requested, false)
+    return
+  }
   if (!selectedUser.value && items.length) selectUser(items[0])
 })
+
+watch(() => route.query.usuario, (value) => {
+  const id = Number(value || 0)
+  if (!id) return
+  const user = users.value.find((item) => item.id === id)
+  if (user) selectUser(user, false)
+})
+
+function syncGestionQuery(selectedId = selectedUser.value?.id || null) {
+  if (!import.meta.client) return
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.buscar = search.value.trim()
+  if (selectedId) query.usuario = String(selectedId)
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
+  const changed = Array.from(keys).some((key) => String(Array.isArray(route.query[key]) ? route.query[key]?.[0] || '' : route.query[key] || '') !== String(query[key] || ''))
+  if (changed) router.replace({ path: route.path, query })
+}
 
 function displayName(user: CockpitUser) {
   return user.displayName || user.email || user.username || `Usuario ${user.id}`
 }
 
 async function refreshUsers() {
+  syncGestionQuery()
   await refresh()
 }
 
@@ -209,7 +235,7 @@ function blankPermission(): GestionEscolarPermissionInput {
   return { capability: 'comunicados.create', isGlobal: false, plantel: '', nivel: '', grado: '', grupo: '', enabled: true }
 }
 
-function selectUser(user: CockpitUser | null) {
+function selectUser(user: CockpitUser | null, updateRoute = true) {
   if (!user) return
   selectedUser.value = user
   enabled.value = Boolean(user.gestionEscolar.enabled)
@@ -218,6 +244,7 @@ function selectUser(user: CockpitUser | null) {
     : [blankPermission()]
   actionNotice.value = ''
   actionError.value = ''
+  if (updateRoute) syncGestionQuery(user.id)
 }
 
 function hasCapability(capability: GestionEscolarCapability) {
