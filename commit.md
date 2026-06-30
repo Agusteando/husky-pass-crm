@@ -1,1 +1,1 @@
-Agrega selector de ciclo escolar en pagos Aurora
+Mejora pagos Aurora con carga automática, privacidad progresiva y loader Husky Pass
