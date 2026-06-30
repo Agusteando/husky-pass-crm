@@ -1,0 +1,77 @@
+[33mcommit 367d17af7a8cf52ffe9671dc3605dae0d3832f01[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 14:12:45 2026 -0600
+
+    Restaura hero de comunicados y ajusta topbar responsivo
+
+[33mcommit 2165ddf5c468923c30fc8944bbdd1823c082b5dd[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 13:47:08 2026 -0600
+
+    Compacta topbar familiar, integra contador real de comunicados e incluye .gitignore
+
+[33mcommit 63cd0d638cd8b590a9221c0dd03ee3eda75bca80[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 13:36:19 2026 -0600
+
+    Restore gitignore
+
+[33mcommit ca8e344df4a3b2fac1c94101114fc52df203a31a[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 13:31:45 2026 -0600
+
+    Remove generated files from repository
+
+[33mcommit 16da2206342c8be41c84ed25a786851d4634b084[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 12:57:16 2026 -0600
+
+    wow
+
+[33mcommit 3de9a4d3f8ff6f0d267a03df3812aed3e7443a12[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 29 09:39:44 2026 -0600
+
+    Remove
+
+[33mcommit 3e80edb64de70d24d63b548a8adbf3ee2bc71514[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Fri Jun 26 09:53:48 2026 -0600
+
+    Agrega gitignore adecuado para el proyecto
+
+[33mcommit baf7adae74ab1988c94a6d40e4c20876f417e070[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Thu Jun 18 14:16:22 2026 -0600
+
+    fix
+
+[33mcommit 11d897f4b7d1e338cc5b11319559a0855761a237[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Mon Jun 15 10:35:49 2026 -0600
+
+    separación de identidad entre módulos
+
+[33mcommit 701f039dd63d2084c62fd845305b0466693b4f95[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Sat Jun 13 20:09:28 2026 -0600
+
+    Prepare Vercel deployment and production verification
+
+[33mcommit daf9ed48f7f482439bbcc2358402a493c8b6d877[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Sat Jun 13 10:50:58 2026 -0600
+
+    fix
+
+[33mcommit de081e3feb43ffd27fa4969d4b070191e7f45d0e[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Thu Jun 4 13:26:03 2026 -0600
+
+    bump UI
+
+[33mcommit dffd86852f57c2fa9fa277280f4c4197f432d5e6[m
+Author: Agusteando <desarrollo.tecnologico@casitaiedis.edu.mx>
+Date:   Tue Jun 2 20:28:11 2026 -0600
+
+    first commit
