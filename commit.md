@@ -1,1 +1,1 @@
-Restringe Gestion Escolar por plantel y rediseña sus alcances
+Rediseñar asignación de acceso de Gestión Escolar por plantel

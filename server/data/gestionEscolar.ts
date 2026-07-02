@@ -762,13 +762,49 @@ function normalizePermissionInput(userId: number, input: GestionEscolarPermissio
   }
 }
 
+function expandDependentGestionPermissions(permissions: GestionEscolarPermission[]) {
+  const expanded: GestionEscolarPermission[] = []
+  const permissionKey = (permission: GestionEscolarPermission, capability = permission.capability) => [
+    capability,
+    permission.plantel || '',
+    permission.nivel || '',
+    permission.grado || '',
+    permission.grupo || ''
+  ].join('|')
+  const byKey = new Map<string, GestionEscolarPermission>()
+
+  const addPermission = (permission: GestionEscolarPermission, capability = permission.capability) => {
+    const key = permissionKey(permission, capability)
+    if (byKey.has(key)) return
+    byKey.set(key, { ...permission, capability })
+  }
+
+  for (const permission of permissions) {
+    addPermission(permission)
+    if (permission.capability === 'familias.impersonate') addPermission(permission, 'familias.view')
+    if (permission.capability === 'comunicados.publish') addPermission(permission, 'comunicados.create')
+    if (permission.capability === 'convenios.publish') addPermission(permission, 'convenios.manage')
+  }
+
+  for (const capability of GESTION_ESCOLAR_CAPABILITIES) {
+    for (const permission of byKey.values()) {
+      if (permission.capability === capability) expanded.push(permission)
+    }
+  }
+  return expanded
+}
+
 export async function setGestionPermissionsForUser(actor: AppSessionUser, userId: number, enabled: boolean, inputs: GestionEscolarPermissionInput[]) {
   const target = await legacyOne<RowDataPacket>('SELECT id, role FROM users WHERE id = ? LIMIT 1', [userId])
   if (!target) throw publicError(404, 'Usuario interno no encontrado.')
 
   const permissions = enabled
-    ? inputs.map((input) => normalizePermissionInput(userId, input)).filter((item): item is GestionEscolarPermission => Boolean(item))
+    ? expandDependentGestionPermissions(inputs.map((input) => normalizePermissionInput(userId, input)).filter((item): item is GestionEscolarPermission => Boolean(item)))
     : []
+
+  if (enabled && !permissions.length) {
+    throw publicError(400, 'Selecciona al menos un plantel y un permiso de Gestion Escolar.')
+  }
 
   await gestionWrite('DELETE FROM gestion_escolar_permissions WHERE user_id = ?', [userId])
   for (const permission of permissions) {

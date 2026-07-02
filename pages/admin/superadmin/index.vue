@@ -244,9 +244,9 @@
                 <p class="eyebrow">Gestion Escolar</p>
                 <h3>Permisos escuela-familia</h3>
               </div>
-              <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">Abrir cockpit</NuxtLink>
+              <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">Asignar acceso</NuxtLink>
             </div>
-            <p class="muted">Acceso por plantel, grado y módulo. Sin alcance global para usuarios operativos.</p>
+            <p class="muted">Plantel, grado y permisos en un solo guardado.</p>
             <p v-if="selectedUser.communicationsEnabled" class="muted">Esta cuenta conserva compatibilidad legacy de Comunicados durante la migracion.</p>
           </section>
         </template>
