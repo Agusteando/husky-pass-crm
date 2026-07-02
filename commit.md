@@ -1,1 +1,1 @@
-Rediseñar asignación de acceso de Gestión Escolar por plantel
+Corrige navegación superior de Super Admin

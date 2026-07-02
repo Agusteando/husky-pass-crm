@@ -1,6 +1,6 @@
 <template>
   <header class="admin-topbar" data-experience="admin">
-    <div class="page-shell admin-topbar-inner">
+    <div class="page-shell admin-topbar-inner" :class="{ 'is-superadmin': isSuperAdmin }">
       <NuxtLink class="admin-brand" :to="homeTo" aria-label="Husky Pass Administracion">
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
         <span>
@@ -21,7 +21,9 @@
         </NuxtLink>
       </nav>
 
-      <TopbarAccountMenu :session="session" experience="admin" />
+      <div class="admin-account-slot">
+        <TopbarAccountMenu :session="session" experience="admin" />
+      </div>
     </div>
   </header>
 </template>
@@ -39,6 +41,7 @@ const props = defineProps<{
 
 const route = useRoute()
 const search = ref('')
+const isSuperAdmin = computed(() => Boolean(props.session?.user?.isSuperAdmin))
 const hasGestionOnly = computed(() => props.items.some((item) => item.key === 'gestion-escolar') && !props.items.some((item) => item.key === 'guarderia-admin'))
 const hasComunicadosOnly = computed(() => props.items.some((item) => item.key === 'comunicados') && !props.items.some((item) => item.key === 'guarderia-admin') && !props.items.some((item) => item.key === 'gestion-escolar'))
 const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : hasGestionOnly.value ? 'Gestión Escolar' : hasComunicadosOnly.value ? 'Comunicados' : 'Admin Guardería')
@@ -76,15 +79,27 @@ async function submitSearch() {
   align-items: center;
   display: grid;
   gap: 8px;
+  grid-template-areas: "brand search nav account";
   grid-template-columns: minmax(150px, max-content) minmax(190px, 320px) minmax(0, 1fr) minmax(0, auto);
   min-height: var(--topbar-height);
   padding-block: 6px;
+}
+
+.admin-topbar-inner.is-superadmin {
+  grid-template-areas:
+    "brand search . account"
+    "nav nav nav nav";
+  grid-template-columns: minmax(160px, max-content) minmax(240px, 420px) minmax(0, 1fr) minmax(0, auto);
+  min-height: auto;
+  row-gap: 6px;
+  padding-block: 7px 8px;
 }
 
 .admin-brand {
   align-items: center;
   display: inline-grid;
   gap: 10px;
+  grid-area: brand;
   grid-template-columns: 38px minmax(0, 1fr);
   min-width: 0;
 }
@@ -125,8 +140,10 @@ async function submitSearch() {
   border-radius: 13px;
   display: grid;
   gap: 8px;
+  grid-area: search;
   grid-template-columns: 18px minmax(0, 1fr);
   min-height: 34px;
+  min-width: 0;
   padding: 0 10px;
 }
 
@@ -142,6 +159,7 @@ async function submitSearch() {
   align-items: center;
   display: flex;
   gap: 5px;
+  grid-area: nav;
   inline-size: 100%;
   justify-self: stretch;
   max-inline-size: 100%;
@@ -149,6 +167,12 @@ async function submitSearch() {
   overflow-x: auto;
   padding: 4px 0;
   scrollbar-width: none;
+}
+
+.admin-topbar-inner.is-superadmin .admin-nav {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding: 0;
 }
 
 .admin-nav::-webkit-scrollbar {
@@ -168,6 +192,11 @@ async function submitSearch() {
   padding: 0 10px;
 }
 
+.admin-topbar-inner.is-superadmin .admin-nav a {
+  min-height: 32px;
+  padding-inline: 11px;
+}
+
 .admin-nav a:hover,
 .admin-nav a.active {
   background: #fff;
@@ -175,37 +204,53 @@ async function submitSearch() {
   color: var(--color-brand-800);
 }
 
+.admin-account-slot {
+  display: flex;
+  grid-area: account;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 @media (max-width: 1180px) {
   .admin-topbar-inner {
+    grid-template-areas: "brand nav account";
     grid-template-columns: minmax(140px, max-content) minmax(0, 1fr) auto;
+    min-height: auto;
+  }
+
+  .admin-topbar-inner.is-superadmin {
+    grid-template-areas:
+      "brand account"
+      "search search"
+      "nav nav";
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .admin-search {
-    grid-column: 1 / -1;
     margin-bottom: 2px;
-    order: 4;
   }
 }
 
 @media (max-width: 980px) {
   .admin-topbar-inner {
+    grid-template-areas:
+      "brand account"
+      "nav nav";
     grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .admin-nav {
-    grid-column: 1 / -1;
-    order: 3;
   }
 
   .admin-nav a {
     flex: 1 0 max-content;
     justify-content: center;
   }
+
+  .admin-topbar-inner.is-superadmin .admin-nav a {
+    flex: 0 0 auto;
+  }
 }
 
 @media (max-width: 720px) {
   .admin-topbar-inner {
-    grid-template-columns: minmax(0, 1fr) auto;
     padding-block: 5px;
   }
 
@@ -227,10 +272,6 @@ async function submitSearch() {
     min-height: 40px;
     padding-inline: 11px;
   }
-
-  .admin-search {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 520px) {
@@ -248,4 +289,5 @@ async function submitSearch() {
     padding-inline: 0;
   }
 }
+
 </style>

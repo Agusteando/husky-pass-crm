@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-experience-root" :style="adminVars" data-experience="admin">
+  <div class="admin-experience-root" :class="{ 'is-superadmin': session?.user?.isSuperAdmin }" :style="adminVars" data-experience="admin">
     <TopbarAdminExperienceTopbar :session="session" :home-to="homeTo" :items="topbarItems" />
     <div class="page-shell workspace-shell" :class="isDaycareWorkspace ? 'with-rail' : 'full-width'">
       <AdminDaycareSidebar v-if="isDaycareWorkspace" :session="session" />
@@ -33,7 +33,7 @@ const topbarItems = computed(() => {
     items.push({ key: 'guarderia-admin', label: 'Guarderia', to: daycareTo, icon: 'daycare' })
   }
   if (hasGestionEscolarAdminScope(session.value?.user)) {
-    items.push({ key: 'gestion-escolar', label: 'Gestion Escolar', to: '/admin/gestion-escolar', icon: 'school' })
+    items.push({ key: 'gestion-escolar', label: session.value?.user?.isSuperAdmin ? 'Escolar' : 'Gestion Escolar', to: '/admin/gestion-escolar', icon: 'school' })
   }
   if (hasCommunicationsAdminScope(session.value?.user)) {
     items.push({ key: 'comunicados', label: 'Comunicados', to: '/admin/comunicados', icon: 'announcement' })
@@ -41,7 +41,7 @@ const topbarItems = computed(() => {
   if (session.value?.user?.isSuperAdmin) {
     items.unshift(
       { key: 'superadmin', label: 'Directorio', to: '/admin/superadmin', icon: 'people' },
-      { key: 'gestion-permisos', label: 'Gestion Escolar', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
+      { key: 'gestion-permisos', label: 'Permisos', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
       { key: 'personas-autorizadas', label: 'Husky Pass', to: '/admin/superadmin/personas-autorizadas', icon: 'marbete' },
       { key: 'historial-accesos', label: 'Historial', to: '/admin/historial-accesos', icon: 'history' },
       { key: 'marbetes', label: 'Plantillas', to: '/admin/superadmin/marbetes', icon: 'document' }
@@ -58,6 +58,22 @@ const isDaycareWorkspace = computed(() => route.path.startsWith('/admin/daycare'
 .admin-experience-root {
   background: var(--color-page);
   min-height: 100vh;
+}
+
+.admin-experience-root.is-superadmin {
+  --topbar-height: 104px;
+}
+
+@media (max-width: 1180px) {
+  .admin-experience-root.is-superadmin {
+    --topbar-height: 146px;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-experience-root.is-superadmin {
+    --topbar-height: 188px;
+  }
 }
 
 .workspace-shell {
