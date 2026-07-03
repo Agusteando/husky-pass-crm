@@ -228,6 +228,7 @@ function resourceTypeLabel(type?: string | null) {
 }
 
 .room-layout {
+  align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
@@ -255,6 +256,7 @@ function resourceTypeLabel(type?: string | null) {
 }
 
 .action-card {
+  align-content: start;
   background: #ffffff;
   border: 1px solid #dce5eb;
   border-radius: 13px;

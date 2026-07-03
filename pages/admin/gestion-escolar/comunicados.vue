@@ -53,7 +53,7 @@
               <p class="eyebrow">Audiencia</p>
               <strong>{{ formatGestionScope(scope) }}</strong>
             </div>
-            <span>{{ data?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador' }}</span>
+            <span>{{ publishReadinessLabel }}</span>
           </div>
           <AdminGestionScopePicker
             v-model="scope"
@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AdminCommunicationsResponse, CommunicationAudience, CommunicationPriority, CommunicationStatus, SchoolCommunication } from '~/types/communications'
 import type { GestionEscolarScope } from '~/types/gestionEscolar'
@@ -139,6 +139,11 @@ const saving = ref(false)
 const actionNotice = ref('')
 const actionError = ref('')
 const scope = ref<GestionEscolarScope>({ isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null })
+const audienceReady = computed(() => Boolean(scope.value.plantel))
+const publishReadinessLabel = computed(() => {
+  if (!audienceReady.value) return 'Falta audiencia'
+  return data.value?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador'
+})
 const form = reactive({
   id: '',
   title: '',

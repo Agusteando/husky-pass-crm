@@ -1,1 +1,1 @@
-Rediseña Gestión Escolar y consolida permisos por alcance
+Rediseña la experiencia administrativa principal

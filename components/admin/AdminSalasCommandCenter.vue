@@ -1,5 +1,6 @@
 <template>
   <section class="daycare-console" data-product-area="daycare" data-product-screen="salas">
+    <template v-if="clientReady">
     <header class="daycare-head">
       <div>
         <p class="eyebrow">Guardería</p>
@@ -124,12 +125,16 @@
         </section>
       </article>
     </section>
+    </template>
+    <div v-else class="state-panel" data-product-loading>
+      <HuskyPassLoader label="Salas" contained />
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { useAppSession } from '~/composables/useAppSession'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { SalaSummary } from '~/types/daycare'
 
@@ -142,7 +147,12 @@ const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar :
 const selectedSalaId = ref<number | null>(normalizeSalaQuery(route.query.sala))
 const actionError = ref('')
 const actionNotice = ref('')
+const clientReady = ref(false)
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
+
+onMounted(() => {
+  clientReady.value = true
+})
 
 const { data: unitOptions, pending: unitsPending } = useFetch<{ unidades: string[] }>('/api/daycare/admin/salas/units', {
   timeout: 15000,
@@ -266,7 +276,7 @@ function normalizeSalaQuery(value: unknown) {
 }
 
 function replaceQueryIfChanged(query: Record<string, string>) {
-  if (!import.meta.client) return
+  if (!import.meta.client || !clientReady.value) return
   const keys = new Set([...Object.keys(route.query), ...Object.keys(query)])
   const changed = Array.from(keys).some((key) => {
     const current = Array.isArray(route.query[key]) ? route.query[key]?.[0] : route.query[key]

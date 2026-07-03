@@ -53,7 +53,7 @@
               <p class="eyebrow">Audiencia</p>
               <strong>{{ formatGestionScope(form.scope) }}</strong>
             </div>
-            <span>{{ response?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador' }}</span>
+            <span>{{ publishReadinessLabel }}</span>
           </div>
           <AdminGestionScopePicker
             v-model="form.scope"
@@ -170,7 +170,12 @@ const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escola
 const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://documento-publico...')
 const linkLabel = computed(() => props.kind === 'encuesta' ? 'Formulario' : 'Documento')
 const previewFallback = computed(() => props.kind === 'encuesta' ? 'Las familias verán esta encuesta cuando esté publicada.' : 'Las familias verán este documento cuando esté publicado.')
-const canActivate = computed(() => response.value?.permissions.canPublish || props.kind === 'encuesta')
+const audienceReady = computed(() => Boolean(form.scope.plantel))
+const canActivate = computed(() => audienceReady.value && (response.value?.permissions.canPublish || props.kind === 'encuesta'))
+const publishReadinessLabel = computed(() => {
+  if (!audienceReady.value) return 'Falta audiencia'
+  return canActivate.value ? 'Puede publicar' : 'Solo borrador'
+})
 const primaryActionLabel = computed(() => {
   if (form.status === 'active') return 'Publicar'
   if (form.status === 'scheduled') return 'Programar'

@@ -250,6 +250,7 @@ const visiblePlanteles = computed(() => options.value.planteles.slice(0, 9))
 const activeAssignments = computed(() => assignments.value.filter((assignment) => assignment.scope.plantel && assignment.capabilities.length))
 const draftPlanteles = computed(() => Array.from(new Set(activeAssignments.value.map((assignment) => String(assignment.scope.plantel || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')))
 const draftCapabilities = computed(() => Array.from(new Set(activeAssignments.value.flatMap((assignment) => assignment.capabilities))))
+const selectedCapabilities = computed(() => Array.from(new Set(assignments.value.flatMap((assignment) => assignment.capabilities))))
 const canSave = computed(() => activeAssignments.value.length > 0 && activeAssignments.value.every((assignment) => assignment.scope.plantel && assignment.capabilities.length))
 const draftState = computed<GestionEscolarAssignmentState>(() => canSave.value ? 'active' : selectedUser.value?.gestionEscolar.state === 'incomplete' ? 'incomplete' : 'none')
 const draftStateLabel = computed(() => draftState.value === 'active' ? 'Listo para activar' : draftState.value === 'incomplete' ? 'Acceso incompleto' : 'Sin acceso')
@@ -258,10 +259,10 @@ const resultTitle = computed(() => canSave.value ? `${draftPlanteles.value.lengt
 const resultDescription = computed(() => canSave.value ? 'La persona verá únicamente familias y contenido dentro del alcance seleccionado.' : 'Selecciona al menos un plantel y una responsabilidad antes de entregar acceso.')
 const outcomeHeadline = computed(() => selectedProfile.value === 'custom' ? 'Acceso ajustado manualmente' : profileHeadline.value)
 const outcomeItems = computed(() => [
-  { label: 'Familias', detail: hasCapability('familias.impersonate') ? 'Consulta y vista familiar controlada.' : hasCapability('familias.view') ? 'Solo lectura familiar.' : 'No verá familias.', active: hasCapability('familias.view') },
-  { label: 'Comunicados', detail: hasCapability('comunicados.publish') ? 'Crear, programar y publicar.' : hasCapability('comunicados.create') ? 'Crear borradores.' : 'Sin acceso.', active: hasCapability('comunicados.create') },
-  { label: 'Encuestas', detail: hasCapability('encuestas.manage') ? 'Administrar formularios por audiencia.' : 'Sin acceso.', active: hasCapability('encuestas.manage') },
-  { label: 'Convenios', detail: hasCapability('convenios.publish') ? 'Gestionar y publicar convenios.' : hasCapability('convenios.manage') ? 'Gestionar borradores.' : 'Sin acceso.', active: hasCapability('convenios.manage') }
+  { label: 'Familias', detail: capabilityDetail(hasSelectedCapability('familias.view'), hasSelectedCapability('familias.impersonate') ? 'Consulta y vista familiar controlada.' : 'Solo lectura familiar.', 'Sin acceso.'), active: canSave.value && hasSelectedCapability('familias.view') },
+  { label: 'Comunicados', detail: capabilityDetail(hasSelectedCapability('comunicados.create'), hasSelectedCapability('comunicados.publish') ? 'Crear, programar y publicar.' : 'Crear borradores.', 'Sin acceso.'), active: canSave.value && hasSelectedCapability('comunicados.create') },
+  { label: 'Encuestas', detail: capabilityDetail(hasSelectedCapability('encuestas.manage'), 'Administrar formularios por audiencia.', 'Sin acceso.'), active: canSave.value && hasSelectedCapability('encuestas.manage') },
+  { label: 'Convenios', detail: capabilityDetail(hasSelectedCapability('convenios.manage'), hasSelectedCapability('convenios.publish') ? 'Gestionar y publicar convenios.' : 'Gestionar borradores.', 'Sin acceso.'), active: canSave.value && hasSelectedCapability('convenios.manage') }
 ])
 
 watch(users, (items) => {
@@ -302,8 +303,13 @@ function rowStateLabel(user: CockpitUser) {
   return 'Sin acceso'
 }
 
-function hasCapability(capability: GestionEscolarCapability) {
-  return draftCapabilities.value.includes(capability)
+function hasSelectedCapability(capability: GestionEscolarCapability) {
+  return selectedCapabilities.value.includes(capability)
+}
+
+function capabilityDetail(enabled: boolean, activeDetail: string, disabledDetail: string) {
+  if (!enabled) return disabledDetail
+  return canSave.value ? activeDetail : 'Falta plantel para activar.'
 }
 
 function profileLabelFor(capabilities: GestionEscolarCapability[]) {
