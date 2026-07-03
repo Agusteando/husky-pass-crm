@@ -10,9 +10,11 @@ export type GestionEscolarCapability =
   | 'familias.view'
   | 'familias.impersonate'
 
-export type GestionEscolarModuleKey = 'comunicados' | 'encuestas' | 'convenios' | 'familias'
+export type GestionEscolarModuleKey = 'familias' | 'comunicados' | 'encuestas' | 'convenios'
 export type GestionEscolarContentKind = 'encuesta' | 'convenio'
 export type GestionEscolarContentStatus = 'draft' | 'active' | 'inactive' | 'scheduled'
+export type GestionEscolarAssignmentState = 'none' | 'incomplete' | 'active'
+export type GestionEscolarAccessProfileKey = 'support' | 'operator' | 'publisher' | 'content' | 'full' | 'custom'
 
 export interface GestionEscolarScope {
   isGlobal?: boolean
@@ -49,12 +51,27 @@ export interface GestionEscolarReachPreview {
   grupos: string[]
 }
 
+export interface GestionEscolarScopeTreeNode {
+  value: string
+  label: string
+  families: number
+  students: number
+  children?: GestionEscolarScopeTreeNode[]
+}
+
+export interface GestionEscolarScopeTree {
+  planteles: GestionEscolarScopeTreeNode[]
+}
+
 export interface GestionEscolarPermissionSummary {
   enabled: boolean
+  state: GestionEscolarAssignmentState
+  profile: GestionEscolarAccessProfileKey
   capabilities: GestionEscolarCapability[]
   permissions: GestionEscolarPermission[]
   reach: GestionEscolarReachPreview
   legacyCommunications: CommunicationAdminScopeInput[]
+  updatedAt?: string | null
 }
 
 export interface GestionEscolarModuleSummary {
@@ -77,6 +94,7 @@ export interface GestionEscolarOverviewResponse {
     niveles: string[]
     grados: string[]
     grupos: string[]
+    scopeTree: GestionEscolarScopeTree
   }
 }
 

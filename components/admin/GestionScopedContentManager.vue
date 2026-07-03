@@ -6,67 +6,86 @@
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
       </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Vista general</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Gestión Escolar</NuxtLink>
     </header>
 
-    <section v-if="pending" class="state-card" data-state="loading">Cargando configuracion...</section>
-    <section v-else-if="loadError" class="state-card" data-state="error">No pudimos cargar este modulo. Intenta nuevamente.</section>
-    <section v-else class="manager-grid">
+    <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader :label="title" contained /></section>
+    <section v-else-if="loadError" class="state-card" data-state="error">No disponible</section>
+    <section v-else class="manager-layout">
       <form class="editor-card" @submit.prevent="save">
         <div class="section-head">
           <span><FamilyPersonasIcon :name="icon" /></span>
           <div>
-            <h2>{{ form.id ? 'Editar configuracion' : 'Nueva configuracion' }}</h2>
-            <p>{{ permissionCopy }}</p>
+            <p class="eyebrow">{{ form.id ? 'Editar' : 'Nuevo' }}</p>
+            <h2>{{ form.title || defaultTitle }}</h2>
           </div>
         </div>
 
-        <input v-model="form.title" :placeholder="kind === 'encuesta' ? 'Encuesta de clima escolar' : 'Convenios para familias'" required />
-        <input v-model="form.summary" placeholder="Descripcion breve para operacion interna" />
-        <input v-model="form.url" :placeholder="urlPlaceholder" required />
+        <label class="field">
+          <span>Título</span>
+          <input v-model="form.title" :placeholder="defaultTitle" required />
+        </label>
+        <label class="field">
+          <span>Resumen</span>
+          <input v-model="form.summary" placeholder="Visible en consola y vista familiar" />
+        </label>
+        <label class="field">
+          <span>Enlace</span>
+          <input v-model="form.url" :placeholder="urlPlaceholder" required />
+        </label>
 
-        <div class="scope-grid">
-          <label class="global-toggle"><input v-model="form.isGlobal" type="checkbox" /> Global</label>
-          <input v-model="form.plantel" :disabled="form.isGlobal" placeholder="Plantel" />
-          <input v-model="form.nivel" :disabled="form.isGlobal" placeholder="Nivel" />
-          <input v-model="form.grado" :disabled="form.isGlobal" placeholder="Grado" />
-          <input v-model="form.grupo" :disabled="form.isGlobal" placeholder="Grupo" />
-        </div>
+        <section class="audience-panel">
+          <div class="panel-head">
+            <p class="eyebrow">Audiencia</p>
+            <strong>{{ formatGestionScope(form.scope) }}</strong>
+          </div>
+          <AdminGestionScopePicker
+            v-model="form.scope"
+            :scope-tree="response?.options.scopeTree"
+            :options="response?.options"
+            :disabled="saving"
+            compact
+          />
+        </section>
 
-        <div class="status-row">
-          <label><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
-          <label><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Activo</label>
-          <label><input v-model="form.status" type="radio" value="inactive" /> Pausado</label>
+        <div class="status-row" aria-label="Estado">
+          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
+          <label :class="{ active: form.status === 'active' }"><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Activo</label>
+          <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" /> Pausado</label>
         </div>
 
         <p v-if="actionError" class="action-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
-        <button class="btn btn-primary" type="submit" :disabled="saving || !response?.permissions.canManage">
-          {{ saving ? 'Guardando...' : 'Guardar configuracion' }}
-        </button>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
+          <button class="btn btn-primary" type="submit" :disabled="saving || !response?.permissions.canManage || !form.scope.plantel">
+            {{ saving ? 'Guardando…' : form.status === 'active' ? 'Publicar' : 'Guardar' }}
+          </button>
+        </div>
       </form>
 
       <section class="content-list">
         <div class="list-head">
           <div>
-            <p class="eyebrow">Activos y borradores</p>
-            <h2>{{ response?.items.length || 0 }} configuraciones</h2>
+            <p class="eyebrow">Publicaciones</p>
+            <h2>{{ response?.items.length || 0 }}</h2>
           </div>
-          <button class="mini-button" type="button" @click="resetForm">Nueva</button>
+          <button class="mini-button" type="button" @click="resetForm">Nuevo</button>
         </div>
-        <article v-for="item in response?.items" :key="item.id" class="content-row">
+
+        <article v-for="item in response?.items" :key="item.id" class="content-row" :data-status="item.status">
           <span class="row-icon"><FamilyPersonasIcon :name="icon" /></span>
           <div>
             <b>{{ item.title }}</b>
             <p>{{ item.summary || item.scopeLabel }}</p>
-            <small>{{ item.status }} · {{ item.scopeLabel }}</small>
+            <small>{{ statusLabel(item.status) }} · {{ item.scopeLabel }}</small>
           </div>
           <button class="mini-button" type="button" @click="edit(item)">Editar</button>
         </article>
+
         <div v-if="!response?.items.length" class="state-card compact" data-state="empty">
           <FamilyPersonasIcon :name="icon" />
-          <h3>Sin configuraciones dentro de tu alcance</h3>
-          <p>Crea una version global o segmentada para que las familias correctas la vean.</p>
+          <h3>Sin publicaciones</h3>
         </div>
       </section>
     </section>
@@ -76,7 +95,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useFetch } from 'nuxt/app'
-import type { GestionEscolarContentKind, GestionEscolarScopedContentItem, GestionEscolarScopedContentResponse } from '~/types/gestionEscolar'
+import type { GestionEscolarContentKind, GestionEscolarContentStatus, GestionEscolarScope, GestionEscolarScopedContentItem, GestionEscolarScopedContentResponse } from '~/types/gestionEscolar'
+import { formatGestionScope } from '~/utils/gestionEscolar'
 
 const props = defineProps<{
   kind: GestionEscolarContentKind
@@ -99,24 +119,23 @@ const form = reactive({
   title: '',
   summary: '',
   url: '',
-  status: 'draft',
-  isGlobal: false,
-  plantel: '',
-  nivel: '',
-  grado: '',
-  grupo: ''
+  status: 'draft' as GestionEscolarContentStatus,
+  scope: { isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null } as GestionEscolarScope
 })
 
+const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Convenios para familias')
 const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://publicacion-o-flipbook...')
 const canActivate = computed(() => response.value?.permissions.canPublish || props.kind === 'encuesta')
-const permissionCopy = computed(() => {
-  if (!response.value?.permissions.canManage) return 'Tu acceso permite consultar, pero no editar.'
-  if (props.kind === 'convenio' && !response.value.permissions.canPublish) return 'Puedes preparar convenios; publicar requiere capacidad adicional.'
-  return 'Puedes configurar contenido dentro de tu alcance.'
-})
 
 function resetForm() {
-  Object.assign(form, { id: '', title: '', summary: '', url: '', status: 'draft', isGlobal: false, plantel: '', nivel: '', grado: '', grupo: '' })
+  Object.assign(form, {
+    id: '',
+    title: '',
+    summary: '',
+    url: '',
+    status: 'draft' as GestionEscolarContentStatus,
+    scope: { isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null }
+  })
   actionNotice.value = ''
   actionError.value = ''
 }
@@ -128,12 +147,17 @@ function edit(item: GestionEscolarScopedContentItem) {
     summary: item.summary,
     url: item.url,
     status: item.status,
-    isGlobal: Boolean(item.isGlobal),
-    plantel: item.plantel || '',
-    nivel: item.nivel || '',
-    grado: item.grado || '',
-    grupo: item.grupo || ''
+    scope: { isGlobal: false, plantel: item.plantel || null, nivel: item.nivel || null, grado: item.grado || null, grupo: item.grupo || null }
   })
+  actionNotice.value = ''
+  actionError.value = ''
+}
+
+function statusLabel(status: GestionEscolarContentStatus) {
+  if (status === 'active') return 'Activo'
+  if (status === 'inactive') return 'Pausado'
+  if (status === 'scheduled') return 'Programado'
+  return 'Borrador'
 }
 
 async function save() {
@@ -143,14 +167,14 @@ async function save() {
   try {
     await $fetch('/api/admin/gestion-escolar/scoped-content', {
       method: 'POST',
-      body: { ...form, kind: props.kind }
+      body: { ...form, ...form.scope, kind: props.kind, isGlobal: false }
     })
-    actionNotice.value = 'Configuracion guardada.'
+    actionNotice.value = form.status === 'active' ? 'Publicado.' : 'Guardado.'
     resetForm()
     await refresh()
   } catch (error) {
-    const failure = error as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure.data?.statusMessage || failure.statusMessage || failure.message || 'No pudimos guardar la configuracion.'
+    const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
+    actionError.value = failure.data?.message || failure.data?.statusMessage || failure.statusMessage || failure.message || 'No pudimos guardar.'
   } finally {
     saving.value = false
   }
@@ -175,6 +199,9 @@ async function save() {
 
 .module-hero {
   align-items: center;
+  background:
+    radial-gradient(circle at 90% 12%, rgba(15, 140, 154, .14), transparent 30%),
+    linear-gradient(135deg, #fff, #f8fbf2);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -197,25 +224,29 @@ p {
   margin: 0;
 }
 
-h1 {
+h1,
+h2,
+h3 {
   color: #17233b;
+  line-height: 1.08;
+}
+
+h1 {
   font-size: clamp(2rem, 3vw, 3.2rem);
 }
 
 .module-hero p,
-.section-head p,
 .content-row p,
-.content-row small,
-.state-card p {
+.content-row small {
   color: #64748b;
   font-weight: 650;
   line-height: 1.5;
 }
 
-.manager-grid {
+.manager-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+  grid-template-columns: minmax(380px, 500px) minmax(0, 1fr);
 }
 
 .editor-card,
@@ -227,14 +258,16 @@ h1 {
 
 .section-head,
 .list-head,
-.content-row {
+.content-row,
+.actions {
   align-items: center;
   display: flex;
   gap: 12px;
+  justify-content: space-between;
 }
 
-.list-head {
-  justify-content: space-between;
+.section-head {
+  justify-content: start;
 }
 
 .section-head > span,
@@ -250,6 +283,19 @@ h1 {
   width: 44px;
 }
 
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 input {
   background: #fff;
   border: 1px solid #d9e2ea;
@@ -260,23 +306,25 @@ input {
   padding: 0 12px;
 }
 
-.scope-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: auto repeat(4, minmax(0, 1fr));
-}
-
-.global-toggle,
-.status-row label {
-  align-items: center;
+.audience-panel {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  display: inline-flex;
-  font-weight: 850;
-  gap: 7px;
-  min-height: 42px;
-  padding: 0 12px;
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.panel-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.panel-head strong {
+  color: #17233b;
+  font-size: .9rem;
 }
 
 .status-row {
@@ -285,12 +333,35 @@ input {
   gap: 8px;
 }
 
+.status-row label {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #475569;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.status-row label.active {
+  background: #e7f8ef;
+  border-color: #9fd9b8;
+  color: #156235;
+}
+
 .content-row {
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   padding: 12px;
+}
+
+.content-row[data-status='active'] {
+  border-color: #bfead0;
 }
 
 .content-row b,
@@ -323,6 +394,7 @@ input {
 }
 
 .state-card {
+  color: #64748b;
   display: grid;
   gap: 8px;
   min-height: 220px;
@@ -336,12 +408,13 @@ input {
 }
 
 @media (max-width: 1100px) {
-  .manager-grid,
-  .scope-grid {
+  .manager-layout {
     grid-template-columns: 1fr;
   }
 
-  .module-hero {
+  .module-hero,
+  .actions,
+  .panel-head {
     align-items: stretch;
     flex-direction: column;
   }

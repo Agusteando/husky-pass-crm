@@ -1,10 +1,10 @@
 <template>
-  <section class="families-module" data-product-area="gestion-escolar" data-product-screen="familias">
+  <section class="families-console" data-product-area="gestion-escolar" data-product-screen="familias">
     <header class="module-hero">
       <div>
-        <p class="eyebrow">Familias escolares</p>
-        <h1>Alcance operativo</h1>
-        <div class="scope-chips" aria-label="Alcance visible">
+        <p class="eyebrow">Familias</p>
+        <h1>Soporte escolar</h1>
+        <div class="scope-chips" aria-label="Planteles visibles">
           <span v-for="plantel in data?.options.planteles || []" :key="plantel">{{ plantel }}</span>
           <span v-if="!(data?.options.planteles || []).length">Sin plantel</span>
         </div>
@@ -12,17 +12,17 @@
       <form class="search-card" @submit.prevent="refreshFamilies">
         <FamilyPersonasIcon name="search" />
         <input v-model="search" type="search" placeholder="Familia, correo o matrícula" />
-        <button class="mini-button" type="submit">Buscar</button>
+        <button class="mini-button" type="submit" :disabled="pending">Buscar</button>
       </form>
     </header>
 
     <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader label="Familias" contained /></section>
     <section v-else-if="loadError" class="state-card" data-state="error">No disponible</section>
-    <section v-else class="families-grid">
+    <section v-else class="families-layout">
       <aside class="family-list">
         <div class="metrics">
           <article><span>Familias</span><strong>{{ data?.metrics.families || 0 }}</strong></article>
-          <article><span>Red</span><strong>{{ data?.metrics.withAuthorizedPeople || 0 }}</strong></article>
+          <article><span>Autorizados</span><strong>{{ data?.metrics.withAuthorizedPeople || 0 }}</strong></article>
           <article><span>Vista</span><strong>{{ data?.metrics.canImpersonate || 0 }}</strong></article>
         </div>
 
@@ -46,7 +46,7 @@
 
       <section class="family-detail">
         <div v-if="detailPending" class="state-card compact" data-state="loading"><HuskyPassLoader label="Perfil" compact /></div>
-        <div v-else-if="detail" class="detail-shell">
+        <template v-else-if="detail">
           <div class="detail-head">
             <div>
               <p class="eyebrow">Perfil familiar</p>
@@ -61,25 +61,35 @@
             </div>
           </div>
 
-          <section class="scope-card">
-            <span>{{ detail.family.plantel }}</span>
-            <strong>{{ detail.family.nivel || 'Nivel' }} · {{ detail.family.grado || 'Grado' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</strong>
+          <section class="context-grid">
+            <article class="scope-card">
+              <span>Alcance</span>
+              <strong>{{ detail.family.plantel }} · {{ detail.family.nivel || 'Nivel' }} · {{ detail.family.grado || 'Grado' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</strong>
+            </article>
+            <article>
+              <span>Estudiantes</span>
+              <strong>{{ detail.students.length }}</strong>
+            </article>
+            <article>
+              <span>Autorizados</span>
+              <strong>{{ detail.authorizedPeople.length }}</strong>
+            </article>
           </section>
 
           <section class="detail-panels">
             <article>
-              <span>Estudiantes</span>
+              <p class="eyebrow">Estudiantes</p>
               <p v-for="student in detail.students" :key="`${student.matricula}-${student.grupo}`">
                 {{ student.name }} · {{ student.grado || 'Grado' }}{{ student.grupo ? ` · ${student.grupo}` : '' }}
               </p>
             </article>
             <article>
-              <span>Red autorizada</span>
+              <p class="eyebrow">Red autorizada</p>
               <p v-for="person in detail.authorizedPeople" :key="person.id">{{ person.name }} · {{ person.relationship || 'Pendiente' }}</p>
               <p v-if="!detail.authorizedPeople.length">Sin registros</p>
             </article>
             <article>
-              <span>Contenido</span>
+              <p class="eyebrow">Contenido visible</p>
               <p>Encuesta · {{ detail.visibleContent.encuesta?.title || '—' }}</p>
               <p>Convenio · {{ detail.visibleContent.convenio?.title || '—' }}</p>
             </article>
@@ -87,15 +97,15 @@
 
           <p v-if="actionError" class="action-message error">{{ actionError }}</p>
           <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
-        </div>
+        </template>
         <div v-else-if="detailError" class="state-card compact" data-state="error">
-          <FamilyPersonasIcon name="shield" />
+          <FamilyPersonasIcon name="security" />
           <h2>Fuera de alcance</h2>
           <p>{{ detailError }}</p>
         </div>
         <div v-else class="state-card compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
-          <h2>Familia</h2>
+          <h2>Selecciona una familia</h2>
         </div>
       </section>
     </section>
@@ -110,7 +120,7 @@ import type { GestionEscolarFamiliesResponse, GestionEscolarFamilyDetailResponse
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
 const search = ref('')
-const query = computed(() => ({ search: search.value, limit: 100 }))
+const query = computed(() => ({ search: search.value, limit: 120 }))
 const { data, pending, error: loadError, refresh } = useFetch<GestionEscolarFamiliesResponse>('/api/admin/gestion-escolar/familias', { query, timeout: 15000 })
 const selected = ref<GestionEscolarFamilyRow | null>(null)
 const detail = ref<GestionEscolarFamilyDetailResponse | null>(null)
@@ -154,6 +164,7 @@ async function selectFamily(family: GestionEscolarFamilyRow) {
   detailPending.value = true
   actionError.value = ''
   actionNotice.value = ''
+  confirmingId.value = null
   try {
     detail.value = await $fetch<GestionEscolarFamilyDetailResponse>(`/api/admin/gestion-escolar/familias/${family.userId}`)
   } catch (error) {
@@ -165,7 +176,7 @@ async function selectFamily(family: GestionEscolarFamilyRow) {
 }
 
 function impersonationLabel(userId: number) {
-  if (impersonating.value) return 'Abriendo...'
+  if (impersonating.value) return 'Abriendo…'
   if (confirmingId.value === userId) return 'Confirmar'
   return 'Vista familiar'
 }
@@ -183,8 +194,8 @@ async function impersonate(family: GestionEscolarFamilyRow) {
     await $fetch('/api/auth/admin/impersonate', { method: 'POST', body: { userId: family.userId } })
     await navigateTo('/familia/personas-autorizadas')
   } catch (error) {
-    const failure = error as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure.data?.statusMessage || failure.statusMessage || failure.message || 'No pudimos abrir la vista familiar.'
+    const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
+    actionError.value = failure.data?.statusMessage || failure.data?.message || failure.statusMessage || failure.message || 'No pudimos abrir la vista familiar.'
   } finally {
     impersonating.value = false
   }
@@ -192,7 +203,7 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 </script>
 
 <style scoped>
-.families-module {
+.families-console {
   display: grid;
   gap: 18px;
 }
@@ -209,9 +220,12 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 .module-hero {
   align-items: end;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(15, 140, 154, .14), transparent 30%),
+    linear-gradient(135deg, #fff, #f8fbf2);
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 480px);
   padding: clamp(22px, 3vw, 38px);
 }
 
@@ -226,7 +240,6 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 h1,
 h2,
-h3,
 p {
   margin: 0;
 }
@@ -275,103 +288,102 @@ h1 {
   border: 0;
   color: #17233b;
   font-weight: 760;
+  min-width: 0;
   outline: 0;
 }
 
 .mini-button {
-  align-items: center;
   background: #fff;
   border: 1px solid #cfe0e7;
-  border-radius: 13px;
+  border-radius: 12px;
   color: #0f8c9a;
-  display: inline-flex;
   font-weight: 850;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 13px;
-  text-decoration: none;
+  min-height: 38px;
+  padding: 0 12px;
 }
 
-.families-grid {
+.families-layout {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+}
+
+.family-list,
+.family-detail {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
 }
 
 .family-list {
   align-self: start;
+}
+
+.metrics,
+.context-grid,
+.detail-panels {
   display: grid;
-  gap: 12px;
-  max-height: calc(100vh - 170px);
-  overflow: auto;
-  padding: 14px;
-  position: sticky;
-  top: calc(var(--topbar-height) + 18px);
+  gap: 10px;
 }
 
 .metrics {
-  display: grid;
-  gap: 10px;
   grid-template-columns: repeat(3, 1fr);
 }
 
 .metrics article,
-.scope-card,
+.context-grid article,
 .detail-panels article {
-  background: linear-gradient(135deg, #f8fafc, #fff);
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
+  display: grid;
+  gap: 6px;
   padding: 14px;
 }
 
 .metrics span,
-.scope-card span,
-.detail-panels span {
+.context-grid span {
   color: #64748b;
-  display: block;
-  font-size: .72rem;
+  font-size: .7rem;
   font-weight: 850;
-  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
 .metrics strong,
-.scope-card strong {
-  color: #10213b;
-  display: block;
-  font-size: 1.45rem;
-  margin-top: 5px;
+.context-grid strong {
+  color: #17233b;
+  font-size: 1.35rem;
 }
 
 .family-row {
   align-items: center;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid transparent;
   border-radius: 18px;
   color: #17233b;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
-  padding: 12px;
+  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  padding: 10px;
   text-align: left;
 }
 
 .family-row.active,
 .family-row:hover {
   border-color: #f4c24f;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, .06);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
 }
 
 .avatar {
   background: #fff7df;
   border: 1px solid #f3d589;
-  border-radius: 15px;
+  border-radius: 14px;
   color: #b98000;
   display: grid;
   font-weight: 900;
-  height: 46px;
+  height: 42px;
   place-items: center;
-  width: 46px;
+  width: 42px;
 }
 
 .family-row strong,
@@ -387,60 +399,47 @@ h1 {
 .detail-panels p {
   color: #64748b;
   font-weight: 650;
+  line-height: 1.5;
 }
 
 .family-row b {
-  background: #e7f8ef;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 999px;
-  color: #15803d;
-  font-size: .7rem;
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 850;
   padding: 6px 9px;
 }
 
-.family-row b[data-status='limited'] {
-  background: #fff7df;
-  color: #9a6700;
+.family-row b[data-status='active'] {
+  background: #e7f8ef;
+  border-color: #bfead0;
+  color: #15803d;
 }
 
-.family-row b[data-status='incomplete'] {
-  background: #fff1f2;
-  color: #be123c;
-}
-
-.family-detail {
-  min-height: 520px;
-  padding: clamp(16px, 2vw, 24px);
-}
-
-.detail-shell {
-  display: grid;
-  gap: 14px;
-}
-
-.detail-head {
+.detail-head,
+.detail-actions {
   align-items: center;
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: space-between;
 }
 
 .detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: end;
+}
+
+.context-grid {
+  grid-template-columns: 1.5fr 1fr 1fr;
+}
+
+.scope-card strong {
+  font-size: 1rem;
 }
 
 .detail-panels {
-  display: grid;
-  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.detail-panels article {
-  align-content: start;
-  display: grid;
-  gap: 8px;
-  min-height: 130px;
 }
 
 .action-message {
@@ -461,35 +460,32 @@ h1 {
   color: #64748b;
   display: grid;
   gap: 8px;
-  min-height: 260px;
+  min-height: 240px;
   place-items: center;
-  padding: 28px;
+  padding: 24px;
   text-align: center;
 }
 
 .state-card.compact {
-  min-height: 220px;
+  min-height: 180px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   .module-hero,
-  .families-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .family-list {
-    max-height: none;
-    position: static;
-  }
-}
-
-@media (max-width: 760px) {
-  .metrics,
+  .families-layout,
+  .context-grid,
   .detail-panels {
     grid-template-columns: 1fr;
   }
+}
 
-  .detail-head {
+@media (max-width: 720px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-head,
+  .detail-actions {
     align-items: stretch;
     flex-direction: column;
   }

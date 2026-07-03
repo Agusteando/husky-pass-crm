@@ -1,9 +1,15 @@
 import { useRuntimeConfig } from 'nitropack/runtime'
-import { createPool, type Pool, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
+import { createPool, type Pool, type PoolConnection, type RowDataPacket, type ResultSetHeader } from 'mysql2/promise'
 import { publicError } from '~/server/utils/httpError'
 import { logEvent } from '~/server/utils/logger'
 
 type LegacySqlValue = string | number | boolean | Date | null
+
+type LegacyTransactionClient = {
+  query: <T extends RowDataPacket[] = RowDataPacket[]>(sql: string, params?: LegacySqlValue[]) => Promise<T>
+  one: <T extends RowDataPacket = RowDataPacket>(sql: string, params?: LegacySqlValue[]) => Promise<T | undefined>
+  write: (sql: string, params?: LegacySqlValue[]) => Promise<ResultSetHeader>
+}
 
 let pool: Pool | null = null
 
@@ -106,6 +112,54 @@ async function executeWithRetry<T>(sql: string, params: LegacySqlValue[]): Promi
   }
 
   throw toPublicMysqlError(lastError)
+}
+
+
+async function executeOnConnection<T>(connection: PoolConnection, sql: string, params: LegacySqlValue[]): Promise<T> {
+  const startedAt = performance.now()
+  try {
+    const [result] = await connection.execute({ sql, values: params, timeout: DEFAULT_QUERY_TIMEOUT_MS })
+    const rowCount = Array.isArray(result) ? result.length : (result as ResultSetHeader).affectedRows
+    logEvent('debug', 'mysql.transaction.query', {
+      durationMs: Math.round(performance.now() - startedAt),
+      rowCount
+    })
+    return result as T
+  } catch (error) {
+    logEvent('debug', 'mysql.transaction.query.failed', {
+      durationMs: Math.round(performance.now() - startedAt),
+      dependency: 'mysql',
+      code: error && typeof error === 'object' ? (error as { code?: string }).code : undefined
+    })
+    throw toPublicMysqlError(error)
+  }
+}
+
+export async function legacyTransaction<T>(callback: (client: LegacyTransactionClient) => Promise<T>) {
+  const connection = await getPool().getConnection()
+  try {
+    await connection.beginTransaction()
+    const client: LegacyTransactionClient = {
+      query: <R extends RowDataPacket[] = RowDataPacket[]>(sql: string, params: LegacySqlValue[] = []) => executeOnConnection<R>(connection, sql, params),
+      one: async <R extends RowDataPacket = RowDataPacket>(sql: string, params: LegacySqlValue[] = []) => {
+        const rows = await executeOnConnection<R[]>(connection, sql, params)
+        return rows[0] as R | undefined
+      },
+      write: (sql: string, params: LegacySqlValue[] = []) => executeOnConnection<ResultSetHeader>(connection, sql, params)
+    }
+    const result = await callback(client)
+    await connection.commit()
+    return result
+  } catch (error) {
+    try {
+      await connection.rollback()
+    } catch {
+      // Rollback can fail if the connection was already closed by MySQL.
+    }
+    throw error
+  } finally {
+    connection.release()
+  }
 }
 
 export async function legacyQuery<T extends RowDataPacket[] = RowDataPacket[]>(sql: string, params: LegacySqlValue[] = []) {

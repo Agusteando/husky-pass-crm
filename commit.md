@@ -1,1 +1,1 @@
-Corrige navegación superior de Super Admin
+Rediseña Gestión Escolar y consolida permisos por alcance

@@ -238,16 +238,22 @@
           </section>
 
 
-          <section class="comms-permissions" aria-label="Gestion Escolar">
+          <section class="gestion-assignment-card" aria-label="Permisos Gestion Escolar">
             <div class="section-head compact-headline">
               <div>
-                <p class="eyebrow">Gestion Escolar</p>
-                <h3>Permisos escuela-familia</h3>
+                <p class="eyebrow">Permisos</p>
+                <h3>Gestión Escolar</h3>
               </div>
-              <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">Asignar acceso</NuxtLink>
+              <span class="role-state" :data-active="selectedGestionEscolarActive">{{ selectedGestionEscolarActive ? 'Configurado' : 'Sin acceso' }}</span>
             </div>
-            <p class="muted">Plantel, grado y permisos en un solo guardado.</p>
-            <p v-if="selectedUser.communicationsEnabled" class="muted">Esta cuenta conserva compatibilidad legacy de Comunicados durante la migracion.</p>
+            <NuxtLink class="assignment-link" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">
+              <span>
+                <strong>Asignación por plantel</strong>
+                <small>Perfil operativo, alcance escolar y permisos granulares.</small>
+              </span>
+              <b>Editar</b>
+            </NuxtLink>
+            <p v-if="selectedUser.communicationsEnabled" class="muted">Comunicados legacy activo.</p>
           </section>
         </template>
         <EmptyState v-else title="Selecciona un usuario" description="Verás su rol, producto, plantel y rutas heredadas sin salir del directorio." />
@@ -974,7 +980,7 @@ function normalizeLimit(value: unknown) {
 }
 
 .role-console,
-.comms-permissions {
+.gestion-assignment-card {
   background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
   border: 1px solid #e2e8ec;
   border-radius: 18px;
@@ -1105,13 +1111,46 @@ function normalizeLimit(value: unknown) {
   justify-content: flex-end;
 }
 
-.comms-permissions {
-  background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+.assignment-link {
+  align-items: center;
+  background: #fff;
   border: 1px solid #e2e8ec;
-  border-radius: 18px;
-  display: grid;
-  gap: 10px;
+  border-radius: 16px;
+  color: inherit;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
   padding: 12px;
+  text-decoration: none;
+}
+
+.assignment-link:hover {
+  border-color: var(--color-brand-300);
+  box-shadow: var(--shadow-line);
+}
+
+.assignment-link strong,
+.assignment-link small {
+  display: block;
+}
+
+.assignment-link strong {
+  color: var(--color-ink);
+  font-size: .9rem;
+}
+
+.assignment-link small {
+  color: var(--color-muted);
+  font-size: .74rem;
+  line-height: 1.25;
+}
+
+.assignment-link b {
+  background: var(--color-brand-700);
+  border-radius: 999px;
+  color: #fff;
+  font-size: .72rem;
+  padding: 7px 10px;
 }
 
 .compact-headline {

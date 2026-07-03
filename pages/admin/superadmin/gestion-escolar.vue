@@ -1,204 +1,173 @@
 <template>
-  <section class="ge-cockpit" data-product-area="superadmin" data-product-screen="gestion-escolar-permissions">
-    <header class="ge-hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Mapa escolar</p>
-        <h1>Gestión Escolar</h1>
-        <div class="scope-rail" aria-label="Alcance escolar disponible">
+  <section class="assignment-page" data-product-area="superadmin" data-product-screen="gestion-escolar-permissions">
+    <header class="assignment-hero">
+      <div>
+        <p class="eyebrow">Permisos</p>
+        <h1>Operadores escolares</h1>
+        <div class="hero-rail" aria-label="Planteles escolares">
           <span v-for="plantel in visiblePlanteles" :key="plantel">{{ plantel }}</span>
-          <span v-if="!visiblePlanteles.length">Sin planteles escolares</span>
+          <span v-if="!visiblePlanteles.length">Sin planteles</span>
         </div>
       </div>
-      <div class="hero-metrics" aria-label="Resumen Gestión Escolar">
+      <section class="hero-metrics" aria-label="Resumen de operadores">
+        <article><span>Usuarios</span><strong>{{ data?.metrics.total || 0 }}</strong></article>
         <article><span>Activos</span><strong>{{ data?.metrics.enabled || 0 }}</strong></article>
-        <article><span>Con alcance</span><strong>{{ data?.metrics.scoped || 0 }}</strong></article>
         <article><span>Planteles</span><strong>{{ options.planteles.length }}</strong></article>
-      </div>
+      </section>
     </header>
 
-    <section class="cockpit-grid">
-      <aside class="user-browser">
+    <section class="assignment-shell">
+      <aside class="operator-browser">
         <form class="search-card" role="search" @submit.prevent="refreshUsers">
           <FamilyPersonasIcon name="search" />
-          <input v-model="search" type="search" placeholder="Usuario interno" aria-label="Buscar usuario interno" />
-          <button class="mini-button" type="submit">Buscar</button>
+          <input v-model="search" type="search" placeholder="Usuario, correo o matrícula" aria-label="Buscar usuario" />
+          <button class="mini-button" type="submit" :disabled="pending">Buscar</button>
         </form>
 
         <div v-if="pending" class="state-card compact" data-state="loading"><HuskyPassLoader label="Usuarios" compact /></div>
         <div v-else-if="loadError" class="state-card compact" data-state="error">No disponible</div>
-        <div v-else class="user-list">
+        <div v-else class="operator-list">
           <button
             v-for="user in users"
             :key="user.id"
-            class="user-row"
+            class="operator-row"
             type="button"
-            :class="{ active: selectedUser?.id === user.id, scoped: user.gestionEscolar.permissions.length }"
+            :class="{ active: selectedUser?.id === user.id }"
             @click="selectUser(user)"
           >
             <span class="avatar">{{ initials(user) }}</span>
-            <span>
+            <span class="operator-copy">
               <strong>{{ displayName(user) }}</strong>
-              <small>{{ user.email || user.username || 'Cuenta interna' }}</small>
+              <small>{{ user.email || user.username || `ID ${user.id}` }}</small>
             </span>
-            <b :data-active="user.gestionEscolar.permissions.length > 0">{{ user.gestionEscolar.permissions.length ? user.gestionEscolar.reach.planteles.join(' · ') || 'Activo' : '—' }}</b>
+            <b :data-state="user.gestionEscolar.state">{{ rowStateLabel(user) }}</b>
           </button>
           <div v-if="!users.length" class="state-card compact" data-state="empty">Sin usuarios</div>
         </div>
       </aside>
 
-      <section v-if="selectedUser" class="permission-workspace">
-        <div class="workspace-head">
+      <section v-if="selectedUser" class="editor-card">
+        <div class="identity-strip">
+          <span class="avatar large">{{ initials(selectedUser) }}</span>
           <div>
-            <p class="eyebrow">Usuario</p>
+            <p class="eyebrow">Operador</p>
             <h2>{{ displayName(selectedUser) }}</h2>
-            <p>{{ selectedUser.email || selectedUser.username }}</p>
+            <p>{{ selectedUser.email || selectedUser.username || `ID ${selectedUser.id}` }}</p>
           </div>
-          <span class="access-status" :data-active="isSavedActive">{{ isSavedActive ? 'Activo' : 'Sin acceso' }}</span>
+          <span class="state-pill" :data-state="draftState">{{ draftStateLabel }}</span>
         </div>
 
-        <section class="impact-strip" aria-label="Resumen del borrador">
-          <article><span>Alcances</span><strong>{{ activeSlices.length }}</strong></article>
-          <article><span>Planteles</span><strong>{{ draftPlanteles.length }}</strong></article>
-          <article><span>Permisos</span><strong>{{ draftCapabilities.length }}</strong></article>
-        </section>
-
-        <section class="quick-assign" aria-label="Asignación rápida">
-          <article class="quick-card">
-            <div class="quick-card-head">
-              <p class="eyebrow">Planteles</p>
-              <strong>{{ draftPlanteles.length || '—' }}</strong>
-            </div>
-            <div class="quick-chip-grid">
-              <button
-                v-for="plantel in options.planteles"
-                :key="plantel"
-                class="quick-chip"
-                type="button"
-                :class="{ active: draftPlanteles.includes(plantel) }"
-                :disabled="saving"
-                @click="togglePlantel(plantel)"
-              >
-                {{ plantel }}
-              </button>
-            </div>
-          </article>
-
-          <article class="quick-card">
-            <div class="quick-card-head">
-              <p class="eyebrow">Permisos</p>
-              <strong>{{ currentPresetLabel }}</strong>
-            </div>
-            <div class="preset-grid">
-              <button
-                v-for="preset in permissionPresets"
-                :key="preset.key"
-                class="preset-button"
-                type="button"
-                :class="{ active: presetIsApplied(preset) }"
-                :disabled="saving"
-                @click="applyPresetToAll(preset.capabilities)"
-              >
-                <strong>{{ preset.label }}</strong>
-                <span>{{ preset.caption }}</span>
-              </button>
-            </div>
-          </article>
-        </section>
-
-        <section class="access-canvas" :class="{ empty: !activeSlices.length }">
-          <div class="canvas-head">
+        <section class="profile-section">
+          <div class="section-head">
             <div>
-              <p class="eyebrow">Alcances</p>
-              <h3>Mapa de acceso</h3>
+              <p class="eyebrow">Perfil</p>
+              <h3>{{ profileHeadline }}</h3>
             </div>
-            <button class="mini-button" type="button" :disabled="saving" @click="addSlice">Agregar alcance</button>
+            <button class="mini-button" type="button" :disabled="saving" @click="setCustomMode">Personalizar</button>
           </div>
+          <div class="profile-grid">
+            <button
+              v-for="profile in profiles"
+              :key="profile.key"
+              type="button"
+              class="profile-card"
+              :class="{ active: selectedProfile === profile.key }"
+              :disabled="saving"
+              @click="applyProfile(profile.key)"
+            >
+              <strong>{{ profile.label }}</strong>
+              <span>{{ profile.caption }}</span>
+            </button>
+          </div>
+        </section>
 
-          <article v-for="(slice, index) in slices" :key="slice.uid" class="scope-card" :class="{ pending: !slice.plantel.trim() }">
-            <div class="scope-card-head">
-              <span class="scope-index">{{ index + 1 }}</span>
-              <strong>{{ scopeLabel(slice) }}</strong>
-              <button class="icon-button" type="button" :disabled="saving || slices.length <= 1" aria-label="Quitar alcance" @click="removeSlice(index)">
+        <section class="plantel-section">
+          <div class="section-head compact-head">
+            <div>
+              <p class="eyebrow">Planteles</p>
+              <h3>{{ draftPlanteles.length || '—' }}</h3>
+            </div>
+            <button class="mini-button" type="button" :disabled="saving" @click="addScope()">Agregar alcance</button>
+          </div>
+          <div class="plantel-grid">
+            <button
+              v-for="plantel in options.planteles"
+              :key="plantel"
+              type="button"
+              class="plantel-chip"
+              :class="{ active: draftPlanteles.includes(plantel) }"
+              :disabled="saving"
+              @click="togglePlantel(plantel)"
+            >
+              {{ plantel }}
+            </button>
+          </div>
+        </section>
+
+        <section class="scope-stack" aria-label="Alcances asignados">
+          <article v-for="(assignment, index) in assignments" :key="assignment.uid" class="scope-card" :data-complete="assignment.scope.plantel ? 'true' : 'false'">
+            <header>
+              <span class="scope-number">{{ index + 1 }}</span>
+              <div>
+                <strong>{{ formatGestionScope(assignment.scope) }}</strong>
+                <small>{{ assignment.capabilities.length }} permisos · {{ profileLabelFor(assignment.capabilities) }}</small>
+              </div>
+              <button class="icon-button" type="button" :disabled="saving || assignments.length <= 1" aria-label="Quitar alcance" @click="removeScope(index)">
                 <FamilyPersonasIcon name="trash" />
               </button>
-            </div>
+            </header>
 
-            <div class="scope-selectors">
-              <label>
-                <span>Plantel</span>
-                <select v-model="slice.plantel" :disabled="saving">
-                  <option value="">—</option>
-                  <option v-for="plantel in options.planteles" :key="plantel" :value="plantel">{{ plantel }}</option>
-                </select>
-              </label>
-              <label>
-                <span>Nivel</span>
-                <select v-model="slice.nivel" :disabled="saving">
-                  <option value="">Todos</option>
-                  <option v-for="nivel in options.niveles" :key="nivel" :value="nivel">{{ nivel }}</option>
-                </select>
-              </label>
-              <label>
-                <span>Grado</span>
-                <select v-model="slice.grado" :disabled="saving">
-                  <option value="">Todos</option>
-                  <option v-for="grado in options.grados" :key="grado" :value="grado">{{ grado }}</option>
-                </select>
-              </label>
-              <label>
-                <span>Grupo</span>
-                <select v-model="slice.grupo" :disabled="saving">
-                  <option value="">Todos</option>
-                  <option v-for="grupo in options.grupos" :key="grupo" :value="grupo">{{ grupo }}</option>
-                </select>
-              </label>
-            </div>
+            <AdminGestionScopePicker
+              v-model="assignment.scope"
+              :scope-tree="options.scopeTree"
+              :options="options"
+              :disabled="saving"
+              compact
+            />
 
-            <div class="module-grid">
-              <article v-for="module in modules" :key="module.key" class="module-tile" :class="{ on: module.capabilities.some((capability) => slice.capabilities.includes(capability.value)) }">
-                <span class="module-icon"><FamilyPersonasIcon :name="module.icon" /></span>
-                <strong>{{ module.title }}</strong>
-                <div class="capability-pills">
-                  <button
-                    v-for="capability in module.capabilities"
-                    :key="capability.value"
-                    type="button"
-                    class="capability-pill"
-                    :class="{ active: slice.capabilities.includes(capability.value) }"
-                    :disabled="saving"
-                    @click="toggleSliceCapability(slice, capability.value)"
-                  >
-                    {{ capability.label }}
-                  </button>
-                </div>
-              </article>
-            </div>
+            <details class="capability-editor" :open="selectedProfile === 'custom'">
+              <summary>Permisos</summary>
+              <div class="capability-grid">
+                <button
+                  v-for="capability in capabilityOptions"
+                  :key="capability.value"
+                  type="button"
+                  class="capability-chip"
+                  :class="{ active: assignment.capabilities.includes(capability.value) }"
+                  :disabled="saving"
+                  @click="toggleCapability(assignment, capability.value)"
+                >
+                  {{ capability.label }}
+                </button>
+              </div>
+            </details>
           </article>
         </section>
 
-        <section class="effective-panel">
+        <section class="result-panel">
           <div>
             <p class="eyebrow">Resultado</p>
-            <h3>{{ effectiveTitle }}</h3>
+            <h3>{{ resultTitle }}</h3>
           </div>
-          <div class="permission-pills">
-            <span v-for="slice in activeSlices" :key="slice.uid">{{ slice.capabilities.length }} permisos · {{ scopeLabel(slice) }}</span>
-            <span v-if="!activeSlices.length">Sin plantel</span>
+          <div class="result-pills">
+            <span v-for="scope in activeAssignments" :key="scope.uid">{{ formatGestionScope(scope.scope) }}</span>
+            <span v-if="!activeAssignments.length">Pendiente</span>
           </div>
         </section>
 
         <p v-if="actionError" class="action-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
+
         <div class="actions">
-          <button v-if="isSavedActive" class="btn btn-secondary danger" type="button" :disabled="saving" @click="disablePermissions">Desactivar acceso</button>
+          <button v-if="selectedUser.gestionEscolar.enabled" class="btn btn-secondary danger" type="button" :disabled="saving" @click="disablePermissions">Desactivar</button>
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="selectUser(selectedUser)">Restaurar</button>
-          <button class="btn btn-primary" type="button" :disabled="saving" @click="savePermissions">{{ saving ? 'Guardando...' : 'Guardar acceso' }}</button>
+          <button class="btn btn-primary" type="button" :disabled="saving || !canSave" @click="savePermissions">{{ saving ? 'Guardando…' : 'Guardar acceso' }}</button>
         </div>
       </section>
 
       <section v-else class="empty-selection">
         <FamilyPersonasIcon name="school" />
-        <h2>Selecciona un usuario</h2>
+        <h2>Selecciona un operador</h2>
       </section>
     </section>
   </section>
@@ -207,93 +176,62 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { GestionEscolarCapability, GestionEscolarPermissionInput, GestionEscolarReachPreview } from '~/types/gestionEscolar'
+import type { GestionEscolarAccessProfileKey, GestionEscolarAssignmentState, GestionEscolarCapability, GestionEscolarPermissionInput, GestionEscolarPermissionSummary, GestionEscolarScope, GestionEscolarScopeTree } from '~/types/gestionEscolar'
+import { GESTION_ACCESS_PROFILES, GESTION_CAPABILITY_LABELS, GESTION_CAPABILITY_ORDER, formatGestionScope, gestionProfileLabel, normalizeGestionCapabilities, resolveGestionProfile } from '~/utils/gestionEscolar'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
-type Options = { planteles: string[]; niveles: string[]; grados: string[]; grupos: string[] }
+type Options = { planteles: string[]; niveles: string[]; grados: string[]; grupos: string[]; scopeTree: GestionEscolarScopeTree }
 type CockpitUser = {
   id: number
   email: string | null
   username: string | null
   displayName: string | null
-  gestionEscolar: {
-    enabled: boolean
-    capabilities: GestionEscolarCapability[]
-    permissions: Array<GestionEscolarPermissionInput & { id?: number }>
-    reach: GestionEscolarReachPreview
-    legacyCommunications: unknown[]
-  }
+  gestionEscolar: GestionEscolarPermissionSummary
 }
-
 type CockpitResponse = {
   users: CockpitUser[]
   planteles: string[]
   options?: Options
   metrics: { total: number; enabled: number; scoped: number; global: number; legacyCommunications: number }
 }
-
-type CapabilityOption = { value: GestionEscolarCapability; label: string }
-type ScopeSlice = {
+type ScopeAssignment = {
   uid: string
-  plantel: string
-  nivel: string
-  grado: string
-  grupo: string
-  capabilities: GestionEscolarCapability[]
-}
-
-type PermissionPreset = {
-  key: string
-  label: string
-  caption: string
+  scope: GestionEscolarScope
   capabilities: GestionEscolarCapability[]
 }
 
 const route = useRoute()
 const router = useRouter()
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
-const query = computed(() => ({ search: search.value, limit: 120 }))
+const query = computed(() => ({ search: search.value, limit: 160 }))
 const { data, pending, error: loadError, refresh } = useFetch<CockpitResponse>('/api/admin/superadmin/gestion-escolar/users', { query, timeout: 15000 })
 const selectedUser = ref<CockpitUser | null>(null)
+const assignments = ref<ScopeAssignment[]>([])
+const selectedProfile = ref<GestionEscolarAccessProfileKey>('operator')
 const saving = ref(false)
 const actionNotice = ref('')
 const actionError = ref('')
-const slices = ref<ScopeSlice[]>([])
 
-const modules: Array<{ key: string; title: string; icon: string; capabilities: CapabilityOption[] }> = [
-  { key: 'familias', title: 'Familias', icon: 'people', capabilities: [{ value: 'familias.view', label: 'Ver' }, { value: 'familias.impersonate', label: 'Entrar' }] },
-  { key: 'comunicados', title: 'Comunicados', icon: 'announcement', capabilities: [{ value: 'comunicados.create', label: 'Crear' }, { value: 'comunicados.publish', label: 'Publicar' }] },
-  { key: 'encuestas', title: 'Encuestas', icon: 'survey', capabilities: [{ value: 'encuestas.manage', label: 'Gestionar' }] },
-  { key: 'convenios', title: 'Convenios', icon: 'handshake', capabilities: [{ value: 'convenios.manage', label: 'Gestionar' }, { value: 'convenios.publish', label: 'Publicar' }] }
-]
-
-const capabilityOrder = modules.flatMap((module) => module.capabilities.map((capability) => capability.value))
-const starterCapabilities: GestionEscolarCapability[] = ['familias.view', 'comunicados.create', 'encuestas.manage', 'convenios.manage']
-const permissionPresets: PermissionPreset[] = [
-  { key: 'operacion', label: 'Operación', caption: 'Familias, avisos y gestión', capabilities: starterCapabilities },
-  { key: 'publicacion', label: 'Publicación', caption: 'Crear y publicar', capabilities: ['familias.view', 'comunicados.create', 'comunicados.publish', 'encuestas.manage', 'convenios.manage', 'convenios.publish'] },
-  { key: 'soporte', label: 'Soporte', caption: 'Familias e ingreso', capabilities: ['familias.view', 'familias.impersonate'] },
-  { key: 'total', label: 'Todo', caption: 'Todas las capacidades', capabilities: capabilityOrder }
-]
-
+const profiles = GESTION_ACCESS_PROFILES
+const capabilityOptions = GESTION_CAPABILITY_ORDER.map((value) => ({ value, label: GESTION_CAPABILITY_LABELS[value] }))
 const users = computed(() => data.value?.users || [])
 const options = computed<Options>(() => ({
   planteles: data.value?.options?.planteles || data.value?.planteles || [],
   niveles: data.value?.options?.niveles || [],
   grados: data.value?.options?.grados || [],
-  grupos: data.value?.options?.grupos || []
+  grupos: data.value?.options?.grupos || [],
+  scopeTree: data.value?.options?.scopeTree || { planteles: [] }
 }))
-const visiblePlanteles = computed(() => options.value.planteles.slice(0, 8))
-const activeSlices = computed(() => slices.value.filter((slice) => slice.plantel.trim() && slice.capabilities.length))
-const draftPlanteles = computed(() => Array.from(new Set(activeSlices.value.map((slice) => slice.plantel.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')))
-const draftCapabilities = computed(() => Array.from(new Set(activeSlices.value.flatMap((slice) => slice.capabilities))))
-const isSavedActive = computed(() => Boolean(selectedUser.value?.gestionEscolar.enabled && selectedUser.value.gestionEscolar.permissions.length))
-const effectiveTitle = computed(() => {
-  if (!activeSlices.value.length) return 'Sin plantel'
-  return `${draftPlanteles.value.length} planteles · ${draftCapabilities.value.length} permisos`
-})
-const currentPresetLabel = computed(() => permissionPresets.find((preset) => presetIsApplied(preset))?.label || `${draftCapabilities.value.length || '—'}`)
+const visiblePlanteles = computed(() => options.value.planteles.slice(0, 9))
+const activeAssignments = computed(() => assignments.value.filter((assignment) => assignment.scope.plantel && assignment.capabilities.length))
+const draftPlanteles = computed(() => Array.from(new Set(activeAssignments.value.map((assignment) => String(assignment.scope.plantel || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')))
+const draftCapabilities = computed(() => Array.from(new Set(activeAssignments.value.flatMap((assignment) => assignment.capabilities))))
+const canSave = computed(() => activeAssignments.value.length > 0 && activeAssignments.value.every((assignment) => assignment.scope.plantel && assignment.capabilities.length))
+const draftState = computed<GestionEscolarAssignmentState>(() => canSave.value ? 'active' : selectedUser.value?.gestionEscolar.state === 'incomplete' ? 'incomplete' : 'none')
+const draftStateLabel = computed(() => draftState.value === 'active' ? 'Listo' : draftState.value === 'incomplete' ? 'Incompleto' : 'Sin acceso')
+const profileHeadline = computed(() => selectedProfile.value === 'custom' ? 'Permisos personalizados' : profiles.find((profile) => profile.key === selectedProfile.value)?.label || 'Perfil')
+const resultTitle = computed(() => canSave.value ? `${draftPlanteles.value.length} planteles · ${draftCapabilities.value.length} permisos` : 'Asignación incompleta')
 
 watch(users, (items) => {
   const requestedId = Number(route.query.usuario || 0)
@@ -312,6 +250,73 @@ watch(() => route.query.usuario, (value) => {
   if (user) selectUser(user, false)
 })
 
+function displayName(user: CockpitUser) {
+  return user.displayName || user.email || user.username || `Usuario ${user.id}`
+}
+
+function initials(user: CockpitUser) {
+  return displayName(user).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'HP'
+}
+
+function rowStateLabel(user: CockpitUser) {
+  if (user.gestionEscolar.state === 'active') return user.gestionEscolar.reach.planteles.join(' · ') || 'Activo'
+  if (user.gestionEscolar.state === 'incomplete') return 'Incompleto'
+  return '—'
+}
+
+function profileLabelFor(capabilities: GestionEscolarCapability[]) {
+  return gestionProfileLabel(resolveGestionProfile(capabilities))
+}
+
+function assignmentUid() {
+  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+}
+
+function defaultCapabilities() {
+  const profile = profiles.find((item) => item.key === selectedProfile.value) || profiles.find((item) => item.key === 'operator')
+  return normalizeGestionCapabilities(profile?.capabilities || ['familias.view'])
+}
+
+function blankAssignment(scope: GestionEscolarScope = {}): ScopeAssignment {
+  return {
+    uid: assignmentUid(),
+    scope: { isGlobal: false, plantel: scope.plantel || null, nivel: scope.nivel || null, grado: scope.grado || null, grupo: scope.grupo || null },
+    capabilities: defaultCapabilities()
+  }
+}
+
+function permissionScopeKey(permission: GestionEscolarPermissionInput) {
+  return [permission.plantel || '', permission.nivel || '', permission.grado || '', permission.grupo || ''].join('|')
+}
+
+function assignmentsFromPermissions(permissions: GestionEscolarPermissionInput[]) {
+  const map = new Map<string, ScopeAssignment>()
+  for (const permission of permissions) {
+    if (permission.isGlobal || !permission.plantel) continue
+    const key = permissionScopeKey(permission)
+    const current = map.get(key) || {
+      uid: assignmentUid(),
+      scope: { isGlobal: false, plantel: permission.plantel || null, nivel: permission.nivel || null, grado: permission.grado || null, grupo: permission.grupo || null },
+      capabilities: []
+    }
+    current.capabilities = normalizeGestionCapabilities([...current.capabilities, permission.capability])
+    map.set(key, current)
+  }
+  return Array.from(map.values())
+}
+
+function selectUser(user: CockpitUser | null, updateRoute = true) {
+  if (!user) return
+  selectedUser.value = user
+  const nextAssignments = assignmentsFromPermissions(user.gestionEscolar.permissions)
+  assignments.value = nextAssignments.length ? nextAssignments : [blankAssignment()]
+  selectedProfile.value = resolveGestionProfile(Array.from(new Set(assignments.value.flatMap((assignment) => assignment.capabilities))))
+  if (selectedProfile.value === 'custom' && !nextAssignments.length) selectedProfile.value = 'operator'
+  actionNotice.value = ''
+  actionError.value = ''
+  if (updateRoute) syncGestionQuery(user.id)
+}
+
 function syncGestionQuery(selectedId = selectedUser.value?.id || null) {
   if (!import.meta.client) return
   const nextQuery: Record<string, string> = {}
@@ -322,150 +327,73 @@ function syncGestionQuery(selectedId = selectedUser.value?.id || null) {
   if (changed) router.replace({ path: route.path, query: nextQuery })
 }
 
-function displayName(user: CockpitUser) {
-  return user.displayName || user.email || user.username || `Usuario ${user.id}`
-}
-
 async function refreshUsers() {
   syncGestionQuery()
   await refresh()
 }
 
-function initials(user: CockpitUser) {
-  return displayName(user).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'HP'
+function applyProfile(profileKey: Exclude<GestionEscolarAccessProfileKey, 'custom'>) {
+  const profile = profiles.find((item) => item.key === profileKey)
+  if (!profile) return
+  selectedProfile.value = profileKey
+  const capabilities = normalizeGestionCapabilities(profile.capabilities)
+  assignments.value.forEach((assignment) => { assignment.capabilities = [...capabilities] })
 }
 
-function normalizeCapabilities(input: GestionEscolarCapability[]) {
-  const set = new Set(input)
-  if (set.has('familias.impersonate')) set.add('familias.view')
-  if (set.has('comunicados.publish')) set.add('comunicados.create')
-  if (set.has('convenios.publish')) set.add('convenios.manage')
-  return capabilityOrder.filter((capability) => set.has(capability))
+function setCustomMode() {
+  selectedProfile.value = 'custom'
 }
 
-function blankSlice(overrides: Partial<ScopeSlice> = {}): ScopeSlice {
-  return {
-    uid: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
-    plantel: '',
-    nivel: '',
-    grado: '',
-    grupo: '',
-    capabilities: [...starterCapabilities],
-    ...overrides
-  }
+function addScope(scope: GestionEscolarScope = {}) {
+  assignments.value.push(blankAssignment(scope))
 }
 
-function sliceKey(permission: GestionEscolarPermissionInput) {
-  return [permission.plantel || '', permission.nivel || '', permission.grado || '', permission.grupo || ''].join('|')
-}
-
-function slicesFromPermissions(permissions: Array<GestionEscolarPermissionInput & { id?: number }>): ScopeSlice[] {
-  const map = new Map<string, ScopeSlice>()
-  for (const permission of permissions) {
-    if (permission.isGlobal || !permission.plantel) continue
-    const key = sliceKey(permission)
-    const current = map.get(key) || {
-      uid: key || `${Date.now()}-${map.size}`,
-      plantel: String(permission.plantel || ''),
-      nivel: String(permission.nivel || ''),
-      grado: String(permission.grado || ''),
-      grupo: String(permission.grupo || ''),
-      capabilities: []
-    }
-    if (!current.capabilities.includes(permission.capability)) current.capabilities.push(permission.capability)
-    current.capabilities = normalizeCapabilities(current.capabilities)
-    map.set(key, current)
-  }
-  return Array.from(map.values())
-}
-
-function selectUser(user: CockpitUser | null, updateRoute = true) {
-  if (!user) return
-  selectedUser.value = user
-  slices.value = slicesFromPermissions(user.gestionEscolar.permissions)
-  if (!slices.value.length) slices.value = [blankSlice()]
-  actionNotice.value = ''
-  actionError.value = ''
-  if (updateRoute) syncGestionQuery(user.id)
-}
-
-function addSlice() {
-  slices.value.push(blankSlice())
-}
-
-function removeSlice(index: number) {
-  if (slices.value.length <= 1) return
-  slices.value.splice(index, 1)
+function removeScope(index: number) {
+  if (assignments.value.length <= 1) return
+  assignments.value.splice(index, 1)
 }
 
 function togglePlantel(plantel: string) {
-  const normalized = plantel.trim()
-  if (!normalized || saving.value) return
-
-  const existing = slices.value.filter((slice) => slice.plantel.trim() === normalized)
-  if (existing.length) {
-    slices.value = slices.value.filter((slice) => slice.plantel.trim() !== normalized)
-    if (!slices.value.length) slices.value = [blankSlice()]
+  const existingIndex = assignments.value.findIndex((assignment) => assignment.scope.plantel === plantel && !assignment.scope.nivel && !assignment.scope.grado && !assignment.scope.grupo)
+  if (existingIndex >= 0) {
+    removeScope(existingIndex)
+    if (!assignments.value.length) assignments.value = [blankAssignment()]
     return
   }
-
-  const blank = slices.value.find((slice) => !slice.plantel.trim())
+  const blank = assignments.value.find((assignment) => !assignment.scope.plantel)
   if (blank) {
-    blank.plantel = normalized
-    if (!blank.capabilities.length) blank.capabilities = [...starterCapabilities]
+    blank.scope = { isGlobal: false, plantel, nivel: null, grado: null, grupo: null }
+    blank.capabilities = blank.capabilities.length ? blank.capabilities : defaultCapabilities()
     return
   }
-
-  slices.value.push(blankSlice({ plantel: normalized }))
+  addScope({ plantel })
 }
 
-function toggleSliceCapability(slice: ScopeSlice, capability: GestionEscolarCapability) {
-  if (saving.value) return
-  const set = new Set(slice.capabilities)
+function toggleCapability(assignment: ScopeAssignment, capability: GestionEscolarCapability) {
+  selectedProfile.value = 'custom'
+  const set = new Set(assignment.capabilities)
   if (set.has(capability)) set.delete(capability)
   else set.add(capability)
-  slice.capabilities = normalizeCapabilities(Array.from(set))
-}
-
-function sameCapabilities(a: GestionEscolarCapability[], b: GestionEscolarCapability[]) {
-  const left = normalizeCapabilities(a)
-  const right = normalizeCapabilities(b)
-  return left.length === right.length && left.every((capability, index) => capability === right[index])
-}
-
-function presetIsApplied(preset: PermissionPreset) {
-  const targetSlices = activeSlices.value.length ? activeSlices.value : slices.value
-  if (!targetSlices.length) return false
-  return targetSlices.every((slice) => sameCapabilities(slice.capabilities, preset.capabilities))
-}
-
-function applyPresetToAll(capabilities: GestionEscolarCapability[]) {
-  const normalized = normalizeCapabilities(capabilities)
-  const targetSlices = activeSlices.value.length ? activeSlices.value : slices.value
-  if (!targetSlices.length) slices.value = [blankSlice({ capabilities: normalized })]
-  else targetSlices.forEach((slice) => { slice.capabilities = [...normalized] })
-}
-
-function scopeLabel(slice: ScopeSlice) {
-  return [slice.plantel && `Plantel ${slice.plantel}`, slice.nivel, slice.grado && `Grado ${slice.grado}`, slice.grupo && `Grupo ${slice.grupo}`].filter(Boolean).join(' · ') || 'Plantel pendiente'
+  assignment.capabilities = normalizeGestionCapabilities(Array.from(set))
 }
 
 function buildPermissions(): GestionEscolarPermissionInput[] {
   const seen = new Set<string>()
   const permissions: GestionEscolarPermissionInput[] = []
-  for (const slice of activeSlices.value) {
-    for (const capability of normalizeCapabilities(slice.capabilities)) {
-      const key = [capability, slice.plantel, slice.nivel, slice.grado, slice.grupo].join('|')
+  for (const assignment of activeAssignments.value) {
+    const capabilities = normalizeGestionCapabilities(assignment.capabilities)
+    for (const capability of capabilities) {
+      const key = [capability, assignment.scope.plantel, assignment.scope.nivel, assignment.scope.grado, assignment.scope.grupo].join('|')
       if (seen.has(key)) continue
       seen.add(key)
       permissions.push({
         capability,
         enabled: true,
         isGlobal: false,
-        plantel: slice.plantel,
-        nivel: slice.nivel || null,
-        grado: slice.grado || null,
-        grupo: slice.grupo || null
+        plantel: assignment.scope.plantel || null,
+        nivel: assignment.scope.nivel || null,
+        grado: assignment.scope.grado || null,
+        grupo: assignment.scope.grupo || null
       })
     }
   }
@@ -476,10 +404,9 @@ async function savePermissions() {
   if (!selectedUser.value) return
   const permissions = buildPermissions()
   if (!permissions.length) {
-    actionError.value = 'Selecciona plantel y permisos.'
+    actionError.value = 'Completa plantel y perfil.'
     return
   }
-
   await persistPermissions(true, permissions)
 }
 
@@ -493,14 +420,15 @@ async function persistPermissions(enabled: boolean, permissions: GestionEscolarP
   actionError.value = ''
   actionNotice.value = ''
   try {
-    const saved = await $fetch<CockpitUser['gestionEscolar']>(`/api/admin/superadmin/gestion-escolar/users/${selectedUser.value.id}`, {
+    const saved = await $fetch<GestionEscolarPermissionSummary>(`/api/admin/superadmin/gestion-escolar/users/${selectedUser.value.id}`, {
       method: 'POST',
       body: { enabled, permissions }
     })
     selectedUser.value.gestionEscolar = saved
-    slices.value = slicesFromPermissions(saved.permissions)
-    if (!slices.value.length) slices.value = [blankSlice()]
-    actionNotice.value = saved.enabled ? 'Acceso actualizado.' : 'Acceso desactivado.'
+    const nextAssignments = assignmentsFromPermissions(saved.permissions)
+    assignments.value = nextAssignments.length ? nextAssignments : [blankAssignment()]
+    selectedProfile.value = saved.profile === 'custom' ? resolveGestionProfile(saved.capabilities) : saved.profile
+    actionNotice.value = saved.enabled ? 'Acceso guardado.' : 'Acceso desactivado.'
     await refresh()
   } catch (error) {
     const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
@@ -512,14 +440,14 @@ async function persistPermissions(enabled: boolean, permissions: GestionEscolarP
 </script>
 
 <style scoped>
-.ge-cockpit {
+.assignment-page {
   display: grid;
   gap: 18px;
 }
 
-.ge-hero,
-.permission-workspace,
-.user-browser,
+.assignment-hero,
+.operator-browser,
+.editor-card,
 .empty-selection {
   background: rgba(255, 255, 255, .96);
   border: 1px solid #e2e8f0;
@@ -527,30 +455,15 @@ async function persistPermissions(enabled: boolean, permissions: GestionEscolarP
   box-shadow: 0 18px 50px rgba(15, 23, 42, .07);
 }
 
-.ge-hero {
+.assignment-hero {
   align-items: end;
+  background:
+    radial-gradient(circle at 90% 8%, rgba(15, 140, 154, .16), transparent 30%),
+    linear-gradient(135deg, #fff, #f8fbf2);
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 460px);
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 480px);
   padding: clamp(22px, 3vw, 38px);
-  position: relative;
-}
-
-.ge-hero::after {
-  background: radial-gradient(circle, rgba(15, 140, 154, .16), transparent 62%);
-  content: '';
-  height: 280px;
-  position: absolute;
-  right: -80px;
-  top: -130px;
-  width: 280px;
-}
-
-.hero-copy,
-.hero-metrics {
-  position: relative;
-  z-index: 1;
 }
 
 .eyebrow {
@@ -581,23 +494,24 @@ h1 {
 }
 
 h2 {
-  font-size: clamp(1.45rem, 2.1vw, 2rem);
+  font-size: clamp(1.45rem, 2vw, 2.1rem);
 }
 
-.scope-rail,
-.permission-pills,
-.capability-pills {
+.hero-rail,
+.result-pills,
+.plantel-grid,
+.capability-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.scope-rail {
+.hero-rail {
   margin-top: 18px;
 }
 
-.scope-rail span,
-.permission-pills span {
+.hero-rail span,
+.result-pills span {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
@@ -607,23 +521,20 @@ h2 {
   padding: 8px 11px;
 }
 
-.hero-metrics,
-.impact-strip {
+.hero-metrics {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(3, 1fr);
 }
 
-.hero-metrics article,
-.impact-strip article {
-  background: linear-gradient(135deg, #f8fafc, #fff);
+.hero-metrics article {
+  background: rgba(255, 255, 255, .82);
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   padding: 16px;
 }
 
-.hero-metrics span,
-.impact-strip span {
+.hero-metrics span {
   color: #64748b;
   display: block;
   font-size: .72rem;
@@ -632,21 +543,20 @@ h2 {
   text-transform: uppercase;
 }
 
-.hero-metrics strong,
-.impact-strip strong {
+.hero-metrics strong {
   color: #10213b;
   display: block;
   font-size: 1.55rem;
   margin-top: 6px;
 }
 
-.cockpit-grid {
+.assignment-shell {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(280px, 370px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
 }
 
-.user-browser {
+.operator-browser {
   align-self: start;
   display: grid;
   gap: 12px;
@@ -666,22 +576,13 @@ h2 {
   padding: 8px 10px;
 }
 
-input,
-select {
-  background: #fff;
-  border: 1px solid #d9e2ea;
-  border-radius: 14px;
-  color: #17233b;
-  min-height: 40px;
-  min-width: 0;
-  padding: 0 11px;
-}
-
 .search-card input {
   background: transparent;
   border: 0;
+  color: #17233b;
+  font-weight: 760;
+  min-width: 0;
   outline: 0;
-  padding: 0;
 }
 
 .mini-button,
@@ -698,23 +599,24 @@ select {
   padding: 0 13px;
 }
 
-.mini-button:disabled,
-.icon-button:disabled,
-.capability-pill:disabled,
-.quick-chip:disabled,
-.preset-button:disabled {
+.icon-button {
+  padding: 0;
+  width: 40px;
+}
+
+button:disabled {
   cursor: not-allowed;
   opacity: .55;
 }
 
-.user-list {
+.operator-list {
   display: grid;
   gap: 8px;
   max-height: calc(100vh - 270px);
   overflow: auto;
 }
 
-.user-row {
+.operator-row {
   align-items: center;
   background: #fff;
   border: 1px solid transparent;
@@ -727,23 +629,14 @@ select {
   text-align: left;
 }
 
-.user-row.active,
-.user-row:hover {
+.operator-row.active,
+.operator-row:hover {
   border-color: #f4c24f;
   box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
 }
 
-.user-row.scoped .avatar,
-.scope-index,
-.module-icon {
-  background: #eefdf9;
-  border-color: #bee8df;
-  color: #0f8c9a;
-}
-
 .avatar,
-.scope-index,
-.module-icon {
+.scope-number {
   background: #fff7df;
   border: 1px solid #f3d589;
   border-radius: 14px;
@@ -755,104 +648,128 @@ select {
   width: 42px;
 }
 
-.user-row strong,
-.user-row small {
+.avatar.large {
+  height: 58px;
+  width: 58px;
+}
+
+.operator-copy,
+.operator-copy strong,
+.operator-copy small {
   display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.user-row small,
-.workspace-head p,
-.preset-button span {
+.operator-copy small,
+.identity-strip p,
+.scope-card small,
+.profile-card span {
   color: #64748b;
   font-weight: 650;
 }
 
-.user-row b {
+.operator-row b,
+.state-pill {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   color: #64748b;
-  font-size: .68rem;
-  max-width: 90px;
+  font-size: .72rem;
+  font-weight: 850;
+  max-width: 108px;
   overflow: hidden;
-  padding: 5px 8px;
+  padding: 6px 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.user-row b[data-active='true'] {
+.operator-row b[data-state='active'],
+.state-pill[data-state='active'] {
   background: #e7f8ef;
   border-color: #bfead0;
   color: #15803d;
 }
 
-.permission-workspace {
+.operator-row b[data-state='incomplete'],
+.state-pill[data-state='incomplete'] {
+  background: #fff7df;
+  border-color: #f3d589;
+  color: #b98000;
+}
+
+.editor-card {
   display: grid;
   gap: 16px;
   padding: clamp(16px, 2vw, 24px);
 }
 
-.workspace-head,
-.canvas-head,
-.effective-panel,
-.actions,
-.scope-card-head,
-.quick-card-head {
+.identity-strip,
+.section-head,
+.scope-card header,
+.result-panel,
+.actions {
   align-items: center;
   display: flex;
   gap: 14px;
   justify-content: space-between;
 }
 
-.access-status {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  color: #64748b;
-  display: inline-flex;
-  font-weight: 850;
-  min-height: 44px;
-  padding: 0 16px;
-  place-items: center;
+.identity-strip {
+  justify-content: start;
 }
 
-.access-status[data-active='true'] {
-  background: #e7f8ef;
-  border-color: #bfead0;
-  color: #15803d;
+.identity-strip .state-pill {
+  margin-left: auto;
 }
 
-.quick-assign {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
-}
-
-.quick-card {
-  background: linear-gradient(135deg, #fbfdff, #fff);
+.profile-section,
+.plantel-section,
+.scope-stack,
+.result-panel {
   border: 1px solid #e2e8f0;
   border-radius: 22px;
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 14px;
+  padding: 16px;
 }
 
-.quick-card-head strong {
+.profile-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.profile-card {
+  background: #fff;
+  border: 1px solid #d9e2ea;
+  border-radius: 18px;
   color: #17233b;
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  padding: 13px;
+  text-align: left;
 }
 
-.quick-chip-grid,
-.preset-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.profile-card.active,
+.profile-card:hover,
+.plantel-chip.active,
+.capability-chip.active {
+  background: #e7f8ef;
+  border-color: #9fd9b8;
+  color: #156235;
 }
 
-.quick-chip,
-.preset-button {
+.profile-card span {
+  font-size: .76rem;
+  line-height: 1.35;
+}
+
+.plantel-chip,
+.capability-chip {
   background: #fff;
   border: 1px solid #d9e2ea;
   border-radius: 999px;
@@ -862,43 +779,9 @@ select {
   padding: 0 13px;
 }
 
-.quick-chip.active,
-.preset-button.active {
-  background: #e7f8ef;
-  border-color: #9fd9b8;
-  color: #156235;
-}
-
-.preset-button {
-  align-items: flex-start;
-  border-radius: 16px;
-  display: grid;
-  gap: 2px;
-  min-height: 58px;
-  padding: 9px 12px;
-  text-align: left;
-}
-
-.preset-button strong,
-.preset-button span {
-  display: block;
-}
-
-.preset-button span {
-  font-size: .72rem;
-}
-
-.access-canvas,
-.effective-panel {
-  border: 1px solid #e2e8f0;
-  border-radius: 22px;
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-}
-
-.access-canvas.empty {
-  background: #f8fafc;
+.scope-stack {
+  padding: 0;
+  border: 0;
 }
 
 .scope-card {
@@ -910,88 +793,47 @@ select {
   padding: 14px;
 }
 
-.scope-card.pending {
+.scope-card[data-complete='false'] {
   border-color: #f3d589;
 }
 
-.scope-card-head {
+.scope-card header {
   justify-content: start;
 }
 
-.scope-card-head strong {
-  color: #17233b;
+.scope-card header div {
   flex: 1;
-  font-size: 1rem;
+  min-width: 0;
 }
 
-.icon-button {
-  padding: 0;
-  width: 40px;
+.scope-card header strong,
+.scope-card header small {
+  display: block;
 }
 
-.scope-selectors {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.scope-selectors label {
-  display: grid;
-  gap: 6px;
-}
-
-.scope-selectors span {
-  color: #64748b;
-  font-size: .72rem;
-  font-weight: 850;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-.module-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.module-tile {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.module-tile.on {
-  border-color: #bfe4d4;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, .05);
-}
-
-.module-icon {
-  height: 38px;
-  width: 38px;
-}
-
-.module-tile strong {
-  color: #17233b;
-}
-
-.capability-pill {
+.capability-editor {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  color: #475569;
-  font-size: .75rem;
-  font-weight: 850;
-  min-height: 32px;
-  padding: 0 10px;
+  border-radius: 16px;
+  padding: 10px 12px;
 }
 
-.capability-pill.active {
-  background: #287c36;
-  border-color: #287c36;
-  color: #fff;
+.capability-editor summary {
+  color: #17233b;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.capability-grid {
+  margin-top: 10px;
+}
+
+.capability-chip {
+  font-size: .78rem;
+}
+
+.result-panel {
+  background: #fbfdff;
 }
 
 .action-message {
@@ -1027,39 +869,38 @@ select {
   min-height: 150px;
 }
 
-@media (max-width: 1180px) {
-  .cockpit-grid,
-  .ge-hero,
-  .quick-assign {
+@media (max-width: 1240px) {
+  .assignment-shell,
+  .assignment-hero {
     grid-template-columns: 1fr;
   }
 
-  .user-browser {
+  .operator-browser {
     position: static;
   }
 
-  .module-grid,
-  .scope-selectors {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .profile-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
   .hero-metrics,
-  .impact-strip,
-  .module-grid,
-  .scope-selectors {
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
-  .workspace-head,
-  .canvas-head,
-  .effective-panel,
-  .actions,
-  .scope-card-head,
-  .quick-card-head {
+  .identity-strip,
+  .section-head,
+  .scope-card header,
+  .result-panel,
+  .actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .identity-strip .state-pill {
+    margin-left: 0;
   }
 }
 </style>

@@ -486,6 +486,48 @@ async function hydrateCommunications(rows: CommunicationRow[]) {
   return rows.map((row) => communicationFromRow(row, mergeAudienceRows(audiencesById.get(Number(row.id)) || []), attachmentsById.get(Number(row.id)) || []))
 }
 
+function optionValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map(clean).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+}
+
+function optionsScopeTree(rows: CommunicationOptionsRow[]): NonNullable<AdminCommunicationsResponse['options']['scopeTree']> {
+  return {
+    planteles: optionValues(rows.map((row) => upper(row.plantel))).map((plantel) => {
+      const plantelRows = rows.filter((row) => upper(row.plantel) === plantel)
+      return {
+        value: plantel,
+        label: plantel,
+        families: 0,
+        students: plantelRows.length,
+        children: optionValues(plantelRows.map((row) => row.nivel)).map((nivel) => {
+          const nivelRows = plantelRows.filter((row) => clean(row.nivel) === nivel)
+          return {
+            value: nivel,
+            label: nivel,
+            families: 0,
+            students: nivelRows.length,
+            children: optionValues(nivelRows.map((row) => row.grado)).map((grado) => {
+              const gradoRows = nivelRows.filter((row) => clean(row.grado) === grado)
+              return {
+                value: grado,
+                label: grado,
+                families: 0,
+                students: gradoRows.length,
+                children: optionValues(gradoRows.map((row) => upper(row.grupo))).map((grupo) => ({
+                  value: grupo,
+                  label: grupo,
+                  families: 0,
+                  students: gradoRows.filter((row) => upper(row.grupo) === grupo).length
+                }))
+              }
+            })
+          }
+        })
+      }
+    })
+  }
+}
+
 async function getAudienceOptions(access: CommunicationAccess): Promise<AdminCommunicationsResponse['options']> {
   const rows = await legacyQuery<CommunicationOptionsRow[]>(
     `SELECT DISTINCT ${derivedPlantelSql('m')} AS plantel, m.nivel, m.grado, m.grupo
@@ -495,16 +537,17 @@ async function getAudienceOptions(access: CommunicationAccess): Promise<AdminCom
      LIMIT 5000`
   )
   const allowedRows = rows.filter((row) => optionAllowed(access, row))
-  const planteles = Array.from(new Set(allowedRows.map((row) => upper(row.plantel)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
-  const niveles = Array.from(new Set(allowedRows.map((row) => clean(row.nivel)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
-  const grados = Array.from(new Set(allowedRows.map((row) => clean(row.grado)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
-  const grupos = Array.from(new Set(allowedRows.map((row) => upper(row.grupo)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+  const planteles = optionValues(allowedRows.map((row) => upper(row.plantel)))
+  const niveles = optionValues(allowedRows.map((row) => row.nivel))
+  const grados = optionValues(allowedRows.map((row) => row.grado))
+  const grupos = optionValues(allowedRows.map((row) => upper(row.grupo)))
 
   return {
     planteles: planteles.length ? planteles : access.isGlobal ? DEFAULT_PLANTELES : Array.from(new Set(access.scopes.map((scope) => upper(scope.plantel)).filter(Boolean))).sort(),
     niveles: niveles.length ? niveles : DEFAULT_NIVELES,
     grados: grados.length ? grados : DEFAULT_GRADOS,
-    grupos: grupos.length ? grupos : DEFAULT_GRUPOS
+    grupos: grupos.length ? grupos : DEFAULT_GRUPOS,
+    scopeTree: optionsScopeTree(allowedRows)
   }
 }
 

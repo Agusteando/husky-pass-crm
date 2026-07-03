@@ -1,4 +1,5 @@
 import type { AuthorizedChild } from '~/types/daycare'
+import type { GestionEscolarScopeTree } from '~/types/gestionEscolar'
 
 export type CommunicationStatus = 'draft' | 'scheduled' | 'sent'
 export type CommunicationPriority = 'normal' | 'important' | 'urgent'
@@ -76,6 +77,7 @@ export interface AdminCommunicationsResponse {
     niveles: string[]
     grados: string[]
     grupos: string[]
+    scopeTree?: GestionEscolarScopeTree
   }
   permissions: {
     canCreate: boolean

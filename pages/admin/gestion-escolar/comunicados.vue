@@ -1,98 +1,105 @@
 <template>
-  <section class="ge-module" data-product-area="gestion-escolar" data-product-screen="comunicados">
+  <section class="communications-module" data-product-area="gestion-escolar" data-product-screen="comunicados">
     <header class="module-hero">
       <div>
         <p class="eyebrow">Comunicados</p>
         <h1>Publicaciones para familias</h1>
-        <p>Redacta, segmenta, adjunta y publica solo dentro de tu alcance autorizado.</p>
+        <p>{{ data?.permissions.canPublish ? 'Crear, programar y publicar por alcance.' : 'Crear borradores por alcance.' }}</p>
       </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Vista general</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Gestión Escolar</NuxtLink>
     </header>
 
-    <section v-if="pending" class="state-card" data-state="loading">Cargando comunicados...</section>
-    <section v-else-if="loadError" class="state-card" data-state="error">No pudimos cargar comunicados. Revisa tu alcance o intenta de nuevo.</section>
+    <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader label="Comunicados" contained /></section>
+    <section v-else-if="loadError" class="state-card" data-state="error">No disponible</section>
     <section v-else class="module-layout">
       <form class="composer" @submit.prevent="save">
         <div class="section-head">
           <span><FamilyPersonasIcon name="send" /></span>
           <div>
-            <h2>{{ form.status === 'sent' ? 'Enviar comunicado' : form.status === 'scheduled' ? 'Programar comunicado' : 'Guardar borrador' }}</h2>
-            <p>{{ permissionsText }}</p>
+            <p class="eyebrow">{{ form.id ? 'Editar' : 'Nuevo' }}</p>
+            <h2>{{ form.title || 'Comunicado' }}</h2>
           </div>
         </div>
 
-        <input v-model="form.title" placeholder="Titulo del comunicado" required />
-        <input v-model="form.summary" placeholder="Resumen breve para la lista familiar" required />
-        <textarea v-model="form.body" placeholder="Mensaje para madres, padres o tutores" rows="7" required />
+        <label class="field">
+          <span>Título</span>
+          <input v-model="form.title" placeholder="Título del comunicado" required />
+        </label>
+        <label class="field">
+          <span>Resumen</span>
+          <input v-model="form.summary" placeholder="Resumen para la lista familiar" required />
+        </label>
+        <label class="field">
+          <span>Mensaje</span>
+          <textarea v-model="form.body" placeholder="Mensaje para madres, padres o tutores" rows="7" required />
+        </label>
 
-        <div class="scope-grid">
-          <select v-model="form.audience.kind">
-            <option value="plantel">Plantel</option>
-            <option value="grado">Grado</option>
-            <option value="grupo">Grupo</option>
-          </select>
-          <select v-model="selectedPlantel" required>
-            <option value="">Plantel</option>
-            <option v-for="plantel in data?.options.planteles" :key="plantel" :value="plantel">{{ plantel }}</option>
-          </select>
-          <select v-model="selectedNivel" :disabled="form.audience.kind === 'plantel'">
-            <option value="">Nivel</option>
-            <option v-for="nivel in data?.options.niveles" :key="nivel" :value="nivel">{{ nivel }}</option>
-          </select>
-          <select v-model="selectedGrado" :disabled="form.audience.kind === 'plantel'">
-            <option value="">Grado</option>
-            <option v-for="grado in data?.options.grados" :key="grado" :value="grado">{{ grado }}</option>
-          </select>
-          <select v-model="selectedGrupo" :disabled="form.audience.kind !== 'grupo'">
-            <option value="">Grupo</option>
-            <option v-for="grupo in data?.options.grupos" :key="grupo" :value="grupo">{{ grupo }}</option>
-          </select>
-        </div>
+        <section class="audience-panel">
+          <div class="panel-head">
+            <p class="eyebrow">Audiencia</p>
+            <strong>{{ formatGestionScope(scope) }}</strong>
+          </div>
+          <AdminGestionScopePicker
+            v-model="scope"
+            :scope-tree="data?.options.scopeTree"
+            :options="data?.options"
+            :disabled="saving"
+            compact
+          />
+        </section>
 
-        <div class="status-row">
-          <label><input v-model="form.priority" type="radio" value="normal" /> Normal</label>
-          <label><input v-model="form.priority" type="radio" value="important" /> Importante</label>
-          <label><input v-model="form.priority" type="radio" value="urgent" /> Urgente</label>
+        <div class="status-row" aria-label="Prioridad">
+          <label :class="{ active: form.priority === 'normal' }"><input v-model="form.priority" type="radio" value="normal" /> Normal</label>
+          <label :class="{ active: form.priority === 'important' }"><input v-model="form.priority" type="radio" value="important" /> Importante</label>
+          <label :class="{ active: form.priority === 'urgent' }"><input v-model="form.priority" type="radio" value="urgent" /> Urgente</label>
         </div>
-        <div class="status-row">
-          <label><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
-          <label><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.permissions.canPublish" /> Programar</label>
-          <label><input v-model="form.status" type="radio" value="sent" :disabled="!data?.permissions.canPublish" /> Publicar</label>
+        <div class="status-row" aria-label="Estado">
+          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
+          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.permissions.canPublish" /> Programar</label>
+          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" :disabled="!data?.permissions.canPublish" /> Publicar</label>
         </div>
-        <input v-if="form.status === 'scheduled'" v-model="form.scheduledFor" type="datetime-local" />
+        <label v-if="form.status === 'scheduled'" class="field">
+          <span>Programado</span>
+          <input v-model="form.scheduledFor" type="datetime-local" />
+        </label>
 
         <p v-if="actionError" class="action-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
-        <button class="btn btn-primary" type="submit" :disabled="saving || !data?.permissions.canCreate">
-          {{ saving ? 'Guardando...' : form.status === 'sent' ? 'Enviar con confirmacion' : 'Guardar comunicado' }}
-        </button>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
+          <button class="btn btn-primary" type="submit" :disabled="saving || !data?.permissions.canCreate || !scope.plantel">
+            {{ saving ? 'Guardando…' : form.status === 'sent' ? 'Publicar' : 'Guardar' }}
+          </button>
+        </div>
       </form>
 
       <section class="content-list">
         <div class="metrics">
           <article><span>Borradores</span><strong>{{ data?.metrics.drafts || 0 }}</strong></article>
           <article><span>Programados</span><strong>{{ data?.metrics.scheduled || 0 }}</strong></article>
-          <article><span>Enviados</span><strong>{{ data?.metrics.sent || 0 }}</strong></article>
+          <article><span>Publicados</span><strong>{{ data?.metrics.sent || 0 }}</strong></article>
         </div>
-        <article v-for="item in data?.rows" :key="item.id" class="content-row">
+        <article v-for="item in data?.rows" :key="item.id" class="content-row" :data-status="item.status">
           <span class="row-icon"><FamilyPersonasIcon name="announcement" /></span>
           <div>
             <b>{{ item.title }}</b>
             <p>{{ item.summary }}</p>
-            <small>{{ item.status }} · {{ audienceLabel(item) }}</small>
+            <small>{{ statusLabel(item.status) }} · {{ audienceLabel(item) }}</small>
           </div>
           <button class="mini-button" type="button" @click="edit(item)">Editar</button>
         </article>
-        <div v-if="!data?.rows.length" class="state-card compact" data-state="empty">Aun no hay comunicados dentro de tu alcance.</div>
+        <div v-if="!data?.rows.length" class="state-card compact" data-state="empty">Sin comunicados</div>
       </section>
     </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AdminCommunicationsResponse, CommunicationAudience, CommunicationPriority, CommunicationStatus, SchoolCommunication } from '~/types/communications'
+import type { GestionEscolarScope } from '~/types/gestionEscolar'
+import { formatGestionScope } from '~/utils/gestionEscolar'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
@@ -100,10 +107,7 @@ const { data, pending, error: loadError, refresh } = useFetch<AdminCommunication
 const saving = ref(false)
 const actionNotice = ref('')
 const actionError = ref('')
-const selectedPlantel = ref('')
-const selectedNivel = ref('')
-const selectedGrado = ref('')
-const selectedGrupo = ref('')
+const scope = ref<GestionEscolarScope>({ isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null })
 const form = reactive({
   id: '',
   title: '',
@@ -112,35 +116,34 @@ const form = reactive({
   status: 'draft' as CommunicationStatus,
   priority: 'normal' as CommunicationPriority,
   scheduledFor: '',
-  audience: { kind: 'plantel', planteles: [], niveles: [], grados: [], grupos: [], label: '' } as CommunicationAudience,
   attachments: []
 })
 
-const permissionsText = computed(() => {
-  if (!data.value?.permissions.canCreate) return 'Tu acceso permite consultar, pero no crear.'
-  if (data.value.permissions.canPublish) return 'Puedes crear, programar y publicar dentro de tu alcance.'
-  return 'Puedes crear borradores dentro de tu alcance.'
-})
-
 watch(data, (value) => {
-  if (!selectedPlantel.value) selectedPlantel.value = value?.options.planteles[0] || ''
+  if (!scope.value.plantel) scope.value = { isGlobal: false, plantel: value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
 })
 
 function buildAudience(): CommunicationAudience {
-  const kind = form.audience.kind
+  const current = scope.value
+  const kind: CommunicationAudience['kind'] = current.grupo ? 'grupo' : current.grado || current.nivel ? 'grado' : 'plantel'
   return {
     kind,
-    planteles: selectedPlantel.value ? [selectedPlantel.value] : [],
-    niveles: kind === 'plantel' ? [] : (selectedNivel.value ? [selectedNivel.value] : []),
-    grados: kind === 'plantel' ? [] : (selectedGrado.value ? [selectedGrado.value] : []),
-    grupos: kind === 'grupo' && selectedGrupo.value ? [selectedGrupo.value] : [],
-    label: audienceLabel({ audience: { kind, planteles: selectedPlantel.value ? [selectedPlantel.value] : [], niveles: selectedNivel.value ? [selectedNivel.value] : [], grados: selectedGrado.value ? [selectedGrado.value] : [], grupos: selectedGrupo.value ? [selectedGrupo.value] : [] } } as SchoolCommunication)
+    planteles: current.plantel ? [current.plantel] : [],
+    niveles: current.nivel ? [current.nivel] : [],
+    grados: current.grado ? [current.grado] : [],
+    grupos: current.grupo ? [current.grupo] : [],
+    label: formatGestionScope(current)
   }
 }
 
 function audienceLabel(item: Pick<SchoolCommunication, 'audience'>) {
-  const audience = item.audience
-  return [audience.planteles?.join(', '), audience.niveles?.join(', '), audience.grados?.join(', '), audience.grupos?.map((grupo) => `Grupo ${grupo}`).join(', ')].filter(Boolean).join(' · ') || 'Comunidad escolar'
+  return item.audience.label || [item.audience.planteles?.join(', '), item.audience.niveles?.join(', '), item.audience.grados?.join(', '), item.audience.grupos?.map((grupo) => `Grupo ${grupo}`).join(', ')].filter(Boolean).join(' · ') || 'Comunidad escolar'
+}
+
+function statusLabel(status: CommunicationStatus) {
+  if (status === 'sent') return 'Publicado'
+  if (status === 'scheduled') return 'Programado'
+  return 'Borrador'
 }
 
 function edit(item: SchoolCommunication) {
@@ -151,11 +154,22 @@ function edit(item: SchoolCommunication) {
   form.status = item.status
   form.priority = item.priority
   form.scheduledFor = item.scheduledFor || ''
-  form.audience.kind = item.audience.kind
-  selectedPlantel.value = item.audience.planteles[0] || ''
-  selectedNivel.value = item.audience.niveles?.[0] || ''
-  selectedGrado.value = item.audience.grados?.[0] || ''
-  selectedGrupo.value = item.audience.grupos?.[0] || ''
+  scope.value = {
+    isGlobal: false,
+    plantel: item.audience.planteles?.[0] || null,
+    nivel: item.audience.niveles?.[0] || null,
+    grado: item.audience.grados?.[0] || null,
+    grupo: item.audience.grupos?.[0] || null
+  }
+  actionError.value = ''
+  actionNotice.value = ''
+}
+
+function resetForm() {
+  Object.assign(form, { id: '', title: '', summary: '', body: '', status: 'draft' as CommunicationStatus, priority: 'normal' as CommunicationPriority, scheduledFor: '', attachments: [] })
+  scope.value = { isGlobal: false, plantel: data.value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+  actionError.value = ''
+  actionNotice.value = ''
 }
 
 async function save() {
@@ -171,12 +185,12 @@ async function save() {
         audience: buildAudience()
       }
     })
-    actionNotice.value = form.status === 'sent' ? 'Comunicado publicado.' : 'Comunicado guardado.'
-    Object.assign(form, { id: '', title: '', summary: '', body: '', status: 'draft', priority: 'normal', scheduledFor: '', attachments: [] })
+    actionNotice.value = form.status === 'sent' ? 'Publicado.' : 'Guardado.'
+    resetForm()
     await refresh()
   } catch (error) {
-    const failure = error as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure.data?.statusMessage || failure.statusMessage || failure.message || 'No pudimos guardar el comunicado.'
+    const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
+    actionError.value = failure.data?.message || failure.data?.statusMessage || failure.statusMessage || failure.message || 'No pudimos guardar.'
   } finally {
     saving.value = false
   }
@@ -184,7 +198,7 @@ async function save() {
 </script>
 
 <style scoped>
-.ge-module {
+.communications-module {
   display: grid;
   gap: 18px;
 }
@@ -201,6 +215,9 @@ async function save() {
 
 .module-hero {
   align-items: center;
+  background:
+    radial-gradient(circle at 90% 12%, rgba(15, 140, 154, .14), transparent 30%),
+    linear-gradient(135deg, #fff, #f8fbf2);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -222,13 +239,17 @@ p {
   margin: 0;
 }
 
-h1 {
+h1,
+h2 {
   color: #17233b;
+  line-height: 1.08;
+}
+
+h1 {
   font-size: clamp(2rem, 3vw, 3.2rem);
 }
 
 .module-hero p,
-.section-head p,
 .content-row p,
 .content-row small {
   color: #64748b;
@@ -239,7 +260,7 @@ h1 {
 .module-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(360px, 480px) minmax(0, 1fr);
+  grid-template-columns: minmax(400px, 540px) minmax(0, 1fr);
 }
 
 .composer,
@@ -249,10 +270,18 @@ h1 {
   padding: 18px;
 }
 
-.section-head {
+.section-head,
+.content-row,
+.actions,
+.panel-head {
   align-items: center;
   display: flex;
   gap: 12px;
+  justify-content: space-between;
+}
+
+.section-head {
+  justify-content: start;
 }
 
 .section-head > span,
@@ -262,13 +291,26 @@ h1 {
   border-radius: 14px;
   color: #b98000;
   display: grid;
+  flex: 0 0 auto;
   height: 44px;
   place-items: center;
   width: 44px;
 }
 
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 input,
-select,
 textarea {
   background: #fff;
   border: 1px solid #d9e2ea;
@@ -284,10 +326,18 @@ textarea {
   resize: vertical;
 }
 
-.scope-grid {
+.audience-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.panel-head strong {
+  color: #17233b;
+  font-size: .9rem;
 }
 
 .status-row {
@@ -297,11 +347,22 @@ textarea {
 }
 
 .status-row label {
+  align-items: center;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  font-weight: 800;
-  padding: 8px 11px;
+  color: #475569;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.status-row label.active {
+  background: #e7f8ef;
+  border-color: #9fd9b8;
+  color: #156235;
 }
 
 .metrics {
@@ -331,13 +392,15 @@ textarea {
 }
 
 .content-row {
-  align-items: center;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   display: grid;
-  gap: 12px;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   padding: 12px;
+}
+
+.content-row[data-status='sent'] {
+  border-color: #bfead0;
 }
 
 .content-row b,
@@ -370,10 +433,13 @@ textarea {
 }
 
 .state-card {
+  color: #64748b;
   display: grid;
+  gap: 8px;
   min-height: 220px;
   place-items: center;
   padding: 24px;
+  text-align: center;
 }
 
 .state-card.compact {
@@ -382,11 +448,13 @@ textarea {
 
 @media (max-width: 1100px) {
   .module-layout,
-  .scope-grid {
+  .metrics {
     grid-template-columns: 1fr;
   }
 
-  .module-hero {
+  .module-hero,
+  .actions,
+  .panel-head {
     align-items: stretch;
     flex-direction: column;
   }
