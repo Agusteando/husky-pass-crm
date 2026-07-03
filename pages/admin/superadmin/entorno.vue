@@ -2,9 +2,9 @@
   <section class="env-page stack" data-product-area="superadmin" data-product-screen="env-checklist">
     <header class="workspace-head compact-head env-head">
       <div>
-        <p class="eyebrow">Superadmin</p>
-        <h1>Entorno</h1>
-        <p>Checklist operativo de variables globales sin exponer secretos.</p>
+        <p class="eyebrow">Diagnóstico técnico</p>
+        <h1>Estado del sistema</h1>
+        <p>Variables y estado de despliegue sin exponer secretos.</p>
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
@@ -31,12 +31,12 @@
         <strong>{{ warningCount }}</strong>
       </article>
       <article>
-        <span>Ultima revision</span>
+        <span>Última revisión</span>
         <strong>{{ checkedAtLabel }}</strong>
       </article>
     </section>
 
-    <div v-else-if="pending" class="card loading-card" data-product-loading>Revisando entorno...</div>
+    <div v-else-if="pending" class="card loading-card" data-product-loading>Revisando sistema...</div>
 
     <section v-if="checklist" class="env-groups">
       <article v-for="group in checklist.groups" :key="group.id" class="card env-group">

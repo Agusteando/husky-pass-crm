@@ -1,24 +1,37 @@
 <template>
-  <section class="communications-module" data-product-area="gestion-escolar" data-product-screen="comunicados">
-    <header class="module-hero">
+  <section class="communications-publisher" data-product-area="gestion-escolar" data-product-screen="comunicados">
+    <header class="publishing-head">
       <div>
         <p class="eyebrow">Comunicados</p>
-        <h1>Publicaciones para familias</h1>
-        <p>{{ data?.permissions.canPublish ? 'Crear, programar y publicar por alcance.' : 'Crear borradores por alcance.' }}</p>
+        <h1>Publicar a familias</h1>
+        <p>{{ data?.permissions.canPublish ? 'Redacta, elige audiencia y publica cuando esté listo.' : 'Prepara borradores dentro de tu alcance.' }}</p>
       </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Gestión Escolar</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
     </header>
 
-    <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader label="Comunicados" contained /></section>
-    <section v-else-if="loadError" class="state-card" data-state="error">No disponible</section>
-    <section v-else class="module-layout">
-      <form class="composer" @submit.prevent="save">
-        <div class="section-head">
-          <span><FamilyPersonasIcon name="send" /></span>
+    <section v-if="pending" class="state-panel" data-state="loading">
+      <HuskyPassLoader label="Comunicados" contained />
+    </section>
+    <section v-else-if="loadError" class="state-panel" data-state="error">
+      <FamilyPersonasIcon name="security" />
+      <h2>No disponible</h2>
+      <p>No pudimos cargar comunicados.</p>
+    </section>
+
+    <section v-else class="publisher-layout">
+      <form class="composer-panel" @submit.prevent="save">
+        <div class="section-title">
+          <span class="title-icon"><FamilyPersonasIcon name="send" /></span>
           <div>
-            <p class="eyebrow">{{ form.id ? 'Editar' : 'Nuevo' }}</p>
+            <p class="eyebrow">{{ form.id ? 'Editando' : 'Nuevo comunicado' }}</p>
             <h2>{{ form.title || 'Comunicado' }}</h2>
           </div>
+        </div>
+
+        <div class="status-steps" aria-label="Estado de publicación">
+          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>No visible</small></article>
+          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Sale por fecha</small></article>
+          <article :data-active="form.status === 'sent'"><strong>Publicado</strong><small>Visible</small></article>
         </div>
 
         <label class="field">
@@ -27,17 +40,20 @@
         </label>
         <label class="field">
           <span>Resumen</span>
-          <input v-model="form.summary" placeholder="Resumen para la lista familiar" required />
+          <input v-model="form.summary" placeholder="Frase corta para la lista familiar" required />
         </label>
         <label class="field">
           <span>Mensaje</span>
-          <textarea v-model="form.body" placeholder="Mensaje para madres, padres o tutores" rows="7" required />
+          <textarea v-model="form.body" placeholder="Mensaje para madres, padres o tutores" rows="8" required />
         </label>
 
         <section class="audience-panel">
           <div class="panel-head">
-            <p class="eyebrow">Audiencia</p>
-            <strong>{{ formatGestionScope(scope) }}</strong>
+            <div>
+              <p class="eyebrow">Audiencia</p>
+              <strong>{{ formatGestionScope(scope) }}</strong>
+            </div>
+            <span>{{ data?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador' }}</span>
           </div>
           <AdminGestionScopePicker
             v-model="scope"
@@ -55,41 +71,56 @@
         </div>
         <div class="status-row" aria-label="Estado">
           <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
-          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.permissions.canPublish" /> Programar</label>
-          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" :disabled="!data?.permissions.canPublish" /> Publicar</label>
+          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.permissions.canPublish" /> Programado</label>
+          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" :disabled="!data?.permissions.canPublish" /> Publicado</label>
         </div>
         <label v-if="form.status === 'scheduled'" class="field">
-          <span>Programado</span>
+          <span>Publicar desde</span>
           <input v-model="form.scheduledFor" type="datetime-local" />
         </label>
 
-        <p v-if="actionError" class="action-message error">{{ actionError }}</p>
-        <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
+        <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
+        <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
           <button class="btn btn-primary" type="submit" :disabled="saving || !data?.permissions.canCreate || !scope.plantel">
-            {{ saving ? 'Guardando…' : form.status === 'sent' ? 'Publicar' : 'Guardar' }}
+            {{ saving ? 'Guardando...' : form.status === 'sent' ? 'Publicar' : form.status === 'scheduled' ? 'Programar' : 'Guardar borrador' }}
           </button>
         </div>
       </form>
 
-      <section class="content-list">
-        <div class="metrics">
-          <article><span>Borradores</span><strong>{{ data?.metrics.drafts || 0 }}</strong></article>
-          <article><span>Programados</span><strong>{{ data?.metrics.scheduled || 0 }}</strong></article>
-          <article><span>Publicados</span><strong>{{ data?.metrics.sent || 0 }}</strong></article>
-        </div>
-        <article v-for="item in data?.rows" :key="item.id" class="content-row" :data-status="item.status">
-          <span class="row-icon"><FamilyPersonasIcon name="announcement" /></span>
-          <div>
-            <b>{{ item.title }}</b>
-            <p>{{ item.summary }}</p>
-            <small>{{ statusLabel(item.status) }} · {{ audienceLabel(item) }}</small>
+      <aside class="publishing-side">
+        <section class="state-counts" aria-label="Estado de comunicados">
+          <article><span>Borrador</span><strong>{{ data?.metrics.drafts || 0 }}</strong></article>
+          <article><span>Programado</span><strong>{{ data?.metrics.scheduled || 0 }}</strong></article>
+          <article><span>Publicado</span><strong>{{ data?.metrics.sent || 0 }}</strong></article>
+        </section>
+
+        <section class="publication-list">
+          <div class="list-head">
+            <div>
+              <p class="eyebrow">Comunicados</p>
+              <h2>{{ data?.rows.length || 0 }}</h2>
+            </div>
+            <button class="inline-action" type="button" @click="resetForm">Nuevo</button>
           </div>
-          <button class="mini-button" type="button" @click="edit(item)">Editar</button>
-        </article>
-        <div v-if="!data?.rows.length" class="state-card compact" data-state="empty">Sin comunicados</div>
-      </section>
+
+          <article v-for="item in data?.rows" :key="item.id" class="publication-row" :data-status="item.status">
+            <span class="row-icon"><FamilyPersonasIcon name="announcement" /></span>
+            <div>
+              <b>{{ item.title }}</b>
+              <p>{{ item.summary }}</p>
+              <small>{{ statusLabel(item.status) }} · {{ audienceLabel(item) }}</small>
+            </div>
+            <button class="inline-action" type="button" @click="edit(item)">Editar</button>
+          </article>
+          <div v-if="!data?.rows.length" class="state-panel compact" data-state="empty">
+            <FamilyPersonasIcon name="announcement" />
+            <h3>Sin comunicados</h3>
+            <p>Cuando guardes un borrador aparecerá aquí.</p>
+          </div>
+        </section>
+      </aside>
     </section>
   </section>
 </template>
@@ -198,80 +229,68 @@ async function save() {
 </script>
 
 <style scoped>
-.communications-module {
+.communications-publisher {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
-.module-hero,
-.composer,
-.content-list,
-.state-card {
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid #e2e8f0;
-  border-radius: 24px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, .07);
+.publishing-head,
+.composer-panel,
+.publication-list,
+.state-panel,
+.state-counts article {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dce5eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
 }
 
-.module-hero {
-  align-items: center;
-  background:
-    radial-gradient(circle at 90% 12%, rgba(15, 140, 154, .14), transparent 30%),
-    linear-gradient(135deg, #fff, #f8fbf2);
+.publishing-head {
+  align-items: end;
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: clamp(20px, 2.6vw, 34px);
+  padding: clamp(18px, 2.2vw, 28px);
 }
 
-.eyebrow {
-  color: #0f8c9a;
-  font-size: .72rem;
-  font-weight: 850;
-  letter-spacing: .12em;
-  margin: 0 0 6px;
-  text-transform: uppercase;
-}
-
-h1,
-h2,
-p {
+.publishing-head h1,
+.composer-panel h2,
+.publication-list h2,
+.state-panel h2,
+.state-panel h3 {
+  color: #152032;
+  font-family: var(--font-body);
   margin: 0;
 }
 
-h1,
-h2 {
-  color: #17233b;
-  line-height: 1.08;
+.publishing-head h1 {
+  font-size: clamp(2rem, 3vw, 3.1rem);
 }
 
-h1 {
-  font-size: clamp(2rem, 3vw, 3.2rem);
+.publishing-head p:not(.eyebrow),
+.publication-row p,
+.publication-row small,
+.status-steps small {
+  color: #667789;
 }
 
-.module-hero p,
-.content-row p,
-.content-row small {
-  color: #64748b;
-  font-weight: 650;
-  line-height: 1.5;
-}
-
-.module-layout {
+.publisher-layout {
+  align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(400px, 540px) minmax(0, 1fr);
+  grid-template-columns: minmax(390px, 540px) minmax(0, 1fr);
 }
 
-.composer,
-.content-list {
+.composer-panel,
+.publication-list {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
 }
 
-.section-head,
-.content-row,
+.section-title,
+.list-head,
+.publication-row,
 .actions,
 .panel-head {
   align-items: center;
@@ -280,21 +299,57 @@ h1 {
   justify-content: space-between;
 }
 
-.section-head {
+.section-title {
   justify-content: start;
 }
 
-.section-head > span,
+.title-icon,
 .row-icon {
-  background: #fff7df;
-  border: 1px solid #f3d589;
-  border-radius: 14px;
-  color: #b98000;
-  display: grid;
+  align-items: center;
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: #0d766d;
+  display: inline-flex;
   flex: 0 0 auto;
   height: 44px;
-  place-items: center;
+  justify-content: center;
   width: 44px;
+}
+
+.status-steps,
+.state-counts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-steps article,
+.state-counts article {
+  background: #f8fafc;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.status-steps article[data-active='true'] {
+  background: #e7f8ef;
+  border-color: #bfead0;
+}
+
+.state-counts span,
+.field span {
+  color: #6b7a8b;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.state-counts strong {
+  color: #152032;
+  font-size: 1.35rem;
 }
 
 .field {
@@ -302,21 +357,14 @@ h1 {
   gap: 6px;
 }
 
-.field span {
-  color: #64748b;
-  font-size: .72rem;
-  font-weight: 850;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
 input,
 textarea {
-  background: #fff;
-  border: 1px solid #d9e2ea;
-  border-radius: 14px;
-  color: #17233b;
+  background: #ffffff;
+  border: 1px solid #dce5eb;
+  border-radius: 12px;
+  color: #152032;
   min-height: 42px;
+  min-width: 0;
   padding: 0 12px;
   width: 100%;
 }
@@ -328,16 +376,26 @@ textarea {
 
 .audience-panel {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid #e1e8ed;
+  border-radius: 14px;
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .panel-head strong {
-  color: #17233b;
-  font-size: .9rem;
+  color: #152032;
+  font-size: 0.92rem;
+}
+
+.panel-head span {
+  background: #f4faf8;
+  border: 1px solid #cae2dc;
+  border-radius: 999px;
+  color: #0d766d;
+  font-size: 0.74rem;
+  font-weight: 850;
+  padding: 7px 10px;
 }
 
 .status-row {
@@ -349,114 +407,112 @@ textarea {
 .status-row label {
   align-items: center;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e1e8ed;
   border-radius: 999px;
-  color: #475569;
+  color: #526173;
   display: inline-flex;
   font-weight: 850;
   gap: 7px;
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 12px;
 }
 
 .status-row label.active {
   background: #e7f8ef;
-  border-color: #9fd9b8;
-  color: #156235;
+  border-color: #bfead0;
+  color: #15803d;
 }
 
-.metrics {
+.publishing-side {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  position: sticky;
+  top: calc(var(--topbar-height) + 18px);
 }
 
-.metrics article {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 14px;
-}
-
-.metrics span {
-  color: #64748b;
-  font-size: .7rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.metrics strong {
-  color: #17233b;
-  display: block;
-  font-size: 1.4rem;
-}
-
-.content-row {
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+.publication-row {
+  border: 1px solid #e1e8ed;
+  border-radius: 13px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   padding: 12px;
 }
 
-.content-row[data-status='sent'] {
+.publication-row[data-status='sent'] {
   border-color: #bfead0;
 }
 
-.content-row b,
-.content-row small {
+.publication-row[data-status='scheduled'] {
+  border-color: #f3d589;
+}
+
+.publication-row b,
+.publication-row small {
   display: block;
 }
 
-.mini-button {
-  background: #fff;
+.inline-action {
+  background: #ffffff;
   border: 1px solid #cfe0e7;
-  border-radius: 12px;
-  color: #0f8c9a;
+  border-radius: 10px;
+  color: #0d766d;
+  cursor: pointer;
+  font-size: 0.82rem;
   font-weight: 850;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 34px;
+  padding: 0 11px;
 }
 
-.action-message {
+.surface-message {
   background: #edfdf7;
   border: 1px solid #b7ead6;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #047857;
   padding: 10px 12px;
 }
 
-.action-message.error {
+.surface-message.error {
   background: #fff1f2;
   border-color: #fecdd3;
   color: #be123c;
 }
 
-.state-card {
-  color: #64748b;
+.state-panel {
+  color: #667789;
   display: grid;
-  gap: 8px;
+  gap: 9px;
   min-height: 220px;
   place-items: center;
   padding: 24px;
   text-align: center;
 }
 
-.state-card.compact {
-  min-height: 120px;
+.state-panel.compact {
+  min-height: 160px;
 }
 
-@media (max-width: 1100px) {
-  .module-layout,
-  .metrics {
+@media (max-width: 1120px) {
+  .publisher-layout,
+  .state-counts {
     grid-template-columns: 1fr;
   }
 
-  .module-hero,
+  .publishing-side {
+    position: static;
+  }
+
+  .publishing-head,
   .actions,
   .panel-head {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 740px) {
+  .status-steps,
+  .publication-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

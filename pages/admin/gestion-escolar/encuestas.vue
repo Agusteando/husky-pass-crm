@@ -3,7 +3,7 @@
     kind="encuesta"
     eyebrow="Encuestas"
     title="Encuestas por audiencia"
-    description="Publica Google Forms con resolucion automatica para cada familia."
+    description="Mantén formularios visibles para el plantel, grado o grupo correcto."
     icon="survey"
   />
 </template>

@@ -69,7 +69,7 @@
               <strong>{{ person.name }}</strong>
               <small>{{ person.relationship || 'Parentesco pendiente' }} · {{ person.hasPhoto ? 'Foto lista' : 'Foto pendiente' }}</small>
             </p>
-            <p v-if="!detail.authorizedPeople.length"><strong>Sin registros</strong><small>La familia no tiene personas autorizadas capturadas.</small></p>
+            <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
           </div>
         </article>
 
@@ -98,7 +98,7 @@
           <div class="panel-head">
             <div>
               <p class="eyebrow">Soporte</p>
-              <h2>Señales operativas</h2>
+              <h2>Señales de soporte</h2>
             </div>
           </div>
           <div class="signal-grid">
@@ -130,7 +130,7 @@ const notice = ref('')
 const actionError = ref('')
 
 const impersonationLabel = computed(() => {
-  if (impersonating.value) return 'Abriendo…'
+  if (impersonating.value) return 'Abriendo...'
   if (confirming.value) return 'Confirmar vista'
   return 'Vista familiar'
 })
@@ -149,7 +149,7 @@ async function impersonate() {
   if (!detail.value?.family.canImpersonate) return
   if (!confirming.value) {
     confirming.value = true
-    notice.value = `Confirma ${detail.value.family.studentName}.`
+    notice.value = `Confirma para abrir la vista familiar de ${detail.value.family.studentName}.`
     actionError.value = ''
     return
   }

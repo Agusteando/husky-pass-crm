@@ -8,7 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Entorno</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Sistema</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="nueva-plantilla" @click="startCreate">Nueva plantilla</button>
       </div>
     </header>

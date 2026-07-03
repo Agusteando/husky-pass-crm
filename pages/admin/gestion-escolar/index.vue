@@ -1,93 +1,108 @@
 <template>
-  <section class="school-workbench" data-product-area="gestion-escolar" data-product-screen="overview">
-    <header class="workspace-hero">
+  <section class="school-console" data-product-area="gestion-escolar" data-product-screen="overview">
+    <header class="school-head">
       <div>
-        <p class="eyebrow">Escolar Admin</p>
-        <h1>Workbench escolar</h1>
+        <p class="eyebrow">Escolar</p>
+        <h1>{{ scopeLabel }}</h1>
         <p>{{ contextSentence }}</p>
-        <div class="scope-ribbon" aria-label="Alcance visible">
-          <span v-for="plantel in overview?.reach.planteles || []" :key="plantel">{{ plantel }}</span>
-          <span v-if="!(overview?.reach.planteles || []).length">Alcance pendiente</span>
-        </div>
       </div>
-      <section class="reach-grid" aria-label="Resumen de alcance">
-        <article><span>Familias</span><strong>{{ overview?.reach.families || 0 }}</strong></article>
-        <article><span>Estudiantes</span><strong>{{ overview?.reach.students || 0 }}</strong></article>
-        <article><span>Grupos</span><strong>{{ overview?.reach.grupos.length || 0 }}</strong></article>
-      </section>
+      <div class="head-actions">
+        <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Ver familias</NuxtLink>
+        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Crear comunicado</NuxtLink>
+      </div>
     </header>
 
-    <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader label="Gestión Escolar" contained /></section>
-    <section v-else-if="loadError" class="state-card" data-state="error">
+    <section v-if="pending" class="state-panel" data-state="loading">
+      <HuskyPassLoader label="Escolar" contained />
+    </section>
+    <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h2>No pudimos cargar tu operación escolar</h2>
-      <p>Reintenta en un momento o solicita revisión de acceso.</p>
+      <h2>No pudimos cargar Escolar</h2>
+      <p>Reintenta en un momento o solicita revisar tu acceso.</p>
     </section>
 
     <template v-else>
-      <section v-if="!modules.length" class="incomplete-card" data-state="empty">
-        <div>
-          <p class="eyebrow">Acceso incompleto</p>
-          <h2>Tu cuenta aún no tiene una responsabilidad escolar activa.</h2>
-          <p>Super Admin debe asignar un plantel o grupo antes de que puedas operar familias, comunicados, encuestas o convenios.</p>
-        </div>
+      <section v-if="!modules.length" class="state-panel access-empty" data-state="empty">
+        <FamilyPersonasIcon name="school" />
+        <h2>Acceso incompleto</h2>
+        <p>Super Admin debe asignarte un plantel, grado o grupo antes de operar familias y publicaciones.</p>
       </section>
 
-      <section v-else class="workbench-grid">
-        <article class="today-card">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Hoy</p>
-              <h2>Qué necesita atención</h2>
-            </div>
-            <span class="soft-pill">{{ scopeLabel }}</span>
-          </div>
-          <div class="attention-list">
-            <NuxtLink v-for="task in todayTasks" :key="task.to" :to="task.to" class="attention-row">
-              <span><FamilyPersonasIcon :name="task.icon" /></span>
+      <template v-else>
+        <section class="scope-strip" aria-label="Alcance escolar">
+          <article>
+            <span>Familias</span>
+            <strong>{{ overview?.reach.families || 0 }}</strong>
+          </article>
+          <article>
+            <span>Estudiantes</span>
+            <strong>{{ overview?.reach.students || 0 }}</strong>
+          </article>
+          <article>
+            <span>Planteles</span>
+            <strong>{{ overview?.reach.planteles.length || 0 }}</strong>
+          </article>
+          <article>
+            <span>Grupos</span>
+            <strong>{{ overview?.reach.grupos.length || 0 }}</strong>
+          </article>
+        </section>
+
+        <section class="school-layout">
+          <article class="today-panel">
+            <div class="section-title">
               <div>
-                <strong>{{ task.title }}</strong>
-                <small>{{ task.detail }}</small>
+                <p class="eyebrow">Hoy</p>
+                <h2>Qué revisar primero</h2>
               </div>
-              <b>{{ task.action }}</b>
-            </NuxtLink>
-          </div>
-        </article>
+              <span>{{ scopeLabel }}</span>
+            </div>
 
-        <aside class="context-card">
-          <p class="eyebrow">Contexto activo</p>
-          <h2>{{ scopeLabel }}</h2>
-          <p>Todo lo que ves y publicas se limita a este alcance.</p>
-          <div class="scope-map">
-            <article v-for="plantel in overview?.options.scopeTree.planteles || []" :key="plantel.value">
-              <strong>{{ plantel.label }}</strong>
-              <small>{{ plantel.families }} familias · {{ plantel.students }} estudiantes</small>
-            </article>
-            <article v-if="!(overview?.options.scopeTree.planteles || []).length">
-              <strong>Sin plantel</strong>
-              <small>Solicita completar tu alcance.</small>
-            </article>
-          </div>
-        </aside>
-      </section>
+            <div class="work-list">
+              <NuxtLink v-for="task in todayTasks" :key="task.to" :to="task.to" class="work-row">
+                <span class="row-icon"><FamilyPersonasIcon :name="task.icon" /></span>
+                <span>
+                  <strong>{{ task.title }}</strong>
+                  <small>{{ task.detail }}</small>
+                </span>
+                <b>{{ task.action }}</b>
+              </NuxtLink>
+            </div>
+          </article>
 
-      <section v-if="modules.length" class="workflow-grid" aria-label="Flujos escolares">
-        <NuxtLink
-          v-for="module in workflowModules"
-          :key="module.key"
-          class="workflow-card"
-          :class="{ primary: module.key === 'familias' }"
-          :to="`/admin/gestion-escolar/${module.key}`"
-        >
-          <span><FamilyPersonasIcon :name="module.icon" /></span>
-          <div>
-            <p class="eyebrow">{{ module.badge }}</p>
-            <h2>{{ module.title }}</h2>
-            <p>{{ module.description }}</p>
-          </div>
-          <b>{{ module.cta }}</b>
-        </NuxtLink>
-      </section>
+          <aside class="scope-panel">
+            <div class="section-title vertical">
+              <div>
+                <p class="eyebrow">Alcance</p>
+                <h2>{{ scopeLabel }}</h2>
+              </div>
+              <p>Todo lo que consultas o publicas queda limitado a este contexto.</p>
+            </div>
+
+            <div class="scope-list">
+              <article v-for="plantel in overview?.options.scopeTree.planteles || []" :key="plantel.value">
+                <strong>{{ plantel.label }}</strong>
+                <small>{{ plantel.families }} familias · {{ plantel.students }} estudiantes</small>
+              </article>
+              <article v-if="!(overview?.options.scopeTree.planteles || []).length">
+                <strong>Sin plantel</strong>
+                <small>Solicita completar tu alcance.</small>
+              </article>
+            </div>
+          </aside>
+        </section>
+
+        <section class="publishing-row" aria-label="Publicaciones escolares">
+          <NuxtLink v-for="module in workflowModules" :key="module.key" class="publish-card" :class="{ primary: module.key === 'familias' }" :to="`/admin/gestion-escolar/${module.key}`">
+            <span><FamilyPersonasIcon :name="module.icon" /></span>
+            <div>
+              <strong>{{ module.title }}</strong>
+              <small>{{ module.description }}</small>
+            </div>
+            <b>{{ module.cta }}</b>
+          </NuxtLink>
+        </section>
+      </template>
     </template>
   </section>
 </template>
@@ -109,7 +124,7 @@ const scopeLabel = computed(() => {
 })
 const contextSentence = computed(() => {
   const families = overview.value?.reach.families || 0
-  if (!modules.value.length) return 'Tu operación escolar aparecerá aquí cuando Super Admin complete tu alcance.'
+  if (!modules.value.length) return 'Tu acceso aparecerá aquí cuando Super Admin complete tu alcance.'
   return `Operas ${families} familias dentro de ${scopeLabel.value}.`
 })
 
@@ -118,7 +133,7 @@ const todayTasks = computed(() => {
   if (hasModule('familias')) {
     tasks.push({
       title: 'Familias y personas autorizadas',
-      detail: `${overview.value?.reach.families || 0} familias visibles con contexto de plantel y grupo.`,
+      detail: `${overview.value?.reach.families || 0} familias visibles con plantel y grupo.`,
       action: 'Revisar',
       icon: 'people',
       to: '/admin/gestion-escolar/familias'
@@ -127,17 +142,17 @@ const todayTasks = computed(() => {
   if (hasModule('comunicados')) {
     tasks.push({
       title: 'Comunicados',
-      detail: capabilityLabel('comunicados') === 'Publicar' ? 'Puedes crear y publicar avisos por audiencia.' : 'Puedes preparar borradores para revisión.',
+      detail: capabilityLabel('comunicados') === 'Publicar' ? 'Puedes publicar mensajes para tu audiencia.' : 'Puedes preparar borradores.',
       action: capabilityLabel('comunicados'),
       icon: 'announcement',
       to: '/admin/gestion-escolar/comunicados'
     })
   }
   if (hasModule('encuestas')) {
-    tasks.push({ title: 'Encuestas', detail: 'Mantén formularios activos por plantel, grado o grupo.', action: 'Gestionar', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
+    tasks.push({ title: 'Encuestas', detail: 'Mantén formularios activos para familias reales.', action: 'Gestionar', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
   }
   if (hasModule('convenios')) {
-    tasks.push({ title: 'Convenios', detail: 'Publica beneficios y documentos visibles para familias.', action: capabilityLabel('convenios'), icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
+    tasks.push({ title: 'Convenios', detail: 'Controla qué documentos están visibles.', action: capabilityLabel('convenios'), icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
   }
   return tasks
 })
@@ -145,10 +160,9 @@ const todayTasks = computed(() => {
 const workflowModules = computed(() => modules.value.map((module) => ({
   key: module.key,
   icon: moduleIcon(module.key),
-  badge: capabilityLabel(module.key),
   title: workflowTitle(module.key),
   description: workflowDescription(module.key),
-  cta: module.key === 'familias' ? 'Abrir soporte' : 'Abrir flujo'
+  cta: module.key === 'familias' ? 'Abrir' : capabilityLabel(module.key)
 })))
 
 function hasModule(key: GestionEscolarModuleKey) {
@@ -170,10 +184,10 @@ function workflowTitle(key: GestionEscolarModuleKey) {
 }
 
 function workflowDescription(key: GestionEscolarModuleKey) {
-  if (key === 'familias') return 'Busca familias, entiende por qué son visibles y abre vista familiar con confirmación.'
-  if (key === 'comunicados') return 'Redacta, segmenta, programa y publica mensajes para tu alcance.'
-  if (key === 'encuestas') return 'Activa formularios por audiencia y revisa qué familias los verán.'
-  return 'Gestiona publicaciones institucionales y estados de visibilidad.'
+  if (key === 'familias') return 'Soporte, contexto y vista familiar controlada.'
+  if (key === 'comunicados') return 'Redacta, segmenta, programa y publica.'
+  if (key === 'encuestas') return 'Activa formularios para una audiencia clara.'
+  return 'Publica documentos visibles para familias.'
 }
 
 function capabilityLabel(key: GestionEscolarModuleKey) {
@@ -187,261 +201,256 @@ function capabilityLabel(key: GestionEscolarModuleKey) {
 </script>
 
 <style scoped>
-.school-workbench {
+.school-console {
   display: grid;
   gap: 16px;
 }
 
-.workspace-hero,
-.today-card,
-.context-card,
-.workflow-card,
-.state-card,
-.incomplete-card {
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid #e2e8f0;
-  border-radius: 22px;
-  box-shadow: var(--shadow-soft);
+.school-head,
+.today-panel,
+.scope-panel,
+.publish-card,
+.state-panel {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dce5eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
 }
 
-.workspace-hero {
+.school-head {
   align-items: end;
-  background: linear-gradient(135deg, #fff, #f8fbf2);
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
-  padding: clamp(18px, 2.6vw, 32px);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: clamp(18px, 2.2vw, 28px);
 }
 
-h1,
-h2,
-p {
+.school-head h1 {
+  color: #152032;
+  font-family: var(--font-body);
+  font-size: clamp(2rem, 3vw, 3.1rem);
   margin: 0;
 }
 
-h1,
-h2 {
-  color: #17233b;
-  line-height: 1.06;
+.school-head p:not(.eyebrow),
+.scope-panel p,
+.work-row small,
+.publish-card small,
+.scope-list small {
+  color: #667789;
+  margin: 0;
 }
 
-h1 {
-  font-size: clamp(2.15rem, 3.8vw, 4rem);
-}
-
-.scope-ribbon {
+.head-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
-.scope-ribbon span,
-.soft-pill {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  color: #475569;
-  font-size: .78rem;
-  font-weight: 850;
-  padding: 8px 11px;
-}
-
-.reach-grid {
+.scope-strip {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.reach-grid article {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+.scope-strip article {
+  background: #ffffff;
+  border: 1px solid #dce5eb;
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
   padding: 14px;
 }
 
-.reach-grid span,
-.scope-map small,
-.attention-row small,
-.workflow-card p,
-.context-card p {
-  color: #64748b;
-}
-
-.reach-grid span {
-  display: block;
-  font-size: .7rem;
+.scope-strip span {
+  color: #6b7a8b;
+  font-size: 0.72rem;
   font-weight: 850;
-  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
-.reach-grid strong {
-  color: #10213b;
-  display: block;
-  font-size: 1.55rem;
-  margin-top: 6px;
+.scope-strip strong {
+  color: #152032;
+  font-size: 1.45rem;
 }
 
-.workbench-grid {
+.school-layout {
+  align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 410px);
 }
 
-.today-card,
-.context-card,
-.incomplete-card {
+.today-panel,
+.scope-panel {
   display: grid;
   gap: 14px;
   padding: 16px;
 }
 
-.section-head {
+.section-title {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: space-between;
 }
 
-.section-head h2,
-.context-card h2 {
-  margin-bottom: 0;
-}
-
-.attention-list,
-.scope-map {
+.section-title.vertical {
+  align-items: start;
   display: grid;
-  gap: 10px;
 }
 
-.attention-row {
+.section-title h2 {
+  color: #152032;
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+.section-title > span {
+  background: #f4faf8;
+  border: 1px solid #cae2dc;
+  border-radius: 999px;
+  color: #0d766d;
+  font-size: 0.76rem;
+  font-weight: 850;
+  padding: 7px 10px;
+}
+
+.work-list,
+.scope-list {
+  display: grid;
+  gap: 8px;
+}
+
+.work-row {
   align-items: center;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  color: inherit;
+  border: 1px solid #e1e8ed;
+  border-radius: 13px;
   display: grid;
   gap: 12px;
   grid-template-columns: 42px minmax(0, 1fr) auto;
   padding: 12px;
 }
 
-.attention-row:hover,
-.workflow-card:hover {
-  border-color: var(--color-brand-300);
-  box-shadow: var(--shadow-line);
+.work-row:hover,
+.publish-card:hover {
+  border-color: #cae2dc;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.attention-row > span,
-.workflow-card > span {
+.row-icon,
+.publish-card > span {
   align-items: center;
-  background: #fff7df;
-  border: 1px solid #f3d589;
-  border-radius: 14px;
-  color: #9a6700;
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: #0d766d;
   display: inline-flex;
   height: 42px;
   justify-content: center;
   width: 42px;
 }
 
-.attention-row strong,
-.attention-row small,
-.scope-map strong,
-.scope-map small {
+.work-row strong,
+.work-row small,
+.scope-list strong,
+.scope-list small,
+.publish-card strong,
+.publish-card small {
   display: block;
 }
 
-.attention-row b,
-.workflow-card b {
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
+.work-row b,
+.publish-card b {
+  background: #e7f8ef;
+  border: 1px solid #bfead0;
   border-radius: 999px;
-  color: var(--color-brand-900);
-  font-size: .72rem;
+  color: #15803d;
+  font-size: 0.74rem;
   padding: 7px 10px;
 }
 
-.scope-map article {
+.scope-list article {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 15px;
-  display: grid;
-  gap: 3px;
+  border: 1px solid #e1e8ed;
+  border-radius: 13px;
   padding: 12px;
 }
 
-.workflow-grid {
+.publishing-row {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.workflow-card {
-  color: inherit;
+.publish-card {
+  align-content: start;
   display: grid;
   gap: 12px;
-  min-height: 220px;
-  padding: 16px;
+  min-height: 190px;
+  padding: 14px;
 }
 
-.workflow-card.primary {
-  border-color: var(--color-brand-300);
+.publish-card.primary {
+  border-color: #cae2dc;
 }
 
-.workflow-card h2 {
-  margin-bottom: 6px;
-}
-
-.workflow-card b {
+.publish-card b {
   justify-self: start;
   margin-top: auto;
 }
 
-.incomplete-card {
-  align-items: center;
-  min-height: 220px;
-}
-
-.state-card {
-  color: #64748b;
+.state-panel {
+  color: #667789;
   display: grid;
-  gap: 8px;
-  min-height: 260px;
+  gap: 9px;
+  min-height: 250px;
   place-items: center;
-  padding: 28px;
+  padding: 24px;
   text-align: center;
 }
 
-@media (max-width: 1180px) {
-  .workspace-hero,
-  .workbench-grid,
-  .workflow-grid {
+.state-panel h2 {
+  color: #152032;
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+.access-empty {
+  min-height: 360px;
+}
+
+@media (max-width: 1120px) {
+  .school-layout,
+  .publishing-row,
+  .scope-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .workspace-hero,
-  .workbench-grid,
-  .workflow-grid,
-  .reach-grid {
+  .school-head,
+  .head-actions,
+  .section-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .head-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .school-layout,
+  .publishing-row,
+  .scope-strip,
+  .work-row {
     grid-template-columns: 1fr;
   }
 
-  .attention-row {
-    grid-template-columns: 42px minmax(0, 1fr);
-  }
-
-  .attention-row b {
-    grid-column: 1 / -1;
+  .work-row b {
     justify-self: start;
-  }
-
-  .section-head {
-    align-items: stretch;
-    flex-direction: column;
   }
 }
 </style>

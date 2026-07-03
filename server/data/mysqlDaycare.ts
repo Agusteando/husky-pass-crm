@@ -304,6 +304,17 @@ export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
   return rows.map((row) => ({ id: Number(row.id), sala: row.sala, unidad: row.unidad }))
 }
 
+export async function listAdminDaycareUnits(user: AppSessionUser) {
+  if (!user.isSuperAdmin) return user.unidades.filter(Boolean)
+  const rows = await legacyQuery<(RowDataPacket & { unidad: string | null })[]>(
+    `SELECT DISTINCT unidad
+     FROM salas
+     WHERE unidad IS NOT NULL AND TRIM(unidad) <> ''
+     ORDER BY unidad ASC`
+  )
+  return rows.map((row) => String(row.unidad || '').trim()).filter(Boolean)
+}
+
 export async function getSalaById(user: AppSessionUser, salaId: number) {
   assertSalaAccess(user, salaId)
   const sala = await legacyOne<(Sala & RowDataPacket)>('SELECT id, sala, unidad FROM salas WHERE id = ? LIMIT 1', [salaId])

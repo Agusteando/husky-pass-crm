@@ -1,69 +1,52 @@
 <template>
-  <section class="salas-command stack" data-product-area="daycare" data-product-screen="salas">
-    <header class="command-hero">
+  <section class="daycare-console" data-product-area="daycare" data-product-screen="salas">
+    <header class="daycare-head">
       <div>
-        <p class="eyebrow">Daycare Admin</p>
-        <h1>Centro Daycare</h1>
-        <p>Opera una unidad y sala a la vez. Familias, tareas, avisos y calendario viven dentro de este contexto.</p>
+        <p class="eyebrow">Guardería</p>
+        <h1>{{ selectedUnidad || 'Unidad pendiente' }}</h1>
+        <p>Elige una sala para ver familias, tareas, avisos y calendario dentro de un contexto claro.</p>
       </div>
-      <div class="hero-controls">
-        <label class="label">
-          Unidad
-          <select v-model="selectedUnidad" class="select" data-diagnostic-filter="unidad" @change="syncUnidad">
+      <div class="head-controls">
+        <label>
+          <span>Unidad</span>
+          <select v-model="selectedUnidad" data-diagnostic-filter="unidad" @change="syncUnidad">
             <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
           </select>
         </label>
-        <label class="label">
-          Buscar sala
-          <input v-model="search" class="input" type="search" placeholder="Nombre de sala" data-diagnostic-filter="buscar-sala" />
+        <label>
+          <span>Buscar sala</span>
+          <input v-model="search" type="search" placeholder="Nombre de sala" data-diagnostic-filter="buscar-sala" />
         </label>
       </div>
     </header>
 
-    <section v-if="noUnidadAvailable" class="card state-card" data-product-panel="daycare-unidades" data-state="unavailable">
-      <p class="eyebrow">Guardería no disponible</p>
-      <h2>La sesión no tiene unidades de guardería para consultar.</h2>
-      <p>Verifica que el usuario tenga alcance interno de guardería o que existan unidades en la tabla de salas.</p>
+    <section v-if="noUnidadAvailable" class="state-panel" data-product-panel="daycare-unidades" data-state="unavailable">
+      <FamilyPersonasIcon name="daycare" />
+      <h2>Guardería no disponible</h2>
+      <p>Esta cuenta no tiene una unidad asignada.</p>
     </section>
 
-    <section class="summary-strip" aria-label="Resumen de unidad">
-      <article>
-        <span>Unidad</span>
-        <strong>{{ selectedUnidad || 'Sin unidad' }}</strong>
-      </article>
-      <article>
-        <span>Salas</span>
-        <strong>{{ filteredSalas.length }}</strong>
-      </article>
-      <article>
-        <span>Familias</span>
-        <strong>{{ totals.familias }}</strong>
-      </article>
-      <article>
-        <span>Contenido</span>
-        <strong>{{ totals.totalRecursos }}</strong>
-      </article>
-    </section>
+    <p v-if="error" class="surface-message error">No fue posible cargar las salas de esta unidad.</p>
+    <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
+    <p v-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
+    <div v-if="pending || unitsPending" class="state-panel" data-product-loading>
+      <HuskyPassLoader label="Salas" contained />
+    </div>
 
-    <p v-if="error" class="alert">No fue posible cargar las salas de esta unidad.</p>
-    <p v-if="actionError" class="alert">{{ actionError }}</p>
-    <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
-    <div v-if="pending" class="card loading-card" data-product-loading> Cargando salas…</div>
-
-    <section v-else-if="!noUnidadAvailable" class="command-layout">
-      <aside class="card sala-picker-card" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
-        <div class="list-head">
+    <section v-else-if="!noUnidadAvailable" class="daycare-layout">
+      <aside class="rooms-pane" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
+        <div class="pane-title">
           <div>
-            <p class="eyebrow">Directorio</p>
-            <h2>{{ filteredSalas.length }} salas</h2>
+            <p class="eyebrow">Salas</p>
+            <h2>{{ filteredSalas.length }} visibles</h2>
           </div>
         </div>
 
-        <div v-if="filteredSalas.length" class="sala-picker-list" role="list">
+        <div v-if="filteredSalas.length" class="room-list" role="list">
           <button
             v-for="sala in filteredSalas"
             :key="sala.id"
-            class="sala-pick"
+            class="room-row"
             :class="{ active: sala.id === selectedSalaId }"
             type="button"
             data-diagnostic-sala-option
@@ -72,33 +55,31 @@
             @click="selectSala(sala.id)"
           >
             <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
-            <span class="pick-copy">
+            <span class="room-copy">
               <strong>{{ sala.sala }}</strong>
-              <small>{{ sala.metrics.familias }} familias · {{ sala.metrics.totalRecursos }} publicaciones</small>
+              <small>{{ sala.metrics.familias }} familias / {{ sala.metrics.totalRecursos }} publicaciones</small>
             </span>
           </button>
         </div>
-        <div v-else data-diagnostic="sala-unavailable"><EmptyState title="Sin salas" description="No hay salas que coincidan con esta búsqueda o unidad." /></div>
+        <div v-else class="state-panel compact" data-diagnostic="sala-unavailable" data-state="empty">
+          <FamilyPersonasIcon name="daycare" />
+          <h2>Sin salas</h2>
+          <p>No hay salas que coincidan con esta búsqueda o unidad.</p>
+        </div>
       </aside>
 
-      <article v-if="selectedSala" class="card sala-focus-card" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
-        <div class="focus-header">
-          <div class="focus-title">
-            <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
-            <div>
-              <p class="eyebrow">{{ selectedSala.unidad }}</p>
-              <h2>{{ selectedSala.sala }}</h2>
-              <p>Contexto activo de sala. Todo lo que publiques será visible solo para estas familias.</p>
-            </div>
+      <article v-if="selectedSala" class="room-detail" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
+        <div class="room-head">
+          <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
+          <div>
+            <p class="eyebrow">{{ selectedSala.unidad }}</p>
+            <h2>{{ selectedSala.sala }}</h2>
+            <p>Todo lo que publiques desde aquí será visible solo para estas familias.</p>
           </div>
-          <div class="focus-actions">
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="abrir-resumen" @click="goToSalaSummary">Abrir resumen</button>
-            <button class="btn btn-primary" type="button" data-diagnostic-action="nueva-tarea" @click="goToSalaSection('tareas', true)">Nueva tarea</button>
-            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
-          </div>
+          <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
         </div>
 
-        <div class="metric-grid">
+        <section class="room-facts" aria-label="Resumen de sala">
           <article>
             <span>Familias</span>
             <strong>{{ selectedSala.metrics.familias }}</strong>
@@ -112,29 +93,35 @@
             <strong>{{ selectedSala.metrics.avisos }}</strong>
           </article>
           <article>
-            <span>Eventos</span>
+            <span>Fechas</span>
             <strong>{{ selectedSala.metrics.calendario }}</strong>
           </article>
-        </div>
+        </section>
 
-        <div class="module-launcher">
-          <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
-            <strong>Familias</strong>
-            <span>Cuentas, acceso y soporte.</span>
-          </button>
-          <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas')">
-            <strong>Tareas</strong>
-            <span>Publicaciones para casa.</span>
-          </button>
-          <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
-            <strong>Avisos</strong>
-            <span>Mensajes de sala.</span>
-          </button>
-          <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
-            <strong>Calendario</strong>
-            <span>Fechas visibles.</span>
-          </button>
-        </div>
+        <section class="attention-panel">
+          <div>
+            <p class="eyebrow">Qué necesita atención</p>
+            <h3>Trabaja siempre dentro de {{ selectedSala.sala }}</h3>
+          </div>
+          <div class="action-grid">
+            <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
+              <strong>Ver familias</strong>
+              <small>Cuentas, acceso y soporte.</small>
+            </button>
+            <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas', true)">
+              <strong>Nueva tarea</strong>
+              <small>Publicación para casa.</small>
+            </button>
+            <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
+              <strong>Crear aviso</strong>
+              <small>Mensaje de sala.</small>
+            </button>
+            <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
+              <strong>Agregar fecha</strong>
+              <small>Evento visible.</small>
+            </button>
+          </div>
+        </section>
       </article>
     </section>
   </section>
@@ -143,24 +130,39 @@
 <script setup lang="ts">
 import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { SalaSummary } from '~/types/daycare'
 
 const route = useRoute()
 const router = useRouter()
 const { data: session, pending: sessionPending } = useAppSession()
 
-const unidades = computed(() => session.value?.user?.unidades || [])
-const noUnidadAvailable = computed(() => !sessionPending.value && unidades.value.length === 0)
-const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : unidades.value[0] || '')
+const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : '')
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const selectedSalaId = ref<number | null>(normalizeSalaQuery(route.query.sala))
 const actionError = ref('')
 const actionNotice = ref('')
 const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
 
+const { data: unitOptions, pending: unitsPending } = useFetch<{ unidades: string[] }>('/api/daycare/admin/salas/units', {
+  timeout: 15000,
+  dedupe: 'cancel'
+})
+
+const sessionUnidades = computed(() => session.value?.user?.unidades || [])
+const unidades = computed(() => {
+  const fromApi = (unitOptions.value?.unidades || []).filter(Boolean)
+  return fromApi.length ? fromApi : sessionUnidades.value
+})
+const noUnidadAvailable = computed(() => !sessionPending.value && !unitsPending.value && unidades.value.length === 0)
+
 watch(unidades, (value) => {
-  if (!selectedUnidad.value && value.length) selectedUnidad.value = value[0]
+  if (!value.length) return
+  if (!selectedUnidad.value || !value.includes(selectedUnidad.value)) {
+    selectedUnidad.value = value[0]
+    selectedSalaId.value = null
+    syncQuery()
+  }
 }, { immediate: true })
 
 watch(() => route.query.unidad, (value) => {
@@ -214,12 +216,6 @@ watch(filteredSalas, (rows) => {
   }
 }, { immediate: true })
 
-const totals = computed(() => filteredSalas.value.reduce((acc, sala) => {
-  acc.familias += sala.metrics.familias
-  acc.totalRecursos += sala.metrics.totalRecursos
-  return acc
-}, { familias: 0, totalRecursos: 0 }))
-
 function syncUnidad() {
   actionError.value = ''
   actionNotice.value = ''
@@ -240,12 +236,6 @@ function syncQuery() {
   if (selectedSalaId.value) query.sala = String(selectedSalaId.value)
   if (search.value.trim()) query.buscar = search.value.trim()
   replaceQueryIfChanged(query)
-}
-
-function goToSalaSummary() {
-  actionError.value = ''
-  if (!selectedSala.value?.id) return
-  navigateTo({ path: `/admin/daycare/salas/${selectedSala.value.id}`, query: selectedUnidad.value ? { unidad: selectedUnidad.value } : undefined })
 }
 
 function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
@@ -286,289 +276,292 @@ function replaceQueryIfChanged(query: Record<string, string>) {
 }
 
 function roomInitials(value?: string | null) {
-  return String(value || 'S').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
+  return String(value || 'S')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
 }
 </script>
 
 <style scoped>
-.salas-command {
-  gap: 12px;
-}
-
-.command-hero {
-  align-items: end;
-  background:
-    radial-gradient(circle at top right, rgba(255, 181, 69, 0.16), transparent 44%),
-    linear-gradient(135deg, #ffffff, #f4f9ec);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  box-shadow: var(--shadow-soft);
+.daycare-console {
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
-  padding: clamp(12px, 1.8vw, 18px);
+  gap: 16px;
 }
 
-.command-hero h1 {
-  font-size: clamp(1.45rem, 2.3vw, 2.05rem);
-  margin-bottom: 6px;
+.daycare-head,
+.rooms-pane,
+.room-detail,
+.state-panel {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dce5eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
 }
 
-.command-hero p:last-child {
-  max-width: 600px;
+.daycare-head {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+  padding: clamp(18px, 2.2vw, 28px);
 }
 
-.hero-controls {
+.daycare-head h1,
+.pane-title h2,
+.room-head h2,
+.attention-panel h3,
+.state-panel h2 {
+  color: #152032;
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+.daycare-head h1 {
+  font-size: clamp(2rem, 3vw, 3.1rem);
+}
+
+.daycare-head p:not(.eyebrow),
+.room-head p,
+.room-row small,
+.action-grid small {
+  color: #667789;
+  margin: 0;
+}
+
+.head-controls {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.summary-strip {
+.head-controls label {
+  background: #f8fafc;
+  border: 1px solid #dce5eb;
+  border-radius: 13px;
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 9px 11px;
 }
 
-.summary-strip article,
-.metric-grid article {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-line);
-  display: grid;
-  gap: 3px;
-  padding: 9px 10px;
-}
-
-.summary-strip span,
-.metric-grid span {
-  color: var(--color-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
+.head-controls span,
+.room-facts span {
+  color: #6b7a8b;
+  font-size: 0.72rem;
+  font-weight: 850;
   text-transform: uppercase;
 }
 
-.summary-strip strong,
-.metric-grid strong {
-  color: var(--color-ink);
-  font-size: clamp(1.15rem, 2vw, 1.6rem);
-  line-height: 1;
-}
-
-.command-layout {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(230px, 0.58fr) minmax(0, 1.42fr);
-}
-
-.sala-picker-card,
-.sala-focus-card {
+.head-controls select,
+.head-controls input {
+  background: transparent;
+  border: 0;
+  color: #152032;
   min-width: 0;
+  outline: 0;
 }
 
-.list-head,
-.focus-header,
-.focus-title,
-.focus-actions {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-}
-
-.list-head,
-.focus-header {
-  justify-content: space-between;
-}
-
-.list-head h2,
-.focus-header h2 {
-  font-size: 1.35rem;
-  margin-bottom: 0;
-}
-
-.sala-picker-list {
+.daycare-layout {
+  align-items: start;
   display: grid;
-  gap: 8px;
-  margin-top: 12px;
-  max-height: min(58vh, 560px);
+  gap: 16px;
+  grid-template-columns: minmax(300px, 410px) minmax(0, 1fr);
+}
+
+.rooms-pane,
+.room-detail {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.rooms-pane {
+  position: sticky;
+  top: calc(var(--topbar-height) + 18px);
+}
+
+.room-list {
+  display: grid;
+  gap: 6px;
+  max-height: calc(100vh - 255px);
   overflow: auto;
   padding-right: 2px;
 }
 
-.sala-pick {
+.room-row {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 13px;
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 36px minmax(0, 1fr);
-  padding: 10px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: 9px;
   text-align: left;
 }
 
-.sala-pick:hover,
-.sala-pick.active {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-300);
+.room-row.active,
+.room-row:hover {
+  background: #f4faf8;
+  border-color: #cae2dc;
 }
 
 .room-avatar {
   align-items: center;
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: #0d766d;
   display: inline-flex;
-  font-size: 0.8rem;
-  font-weight: 600;
-  height: 36px;
+  font-weight: 900;
+  height: 42px;
   justify-content: center;
-  width: 36px;
+  width: 42px;
 }
 
 .room-avatar.large {
-  border-radius: 20px;
-  font-size: 1rem;
-  height: 52px;
-  width: 52px;
+  border-radius: 16px;
+  font-size: 1.08rem;
+  height: 58px;
+  width: 58px;
 }
 
-.pick-copy {
+.room-copy {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.pick-copy strong,
-.pick-copy small {
+.room-copy strong,
+.room-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pick-copy small {
-  color: var(--color-muted);
-  font-size: 0.8rem;
+.room-head {
+  align-items: center;
+  border-bottom: 1px solid #e1e8ed;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  padding-bottom: 14px;
 }
 
-.focus-title {
-  min-width: 0;
-}
-
-.focus-actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.metric-grid {
+.room-facts {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 10px;
 }
 
-.module-launcher {
+.room-facts article {
+  background: #f8fafc;
+  border: 1px solid #e1e8ed;
+  border-radius: 13px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.room-facts strong {
+  color: #152032;
+  font-size: 1.35rem;
+}
+
+.attention-panel {
+  border: 1px solid #e1e8ed;
+  border-radius: 15px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.action-grid {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 10px;
 }
 
-.module-launcher button {
-  background: linear-gradient(180deg, #ffffff, #fbfdf8);
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
+.action-grid button {
+  background: #ffffff;
+  border: 1px solid #dce5eb;
+  border-radius: 13px;
+  color: inherit;
   cursor: pointer;
   display: grid;
-  font: inherit;
   gap: 5px;
-  min-height: 72px;
-  padding: 10px;
+  min-height: 86px;
+  padding: 12px;
   text-align: left;
 }
 
-.module-launcher button:hover {
-  border-color: var(--color-brand-300);
-  box-shadow: var(--shadow-soft);
+.action-grid button:hover {
+  background: #f4faf8;
+  border-color: #cae2dc;
 }
 
-.module-launcher strong {
-  color: var(--color-ink);
-  font-size: 1rem;
+.action-grid strong,
+.action-grid small {
+  display: block;
 }
 
-.module-launcher span {
-  color: var(--color-muted);
-  font-size: 0.86rem;
-  line-height: 1.35;
-}
-
-.notice {
-  background: #f0f8e7;
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
-  font-weight: 600;
+.surface-message {
+  background: #edfdf7;
+  border: 1px solid #b7ead6;
+  border-radius: 12px;
+  color: #047857;
   margin: 0;
   padding: 10px 12px;
 }
 
-.loading-card {
-  color: var(--color-muted);
+.surface-message.error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
 }
 
-@media (max-width: 1160px) {
-  .command-layout,
-  .command-hero {
-    grid-template-columns: 1fr;
+.state-panel {
+  color: #667789;
+  display: grid;
+  gap: 9px;
+  min-height: 240px;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.state-panel.compact {
+  min-height: 180px;
+}
+
+@media (max-width: 1120px) {
+  .daycare-head,
+  .daycare-layout,
+  .room-facts,
+  .action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sala-picker-list {
-    display: flex;
+  .rooms-pane {
+    position: static;
+  }
+
+  .room-list {
     max-height: none;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .sala-pick {
-    flex: 0 0 250px;
   }
 }
 
 @media (max-width: 760px) {
-  .hero-controls,
-  .summary-strip,
-  .metric-grid,
-  .module-launcher {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .focus-header,
-  .focus-title {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .focus-actions {
-    display: grid;
-    width: 100%;
-  }
-}
-
-@media (max-width: 520px) {
-  .hero-controls,
-  .summary-strip,
-  .metric-grid,
-  .module-launcher {
+  .daycare-head,
+  .head-controls,
+  .daycare-layout,
+  .room-head,
+  .room-facts,
+  .action-grid {
     grid-template-columns: 1fr;
-  }
-
-  .sala-pick {
-    flex-basis: 220px;
   }
 }
 </style>

@@ -3,10 +3,10 @@
     brand-to="/login"
     eyebrow="Acceso interno"
     title="Acceso Husky Pass"
-    description="El acceso administrativo se determina por la cuenta institucional y los módulos asignados."
+    description="El acceso administrativo se determina por la cuenta institucional y los permisos asignados."
     experience="admin"
   >
-    <UnifiedLoginForm context="admin" heading="Acceso administrativo" description="Usa tu cuenta institucional; Husky Pass abrirá el módulo disponible." />
+    <UnifiedLoginForm context="admin" heading="Acceso administrativo" description="Usa tu cuenta institucional; Husky Pass abrirá la vista disponible." />
   </LoginPanel>
 </template>
 

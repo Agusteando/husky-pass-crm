@@ -3,8 +3,8 @@
     <header class="workspace-head compact-head comms-head">
       <div>
         <p class="eyebrow">Comunicados</p>
-        <h1>Centro de comunicación escolar</h1>
-        <p>Redacta, segmenta, revisa y envía avisos claros para familias por plantel, grado o grupo.</p>
+        <h1>Comunicados</h1>
+        <p>Redacta, elige audiencia y publica avisos para familias por plantel, grado o grupo.</p>
       </div>
       <div class="head-action-stack">
         <span v-if="data" class="permission-chip" :data-global="data.permissions.isGlobal">{{ data.permissions.isGlobal ? 'Global' : 'Alcance asignado' }}</span>
@@ -28,7 +28,7 @@
       <article class="composer-card">
         <header>
           <p class="eyebrow">{{ draft.id ? 'Editando borrador' : 'Nuevo comunicado' }}</p>
-          <h2>Composición</h2>
+          <h2>Mensaje</h2>
         </header>
 
         <form class="composer-form" @submit.prevent="saveAsDraft">

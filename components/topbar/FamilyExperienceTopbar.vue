@@ -9,7 +9,7 @@
         </span>
       </NuxtLink>
 
-      <nav class="role-nav" :class="{ 'mobile-only-nav': isGuarderia }" aria-label="Navegacion familiar">
+      <nav class="role-nav" :class="{ 'mobile-only-nav': isGuarderia }" aria-label="Navegación familiar">
         <NuxtLink v-for="item in navItems" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
           <FamilyPersonasIcon :name="item.icon" />
           <span>{{ item.label }}</span>
@@ -50,19 +50,19 @@ const props = defineProps<{
 const route = useRoute()
 const isGuarderia = computed(() => props.identity.context.experience === 'guarderia')
 const brandLogo = computed(() => props.identity.assets.wordmark || props.identity.assets.logo || '/brand/husky-pass-logo.png')
-const brandLabel = computed(() => isGuarderia.value ? 'Husky Pass Guarderia' : props.identity.label || 'Husky Pass')
-const brandTitle = computed(() => isGuarderia.value ? 'Guarderia' : props.identity.shortLabel || 'Escolar')
+const brandLabel = computed(() => isGuarderia.value ? 'Husky Pass Guardería' : props.identity.label || 'Husky Pass')
+const brandTitle = computed(() => isGuarderia.value ? 'Guardería' : props.identity.shortLabel || 'Escolar')
 const contextLine = computed(() => {
   const user = props.session?.user
   if (!user) return props.identity.officialName
-  if (isGuarderia.value) return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guarderia'
+  if (isGuarderia.value) return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
   return [props.identity.levelLabel, props.identity.context.plantel].filter(Boolean).join(' / ') || props.identity.officialName
 })
 const activeStudent = computed(() => {
   const user = props.session?.user
   if (!user || user.kind !== 'family') return null
   if (isGuarderia.value) {
-    return { label: 'Sala', value: [user.scopes.daycare?.unidad, user.scopes.daycare?.sala].filter(Boolean).join(' / ') || 'Guarderia' }
+    return { label: 'Sala', value: [user.scopes.daycare?.unidad, user.scopes.daycare?.sala].filter(Boolean).join(' / ') || 'Guardería' }
   }
   const matricula = displayMatriculaCandidate(user.username)
   return matricula ? { label: 'Matricula', value: matricula } : null

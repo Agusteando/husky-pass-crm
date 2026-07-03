@@ -22,11 +22,11 @@
           </select>
         </label>
         <label class="search-field">
-          <span>Recurso</span>
+          <span>Archivo</span>
           <select v-model="resourceFilter" class="select" data-diagnostic-filter="archivo-recurso">
             <option value="all">Todos</option>
             <option value="with">Con archivo</option>
-            <option value="without">Sin recurso</option>
+            <option value="without">Sin archivo</option>
           </select>
         </label>
         <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" @click="startCreate()">{{ actionLabel }}</button>
@@ -55,8 +55,8 @@
       <div class="card resource-list-card" data-product-panel="resource-list" :data-state="filteredRows.length ? 'content' : 'empty'">
         <div class="section-head">
           <div>
-            <p class="eyebrow">Listado</p>
-            <h2>{{ filteredRows.length }} registros</h2>
+            <p class="eyebrow">Publicaciones</p>
+            <h2>{{ filteredRows.length }} visibles</h2>
           </div>
           <span class="scope-pill">{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</span>
         </div>
@@ -79,11 +79,11 @@
             </span>
             <span class="row-status">
               <strong :class="isHiddenResource(item.hidden) ? 'status-hidden' : 'status-published'">{{ isHiddenResource(item.hidden) ? 'Oculta' : 'Publicada' }}</strong>
-              <small>{{ item.resource ? 'Con recurso' : 'Sin recurso' }}</small>
+              <small>{{ item.resource ? 'Con archivo' : 'Sin archivo' }}</small>
             </span>
           </button>
         </div>
-        <EmptyState v-else title="Sin publicaciones" description="No hay registros para esta búsqueda, estado o filtro de recurso." />
+        <EmptyState v-else title="Sin publicaciones" description="No hay publicaciones para esta búsqueda o estado." />
       </div>
 
       <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
@@ -100,7 +100,7 @@
             <div><dt>Fecha</dt><dd>{{ formatDate(selected.date || selected.timestamp, '—') }}</dd></div>
             <div><dt>Autor</dt><dd>{{ selected.autor || '—' }}</dd></div>
             <div><dt>Estado familiar</dt><dd>{{ isHiddenResource(selected.hidden) ? 'No visible para familias' : 'Visible para familias' }}</dd></div>
-            <div><dt>Recurso</dt><dd>{{ selected.resource || 'Sin archivo' }}</dd></div>
+            <div><dt>Archivo</dt><dd>{{ selected.resource || 'Sin archivo' }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
@@ -110,7 +110,7 @@
             <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="remove(selected.id)">Eliminar</button>
           </div>
         </template>
-        <EmptyState v-else title="Selecciona un registro" description="El detalle aparecerá aquí. Los filtros actualizan el listado y la URL." />
+        <EmptyState v-else title="Selecciona una publicación" description="Verás estado, archivo y acciones seguras." />
       </aside>
     </section>
   </section>

@@ -36,30 +36,30 @@ export const GESTION_ACCESS_PROFILES: Array<{
   },
   {
     key: 'operator',
-    label: 'Operación escolar',
-    shortLabel: 'Operación',
-    caption: 'Familias, borradores y contenido editable.',
+    label: 'Familias y borradores',
+    shortLabel: 'Familias',
+    caption: 'Ve familias y prepara comunicados, encuestas y convenios.',
     capabilities: ['familias.view', 'comunicados.create', 'encuestas.manage', 'convenios.manage']
   },
   {
     key: 'publisher',
-    label: 'Publicación escolar',
-    shortLabel: 'Publicación',
-    caption: 'Crea, programa y publica contenido.',
+    label: 'Publicar',
+    shortLabel: 'Publicar',
+    caption: 'Crea, programa y publica comunicados y convenios.',
     capabilities: ['familias.view', 'comunicados.create', 'comunicados.publish', 'encuestas.manage', 'convenios.manage', 'convenios.publish']
   },
   {
     key: 'content',
-    label: 'Contenido',
-    shortLabel: 'Contenido',
-    caption: 'Encuestas y convenios con consulta familiar.',
+    label: 'Encuestas y convenios',
+    shortLabel: 'Encuestas',
+    caption: 'Gestiona formularios y convenios para familias.',
     capabilities: ['familias.view', 'encuestas.manage', 'convenios.manage', 'convenios.publish']
   },
   {
     key: 'full',
-    label: 'Acceso total',
-    shortLabel: 'Total',
-    caption: 'Todas las capacidades del módulo.',
+    label: 'Todo Escolar',
+    shortLabel: 'Todo Escolar',
+    caption: 'Familias, comunicados, encuestas y convenios.',
     capabilities: [...GESTION_CAPABILITY_ORDER]
   }
 ]
@@ -95,7 +95,7 @@ export function formatGestionScope(scope: GestionEscolarScope) {
     scope.nivel,
     scope.grado && `${scope.grado}`,
     scope.grupo && `Grupo ${scope.grupo}`
-  ].filter(Boolean).join(' · ') || 'Plantel pendiente'
+  ].filter(Boolean).join(' / ') || 'Plantel pendiente'
 }
 
 export function emptyGestionScopeTree(): GestionEscolarScopeTree {

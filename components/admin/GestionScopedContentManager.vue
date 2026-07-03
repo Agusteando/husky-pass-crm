@@ -1,35 +1,37 @@
 <template>
   <section class="publishing-manager" :data-kind="kind">
-    <header class="module-hero">
+    <header class="publishing-head">
       <div>
         <p class="eyebrow">{{ eyebrow }}</p>
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
       </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Workbench</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
     </header>
 
-    <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader :label="title" contained /></section>
-    <section v-else-if="loadError" class="state-card" data-state="error">
+    <section v-if="pending" class="state-panel" data-state="loading">
+      <HuskyPassLoader :label="title" contained />
+    </section>
+    <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No disponible</h2>
       <p>No pudimos cargar este flujo de publicación.</p>
     </section>
 
-    <section v-else class="manager-layout">
-      <form class="composer-card" @submit.prevent="save">
-        <div class="section-head">
-          <span><FamilyPersonasIcon :name="icon" /></span>
+    <section v-else class="publisher-layout">
+      <form class="composer-panel" @submit.prevent="save">
+        <div class="section-title">
+          <span class="title-icon"><FamilyPersonasIcon :name="icon" /></span>
           <div>
             <p class="eyebrow">{{ form.id ? 'Editando' : 'Nueva publicación' }}</p>
             <h2>{{ form.title || defaultTitle }}</h2>
           </div>
         </div>
 
-        <div class="status-guide">
-          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>Preparar sin mostrar a familias.</small></article>
-          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Listo para activarse por fecha.</small></article>
-          <article :data-active="form.status === 'active'"><strong>Activo</strong><small>Visible para la audiencia.</small></article>
+        <div class="status-steps" aria-label="Estado de publicación">
+          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>No visible</small></article>
+          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Listo por fecha</small></article>
+          <article :data-active="form.status === 'active'"><strong>Publicado</strong><small>Visible</small></article>
         </div>
 
         <label class="field">
@@ -38,10 +40,10 @@
         </label>
         <label class="field">
           <span>Resumen</span>
-          <input v-model="form.summary" placeholder="Frase corta visible para admins y familias" />
+          <input v-model="form.summary" placeholder="Frase corta para familias" />
         </label>
         <label class="field">
-          <span>Enlace</span>
+          <span>{{ linkLabel }}</span>
           <input v-model="form.url" :placeholder="urlPlaceholder" required />
         </label>
 
@@ -51,7 +53,7 @@
               <p class="eyebrow">Audiencia</p>
               <strong>{{ formatGestionScope(form.scope) }}</strong>
             </div>
-            <span>{{ response?.permissions.canPublish ? 'Puede publicar' : 'Puede preparar' }}</span>
+            <span>{{ response?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador' }}</span>
           </div>
           <AdminGestionScopePicker
             v-model="form.scope"
@@ -62,20 +64,20 @@
           />
         </section>
 
-        <div class="status-row" aria-label="Estado de publicación">
+        <div class="status-row">
           <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
           <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!canActivate" /> Programado</label>
-          <label :class="{ active: form.status === 'active' }"><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Activo</label>
-          <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" /> Pausado</label>
+          <label :class="{ active: form.status === 'active' }"><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Publicado</label>
+          <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" /> Inactivo</label>
         </div>
 
         <label v-if="form.status === 'scheduled'" class="field">
-          <span>Activar desde</span>
+          <span>Publicar desde</span>
           <input v-model="form.activeFrom" type="datetime-local" />
         </label>
 
-        <p v-if="actionError" class="action-message error">{{ actionError }}</p>
-        <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
+        <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
+        <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
           <button class="btn btn-primary" type="submit" :disabled="saving || !response?.permissions.canManage || !form.scope.plantel">
@@ -84,43 +86,43 @@
         </div>
       </form>
 
-      <aside class="preview-stack">
-        <article class="preview-card" :data-status="form.status">
-          <div class="preview-head">
+      <aside class="publishing-side">
+        <article class="preview-panel" :data-status="form.status">
+          <div class="panel-head">
             <div>
               <p class="eyebrow">Vista previa</p>
               <h2>{{ form.title || defaultTitle }}</h2>
             </div>
             <span>{{ statusLabel(form.status) }}</span>
           </div>
-          <p>{{ form.summary || 'El resumen ayuda a entender por qué esta publicación importa.' }}</p>
+          <p>{{ form.summary || previewFallback }}</p>
           <dl>
             <div><dt>Audiencia</dt><dd>{{ formatGestionScope(form.scope) }}</dd></div>
-            <div><dt>Enlace</dt><dd>{{ form.url || urlPlaceholder }}</dd></div>
+            <div><dt>{{ linkLabel }}</dt><dd>{{ form.url || urlPlaceholder }}</dd></div>
             <div><dt>Estado</dt><dd>{{ statusLabel(form.status) }}</dd></div>
           </dl>
         </article>
 
-        <section class="content-list">
+        <section class="publication-list">
           <div class="list-head">
             <div>
               <p class="eyebrow">Publicaciones</p>
               <h2>{{ response?.items.length || 0 }}</h2>
             </div>
-            <button class="mini-button" type="button" @click="resetForm">Nuevo</button>
+            <button class="inline-action" type="button" @click="resetForm">Nueva</button>
           </div>
 
-          <article v-for="item in response?.items" :key="item.id" class="content-row" :data-status="item.status">
+          <article v-for="item in response?.items" :key="item.id" class="publication-row" :data-status="item.status">
             <span class="row-icon"><FamilyPersonasIcon :name="icon" /></span>
             <div>
               <b>{{ item.title }}</b>
               <p>{{ item.summary || item.scopeLabel }}</p>
               <small>{{ statusLabel(item.status) }} · {{ item.scopeLabel }}</small>
             </div>
-            <button class="mini-button" type="button" @click="edit(item)">Editar</button>
+            <button class="inline-action" type="button" @click="edit(item)">Editar</button>
           </article>
 
-          <div v-if="!response?.items.length" class="state-card compact" data-state="empty">
+          <div v-if="!response?.items.length" class="state-panel compact" data-state="empty">
             <FamilyPersonasIcon :name="icon" />
             <h3>Sin publicaciones</h3>
             <p>Cuando guardes un borrador aparecerá aquí.</p>
@@ -165,7 +167,9 @@ const form = reactive({
 })
 
 const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Convenio para familias')
-const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://publicacion-o-flipbook...')
+const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://documento-publico...')
+const linkLabel = computed(() => props.kind === 'encuesta' ? 'Formulario' : 'Documento')
+const previewFallback = computed(() => props.kind === 'encuesta' ? 'Las familias verán esta encuesta cuando esté publicada.' : 'Las familias verán este documento cuando esté publicado.')
 const canActivate = computed(() => response.value?.permissions.canPublish || props.kind === 'encuesta')
 const primaryActionLabel = computed(() => {
   if (form.status === 'active') return 'Publicar'
@@ -204,8 +208,8 @@ function edit(item: GestionEscolarScopedContentItem) {
 }
 
 function statusLabel(status: GestionEscolarContentStatus) {
-  if (status === 'active') return 'Activo'
-  if (status === 'inactive') return 'Pausado'
+  if (status === 'active') return 'Publicado'
+  if (status === 'inactive') return 'Inactivo'
   if (status === 'scheduled') return 'Programado'
   return 'Borrador'
 }
@@ -244,116 +248,111 @@ async function save() {
   gap: 16px;
 }
 
-.module-hero,
-.composer-card,
-.preview-card,
-.content-list,
-.state-card {
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid #e2e8f0;
-  border-radius: 22px;
-  box-shadow: var(--shadow-soft);
+.publishing-head,
+.composer-panel,
+.preview-panel,
+.publication-list,
+.state-panel {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dce5eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
 }
 
-.module-hero {
-  align-items: center;
-  background: linear-gradient(135deg, #fff, #f8fbf2);
+.publishing-head {
+  align-items: end;
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: clamp(18px, 2.6vw, 32px);
+  padding: clamp(18px, 2.2vw, 28px);
 }
 
-h1,
-h2,
-h3,
-p {
+.publishing-head h1,
+.composer-panel h2,
+.preview-panel h2,
+.publication-list h2,
+.state-panel h2,
+.state-panel h3 {
+  color: #152032;
+  font-family: var(--font-body);
   margin: 0;
 }
 
-h1,
-h2,
-h3 {
-  color: #17233b;
-  line-height: 1.08;
+.publishing-head h1 {
+  font-size: clamp(2rem, 3vw, 3.1rem);
 }
 
-h1 {
-  font-size: clamp(2rem, 3vw, 3.2rem);
+.publishing-head p:not(.eyebrow),
+.publication-row p,
+.publication-row small,
+.preview-panel p,
+.preview-panel dd,
+.status-steps small {
+  color: #667789;
 }
 
-.module-hero p,
-.content-row p,
-.content-row small,
-.preview-card p,
-.preview-card dd,
-.status-guide small {
-  color: #64748b;
-  line-height: 1.45;
-}
-
-.manager-layout {
+.publisher-layout {
   align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(390px, 520px) minmax(0, 1fr);
 }
 
-.composer-card,
-.content-list,
-.preview-card {
+.composer-panel,
+.preview-panel,
+.publication-list {
   display: grid;
   gap: 14px;
   padding: 16px;
 }
 
-.section-head,
+.section-title,
 .list-head,
-.content-row,
+.publication-row,
 .actions,
-.panel-head,
-.preview-head {
+.panel-head {
   align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
 }
 
-.section-head {
+.section-title {
   justify-content: start;
 }
 
-.section-head > span,
+.title-icon,
 .row-icon {
-  background: #fff7df;
-  border: 1px solid #f3d589;
-  border-radius: 14px;
-  color: #9a6700;
-  display: grid;
+  align-items: center;
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: #0d766d;
+  display: inline-flex;
   flex: 0 0 auto;
   height: 44px;
-  place-items: center;
+  justify-content: center;
   width: 44px;
 }
 
-.status-guide {
+.status-steps {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.status-guide article {
+.status-steps article {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
   display: grid;
   gap: 3px;
   padding: 10px;
 }
 
-.status-guide article[data-active='true'] {
+.status-steps article[data-active='true'] {
   background: #e7f8ef;
-  border-color: #9fd9b8;
+  border-color: #bfead0;
 }
 
 .field {
@@ -362,19 +361,18 @@ h1 {
 }
 
 .field span,
-.preview-card dt {
-  color: #64748b;
-  font-size: .72rem;
+.preview-panel dt {
+  color: #6b7a8b;
+  font-size: 0.72rem;
   font-weight: 850;
-  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
 input {
-  background: #fff;
-  border: 1px solid #d9e2ea;
-  border-radius: 14px;
-  color: #17233b;
+  background: #ffffff;
+  border: 1px solid #dce5eb;
+  border-radius: 12px;
+  color: #152032;
   min-height: 42px;
   min-width: 0;
   padding: 0 12px;
@@ -382,20 +380,24 @@ input {
 
 .audience-panel {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid #e1e8ed;
+  border-radius: 14px;
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
 }
 
-.panel-head span,
-.preview-head span {
-  background: #eef7fb;
-  border: 1px solid #cfe7fb;
+.panel-head strong {
+  color: #152032;
+  font-size: 0.92rem;
+}
+
+.panel-head span {
+  background: #f4faf8;
+  border: 1px solid #cae2dc;
   border-radius: 999px;
-  color: #236188;
-  font-size: .72rem;
+  color: #0d766d;
+  font-size: 0.74rem;
   font-weight: 850;
   padding: 7px 10px;
 }
@@ -409,127 +411,128 @@ input {
 .status-row label {
   align-items: center;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e1e8ed;
   border-radius: 999px;
-  color: #475569;
+  color: #526173;
   display: inline-flex;
   font-weight: 850;
   gap: 7px;
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 12px;
 }
 
 .status-row label.active {
   background: #e7f8ef;
-  border-color: #9fd9b8;
-  color: #156235;
+  border-color: #bfead0;
+  color: #15803d;
 }
 
-.preview-stack {
+.publishing-side {
   display: grid;
   gap: 16px;
   position: sticky;
-  top: calc(var(--topbar-height) + 14px);
+  top: calc(var(--topbar-height) + 18px);
 }
 
-.preview-card dl {
+.preview-panel dl {
   display: grid;
   gap: 10px;
   margin: 0;
 }
 
-.preview-card dl div {
-  border-top: 1px solid #e2e8f0;
+.preview-panel dl div {
+  border-top: 1px solid #e1e8ed;
   display: grid;
   gap: 2px;
   padding-top: 8px;
 }
 
-.preview-card dd {
+.preview-panel dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.content-row {
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+.publication-row {
+  border: 1px solid #e1e8ed;
+  border-radius: 13px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   padding: 12px;
 }
 
-.content-row[data-status='active'] {
+.publication-row[data-status='active'] {
   border-color: #bfead0;
 }
 
-.content-row[data-status='scheduled'] {
+.publication-row[data-status='scheduled'] {
   border-color: #f3d589;
 }
 
-.content-row b,
-.content-row small {
+.publication-row b,
+.publication-row small {
   display: block;
 }
 
-.mini-button {
-  background: #fff;
+.inline-action {
+  background: #ffffff;
   border: 1px solid #cfe0e7;
-  border-radius: 12px;
-  color: #0f8c9a;
+  border-radius: 10px;
+  color: #0d766d;
+  cursor: pointer;
+  font-size: 0.82rem;
   font-weight: 850;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 34px;
+  padding: 0 11px;
 }
 
-.action-message {
+.surface-message {
   background: #edfdf7;
   border: 1px solid #b7ead6;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #047857;
   padding: 10px 12px;
 }
 
-.action-message.error {
+.surface-message.error {
   background: #fff1f2;
   border-color: #fecdd3;
   color: #be123c;
 }
 
-.state-card {
-  color: #64748b;
+.state-panel {
+  color: #667789;
   display: grid;
-  gap: 8px;
+  gap: 9px;
   min-height: 220px;
   place-items: center;
   padding: 24px;
   text-align: center;
 }
 
-.state-card.compact {
+.state-panel.compact {
   min-height: 160px;
 }
 
 @media (max-width: 1120px) {
-  .manager-layout {
+  .publisher-layout {
     grid-template-columns: 1fr;
   }
 
-  .preview-stack {
+  .publishing-side {
     position: static;
   }
 
-  .module-hero,
+  .publishing-head,
   .actions,
-  .panel-head,
-  .preview-head {
+  .panel-head {
     align-items: stretch;
     flex-direction: column;
   }
 }
 
 @media (max-width: 740px) {
-  .status-guide,
-  .content-row {
+  .status-steps,
+  .publication-row {
     grid-template-columns: 1fr;
   }
 }

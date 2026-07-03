@@ -56,7 +56,7 @@
               <strong>{{ account.nombre_nino || 'Sin nombre de niño/a' }}</strong>
               <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
             </span>
-            <span class="role-pill">{{ account.role || 'HUSKY' }}</span>
+            <span class="role-pill">{{ accountStatusLabel(account) }}</span>
           </button>
         </div>
         <EmptyState v-else title="Sin familias" description="No hay cuentas familiares para esta búsqueda o sala." />
@@ -73,11 +73,11 @@
           <dl>
             <div><dt>Usuario</dt><dd>{{ accountLabel(selected.username) || 'Sin usuario' }}</dd></div>
             <div><dt>Correo</dt><dd>{{ selected.email || 'Sin correo' }}</dd></div>
-            <div><dt>Rol</dt><dd>{{ selected.role || '—' }}</dd></div>
+            <div><dt>Acceso</dt><dd>{{ accountStatusLabel(selected) }}</dd></div>
             <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
           </dl>
           <div class="preview-actions">
-            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="impersonar-familia" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo impersonación' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
+            <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
             <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar</button>
           </div>
@@ -137,6 +137,12 @@ watch(() => route.query.familia, (value) => {
 
 function accountLabel(value?: string | null) {
   return displayMatriculaCandidate(value)
+}
+
+function accountStatusLabel(account: Pick<FamilyAccount, 'username' | 'email' | 'role'>) {
+  if (!account.username && !account.email) return 'Incompleta'
+  if (!account.role) return 'Pendiente'
+  return 'Activa'
 }
 
 const filteredAccounts = computed(() => {
@@ -212,10 +218,10 @@ async function save(payload: Partial<FamilyAccount>) {
 }
 
 function impersonationButtonLabel(userId?: number) {
-  if (!userId) return 'Impersonar'
-  if (impersonatingId.value === userId) return 'Abriendo…'
-  if (confirmingImpersonationId.value === userId) return 'Confirmar impersonación'
-  return 'Impersonar'
+  if (!userId) return 'Vista familiar'
+  if (impersonatingId.value === userId) return 'Abriendo...'
+  if (confirmingImpersonationId.value === userId) return 'Confirmar vista'
+  return 'Vista familiar'
 }
 
 function cancelImpersonation() {
@@ -228,7 +234,7 @@ async function impersonate(userId?: number) {
   if (confirmingImpersonationId.value !== userId) {
     confirmingImpersonationId.value = userId
     actionError.value = ''
-    actionNotice.value = 'Confirma para entrar como esta familia. La sesión quedará marcada como impersonación y podrás volver desde la barra superior.'
+    actionNotice.value = 'Confirma para abrir la vista familiar de esta cuenta.'
     return
   }
 
@@ -240,7 +246,7 @@ async function impersonate(userId?: number) {
       method: 'POST',
       body: { userId }
     })
-    actionNotice.value = 'Abriendo impersonación familiar.'
+    actionNotice.value = 'Abriendo vista familiar.'
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'

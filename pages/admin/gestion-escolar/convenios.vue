@@ -2,8 +2,8 @@
   <AdminGestionScopedContentManager
     kind="convenio"
     eyebrow="Convenios"
-    title="Convenios y flipbooks"
-    description="Configura publicaciones institucionales por plantel, nivel, grado o grupo."
+    title="Convenios visibles"
+    description="Publica documentos para una audiencia clara y deja inactivo lo que ya no aplica."
     icon="handshake"
   />
 </template>

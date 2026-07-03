@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Asignación Escolar</p>
         <h1>Admins escolares</h1>
-        <p>Elige una responsabilidad, define planteles o grupos y deja claro qué podrá operar esta persona.</p>
+        <p>Elige qué hará esta persona, define planteles o grupos y confirma el acceso antes de activarlo.</p>
         <div class="hero-rail" aria-label="Planteles escolares">
           <span v-for="plantel in visiblePlanteles" :key="plantel">{{ plantel }}</span>
           <span v-if="!visiblePlanteles.length">Sin planteles detectados</span>
@@ -125,7 +125,7 @@
                 <span class="scope-number">{{ index + 1 }}</span>
                 <div>
                   <strong>{{ formatGestionScope(assignment.scope) }}</strong>
-                  <small>{{ profileLabelFor(assignment.capabilities) }} · {{ assignment.capabilities.length }} acciones operativas</small>
+                  <small>{{ profileLabelFor(assignment.capabilities) }} · {{ assignment.capabilities.length }} acciones</small>
                 </div>
                 <button class="icon-button" type="button" :disabled="saving || assignments.length <= 1" aria-label="Quitar alcance" @click="removeScope(index)">
                   <FamilyPersonasIcon name="trash" />
@@ -258,7 +258,7 @@ const resultTitle = computed(() => canSave.value ? `${draftPlanteles.value.lengt
 const resultDescription = computed(() => canSave.value ? 'La persona verá únicamente familias y contenido dentro del alcance seleccionado.' : 'Selecciona al menos un plantel y una responsabilidad antes de entregar acceso.')
 const outcomeHeadline = computed(() => selectedProfile.value === 'custom' ? 'Acceso ajustado manualmente' : profileHeadline.value)
 const outcomeItems = computed(() => [
-  { label: 'Familias', detail: hasCapability('familias.impersonate') ? 'Consulta y vista familiar controlada.' : hasCapability('familias.view') ? 'Consulta familiar sin impersonar.' : 'No verá familias.', active: hasCapability('familias.view') },
+  { label: 'Familias', detail: hasCapability('familias.impersonate') ? 'Consulta y vista familiar controlada.' : hasCapability('familias.view') ? 'Solo lectura familiar.' : 'No verá familias.', active: hasCapability('familias.view') },
   { label: 'Comunicados', detail: hasCapability('comunicados.publish') ? 'Crear, programar y publicar.' : hasCapability('comunicados.create') ? 'Crear borradores.' : 'Sin acceso.', active: hasCapability('comunicados.create') },
   { label: 'Encuestas', detail: hasCapability('encuestas.manage') ? 'Administrar formularios por audiencia.' : 'Sin acceso.', active: hasCapability('encuestas.manage') },
   { label: 'Convenios', detail: hasCapability('convenios.publish') ? 'Gestionar y publicar convenios.' : hasCapability('convenios.manage') ? 'Gestionar borradores.' : 'Sin acceso.', active: hasCapability('convenios.manage') }

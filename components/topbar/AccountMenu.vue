@@ -61,7 +61,7 @@ const profileDetail = computed(() => {
   const user = props.session?.user
   if (!user) return ''
   if (user.kind === 'admin') return user.isSuperAdmin ? 'Super Admin' : (user.unidades[0] || 'Administración')
-  if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guarderia'
+  if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
   return displayMatriculaCandidate(user.username) || user.email || 'Familia escolar'
 })
 const initials = computed(() => {
