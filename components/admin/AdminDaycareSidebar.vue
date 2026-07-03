@@ -2,8 +2,8 @@
   <aside v-if="session?.user?.kind === 'admin'" class="workspace-rail" aria-label="Workspace de guardería" data-product-panel="daycare-sidebar" data-state="content">
     <div class="rail-header">
       <div>
-        <p class="eyebrow">Workspace</p>
-        <strong>Guardería</strong>
+        <p class="eyebrow">Daycare Admin</p>
+        <strong>Unidad y sala</strong>
       </div>
       <span v-if="session.user.isSuperAdmin" class="status-pill">Super admin</span>
     </div>
@@ -28,7 +28,7 @@
       <p v-if="actionNotice" class="rail-notice">{{ actionNotice }}</p>
     </section>
 
-    <nav class="primary-nav" aria-label="Navegación daycare admin">
+    <nav class="primary-nav" aria-label="Navegación Daycare Admin">
       <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin" active-class="active" data-diagnostic-link="superadmin">Superadmin</NuxtLink>
       <NuxtLink v-if="session.user.isSuperAdmin" to="/admin/superadmin/marbetes" active-class="active" data-diagnostic-link="marbetes">Marbetes</NuxtLink>
       <NuxtLink :to="{ path: '/admin/daycare/salas', query: selectedUnidad ? { unidad: selectedUnidad } : {} }" active-class="active" data-diagnostic-link="salas">Salas</NuxtLink>

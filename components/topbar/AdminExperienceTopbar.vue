@@ -1,23 +1,27 @@
 <template>
   <header class="admin-topbar" data-experience="admin">
     <div class="page-shell admin-topbar-inner" :class="{ 'is-superadmin': isSuperAdmin }">
-      <NuxtLink class="admin-brand" :to="homeTo" aria-label="Husky Pass Administracion">
+      <NuxtLink class="admin-brand" :to="persona.homeTo" aria-label="Husky Pass Administracion">
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
         <span>
-          <strong>{{ title }}</strong>
-          <small>{{ subtitle }}</small>
+          <strong>{{ persona.title }}</strong>
+          <small>{{ persona.subtitle }}</small>
         </span>
       </NuxtLink>
 
       <form v-if="session?.user?.isSuperAdmin" class="admin-search" role="search" @submit.prevent="submitSearch">
         <FamilyPersonasIcon name="person" />
-        <input v-model="search" type="search" placeholder="Buscar usuario, matricula o persona" aria-label="Buscar en administracion" />
+        <input v-model="search" type="search" placeholder="Buscar persona, familia o admin" aria-label="Buscar en administracion" />
       </form>
+
+      <div class="admin-context" :data-persona="persona.key">
+        <span>{{ persona.context }}</span>
+      </div>
 
       <nav class="admin-nav" aria-label="Navegacion administrativa">
         <NuxtLink v-for="item in items" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
           <FamilyPersonasIcon :name="item.icon" />
-          <span>{{ item.label }}</span>
+          <span>{{ item.shortLabel || item.label }}</span>
         </NuxtLink>
       </nav>
 
@@ -32,24 +36,22 @@
 import { computed, ref } from 'vue'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
+import type { AdminNavItem, AdminPersonaSummary } from '~/utils/adminExperience'
 
 const props = defineProps<{
   session?: PublicSession | null
-  homeTo: string
-  items: Array<{ key: string; label: string; to: string; icon: string }>
+  persona: AdminPersonaSummary
+  items: AdminNavItem[]
 }>()
 
 const route = useRoute()
 const search = ref('')
 const isSuperAdmin = computed(() => Boolean(props.session?.user?.isSuperAdmin))
-const hasGestionOnly = computed(() => props.items.some((item) => item.key === 'gestion-escolar') && !props.items.some((item) => item.key === 'guarderia-admin'))
-const hasComunicadosOnly = computed(() => props.items.some((item) => item.key === 'comunicados') && !props.items.some((item) => item.key === 'guarderia-admin') && !props.items.some((item) => item.key === 'gestion-escolar'))
-const title = computed(() => props.session?.user?.isSuperAdmin ? 'Super Admin' : hasGestionOnly.value ? 'Gestión Escolar' : hasComunicadosOnly.value ? 'Comunicados' : 'Admin Guardería')
-const subtitle = computed(() => props.session?.user?.isSuperAdmin ? 'Operación institucional' : hasGestionOnly.value ? 'Operación escuela-familia' : hasComunicadosOnly.value ? 'Comunicación institucional' : (props.session?.user?.unidades?.[0] || 'Guardería'))
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
   if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
+  if (targetPath === '/admin/superadmin/gestion-escolar') return route.path.startsWith('/admin/superadmin/gestion-escolar')
   if (targetPath === '/admin/gestion-escolar') return route.path.startsWith('/admin/gestion-escolar')
   if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
@@ -67,7 +69,7 @@ async function submitSearch() {
 
 <style scoped>
 .admin-topbar {
-  background: rgba(248, 250, 252, 0.94);
+  background: rgba(248, 250, 252, 0.95);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(203, 213, 225, 0.9);
   position: sticky;
@@ -79,20 +81,20 @@ async function submitSearch() {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-areas: "brand search nav account";
-  grid-template-columns: minmax(150px, max-content) minmax(190px, 320px) minmax(0, 1fr) minmax(0, auto);
+  grid-template-areas: "brand context nav account";
+  grid-template-columns: minmax(176px, max-content) minmax(160px, 280px) minmax(0, 1fr) minmax(0, auto);
   min-height: var(--topbar-height);
   padding-block: 6px;
 }
 
 .admin-topbar-inner.is-superadmin {
   grid-template-areas:
-    "brand search . account"
+    "brand search context account"
     "nav nav nav nav";
-  grid-template-columns: minmax(160px, max-content) minmax(240px, 420px) minmax(0, 1fr) minmax(0, auto);
+  grid-template-columns: minmax(190px, max-content) minmax(240px, 420px) minmax(160px, 1fr) minmax(0, auto);
   min-height: auto;
-  row-gap: 6px;
   padding-block: 7px 8px;
+  row-gap: 6px;
 }
 
 .admin-brand {
@@ -117,7 +119,8 @@ async function submitSearch() {
 }
 
 .admin-brand strong,
-.admin-brand small {
+.admin-brand small,
+.admin-context span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -131,6 +134,29 @@ async function submitSearch() {
 .admin-brand small {
   color: var(--color-muted);
   font-size: 0.72rem;
+}
+
+.admin-context {
+  align-items: center;
+  background: #eef7fb;
+  border: 1px solid #cfe7fb;
+  border-radius: 999px;
+  color: var(--color-blue);
+  display: inline-flex;
+  font-size: .74rem;
+  font-weight: 800;
+  grid-area: context;
+  justify-self: end;
+  max-width: 100%;
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 11px;
+}
+
+.admin-context[data-persona='superAdmin'] {
+  background: var(--color-brand-100);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-900);
 }
 
 .admin-search {
@@ -192,11 +218,6 @@ async function submitSearch() {
   padding: 0 10px;
 }
 
-.admin-topbar-inner.is-superadmin .admin-nav a {
-  min-height: 32px;
-  padding-inline: 11px;
-}
-
 .admin-nav a:hover,
 .admin-nav a.active {
   background: #fff;
@@ -212,33 +233,30 @@ async function submitSearch() {
 }
 
 @media (max-width: 1180px) {
-  .admin-topbar-inner {
-    grid-template-areas: "brand nav account";
-    grid-template-columns: minmax(140px, max-content) minmax(0, 1fr) auto;
-    min-height: auto;
-  }
-
+  .admin-topbar-inner,
   .admin-topbar-inner.is-superadmin {
     grid-template-areas:
       "brand account"
+      "context context"
       "search search"
       "nav nav";
     grid-template-columns: minmax(0, 1fr) auto;
+    min-height: auto;
   }
 
-  .admin-search {
-    margin-bottom: 2px;
+  .admin-topbar-inner:not(.is-superadmin) {
+    grid-template-areas:
+      "brand account"
+      "context context"
+      "nav nav";
+  }
+
+  .admin-context {
+    justify-self: stretch;
   }
 }
 
 @media (max-width: 980px) {
-  .admin-topbar-inner {
-    grid-template-areas:
-      "brand account"
-      "nav nav";
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .admin-nav a {
     flex: 1 0 max-content;
     justify-content: center;
@@ -263,8 +281,9 @@ async function submitSearch() {
     display: none;
   }
 
-  .admin-nav {
-    width: 100%;
+  .admin-context {
+    font-size: .7rem;
+    min-height: 30px;
   }
 
   .admin-nav a {
@@ -289,5 +308,4 @@ async function submitSearch() {
     padding-inline: 0;
   }
 }
-
 </style>

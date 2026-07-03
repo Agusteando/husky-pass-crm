@@ -2,9 +2,9 @@
   <section class="salas-command stack" data-product-area="daycare" data-product-screen="salas">
     <header class="command-hero">
       <div>
-        <p class="eyebrow">Guardería admin</p>
-        <h1>Salas</h1>
-        <p>Selecciona unidad y sala. Desde aquí se decide qué contenido familiar queda visible.</p>
+        <p class="eyebrow">Daycare Admin</p>
+        <h1>Centro Daycare</h1>
+        <p>Opera una unidad y sala a la vez. Familias, tareas, avisos y calendario viven dentro de este contexto.</p>
       </div>
       <div class="hero-controls">
         <label class="label">
@@ -88,13 +88,12 @@
             <div>
               <p class="eyebrow">{{ selectedSala.unidad }}</p>
               <h2>{{ selectedSala.sala }}</h2>
-              <p>Workspace operativo para gestionar familias, tareas, avisos y calendario.</p>
+              <p>Contexto activo de sala. Todo lo que publiques será visible solo para estas familias.</p>
             </div>
           </div>
           <div class="focus-actions">
-            <button class="btn btn-primary" type="button" data-diagnostic-action="nueva-tarea" @click="goToSalaSection('tareas', true)">+ Nueva tarea</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="abrir-resumen" @click="goToSalaSummary">Abrir resumen</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="gestionar-tareas" @click="goToSalaSection('tareas')">Gestionar tareas</button>
+            <button class="btn btn-primary" type="button" data-diagnostic-action="nueva-tarea" @click="goToSalaSection('tareas', true)">Nueva tarea</button>
             <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
           </div>
         </div>
@@ -121,19 +120,19 @@
         <div class="module-launcher">
           <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
             <strong>Familias</strong>
-            <span>Ver cuentas y soporte.</span>
+            <span>Cuentas, acceso y soporte.</span>
           </button>
           <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas')">
             <strong>Tareas</strong>
-            <span>Publicar o editar tareas.</span>
+            <span>Publicaciones para casa.</span>
           </button>
           <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
             <strong>Avisos</strong>
-            <span>Comunicados familiares.</span>
+            <span>Mensajes de sala.</span>
           </button>
           <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
             <strong>Calendario</strong>
-            <span>Eventos próximos.</span>
+            <span>Fechas visibles.</span>
           </button>
         </div>
       </article>

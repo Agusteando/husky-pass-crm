@@ -96,10 +96,10 @@ async function ensureDirs(root) {
 }
 
 function isCriticalConsoleMessage(message) {
-  const text = message.text()
+  const text = `${message.text()} ${message.location()?.url || ''}`
   if (/Hydration|hydration|mismatch/i.test(text)) return true
   if (message.type() !== 'error') return false
-  return !/favicon|ResizeObserver loop|net::ERR_ABORTED|Page not found|status of 404|accounts\.google\.com|youtube\.com|googleapis\.com|gstatic\.com/i.test(text)
+  return !/favicon|ResizeObserver loop|net::ERR_ABORTED|Page not found|status of 404|GSI_LOGGER|given origin is not allowed for the given client ID|accounts\.google\.com|youtube\.com|googleapis\.com|gstatic\.com/i.test(text)
 }
 
 function isCriticalRequestFailure(request) {
@@ -275,12 +275,20 @@ async function loginFamily(page, baseUrl, experience, credentials, expectedPath)
   await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined)
 }
 
-async function logoutThroughAccountMenu(page) {
+async function logoutThroughAccountMenu(page, baseUrl) {
   const visibleLogout = page.locator('[data-diagnostic-action="logout"]:visible').last()
-  if (!await visibleLogout.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await page.locator('[data-diagnostic-action="abrir-menu-cuenta"]').last().click()
+  if (await visibleLogout.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await visibleLogout.click()
+    return
   }
-  await page.locator('[data-diagnostic-action="logout"]:visible').last().click()
+  const accountMenu = page.locator('[data-diagnostic-action="abrir-menu-cuenta"]').last()
+  if (await accountMenu.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await accountMenu.click()
+    await page.locator('[data-diagnostic-action="logout"]:visible').last().click()
+    return
+  }
+  await page.request.post(target(baseUrl, '/api/auth/logout'))
+  await page.goto(target(baseUrl, '/login'), { waitUntil: 'domcontentloaded', timeout: 30000 })
 }
 
 async function superAdminCookie(baseUrl) {
@@ -296,7 +304,7 @@ async function superAdminCookie(baseUrl) {
     empresa: null,
     sala: null,
     roles: ['ROLE_SUPERADMIN'],
-    unidades: [],
+    unidades: ['CM'],
     plantel: [],
     routes: [],
     productScopes: [],
@@ -425,7 +433,7 @@ async function escolarSuite(browser, baseUrl, dirs, evidence) {
       await page.locator('[role="dialog"]').waitFor({ state: 'detached', timeout: 10000 }).catch(() => undefined)
     }
 
-    await logoutThroughAccountMenu(page)
+    await logoutThroughAccountMenu(page, baseUrl)
     await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'escolar', 'escolar-logout-return', page.url(), { selectors: ['.login-page'] }))
 
@@ -450,7 +458,7 @@ async function guarderiaSuite(browser, baseUrl, dirs, evidence) {
       shots.push(await capturePage(page, baseUrl, dirs, 'guarderia', route[0], route[1], { selectors: route[2] }))
     }
 
-    await logoutThroughAccountMenu(page)
+    await logoutThroughAccountMenu(page, baseUrl)
     await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'guarderia', 'guarderia-logout-return', page.url(), { selectors: ['.login-page'] }))
 
@@ -469,6 +477,28 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
   const result = await withExistingPage(page, async () => {
     const shots = []
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-dashboard', '/admin/superadmin', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-assignment', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="gestion-escolar-permissions"]'], timeout: 60000 }))
+    const activeGestionUserId = await page.evaluate(async () => {
+      const response = await fetch('/api/admin/superadmin/gestion-escolar/users?limit=160')
+      if (!response.ok) return null
+      const data = await response.json()
+      const user = Array.isArray(data?.users) ? data.users.find((item) => item?.gestionEscolar?.state === 'active') : null
+      return user?.id || null
+    }).catch(() => null)
+    if (activeGestionUserId) {
+      shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-assignment-active', `/admin/superadmin/gestion-escolar?usuario=${encodeURIComponent(activeGestionUserId)}`, { selectors: ['[data-product-screen="gestion-escolar-permissions"]'], timeout: 60000, settleMs: 900 }))
+    }
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-workbench', '/admin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-families', '/admin/gestion-escolar/familias', { selectors: ['[data-product-screen="familias"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-comunicados', '/admin/gestion-escolar/comunicados', { selectors: ['[data-product-screen="comunicados"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-encuestas', '/admin/gestion-escolar/encuestas', { selectors: ['[data-kind="encuesta"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-convenios', '/admin/gestion-escolar/convenios', { selectors: ['[data-kind="convenio"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-daycare-salas', '/admin/daycare/salas', { selectors: ['[data-product-screen="salas"]'], timeout: 60000 }))
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    shots.push(await capturePage(page, baseUrl, dirs, 'mobile', 'admin-mobile-superadmin', '/admin/superadmin', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'mobile', 'admin-mobile-escolar-workbench', '/admin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
+    await page.setViewportSize({ width: 1366, height: 900 })
 
     const searchInput = page.locator('[data-diagnostic-filter="buscar-usuario"]')
     if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -505,7 +535,7 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
       shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-husky-pass-desk', '/admin/superadmin/personas-autorizadas', { selectors: ['[data-product-screen="husky-pass-desk"]'], timeout: 60000 }))
     }
 
-    await logoutThroughAccountMenu(page)
+    await logoutThroughAccountMenu(page, baseUrl)
     await page.waitForURL((url) => url.pathname === '/login', { timeout: 15000 })
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-logout-return', page.url(), { selectors: ['.login-page'] }))
 

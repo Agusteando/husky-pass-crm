@@ -1,24 +1,35 @@
 <template>
-  <section class="scoped-manager" :data-kind="kind">
+  <section class="publishing-manager" :data-kind="kind">
     <header class="module-hero">
       <div>
         <p class="eyebrow">{{ eyebrow }}</p>
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
       </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Gestión Escolar</NuxtLink>
+      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Workbench</NuxtLink>
     </header>
 
     <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader :label="title" contained /></section>
-    <section v-else-if="loadError" class="state-card" data-state="error">No disponible</section>
+    <section v-else-if="loadError" class="state-card" data-state="error">
+      <FamilyPersonasIcon name="security" />
+      <h2>No disponible</h2>
+      <p>No pudimos cargar este flujo de publicación.</p>
+    </section>
+
     <section v-else class="manager-layout">
-      <form class="editor-card" @submit.prevent="save">
+      <form class="composer-card" @submit.prevent="save">
         <div class="section-head">
           <span><FamilyPersonasIcon :name="icon" /></span>
           <div>
-            <p class="eyebrow">{{ form.id ? 'Editar' : 'Nuevo' }}</p>
+            <p class="eyebrow">{{ form.id ? 'Editando' : 'Nueva publicación' }}</p>
             <h2>{{ form.title || defaultTitle }}</h2>
           </div>
+        </div>
+
+        <div class="status-guide">
+          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>Preparar sin mostrar a familias.</small></article>
+          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Listo para activarse por fecha.</small></article>
+          <article :data-active="form.status === 'active'"><strong>Activo</strong><small>Visible para la audiencia.</small></article>
         </div>
 
         <label class="field">
@@ -27,7 +38,7 @@
         </label>
         <label class="field">
           <span>Resumen</span>
-          <input v-model="form.summary" placeholder="Visible en consola y vista familiar" />
+          <input v-model="form.summary" placeholder="Frase corta visible para admins y familias" />
         </label>
         <label class="field">
           <span>Enlace</span>
@@ -36,8 +47,11 @@
 
         <section class="audience-panel">
           <div class="panel-head">
-            <p class="eyebrow">Audiencia</p>
-            <strong>{{ formatGestionScope(form.scope) }}</strong>
+            <div>
+              <p class="eyebrow">Audiencia</p>
+              <strong>{{ formatGestionScope(form.scope) }}</strong>
+            </div>
+            <span>{{ response?.permissions.canPublish ? 'Puede publicar' : 'Puede preparar' }}</span>
           </div>
           <AdminGestionScopePicker
             v-model="form.scope"
@@ -48,46 +62,71 @@
           />
         </section>
 
-        <div class="status-row" aria-label="Estado">
+        <div class="status-row" aria-label="Estado de publicación">
           <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
+          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!canActivate" /> Programado</label>
           <label :class="{ active: form.status === 'active' }"><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Activo</label>
           <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" /> Pausado</label>
         </div>
+
+        <label v-if="form.status === 'scheduled'" class="field">
+          <span>Activar desde</span>
+          <input v-model="form.activeFrom" type="datetime-local" />
+        </label>
 
         <p v-if="actionError" class="action-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
           <button class="btn btn-primary" type="submit" :disabled="saving || !response?.permissions.canManage || !form.scope.plantel">
-            {{ saving ? 'Guardando…' : form.status === 'active' ? 'Publicar' : 'Guardar' }}
+            {{ saving ? 'Guardando...' : primaryActionLabel }}
           </button>
         </div>
       </form>
 
-      <section class="content-list">
-        <div class="list-head">
-          <div>
-            <p class="eyebrow">Publicaciones</p>
-            <h2>{{ response?.items.length || 0 }}</h2>
+      <aside class="preview-stack">
+        <article class="preview-card" :data-status="form.status">
+          <div class="preview-head">
+            <div>
+              <p class="eyebrow">Vista previa</p>
+              <h2>{{ form.title || defaultTitle }}</h2>
+            </div>
+            <span>{{ statusLabel(form.status) }}</span>
           </div>
-          <button class="mini-button" type="button" @click="resetForm">Nuevo</button>
-        </div>
-
-        <article v-for="item in response?.items" :key="item.id" class="content-row" :data-status="item.status">
-          <span class="row-icon"><FamilyPersonasIcon :name="icon" /></span>
-          <div>
-            <b>{{ item.title }}</b>
-            <p>{{ item.summary || item.scopeLabel }}</p>
-            <small>{{ statusLabel(item.status) }} · {{ item.scopeLabel }}</small>
-          </div>
-          <button class="mini-button" type="button" @click="edit(item)">Editar</button>
+          <p>{{ form.summary || 'El resumen ayuda a entender por qué esta publicación importa.' }}</p>
+          <dl>
+            <div><dt>Audiencia</dt><dd>{{ formatGestionScope(form.scope) }}</dd></div>
+            <div><dt>Enlace</dt><dd>{{ form.url || urlPlaceholder }}</dd></div>
+            <div><dt>Estado</dt><dd>{{ statusLabel(form.status) }}</dd></div>
+          </dl>
         </article>
 
-        <div v-if="!response?.items.length" class="state-card compact" data-state="empty">
-          <FamilyPersonasIcon :name="icon" />
-          <h3>Sin publicaciones</h3>
-        </div>
-      </section>
+        <section class="content-list">
+          <div class="list-head">
+            <div>
+              <p class="eyebrow">Publicaciones</p>
+              <h2>{{ response?.items.length || 0 }}</h2>
+            </div>
+            <button class="mini-button" type="button" @click="resetForm">Nuevo</button>
+          </div>
+
+          <article v-for="item in response?.items" :key="item.id" class="content-row" :data-status="item.status">
+            <span class="row-icon"><FamilyPersonasIcon :name="icon" /></span>
+            <div>
+              <b>{{ item.title }}</b>
+              <p>{{ item.summary || item.scopeLabel }}</p>
+              <small>{{ statusLabel(item.status) }} · {{ item.scopeLabel }}</small>
+            </div>
+            <button class="mini-button" type="button" @click="edit(item)">Editar</button>
+          </article>
+
+          <div v-if="!response?.items.length" class="state-card compact" data-state="empty">
+            <FamilyPersonasIcon :name="icon" />
+            <h3>Sin publicaciones</h3>
+            <p>Cuando guardes un borrador aparecerá aquí.</p>
+          </div>
+        </section>
+      </aside>
     </section>
   </section>
 </template>
@@ -120,12 +159,19 @@ const form = reactive({
   summary: '',
   url: '',
   status: 'draft' as GestionEscolarContentStatus,
+  activeFrom: '',
+  activeUntil: '',
   scope: { isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null } as GestionEscolarScope
 })
 
-const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Convenios para familias')
+const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Convenio para familias')
 const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://publicacion-o-flipbook...')
 const canActivate = computed(() => response.value?.permissions.canPublish || props.kind === 'encuesta')
+const primaryActionLabel = computed(() => {
+  if (form.status === 'active') return 'Publicar'
+  if (form.status === 'scheduled') return 'Programar'
+  return 'Guardar borrador'
+})
 
 function resetForm() {
   Object.assign(form, {
@@ -134,7 +180,9 @@ function resetForm() {
     summary: '',
     url: '',
     status: 'draft' as GestionEscolarContentStatus,
-    scope: { isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null }
+    activeFrom: '',
+    activeUntil: '',
+    scope: { isGlobal: false, plantel: response.value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
   })
   actionNotice.value = ''
   actionError.value = ''
@@ -147,6 +195,8 @@ function edit(item: GestionEscolarScopedContentItem) {
     summary: item.summary,
     url: item.url,
     status: item.status,
+    activeFrom: item.activeFrom ? item.activeFrom.slice(0, 16) : '',
+    activeUntil: item.activeUntil ? item.activeUntil.slice(0, 16) : '',
     scope: { isGlobal: false, plantel: item.plantel || null, nivel: item.nivel || null, grado: item.grado || null, grupo: item.grupo || null }
   })
   actionNotice.value = ''
@@ -167,9 +217,16 @@ async function save() {
   try {
     await $fetch('/api/admin/gestion-escolar/scoped-content', {
       method: 'POST',
-      body: { ...form, ...form.scope, kind: props.kind, isGlobal: false }
+      body: {
+        ...form,
+        activeFrom: form.activeFrom ? new Date(form.activeFrom).toISOString() : null,
+        activeUntil: form.activeUntil ? new Date(form.activeUntil).toISOString() : null,
+        ...form.scope,
+        kind: props.kind,
+        isGlobal: false
+      }
     })
-    actionNotice.value = form.status === 'active' ? 'Publicado.' : 'Guardado.'
+    actionNotice.value = form.status === 'active' ? 'Publicado.' : form.status === 'scheduled' ? 'Programado.' : 'Guardado.'
     resetForm()
     await refresh()
   } catch (error) {
@@ -182,39 +239,29 @@ async function save() {
 </script>
 
 <style scoped>
-.scoped-manager {
+.publishing-manager {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .module-hero,
-.editor-card,
+.composer-card,
+.preview-card,
 .content-list,
 .state-card {
   background: rgba(255, 255, 255, .96);
   border: 1px solid #e2e8f0;
-  border-radius: 24px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, .07);
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft);
 }
 
 .module-hero {
   align-items: center;
-  background:
-    radial-gradient(circle at 90% 12%, rgba(15, 140, 154, .14), transparent 30%),
-    linear-gradient(135deg, #fff, #f8fbf2);
+  background: linear-gradient(135deg, #fff, #f8fbf2);
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: clamp(20px, 2.6vw, 34px);
-}
-
-.eyebrow {
-  color: #0f8c9a;
-  font-size: .72rem;
-  font-weight: 850;
-  letter-spacing: .12em;
-  margin: 0 0 6px;
-  text-transform: uppercase;
+  padding: clamp(18px, 2.6vw, 32px);
 }
 
 h1,
@@ -237,29 +284,35 @@ h1 {
 
 .module-hero p,
 .content-row p,
-.content-row small {
+.content-row small,
+.preview-card p,
+.preview-card dd,
+.status-guide small {
   color: #64748b;
-  font-weight: 650;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .manager-layout {
+  align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(380px, 500px) minmax(0, 1fr);
+  grid-template-columns: minmax(390px, 520px) minmax(0, 1fr);
 }
 
-.editor-card,
-.content-list {
+.composer-card,
+.content-list,
+.preview-card {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
 }
 
 .section-head,
 .list-head,
 .content-row,
-.actions {
+.actions,
+.panel-head,
+.preview-head {
   align-items: center;
   display: flex;
   gap: 12px;
@@ -275,7 +328,7 @@ h1 {
   background: #fff7df;
   border: 1px solid #f3d589;
   border-radius: 14px;
-  color: #b98000;
+  color: #9a6700;
   display: grid;
   flex: 0 0 auto;
   height: 44px;
@@ -283,12 +336,33 @@ h1 {
   width: 44px;
 }
 
+.status-guide {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-guide article {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.status-guide article[data-active='true'] {
+  background: #e7f8ef;
+  border-color: #9fd9b8;
+}
+
 .field {
   display: grid;
   gap: 6px;
 }
 
-.field span {
+.field span,
+.preview-card dt {
   color: #64748b;
   font-size: .72rem;
   font-weight: 850;
@@ -315,16 +389,15 @@ input {
   padding: 14px;
 }
 
-.panel-head {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.panel-head strong {
-  color: #17233b;
-  font-size: .9rem;
+.panel-head span,
+.preview-head span {
+  background: #eef7fb;
+  border: 1px solid #cfe7fb;
+  border-radius: 999px;
+  color: #236188;
+  font-size: .72rem;
+  font-weight: 850;
+  padding: 7px 10px;
 }
 
 .status-row {
@@ -352,9 +425,34 @@ input {
   color: #156235;
 }
 
+.preview-stack {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: calc(var(--topbar-height) + 14px);
+}
+
+.preview-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.preview-card dl div {
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.preview-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .content-row {
   border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border-radius: 16px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   padding: 12px;
@@ -362,6 +460,10 @@ input {
 
 .content-row[data-status='active'] {
   border-color: #bfead0;
+}
+
+.content-row[data-status='scheduled'] {
+  border-color: #f3d589;
 }
 
 .content-row b,
@@ -407,16 +509,28 @@ input {
   min-height: 160px;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1120px) {
   .manager-layout {
     grid-template-columns: 1fr;
   }
 
+  .preview-stack {
+    position: static;
+  }
+
   .module-hero,
   .actions,
-  .panel-head {
+  .panel-head,
+  .preview-head {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 740px) {
+  .status-guide,
+  .content-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

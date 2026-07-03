@@ -1,46 +1,66 @@
 <template>
-  <section class="superadmin-page stack" data-product-area="superadmin" data-product-screen="directory">
-    <header class="admin-command">
-      <div class="admin-command-copy">
-        <p class="eyebrow">Superadmin</p>
-        <h1>Gestión de usuarios y productos</h1>
-        <p>Encuentra cuentas, revisa alcances y abre soporte familiar desde un directorio operativo.</p>
-
-        <div class="head-actions">
-          <NuxtLink class="btn btn-primary" to="/admin/superadmin/personas-autorizadas">Husky Pass</NuxtLink>
-          <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
-          <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Entorno</NuxtLink>
-          <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" :data-unavailable-reason="isLoadingVisible ? 'Actualizando directorio' : undefined" @click="refreshDirectory">{{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}</button>
+  <section class="superadmin-os" data-product-area="superadmin" data-product-screen="directory">
+    <header class="command-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Super Admin</p>
+        <h1>Centro de operación</h1>
+        <p>Usuarios, admins, planteles y accesos en una sola vista de control.</p>
+        <div class="hero-actions">
+          <NuxtLink class="btn btn-primary" to="/admin/superadmin/gestion-escolar">Asignar Admin Escolar</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/admin/daycare/salas">Ver Daycare</NuxtLink>
+          <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas?fixture=1">Husky Pass</NuxtLink>
+          <button class="btn btn-secondary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
+            {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}
+          </button>
         </div>
       </div>
 
-      <section v-if="directory && !loadProblem" class="command-metrics" aria-label="Resumen del directorio">
-        <article class="metric-feature">
-          <span>Total visible</span>
+      <section v-if="directory && !loadProblem" class="hero-metrics" aria-label="Resumen operativo">
+        <article class="metric-primary">
+          <span>Usuarios visibles</span>
           <strong>{{ directory.metrics.total }}</strong>
           <small>{{ activeScopeLabel }}</small>
         </article>
-        <article>
-          <span>Familias</span>
-          <strong>{{ directory.metrics.familyUsers }}</strong>
-        </article>
-        <article>
-          <span>Guardería</span>
-          <strong>{{ directory.metrics.daycareFamilies }}</strong>
-        </article>
-        <article>
-          <span>Husky Pass</span>
-          <strong>{{ directory.metrics.schoolFamilies }}</strong>
-        </article>
-        <article>
-          <span>Soporte</span>
-          <strong>{{ directory.metrics.impersonable }}</strong>
-        </article>
+        <article><span>Familias escolares</span><strong>{{ directory.metrics.schoolFamilies }}</strong></article>
+        <article><span>Familias daycare</span><strong>{{ directory.metrics.daycareFamilies }}</strong></article>
+        <article><span>Admins internos</span><strong>{{ directory.metrics.internalUsers }}</strong></article>
+        <article><span>Soporte seguro</span><strong>{{ directory.metrics.impersonable }}</strong></article>
       </section>
     </header>
 
-    <section class="directory-control card">
-      <div class="scope-tabs" aria-label="Alcance de usuarios">
+    <section class="lane-grid" aria-label="Acciones principales">
+      <NuxtLink class="lane-card primary" to="/admin/superadmin/gestion-escolar">
+        <span><FamilyPersonasIcon name="school" /></span>
+        <div>
+          <strong>Admins Escolar</strong>
+          <small>Responsabilidad, planteles y grupos sin exponer permisos técnicos.</small>
+        </div>
+      </NuxtLink>
+      <NuxtLink class="lane-card" to="/admin/superadmin">
+        <span><FamilyPersonasIcon name="people" /></span>
+        <div>
+          <strong>Directorio</strong>
+          <small>Ver personas, familias, estado de acceso y siguiente acción.</small>
+        </div>
+      </NuxtLink>
+      <NuxtLink class="lane-card" to="/admin/daycare/salas">
+        <span><FamilyPersonasIcon name="daycare" /></span>
+        <div>
+          <strong>Daycare Admin</strong>
+          <small>Unidad, sala, familias y contenido familiar de guardería.</small>
+        </div>
+      </NuxtLink>
+      <NuxtLink class="lane-card" to="/admin/historial-accesos">
+        <span><FamilyPersonasIcon name="history" /></span>
+        <div>
+          <strong>Seguridad</strong>
+          <small>Historial de acceso, validaciones y señales de auditoría.</small>
+        </div>
+      </NuxtLink>
+    </section>
+
+    <section class="directory-control">
+      <div class="scope-tabs" aria-label="Vista del directorio">
         <button
           v-for="option in scopeOptions"
           :key="option.value"
@@ -58,22 +78,22 @@
 
       <div class="filters-card">
         <label class="label">
-          Plantel
+          Plantel o unidad
           <select v-model="selectedPlantel" class="select" data-diagnostic-filter="plantel">
             <option value="">Todos</option>
             <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
           </select>
         </label>
         <label class="label search-label">
-          Buscar usuario
-          <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, rol, sala o campus" data-diagnostic-filter="buscar-usuario" />
+          Buscar
+          <input v-model="search" class="input" type="search" placeholder="Nombre, correo, matrícula, sala o campus" data-diagnostic-filter="buscar-usuario" />
         </label>
         <label class="label">
-          Límite
+          Vista
           <select v-model.number="limit" class="select" data-diagnostic-filter="limite">
-            <option :value="50">50</option>
-            <option :value="120">120</option>
-            <option :value="250">250</option>
+            <option :value="50">Compacta</option>
+            <option :value="120">Operativa</option>
+            <option :value="250">Amplia</option>
           </select>
         </label>
       </div>
@@ -82,124 +102,136 @@
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
 
-    <section v-if="loadProblem" class="card state-card" data-product-panel="superadmin-directory" data-state="error">
+    <section v-if="loadProblem" class="state-card" data-product-panel="superadmin-directory" data-state="error">
       <p class="eyebrow">Directorio no disponible</p>
       <h2>No fue posible cargar usuarios.</h2>
       <p>{{ loadProblemMessage }}</p>
       <button class="btn btn-secondary compact" type="button" data-diagnostic-action="reintentar-directorio" @click="refreshDirectory">Reintentar</button>
     </section>
-    <div v-else-if="isLoadingVisible" class="card loading-card" data-product-loading>Cargando usuarios…</div>
+    <div v-else-if="isLoadingVisible" class="state-card loading-card" data-product-loading>Cargando usuarios...</div>
 
-    <section v-else-if="directory?.users?.length" class="directory-grid" data-product-panel="superadmin-directory" data-state="content">
-      <article class="card users-card">
+    <section v-else-if="directory?.users?.length" class="people-layout" data-product-panel="superadmin-directory" data-state="content">
+      <article class="people-panel">
         <div class="section-head">
           <div>
             <p class="eyebrow">Directorio</p>
-            <h2>{{ directory.users.length }} usuarios</h2>
+            <h2>{{ directory.users.length }} personas</h2>
           </div>
-          <span class="muted">{{ activeScopeLabel }}</span>
+          <span class="soft-pill">{{ activeScopeLabel }}</span>
         </div>
 
-        <div class="table-wrap responsive-card-wrap">
-          <table class="table responsive-table users-table">
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Tipo</th>
-                <th>Plantel</th>
-                <th>Alcances</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="user in directory.users" :key="user.id" :class="{ selected: clientReady && selectedUser?.id === user.id }">
-                <td data-label="Usuario">
-                  <div class="user-cell">
-                    <span class="user-avatar">{{ initials(user) }}</span>
-                    <span>
-                      <strong>{{ displayName(user) }}</strong>
-                      <small>{{ user.email || loginLabel(user.username) || `ID ${user.id}` }}</small>
-                      <em v-if="user.nombre_nino">{{ user.nombre_nino }}</em>
-                    </span>
-                  </div>
-                </td>
-                <td data-label="Tipo"><span class="type-pill">{{ audienceLabel(user) }}</span></td>
-                <td data-label="Plantel">
-                  <div class="scope-stack">
-                    <span>{{ labelList([...user.plantel, ...user.unidad], '—') }}</span>
-                    <small v-if="user.sala">Sala {{ user.sala }}</small>
-                    <small v-if="user.campus">{{ user.campus }}</small>
-                  </div>
-                </td>
-                <td data-label="Alcances">
-                  <div class="pills">
-                    <span v-for="scope in user.productScopes" :key="scope" class="scope-pill">{{ productScopeLabel(scope) }}</span>
-                    <span v-if="user.adminScopes.includes('daycare')" class="scope-pill muted-pill">Guardería interna</span>
-                    <span v-if="user.adminScopes.includes('gestionEscolar')" class="scope-pill ge-pill">Gestión Escolar</span>
-                    <span v-if="user.communicationsEnabled" class="scope-pill comms-pill">Comunicados</span>
-                    <span v-if="user.adminScopes.includes('accessHistory')" class="scope-pill history-pill">Historial</span>
-                    <span v-if="!user.productScopes.length && !user.adminScopes.length" class="muted">Sin alcance detectado</span>
-                  </div>
-                </td>
-                <td data-label="Acciones">
-                  <div class="row-actions">
-                    <button class="btn btn-secondary compact" type="button" data-diagnostic-action="detalle-usuario" @click="selectUser(user)">Detalle</button>
-                    <NuxtLink
-                      v-if="user.productScopes.includes('daycare') && user.sala"
-                      class="btn btn-secondary compact"
-                      :to="`/admin/daycare/salas/${user.sala}/familias`"
-                      data-diagnostic-link="ver-sala-usuario"
-                    >
-                      Ver sala
-                    </NuxtLink>
-                    <button
-                      class="btn btn-primary compact"
-                      type="button"
-                      data-diagnostic-action="impersonar-usuario"
-                      :disabled="!user.canImpersonate || impersonatingId === user.id"
-                      :data-unavailable-reason="!user.canImpersonate ? 'Usuario sin producto familiar impersonable' : impersonatingId === user.id ? 'Abriendo impersonación' : undefined"
-                      @click="requestImpersonation(user)"
-                    >
-                      {{ impersonationButtonLabel(user) }}
-                    </button>
-                    <button
-                      v-if="confirmingImpersonationId === user.id"
-                      class="btn btn-secondary compact"
-                      type="button"
-                      data-diagnostic-action="cancelar-impersonacion"
-                      @click="cancelImpersonation"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="people-list" role="list">
+          <button
+            v-for="user in directory.users"
+            :key="user.id"
+            class="person-row"
+            :class="{ selected: clientReady && selectedUser?.id === user.id }"
+            type="button"
+            data-diagnostic-action="detalle-usuario"
+            :aria-pressed="clientReady && selectedUser?.id === user.id"
+            @click="selectUser(user)"
+          >
+            <span class="user-avatar">{{ initials(user) }}</span>
+            <span class="person-main">
+              <strong>{{ displayName(user) }}</strong>
+              <small>{{ user.email || loginLabel(user.username) || `ID ${user.id}` }}</small>
+            </span>
+            <span class="person-context">
+              <b :data-state="primaryAccessState(user).state">{{ primaryAccessState(user).label }}</b>
+              <small>{{ primaryScopeLabel(user) }}</small>
+            </span>
+          </button>
         </div>
       </article>
 
-      <aside class="card detail-card">
+      <aside class="detail-panel">
         <template v-if="clientReady && selectedUser">
-          <p class="eyebrow">Detalle de usuario</p>
-          <h2>{{ displayName(selectedUser) }}</h2>
-          <dl>
-            <div><dt>ID</dt><dd>{{ selectedUser.id }}</dd></div>
-            <div><dt>Correo</dt><dd>{{ selectedUser.email || '—' }}</dd></div>
-            <div><dt>Usuario</dt><dd>{{ loginLabel(selectedUser.username) || '—' }}</dd></div>
-            <div><dt>Rol legado</dt><dd>{{ selectedUser.role || '—' }}</dd></div>
-            <div><dt>Producto</dt><dd>{{ selectedUser.productScopes.map(productScopeLabel).join(' · ') || 'Interno / sin producto familiar' }}</dd></div>
-            <div><dt>Plantel</dt><dd>{{ labelList([...selectedUser.plantel, ...selectedUser.unidad], '—') }}</dd></div>
-            <div><dt>Rutas heredadas</dt><dd>{{ selectedUser.routes.length ? selectedUser.routes.join(' · ') : '—' }}</dd></div>
-          </dl>
+          <header class="detail-identity">
+            <span class="user-avatar large">{{ initials(selectedUser) }}</span>
+            <div>
+              <p class="eyebrow">{{ audienceLabel(selectedUser) }}</p>
+              <h2>{{ displayName(selectedUser) }}</h2>
+              <p>{{ selectedUser.email || loginLabel(selectedUser.username) || `ID ${selectedUser.id}` }}</p>
+            </div>
+            <span class="state-pill" :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
+          </header>
+
+          <section class="next-action-panel">
+            <div>
+              <p class="eyebrow">Siguiente acción</p>
+              <h3>{{ nextActionTitle }}</h3>
+            </div>
+            <div class="quick-actions">
+              <NuxtLink class="btn btn-primary compact" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">
+                Admin Escolar
+              </NuxtLink>
+              <button
+                class="btn btn-secondary compact"
+                type="button"
+                data-diagnostic-action="impersonar-usuario"
+                :disabled="!selectedUser.canImpersonate || impersonatingId === selectedUser.id"
+                :data-unavailable-reason="!selectedUser.canImpersonate ? 'Sin experiencia familiar disponible' : impersonatingId === selectedUser.id ? 'Abriendo vista familiar' : undefined"
+                @click="requestImpersonation(selectedUser)"
+              >
+                {{ impersonationButtonLabel(selectedUser) }}
+              </button>
+              <button
+                v-if="confirmingImpersonationId === selectedUser.id"
+                class="btn btn-secondary compact"
+                type="button"
+                data-diagnostic-action="cancelar-impersonacion"
+                @click="cancelImpersonation"
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+
+          <section class="access-grid" aria-label="Que puede hacer">
+            <article :data-active="selectedUser.productScopes.includes('personasAutorizadas')">
+              <span>Escolar familia</span>
+              <strong>{{ selectedUser.productScopes.includes('personasAutorizadas') ? 'Visible' : 'No visible' }}</strong>
+              <small>{{ selectedUser.productScopes.includes('personasAutorizadas') ? 'Tiene experiencia Persona Autorizada.' : 'No hay datos escolares familiares detectados.' }}</small>
+            </article>
+            <article :data-active="selectedUser.productScopes.includes('daycare')">
+              <span>Daycare familia</span>
+              <strong>{{ selectedUser.productScopes.includes('daycare') ? 'Visible' : 'No visible' }}</strong>
+              <small>{{ selectedUser.sala ? `Sala ${selectedUser.sala}` : 'Sala pendiente o no aplica.' }}</small>
+            </article>
+            <article :data-active="selectedGestionEscolarActive">
+              <span>Admin Escolar</span>
+              <strong>{{ selectedGestionEscolarActive ? 'Asignado' : 'Sin asignar' }}</strong>
+              <small>Se configura por responsabilidad y alcance escolar.</small>
+            </article>
+            <article :data-active="roleDraft.daycareAdmin">
+              <span>Daycare Admin</span>
+              <strong>{{ roleDraft.daycareAdmin ? 'Asignado' : 'Sin asignar' }}</strong>
+              <small>{{ roleUnidadDraft.length ? roleUnidadDraft.join(' · ') : 'Unidad pendiente.' }}</small>
+            </article>
+          </section>
+
+          <section class="scope-panel">
+            <div class="section-head compact-headline">
+              <div>
+                <p class="eyebrow">Alcance visible</p>
+                <h3>{{ primaryScopeLabel(selectedUser) }}</h3>
+              </div>
+              <span class="soft-pill">{{ selectedRoleCount ? `${selectedRoleCount} accesos` : 'Sin admin' }}</span>
+            </div>
+            <dl>
+              <div><dt>Planteles / unidades</dt><dd>{{ labelList([...selectedUser.plantel, ...selectedUser.unidad], 'Pendiente') }}</dd></div>
+              <div><dt>Campus</dt><dd>{{ selectedUser.campus || selectedUser.empresa || 'Pendiente' }}</dd></div>
+              <div><dt>Rutas heredadas</dt><dd>{{ selectedUser.routes.length ? selectedUser.routes.join(' · ') : 'Sin rutas heredadas' }}</dd></div>
+            </dl>
+          </section>
 
           <section class="role-console" aria-label="Roles administrativos">
             <div class="section-head compact-headline">
               <div>
-                <p class="eyebrow">Accesos administrativos</p>
-                <h3>Roles operativos</h3>
+                <p class="eyebrow">Admin Daycare y seguridad</p>
+                <h3>Responsabilidades directas</h3>
               </div>
-              <span class="role-state" :data-active="selectedRoleCount > 0">{{ selectedRoleCount ? `${selectedRoleCount} activos` : 'Sin rol admin' }}</span>
+              <span class="role-state" :data-active="selectedRoleCount > 0">{{ selectedRoleCount ? 'Activo' : 'Pendiente' }}</span>
             </div>
 
             <template v-if="selectedUser.canManageAdminRoles">
@@ -214,7 +246,7 @@
                 </label>
               </div>
 
-              <div v-if="roleDraft.daycareAdmin" class="unit-picker" aria-label="Unidades de guarderia">
+              <div v-if="roleDraft.daycareAdmin" class="unit-picker" aria-label="Unidades de daycare">
                 <span>Unidades</span>
                 <button
                   v-for="unidad in roleUnidadOptions"
@@ -230,37 +262,20 @@
 
               <div class="role-actions">
                 <button class="btn btn-secondary compact" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Restaurar</button>
-                <button class="btn btn-primary compact" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando…' : 'Guardar roles' }}</button>
+                <button class="btn btn-primary compact" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando...' : 'Guardar responsabilidades' }}</button>
               </div>
             </template>
 
-            <p v-else class="muted">Solo cuentas institucionales o internas pueden recibir roles administrativos.</p>
-          </section>
-
-
-          <section class="gestion-assignment-card" aria-label="Permisos Gestion Escolar">
-            <div class="section-head compact-headline">
-              <div>
-                <p class="eyebrow">Permisos</p>
-                <h3>Gestión Escolar</h3>
-              </div>
-              <span class="role-state" :data-active="selectedGestionEscolarActive">{{ selectedGestionEscolarActive ? 'Configurado' : 'Sin acceso' }}</span>
-            </div>
-            <NuxtLink class="assignment-link" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">
-              <span>
-                <strong>Asignación por plantel</strong>
-                <small>Perfil operativo, alcance escolar y permisos granulares.</small>
-              </span>
-              <b>Editar</b>
-            </NuxtLink>
-            <p v-if="selectedUser.communicationsEnabled" class="muted">Comunicados legacy activo.</p>
+            <p v-else class="muted">Solo cuentas institucionales o internas pueden recibir responsabilidades administrativas.</p>
           </section>
         </template>
-        <EmptyState v-else title="Selecciona un usuario" description="Verás su rol, producto, plantel y rutas heredadas sin salir del directorio." />
+        <EmptyState v-else title="Selecciona una persona" description="Verás su experiencia, alcance y acciones seguras sin salir del centro de operación." />
       </aside>
     </section>
 
-    <div v-else data-product-panel="superadmin-directory" data-state="empty"><EmptyState title="Sin usuarios" description="Ajusta el producto, plantel o búsqueda para encontrar usuarios con datos reales." /></div>
+    <div v-else data-product-panel="superadmin-directory" data-state="empty">
+      <EmptyState title="Sin usuarios" description="Ajusta la vista, plantel o búsqueda para encontrar usuarios con datos reales." />
+    </div>
   </section>
 </template>
 
@@ -278,17 +293,17 @@ const route = useRoute()
 const router = useRouter()
 
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string; description: string }> = [
-  { value: 'all', label: 'Todos', description: 'Directorio completo' },
-  { value: 'daycare', label: 'Guardería', description: 'Familias de guardería' },
-  { value: 'schoolFamilies', label: 'Personas Autorizadas', description: 'Familias escolares' },
-  { value: 'internal', label: 'Internos', description: 'Roles administrativos' },
-  { value: 'impersonable', label: 'Soporte', description: 'Cuentas familiares' }
+  { value: 'all', label: 'Todos', description: 'Personas, familias y admins' },
+  { value: 'internal', label: 'Admins', description: 'Cuentas institucionales' },
+  { value: 'schoolFamilies', label: 'Escolar', description: 'Familias Persona Autorizada' },
+  { value: 'daycare', label: 'Daycare', description: 'Familias de guardería' },
+  { value: 'impersonable', label: 'Soporte', description: 'Vista familiar controlada' }
 ]
 
 const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string; caption: string }> = [
-  { key: 'daycareAdmin', label: 'Guardería interna', caption: 'Salas, familias y recursos por unidad' },
-  { key: 'communicationsAdmin', label: 'Comunicados', caption: 'Publicación institucional legacy' },
-  { key: 'accessHistoryAdmin', label: 'Historial de accesos', caption: 'Reportes, marbetes y validación' }
+  { key: 'daycareAdmin', label: 'Daycare Admin', caption: 'Gestiona unidades, salas, familias y publicaciones.' },
+  { key: 'communicationsAdmin', label: 'Comunicados legacy', caption: 'Prepara comunicación institucional fuera de Gestión Escolar.' },
+  { key: 'accessHistoryAdmin', label: 'Seguridad e historial', caption: 'Consulta accesos, validaciones y reportes sensibles.' }
 ]
 
 const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
@@ -322,6 +337,13 @@ const query = computed(() => ({
 const activeScopeLabel = computed(() => scopeOptions.find((option) => option.value === selectedScope.value)?.label || 'Todos')
 const selectedGestionEscolarActive = computed(() => Boolean(selectedUser.value?.adminScopes.includes('gestionEscolar') || roleDraft.value.gestionEscolarAdmin))
 const selectedRoleCount = computed(() => assignableRoles.filter((role) => roleDraft.value[role.key]).length + (selectedGestionEscolarActive.value ? 1 : 0))
+const nextActionTitle = computed(() => {
+  if (!selectedUser.value) return 'Selecciona una persona'
+  if (selectedUser.value.audience === 'internal' && !selectedGestionEscolarActive.value) return 'Define si será Admin Escolar o Daycare'
+  if (primaryAccessState(selectedUser.value).state === 'incomplete') return 'Completa el alcance antes de entregar acceso'
+  if (selectedUser.value.canImpersonate) return 'Soporte disponible con confirmación'
+  return 'Revisa responsabilidades y alcance'
+})
 const roleUnidadOptions = computed(() => {
   const values = [
     ...(directory.value?.unidades || []),
@@ -352,9 +374,9 @@ let directoryTimer: ReturnType<typeof setTimeout> | null = null
 const isLoadingVisible = computed(() => pending.value && !directoryTimedOut.value)
 const loadProblem = computed(() => Boolean(directoryTimedOut.value || loadError.value))
 const loadProblemMessage = computed(() => {
-  if (directoryTimedOut.value) return 'La consulta excedió el tiempo de espera. Reintenta para abrir una conexión nueva a base de datos.'
+  if (directoryTimedOut.value) return 'La consulta excedió el tiempo de espera. Reintenta para abrir una conexión nueva.'
   const error = loadError.value as { data?: { statusMessage?: string }; statusMessage?: string; message?: string } | null
-  return error?.data?.statusMessage || error?.statusMessage || error?.message || 'La consulta falló antes de entregar un estado de contenido o vacío.'
+  return error?.data?.statusMessage || error?.statusMessage || error?.message || 'La consulta falló antes de entregar contenido.'
 })
 
 watch(pending, (value) => {
@@ -489,7 +511,7 @@ function toggleRoleUnidad(unidad: string) {
 async function saveAdminRoles() {
   if (!selectedUser.value) return
   if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
-    actionError.value = 'Selecciona al menos una unidad para Guardería interna.'
+    actionError.value = 'Selecciona al menos una unidad para Daycare Admin.'
     return
   }
 
@@ -508,9 +530,9 @@ async function saveAdminRoles() {
       directory.value.metrics.internalUsers = directory.value.users.filter((user) => user.audience === 'internal' || user.adminScopes.length).length
       directory.value.metrics.daycareAdmins = directory.value.users.filter((user) => user.adminScopes.includes('daycare')).length
     }
-    actionNotice.value = 'Roles administrativos actualizados.'
+    actionNotice.value = 'Responsabilidades actualizadas.'
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar los roles.'
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar las responsabilidades.'
   } finally {
     savingRoles.value = false
   }
@@ -557,25 +579,42 @@ function labelList(values: string[], fallback: string) {
 }
 
 function productScopeLabel(scope: FamilyProductScope) {
-  if (scope === 'daycare') return 'Familia guardería'
-  if (scope === 'personasAutorizadas') return 'Personas Autorizadas'
+  if (scope === 'daycare') return 'Familia daycare'
+  if (scope === 'personasAutorizadas') return 'Familia escolar'
   return scope
 }
 
 function audienceLabel(user: SuperAdminUserSummary) {
   if (user.audience === 'multiProductFamily') return 'Familia multiproducto'
-  if (user.audience === 'daycareFamily') return 'Familia guardería'
-  if (user.audience === 'schoolFamily') return 'Personas Autorizadas'
-  if (user.audience === 'internal') return 'Interno'
+  if (user.audience === 'daycareFamily') return 'Familia daycare'
+  if (user.audience === 'schoolFamily') return 'Familia escolar'
+  if (user.audience === 'internal') return 'Cuenta institucional'
   return 'Sin clasificar'
 }
 
+function primaryScopeLabel(user: SuperAdminUserSummary) {
+  const values = [...user.plantel, ...user.unidad].filter(Boolean)
+  if (values.length) return labelList(values, 'Pendiente')
+  if (user.campus || user.empresa) return user.campus || user.empresa || 'Pendiente'
+  if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
+  return 'Alcance pendiente'
+}
+
+function primaryAccessState(user: SuperAdminUserSummary) {
+  if (user.adminScopes.includes('gestionEscolar') || user.adminScopes.includes('daycare') || user.adminScopes.includes('communications')) {
+    const hasConcreteScope = user.adminScopes.includes('gestionEscolar') || user.unidad.length || user.communicationsScopes.length
+    return hasConcreteScope ? { state: 'active', label: 'Admin activo' } : { state: 'incomplete', label: 'Admin incompleto' }
+  }
+  if (user.productScopes.length) return { state: 'family', label: 'Familia' }
+  if (user.audience === 'internal') return { state: 'none', label: 'Sin admin' }
+  return { state: 'unknown', label: 'Revisar' }
+}
 
 function impersonationButtonLabel(user: SuperAdminUserSummary) {
-  if (!user.canImpersonate) return 'No disponible'
-  if (impersonatingId.value === user.id) return 'Abriendo…'
-  if (confirmingImpersonationId.value === user.id) return 'Confirmar impersonación'
-  return 'Impersonar familia'
+  if (!user.canImpersonate) return 'Vista no disponible'
+  if (impersonatingId.value === user.id) return 'Abriendo...'
+  if (confirmingImpersonationId.value === user.id) return 'Confirmar vista'
+  return 'Vista familiar'
 }
 
 function cancelImpersonation() {
@@ -590,7 +629,7 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
     selectedUser.value = user
     syncQuery(user.id)
     actionError.value = ''
-    actionNotice.value = `Confirma para entrar como ${displayName(user)}. La sesión quedará marcada como impersonación.`
+    actionNotice.value = `Confirma para entrar como ${displayName(user)}. La sesión quedará marcada como vista de soporte.`
     return
   }
 
@@ -602,10 +641,10 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
       method: 'POST',
       body: { userId: user.id }
     })
-    actionNotice.value = 'Abriendo impersonación familiar.'
+    actionNotice.value = 'Abriendo vista familiar.'
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible impersonar esta cuenta.'
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir esta vista familiar.'
   } finally {
     impersonatingId.value = null
     confirmingImpersonationId.value = null
@@ -623,110 +662,163 @@ function normalizeLimit(value: unknown) {
 </script>
 
 <style scoped>
-.superadmin-page {
-  gap: 12px;
-}
-
-.admin-command {
-  background:
-    radial-gradient(circle at 88% 16%, rgba(35, 97, 136, .16), transparent 32%),
-    linear-gradient(135deg, #ffffff 0%, #f5f9f0 100%);
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  box-shadow: var(--shadow-card);
+.superadmin-os {
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, .82fr);
-  padding: clamp(16px, 2vw, 24px);
+  gap: 14px;
 }
 
-.admin-command-copy {
+.command-hero,
+.lane-card,
+.directory-control,
+.people-panel,
+.detail-panel,
+.state-card {
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #dfe8d7;
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.command-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f9f0 100%);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(390px, .76fr);
+  padding: clamp(16px, 2.2vw, 26px);
+}
+
+.hero-copy {
   align-content: center;
   display: grid;
   gap: 10px;
-  min-width: 0;
 }
 
-.admin-command-copy h1 {
-  font-size: clamp(2rem, 3.3vw, 3.25rem);
-  line-height: .96;
+.hero-copy h1 {
+  font-size: clamp(2rem, 3.8vw, 3.6rem);
+  line-height: .98;
   margin-bottom: 0;
-  max-width: 720px;
 }
 
-.admin-command-copy p {
-  font-size: 1rem;
-  max-width: 680px;
+.hero-copy p {
+  max-width: 640px;
 }
 
-.head-actions {
+.hero-actions,
+.quick-actions,
+.role-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 6px;
 }
 
-.command-metrics {
+.hero-metrics {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.command-metrics article {
-  background: rgba(255, 255, 255, .86);
-  border: 1px solid rgba(203, 213, 225, .9);
-  border-radius: 18px;
-  box-shadow: var(--shadow-line);
+.hero-metrics article {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
   display: grid;
   gap: 4px;
-  min-height: 86px;
-  padding: 14px;
+  min-height: 82px;
+  padding: 13px;
 }
 
-.command-metrics .metric-feature {
+.hero-metrics .metric-primary {
   background: linear-gradient(135deg, var(--color-brand-900), #236188);
   border-color: transparent;
   color: #fff;
   grid-row: span 2;
 }
 
-.command-metrics span {
+.hero-metrics span,
+.access-grid span,
+.scope-panel dt {
   color: var(--color-muted);
-  font-size: .72rem;
+  font-size: .7rem;
+  font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.command-metrics strong {
-  color: var(--color-ink);
-  font-family: var(--font-title);
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.command-metrics small {
-  color: rgba(255, 255, 255, .76);
-}
-
-.metric-feature span,
-.metric-feature strong {
+.metric-primary span,
+.metric-primary strong,
+.metric-primary small {
   color: #fff;
 }
 
-.metric-feature strong {
-  font-size: clamp(3rem, 5vw, 4.4rem);
+.hero-metrics strong {
+  color: var(--color-ink);
+  font-family: var(--font-title);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.metric-primary strong {
+  font-size: clamp(3rem, 5vw, 4.5rem);
+}
+
+.lane-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lane-card {
+  align-items: start;
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-height: 118px;
+  padding: 14px;
+}
+
+.lane-card.primary {
+  border-color: var(--color-brand-300);
+}
+
+.lane-card > span {
+  align-items: center;
+  background: var(--color-brand-100);
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.lane-card strong,
+.lane-card small {
+  display: block;
+}
+
+.lane-card strong {
+  color: var(--color-ink);
+}
+
+.lane-card small {
+  color: var(--color-muted);
+  line-height: 1.35;
+  margin-top: 4px;
 }
 
 .directory-control {
-  border-radius: 22px;
   display: grid;
   gap: 12px;
+  padding: 12px;
 }
 
 .scope-tabs {
   background: #f4f7f1;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 16px;
   display: flex;
   gap: 6px;
   overflow-x: auto;
@@ -734,20 +826,16 @@ function normalizeLimit(value: unknown) {
   scrollbar-width: none;
 }
 
-.scope-tabs::-webkit-scrollbar {
-  display: none;
-}
-
 .scope-tab {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   display: grid;
-  flex: 1 0 150px;
+  flex: 1 0 142px;
   gap: 2px;
-  min-height: 62px;
-  padding: 8px 12px;
+  min-height: 58px;
+  padding: 8px 10px;
   text-align: left;
 }
 
@@ -755,17 +843,11 @@ function normalizeLimit(value: unknown) {
 .scope-tab.active {
   background: #fff;
   border-color: var(--color-brand-300);
-  box-shadow: var(--shadow-soft);
-}
-
-.scope-tab strong {
-  color: var(--color-ink);
-  font-size: 0.94rem;
 }
 
 .scope-tab span {
   color: var(--color-muted);
-  font-size: 0.78rem;
+  font-size: .76rem;
   line-height: 1.25;
 }
 
@@ -773,222 +855,122 @@ function normalizeLimit(value: unknown) {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(170px, .5fr) minmax(280px, 1fr) minmax(110px, .24fr);
+  grid-template-columns: minmax(170px, .48fr) minmax(280px, 1fr) minmax(130px, .26fr);
 }
 
-.search-label {
-  min-width: 0;
-}
-
-.directory-grid {
+.people-layout {
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 410px);
-  min-width: 0;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
 }
 
-.section-head {
+.people-panel,
+.detail-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.detail-panel {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--topbar-height) + 12px);
+}
+
+.section-head,
+.detail-identity,
+.next-action-panel {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: space-between;
-  margin-bottom: 8px;
 }
 
 .section-head h2,
-.detail-card h2 {
-  font-size: 1.25rem;
+.detail-identity h2,
+.compact-headline h3 {
   margin-bottom: 0;
 }
 
-.users-table {
-  min-width: 0;
-  table-layout: fixed;
+.people-list {
+  display: grid;
+  gap: 8px;
 }
 
-.users-card,
-.users-table,
-.users-table tbody,
-.users-table tr,
-.users-table td {
-  max-width: 100%;
-  min-width: 0;
-}
-
-.users-table th:nth-child(1) { width: 31%; }
-.users-table th:nth-child(2) { width: 16%; }
-.users-table th:nth-child(3) { width: 12%; }
-.users-table th:nth-child(4) { width: 19%; }
-.users-table th:nth-child(5) { width: 22%; }
-
-.users-table tr.selected td {
-  background: #fbfdf8;
-}
-
-.user-cell {
+.person-row {
   align-items: center;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 36px minmax(0, 1fr);
-  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(150px, .34fr);
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.person-row:hover,
+.person-row.selected {
+  background: #fbfdf8;
+  border-color: var(--color-brand-300);
 }
 
 .user-avatar {
   align-items: center;
   background: var(--color-brand-100);
   border: 1px solid var(--color-brand-200);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--color-brand-900);
   display: inline-flex;
-  font-size: 0.78rem;
-  font-weight: 600;
-  height: 34px;
+  font-size: .78rem;
+  font-weight: 800;
+  height: 42px;
   justify-content: center;
-  width: 34px;
+  width: 42px;
 }
 
-.user-cell strong,
-.user-cell small,
-.user-cell em,
-.scope-stack span,
-.scope-stack small {
-  display: block;
+.user-avatar.large {
+  border-radius: 18px;
+  height: 58px;
+  width: 58px;
+}
+
+.person-main,
+.person-context,
+.detail-identity div {
+  display: grid;
+  gap: 2px;
   min-width: 0;
+}
+
+.person-main strong,
+.person-main small,
+.person-context small,
+.detail-identity h2,
+.detail-identity p {
   overflow-wrap: anywhere;
 }
 
-.user-cell small,
-.scope-stack small,
-.user-cell em,
-.muted {
+.person-main small,
+.person-context small,
+.muted,
+.scope-panel dd,
+.access-grid small {
   color: var(--color-muted);
-  font-size: 0.82rem;
-  font-style: normal;
+  font-size: .8rem;
 }
 
-.scope-stack {
-  display: grid;
-  gap: 3px;
+.person-context {
+  justify-items: end;
+  text-align: right;
 }
 
-.pills,
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
-.row-actions .btn {
-  white-space: normal;
-}
-
-.scope-pill,
-.type-pill {
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 999px;
-  color: var(--color-brand-800);
-  display: inline-flex;
-  font-size: 0.76rem;
-  font-weight: 600;
-  padding: 5px 9px;
-}
-
-.type-pill {
-  background: #eaf4fb;
-  border-color: #d2e7f5;
-  color: var(--color-blue);
-}
-
-.muted-pill {
-  background: #f4f4f2;
-  border-color: var(--color-border);
-  color: var(--color-muted);
-}
-
-.compact {
-  min-height: 34px;
-  padding-inline: 9px;
-}
-
-.notice {
-  background: #f0f8e7;
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
-  font-weight: 600;
-  margin: 0;
-  padding: 8px 10px;
-}
-
-.loading-card {
-  color: var(--color-muted);
-}
-
-.detail-card {
-  align-self: start;
-  display: grid;
-  gap: 10px;
-  position: sticky;
-  top: calc(var(--topbar-height) + 12px);
-}
-
-.detail-card dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.detail-card div {
-  border-bottom: 1px solid var(--color-border);
-  display: grid;
-  gap: 2px;
-  padding-bottom: 8px;
-}
-
-.detail-card dt {
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.detail-card dd {
-  margin: 0;
-  word-break: break-word;
-}
-
-
-.comms-pill {
-  background: #eef7ff;
-  border-color: #cfe7fb;
-  color: #236188;
-}
-
-.ge-pill {
-  background: #f0f8e7;
-  border-color: var(--color-brand-200);
-  color: var(--color-brand-900);
-}
-
-.history-pill {
-  background: #fff7df;
-  border-color: #f1d58a;
-  color: #9a6700;
-}
-
-.role-console,
-.gestion-assignment-card {
-  background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-  border: 1px solid #e2e8ec;
-  border-radius: 18px;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
+.person-context b,
+.state-pill,
+.soft-pill,
 .role-state {
   background: #f4f7f1;
   border: 1px solid var(--color-border);
@@ -996,20 +978,86 @@ function normalizeLimit(value: unknown) {
   color: var(--color-muted);
   font-size: .72rem;
   font-weight: 850;
-  padding: 5px 9px;
+  padding: 6px 9px;
   white-space: nowrap;
 }
 
+.person-context b[data-state='active'],
+.state-pill[data-state='active'],
 .role-state[data-active='true'] {
-  background: #f0f8e7;
-  border-color: var(--color-brand-200);
-  color: var(--color-brand-900);
+  background: #e7f8ef;
+  border-color: #bfead0;
+  color: #15803d;
+}
+
+.person-context b[data-state='incomplete'],
+.state-pill[data-state='incomplete'] {
+  background: #fff7df;
+  border-color: #f1d58a;
+  color: #9a6700;
+}
+
+.person-context b[data-state='family'] {
+  background: #eef7fb;
+  border-color: #cfe7fb;
+  color: var(--color-blue);
+}
+
+.next-action-panel,
+.scope-panel,
+.role-console {
+  background: #f8fbfc;
+  border: 1px solid #e2e8ec;
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.access-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.access-grid article {
+  background: #fff;
+  border: 1px solid #e2e8ec;
+  border-radius: 16px;
+  display: grid;
+  gap: 4px;
+  min-height: 104px;
+  padding: 12px;
+}
+
+.access-grid article[data-active='true'] {
+  border-color: var(--color-brand-300);
+}
+
+.access-grid strong {
+  color: var(--color-ink);
+}
+
+.scope-panel dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.scope-panel dl div {
+  border-top: 1px solid #e2e8ec;
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.scope-panel dd {
+  margin: 0;
 }
 
 .role-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: 1fr;
 }
 
 .role-card {
@@ -1023,14 +1071,12 @@ function normalizeLimit(value: unknown) {
   grid-template-columns: 18px 12px minmax(0, 1fr);
   min-height: 58px;
   padding: 10px;
-  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
 .role-card:hover,
 .role-card.active {
   border-color: var(--color-brand-300);
   box-shadow: var(--shadow-line);
-  transform: translateY(-1px);
 }
 
 .role-card input {
@@ -1052,12 +1098,6 @@ function normalizeLimit(value: unknown) {
 .role-card strong,
 .role-card small {
   display: block;
-  min-width: 0;
-}
-
-.role-card strong {
-  color: var(--color-ink);
-  font-size: .9rem;
 }
 
 .role-card small {
@@ -1082,7 +1122,6 @@ function normalizeLimit(value: unknown) {
   font-size: .72rem;
   font-weight: 850;
   letter-spacing: .08em;
-  margin-right: 2px;
   text-transform: uppercase;
 }
 
@@ -1104,198 +1143,75 @@ function normalizeLimit(value: unknown) {
   color: #fff;
 }
 
-.role-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
+.compact {
+  min-height: 34px;
+  padding-inline: 10px;
 }
 
-.assignment-link {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #e2e8ec;
-  border-radius: 16px;
-  color: inherit;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 12px;
-  text-decoration: none;
-}
-
-.assignment-link:hover {
-  border-color: var(--color-brand-300);
-  box-shadow: var(--shadow-line);
-}
-
-.assignment-link strong,
-.assignment-link small {
-  display: block;
-}
-
-.assignment-link strong {
-  color: var(--color-ink);
-  font-size: .9rem;
-}
-
-.assignment-link small {
-  color: var(--color-muted);
-  font-size: .74rem;
-  line-height: 1.25;
-}
-
-.assignment-link b {
-  background: var(--color-brand-700);
-  border-radius: 999px;
-  color: #fff;
-  font-size: .72rem;
-  padding: 7px 10px;
-}
-
-.compact-headline {
-  margin-bottom: 0;
-}
-
-.compact-headline h3 {
-  color: var(--color-ink);
-  font-size: 1rem;
+.notice {
+  background: #f0f8e7;
+  border: 1px solid var(--color-brand-200);
+  border-radius: 14px;
+  color: var(--color-brand-900);
+  font-weight: 700;
   margin: 0;
+  padding: 9px 11px;
 }
 
-.switch-row,
-.check-card {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #e2e8ec;
-  border-radius: 999px;
-  color: var(--color-ink);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: .78rem;
-  font-weight: 800;
-  gap: 7px;
-  min-height: 34px;
-  padding: 0 10px;
-  white-space: nowrap;
-}
-
-.switch-row input,
-.check-card input {
-  accent-color: var(--color-brand-700);
-}
-
-.scope-editor {
+.state-card {
+  color: var(--color-muted);
   display: grid;
-  gap: 8px;
-}
-
-.scope-editor-row {
-  align-items: end;
-  background: #fff;
-  border: 1px solid #e2e8ec;
-  border-radius: 16px;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(78px, .45fr) repeat(4, minmax(84px, 1fr)) minmax(80px, .45fr) 38px;
-  padding: 10px;
-}
-
-.scope-editor-row[data-global='true'] {
-  grid-template-columns: minmax(78px, 1fr) minmax(80px, auto) 38px;
-}
-
-.scope-editor-row .label {
-  gap: 4px;
-}
-
-.scope-editor-row .input,
-.scope-editor-row .select {
-  min-height: 34px;
-}
-
-.icon-only {
-  align-items: center;
-  display: inline-flex;
-  justify-content: center;
-  padding-inline: 0;
-  width: 38px;
-}
-
-.comms-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
+  gap: 10px;
+  min-height: 260px;
+  padding: 28px;
+  place-items: center;
+  text-align: center;
 }
 
 @media (max-width: 1180px) {
-  .scope-editor-row,
-  .scope-editor-row[data-global='true'] {
+  .command-hero,
+  .people-layout {
     grid-template-columns: 1fr;
   }
 
-  .admin-command {
-    grid-template-columns: 1fr;
-  }
-
-  .directory-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .users-table {
-    table-layout: auto;
-  }
-
-  .detail-card {
+  .detail-panel {
     position: static;
   }
+
+  .lane-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-@media (max-width: 980px) {
-  .filters-card {
+@media (max-width: 900px) {
+  .filters-card,
+  .person-row {
     grid-template-columns: 1fr;
   }
 
-  .command-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .command-metrics .metric-feature {
-    grid-column: 1 / -1;
-    grid-row: auto;
-  }
-
-  .users-table {
-    min-width: 0;
+  .person-context {
+    justify-items: start;
+    text-align: left;
   }
 }
 
-@media (max-width: 560px) {
-  .admin-command {
-    border-radius: 20px;
-    padding: 16px;
+@media (max-width: 680px) {
+  .hero-metrics,
+  .lane-grid,
+  .access-grid {
+    grid-template-columns: 1fr;
   }
 
-  .head-actions {
+  .section-head,
+  .detail-identity,
+  .next-action-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quick-actions,
+  .role-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .head-actions .btn {
-    justify-content: center;
-  }
-
-  .command-metrics {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .metric-feature strong {
-    font-size: 3rem;
-  }
-
-  .scope-tab {
-    flex-basis: 142px;
   }
 }
 </style>

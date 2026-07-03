@@ -161,6 +161,7 @@ const EMPTY_REACH: GestionEscolarReachPreview = {
 }
 
 const DAYCARE_GESTION_PLANTELES = new Set(['PREEM', 'PREET'])
+const GESTION_ESCOLAR_FALLBACK_PLANTELES = ['CM', 'METEPEC', 'TOLUCA', 'PREEM', 'PM', 'PT', 'SM', 'ST']
 const DAYCARE_GESTION_TEXT = /guarder[ií]a|lactantes|maternal/i
 
 function clean(value: unknown) {
@@ -497,7 +498,7 @@ async function loadLegacyCommunicationScopes(userIds: number[]) {
   return map
 }
 
-async function loadSchoolFamilies(limit = 5000) {
+async function loadSchoolFamilies(limit = 1200) {
   const cappedLimit = Math.min(Math.max(limit, 1), 8000)
   const [childCandidates, pickupCandidates] = await Promise.all([
     legacyQuery<(RowDataPacket & { userId: number })[]>(
@@ -716,6 +717,33 @@ function optionsFromFamilies(families: GestionEscolarFamilyRow[]): GestionEscola
   }
 }
 
+function reachFromPermissions(permissions: GestionEscolarPermission[]): GestionEscolarReachPreview {
+  return {
+    ...EMPTY_REACH,
+    planteles: uniqueSorted(permissions.map((permission) => permission.plantel)),
+    niveles: uniqueSorted(permissions.map((permission) => permission.nivel)),
+    grados: uniqueSorted(permissions.map((permission) => permission.grado)),
+    grupos: uniqueSorted(permissions.map((permission) => permission.grupo))
+  }
+}
+
+function optionsFromPermissionScopes(permissions: GestionEscolarPermission[], fallbackPlanteles: string[] = []): GestionEscolarOverviewResponse['options'] {
+  const planteles = uniqueSorted([
+    ...permissions.map((permission) => permission.plantel),
+    ...fallbackPlanteles,
+    ...GESTION_ESCOLAR_FALLBACK_PLANTELES
+  ])
+  return {
+    planteles,
+    niveles: uniqueSorted(permissions.map((permission) => permission.nivel)),
+    grados: uniqueSorted(permissions.map((permission) => permission.grado)),
+    grupos: uniqueSorted(permissions.map((permission) => permission.grupo)),
+    scopeTree: {
+      planteles: planteles.map((plantel) => ({ value: plantel, label: plantel, families: 0, students: 0 }))
+    }
+  }
+}
+
 function profileFromCapabilities(capabilities: GestionEscolarCapability[]): GestionEscolarAccessProfileKey {
   const normalized = new Set(expandDependentGestionPermissions(capabilities.map((capability) => ({
     userId: 0,
@@ -754,12 +782,12 @@ function latestPermissionUpdate(permissions: GestionEscolarPermission[]) {
 
 async function getReachForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
   if (!permissions.length) return EMPTY_REACH
-  const families = await loadSchoolFamilies()
+  const families = await loadSchoolFamilies(800)
   return reachFromFamilies(familiesForPermissions(families, permissions, capability))
 }
 
 async function getOptionsForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
-  const families = await loadSchoolFamilies()
+  const families = await loadSchoolFamilies(800)
   const visible = permissions.length ? familiesForPermissions(families, permissions, capability) : families
   return optionsFromFamilies(visible)
 }
@@ -796,11 +824,12 @@ export async function listGestionPermissionUsers(filters: { search?: string; pla
     getPermissionsForUsers(userIds),
     loadLegacyCommunicationScopes(userIds)
   ])
-  const families = await loadSchoolFamilies()
+  const allPermissions = Array.from(permissionMap.values()).flat()
+  const options = optionsFromPermissionScopes(allPermissions, directory.planteles)
   const users = directory.users.map((user) => {
     const permissions = permissionMap.get(user.id) || []
     const capabilities = Array.from(new Set(permissions.map((permission) => permission.capability)))
-    const reach = reachFromFamilies(familiesForPermissions(families, permissions))
+    const reach = reachFromPermissions(permissions)
     return {
       ...user,
       gestionEscolar: {
@@ -815,7 +844,6 @@ export async function listGestionPermissionUsers(filters: { search?: string; pla
       }
     }
   })
-  const options = optionsFromFamilies(families)
   return {
     users,
     planteles: options.planteles,
@@ -962,7 +990,7 @@ function moduleSummary(key: GestionEscolarModuleKey, permissions: GestionEscolar
 
 export async function getGestionOverview(user: AppSessionUser): Promise<GestionEscolarOverviewResponse> {
   const permissions = user.isSuperAdmin ? superAdminGestionPermissions(user.id) : await getGestionPermissionsForUser(user.id)
-  const families = permissions.length ? await loadSchoolFamilies() : []
+  const families = permissions.length ? await loadSchoolFamilies(1200) : []
   const visibleFamilies = permissions.length ? familiesForPermissions(families, permissions) : []
   const reach = reachFromFamilies(visibleFamilies)
   const options = optionsFromFamilies(visibleFamilies)
