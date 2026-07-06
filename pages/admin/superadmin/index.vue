@@ -1,16 +1,15 @@
 <template>
   <section class="access-console" data-product-area="superadmin" data-product-screen="access-management">
-    <header class="page-intro">
+    <header class="access-header">
       <div>
-        <p class="kicker">Super Admin</p>
-        <h1>Administración de cuentas y permisos</h1>
-        <p>Busca una cuenta, verifica sus vínculos reales y guarda cambios de acceso con alcance, impacto y motivo claros.</p>
+        <p class="eyebrow">Super Admin</p>
+        <h1>Cuentas y acceso</h1>
       </div>
-      <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Editar alcance escolar</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Ver historial</NuxtLink>
+      <div class="header-actions">
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Alcance escolar</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
-          {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar directorio' }}
+          {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}
         </button>
       </div>
     </header>
@@ -25,56 +24,44 @@
       <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-directorio" @click="refreshDirectory">Reintentar</button>
     </section>
 
-    <section v-else class="access-workspace" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
-      <aside class="directory-pane" aria-label="Directorio de cuentas">
-        <div class="directory-title">
+    <section v-else class="access-board" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
+      <aside class="directory-panel" aria-label="Directorio de cuentas">
+        <div class="directory-head">
           <div>
-            <p class="kicker">Directorio</p>
-            <h2>Buscar cuenta</h2>
+            <span>Directorio</span>
+            <strong>{{ directory?.users.length || 0 }} cuentas</strong>
           </div>
-          <span>{{ directory?.users.length || 0 }} visibles</span>
+          <small>{{ directoryAdminCount }} admin</small>
         </div>
 
-        <form class="directory-search" role="search" @submit.prevent="refreshDirectory">
+        <form class="searchbar" role="search" @submit.prevent="refreshDirectory">
           <FamilyPersonasIcon name="search" />
           <input v-model="search" type="search" placeholder="Nombre, correo, matrícula, estudiante o sala" data-diagnostic-filter="buscar-usuario" />
-          <button class="search-submit" type="submit" :disabled="isLoadingVisible">Buscar</button>
+          <button type="submit" :disabled="isLoadingVisible">Buscar</button>
         </form>
 
-        <div class="filter-row" aria-label="Filtros de cuentas">
+        <div class="filters" aria-label="Filtros de cuentas">
           <label>
-            <span>Tipo de cuenta</span>
+            <span>Tipo</span>
             <select v-model="selectedScope" data-diagnostic-filter="tipo-persona">
               <option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </label>
           <label>
-            <span>Plantel o unidad</span>
+            <span>Unidad</span>
             <select v-model="selectedPlantel" data-diagnostic-filter="plantel">
-              <option value="">Todos</option>
+              <option value="">Todas</option>
               <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
             </select>
           </label>
         </div>
 
-        <dl class="directory-summary" aria-label="Resumen del directorio filtrado">
-          <div>
-            <dt>Cuentas</dt>
-            <dd>{{ directory?.users.length || 0 }}</dd>
-          </div>
-          <div>
-            <dt>Familias</dt>
-            <dd>{{ directory?.metrics.familyUsers || 0 }}</dd>
-          </div>
-          <div>
-            <dt>Internas</dt>
-            <dd>{{ directory?.metrics.internalUsers || 0 }}</dd>
-          </div>
-          <div>
-            <dt>Admins</dt>
-            <dd>{{ directoryAdminCount }}</dd>
-          </div>
-        </dl>
+        <div class="metric-strip" aria-label="Resumen del directorio filtrado">
+          <span v-for="metric in directoryMetrics" :key="metric.label">
+            <strong>{{ metric.value }}</strong>
+            <small>{{ metric.label }}</small>
+          </span>
+        </div>
 
         <div v-if="isLoadingVisible" class="state-panel compact" data-product-loading>
           <HuskyPassLoader label="Cuentas" compact />
@@ -96,7 +83,7 @@
               <strong>{{ displayName(user) }}</strong>
               <small>{{ accountLabel(user) }}</small>
             </span>
-            <span class="row-tags">
+            <span class="person-meta">
               <b :data-state="primaryAccessState(user).state">{{ primaryAccessState(user).label }}</b>
               <small>{{ rowScopeLabel(user) }}</small>
             </span>
@@ -110,196 +97,74 @@
         </div>
       </aside>
 
-      <section class="case-pane">
+      <main class="account-panel">
         <template v-if="clientReady && selectedUser">
-          <header class="case-header">
-            <span class="avatar large">{{ initials(selectedUser) }}</span>
-            <div>
-              <p class="kicker">Cuenta seleccionada</p>
+          <section class="profile-card" :data-state="primaryAccessState(selectedUser).state">
+            <span class="avatar hero">{{ initials(selectedUser) }}</span>
+            <div class="profile-copy">
+              <p>{{ accountTypeLabel(selectedUser) }}</p>
               <h2>{{ displayName(selectedUser) }}</h2>
-              <p>{{ accountLabel(selectedUser) }} · ID {{ selectedUser.id }}</p>
+              <small>{{ accountLabel(selectedUser) }} · ID {{ selectedUser.id }}</small>
             </div>
-            <div class="case-status">
-              <span :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
-              <small>{{ primaryScopeLabel(selectedUser) }}</small>
-            </div>
-          </header>
-
-          <ol class="case-steps" aria-label="Flujo de revisión de acceso">
-            <li v-for="step in caseSteps" :key="step.key" :data-state="step.state">
-              <strong>{{ step.title }}</strong>
-              <span>{{ step.detail }}</span>
-            </li>
-          </ol>
-
-          <section v-if="caseWarnings.length" class="risk-panel" aria-label="Pendientes antes de asignar acceso">
-            <div>
-              <h3>Antes de cambiar permisos</h3>
-              <p>Estos puntos deben estar claros para no mezclar identidad, vínculos familiares y responsabilidades internas.</p>
-            </div>
-            <ul>
-              <li v-for="warning in caseWarnings" :key="warning">{{ warning }}</li>
-            </ul>
-          </section>
-
-          <section class="identity-section">
-            <div class="section-heading">
-              <div>
-                <h3>Identidad y vínculos detectados</h3>
-                <p>La decisión de acceso debe salir de estos datos, no de una etiqueta suelta de rol.</p>
-              </div>
-            </div>
-
-            <div class="identity-layout">
-              <dl class="fact-list">
-                <div v-for="fact in identityFacts" :key="fact.label">
-                  <dt>{{ fact.label }}</dt>
-                  <dd>{{ fact.value }}</dd>
-                  <small>{{ fact.detail }}</small>
-                </div>
-              </dl>
-
-              <div class="relationship-list" aria-label="Vínculos escolares y administrativos">
-                <article v-for="item in relationshipRows" :key="item.key" :data-state="item.state">
-                  <div>
-                    <strong>{{ item.title }}</strong>
-                    <p>{{ item.detail }}</p>
-                  </div>
-                  <span>{{ item.label }}</span>
-                </article>
-              </div>
+            <div class="profile-badges">
+              <span v-for="signal in selectedSignals" :key="signal.key" :data-state="signal.state">{{ signal.label }}</span>
             </div>
           </section>
 
-          <section class="access-section">
-            <div class="section-heading split">
-              <div>
-                <h3>Acceso efectivo actual</h3>
-                <p>Separado por tipo de vínculo para no confundir familia, puesto interno, módulo y alcance.</p>
-              </div>
-              <span>{{ currentAccessSummary }}</span>
-            </div>
+          <section v-if="reviewFlags.length" class="review-strip" aria-label="Puntos de revisión">
+            <article v-for="flag in reviewFlags" :key="flag.key" :data-state="flag.state">
+              <span>{{ flag.label }}</span>
+              <strong>{{ flag.value }}</strong>
+            </article>
+          </section>
 
-            <div class="access-groups">
-              <article v-for="group in accessGroups" :key="group.key" class="access-group">
-                <header>
-                  <h4>{{ group.title }}</h4>
-                  <p>{{ group.description }}</p>
-                </header>
-                <div class="access-lines">
-                  <div v-for="item in group.items" :key="item.key" class="access-line" :data-state="item.state">
-                    <div>
-                      <strong>{{ item.title }}</strong>
-                      <span>{{ item.detail }}</span>
-                    </div>
-                    <b>{{ item.label }}</b>
-                  </div>
+          <section class="ledger-section">
+            <header class="section-head">
+              <h2>Vínculos</h2>
+              <span>{{ relationshipSummary(selectedUser) }}</span>
+            </header>
+            <div class="ledger">
+              <article v-for="item in relationshipRows" :key="item.key" class="ledger-row" :data-state="item.state">
+                <i aria-hidden="true" />
+                <div>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.detail }}</small>
                 </div>
+                <b>{{ item.label }}</b>
               </article>
             </div>
           </section>
 
-          <section class="assignment-section">
-            <div class="section-heading split">
-              <div>
-                <h3>Editar responsabilidades administrativas</h3>
-                <p>Este panel edita guardería, comunicados e historial. El alcance escolar usa su propio flujo por plantel, nivel, grado o grupo.</p>
+          <section class="matrix-section">
+            <header class="section-head">
+              <h2>Acceso actual</h2>
+              <span>{{ currentAccessSummary }}</span>
+            </header>
+            <div class="access-table" role="table" aria-label="Acceso efectivo actual">
+              <div class="table-row table-head" role="row">
+                <span role="columnheader">Área</span>
+                <span role="columnheader">Alcance</span>
+                <span role="columnheader">Origen</span>
+                <span role="columnheader">Estado</span>
               </div>
-              <span :data-state="roleHasChanges ? 'incomplete' : 'none'">{{ roleHasChanges ? 'Cambio pendiente' : 'Sin cambios' }}</span>
+              <div v-for="row in accessRows" :key="row.key" class="table-row" role="row" :data-state="row.state">
+                <span role="cell">
+                  <strong>{{ row.area }}</strong>
+                  <small>{{ row.caption }}</small>
+                </span>
+                <span role="cell">{{ row.scope }}</span>
+                <span role="cell">{{ row.source }}</span>
+                <span role="cell"><b>{{ row.status }}</b></span>
+              </div>
             </div>
-
-            <template v-if="selectedUser.canManageAdminRoles">
-              <div class="role-grid">
-                <article class="role-card school-role" :data-state="selectedUser.adminScopes.includes('gestionEscolar') ? 'active' : 'none'">
-                  <div>
-                    <strong>Administración escolar</strong>
-                    <p>Planteles, niveles, grados y grupos se asignan en el flujo escolar para mantener el alcance explícito.</p>
-                  </div>
-                  <NuxtLink
-                    class="inline-link"
-                    :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
-                  >
-                    Editar alcance escolar
-                  </NuxtLink>
-                </article>
-
-                <label class="role-card selectable" :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
-                  <input v-model="roleDraft.daycareAdmin" type="checkbox" />
-                  <span>
-                    <strong>Administración de guardería</strong>
-                    <p>Gestiona salas, familias, tareas, avisos y calendario solo en las unidades seleccionadas.</p>
-                  </span>
-                </label>
-              </div>
-
-              <fieldset v-if="roleDraft.daycareAdmin" class="scope-picker" aria-label="Unidades de guardería autorizadas">
-                <legend>Unidades autorizadas para guardería</legend>
-                <div v-if="roleUnidadOptions.length" class="unit-grid">
-                  <button
-                    v-for="unidad in roleUnidadOptions"
-                    :key="unidad"
-                    class="unit-option"
-                    :class="{ active: roleUnidadDraft.includes(unidad) }"
-                    type="button"
-                    @click="toggleRoleUnidad(unidad)"
-                  >
-                    {{ unidad }}
-                  </button>
-                </div>
-                <p v-else>No hay unidades disponibles para esta cuenta. Agrega el alcance operativo antes de guardar.</p>
-              </fieldset>
-
-              <div class="sensitive-grid" aria-label="Permisos sensibles">
-                <label class="role-card selectable" :data-state="roleDraft.communicationsAdmin ? 'active' : 'none'">
-                  <input v-model="roleDraft.communicationsAdmin" type="checkbox" />
-                  <span>
-                    <strong>Comunicados administrativos</strong>
-                    <p>Puede preparar comunicados generales. La publicación debe respetar los alcances configurados.</p>
-                  </span>
-                </label>
-                <label class="role-card selectable" :data-state="roleDraft.accessHistoryAdmin ? 'active' : 'none'">
-                  <input v-model="roleDraft.accessHistoryAdmin" type="checkbox" />
-                  <span>
-                    <strong>Historial y diagnósticos de acceso</strong>
-                    <p>Consulta validaciones, registros de entrada/salida y diagnósticos operativos de soporte.</p>
-                  </span>
-                </label>
-              </div>
-
-              <section class="review-panel" aria-live="polite">
-                <div class="section-heading split compact-heading">
-                  <div>
-                    <h4>Revisión antes de guardar</h4>
-                    <p>{{ changePreviewTitle }}</p>
-                  </div>
-                  <span :data-state="saveBlockedReason ? 'incomplete' : roleHasChanges ? 'active' : 'none'">{{ saveBlockedReason || 'Listo para guardar' }}</span>
-                </div>
-                <ul>
-                  <li v-for="line in changePreviewLines" :key="line">{{ line }}</li>
-                </ul>
-                <label v-if="roleHasChanges" class="reason-field">
-                  <span>Motivo del cambio</span>
-                  <textarea v-model="roleChangeReason" rows="3" maxlength="500" placeholder="Ejemplo: se asigna por solicitud de Dirección para administrar la unidad ISSSTE MET durante el ciclo actual." />
-                  <small>Obligatorio. Mínimo 12 caracteres. Evita datos personales innecesarios.</small>
-                </label>
-                <div class="role-actions">
-                  <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar cambios</button>
-                  <button class="btn btn-primary" type="button" :disabled="savingRoles || Boolean(saveBlockedReason)" @click="saveAdminRoles">
-                    {{ savingRoles ? 'Guardando...' : 'Guardar cambio de acceso' }}
-                  </button>
-                </div>
-              </section>
-            </template>
-
-            <p v-else class="locked-note">Esta cuenta no es institucional ni administrativa. Primero corrige el vínculo de identidad antes de conceder responsabilidades internas.</p>
           </section>
 
-          <section v-if="selectedUser.canImpersonate" class="support-section">
+          <section v-if="selectedUser.canImpersonate" class="support-row">
             <div>
-              <h3>Soporte familiar controlado</h3>
-              <p>Abre la vista familiar solo para un caso activo. Esta acción no modifica roles ni alcances administrativos.</p>
+              <strong>Vista familiar</strong>
+              <small>Solo soporte; no cambia roles.</small>
             </div>
-            <div class="support-actions">
+            <div>
               <button class="btn btn-secondary" type="button" :disabled="impersonatingId === selectedUser.id" @click="requestImpersonation(selectedUser)">
                 {{ impersonationButtonLabel(selectedUser) }}
               </button>
@@ -311,9 +176,105 @@
         <div v-else class="state-panel detail-empty" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Selecciona una cuenta</h2>
-          <p>Verás identidad, vínculos, acceso efectivo, responsabilidades editables e impacto antes de guardar.</p>
+          <p>Verás vínculos, acceso actual y cambios pendientes.</p>
         </div>
-      </section>
+      </main>
+
+      <aside class="roles-panel" aria-label="Roles administrativos">
+        <template v-if="clientReady && selectedUser">
+          <header class="roles-head">
+            <div>
+              <span>Roles</span>
+              <strong>{{ adminAccessLabel(selectedUser) }}</strong>
+            </div>
+            <b :data-state="roleHasChanges ? 'incomplete' : 'none'">{{ roleHasChanges ? 'Pendiente' : 'Sin cambios' }}</b>
+          </header>
+
+          <section v-if="selectedUser.canManageAdminRoles" class="role-controls">
+            <article class="school-scope" :data-state="selectedUser.adminScopes.includes('gestionEscolar') ? 'active' : 'none'">
+              <div>
+                <strong>Escolar</strong>
+                <small>{{ selectedUser.adminScopes.includes('gestionEscolar') ? primaryScopeLabel(selectedUser) : 'Sin alcance' }}</small>
+              </div>
+              <NuxtLink
+                class="inline-action"
+                :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
+              >
+                Editar
+              </NuxtLink>
+            </article>
+
+            <label class="switch-row" :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
+              <input v-model="roleDraft.daycareAdmin" type="checkbox" />
+              <span class="switch" aria-hidden="true" />
+              <span>
+                <strong>Guardería</strong>
+                <small>{{ roleUnidadDraft.length ? roleUnidadDraft.join(' · ') : 'Sin unidad' }}</small>
+              </span>
+            </label>
+
+            <div v-if="roleDraft.daycareAdmin" class="scope-chips" aria-label="Unidades de guardería autorizadas">
+              <button
+                v-for="unidad in roleUnidadOptions"
+                :key="unidad"
+                class="scope-chip"
+                :class="{ active: roleUnidadDraft.includes(unidad) }"
+                type="button"
+                @click="toggleRoleUnidad(unidad)"
+              >
+                {{ unidad }}
+              </button>
+              <p v-if="!roleUnidadOptions.length">Sin unidades disponibles.</p>
+            </div>
+
+            <label class="switch-row" :data-state="roleDraft.communicationsAdmin ? 'active' : 'none'">
+              <input v-model="roleDraft.communicationsAdmin" type="checkbox" />
+              <span class="switch" aria-hidden="true" />
+              <span>
+                <strong>Comunicados</strong>
+                <small>Preparación administrativa</small>
+              </span>
+            </label>
+
+            <label class="switch-row" :data-state="roleDraft.accessHistoryAdmin ? 'active' : 'none'">
+              <input v-model="roleDraft.accessHistoryAdmin" type="checkbox" />
+              <span class="switch" aria-hidden="true" />
+              <span>
+                <strong>Historial</strong>
+                <small>Acceso y diagnósticos</small>
+              </span>
+            </label>
+          </section>
+
+          <p v-else class="locked-note">Cuenta no administrativa.</p>
+
+          <section class="change-panel" :data-state="roleHasChanges ? (saveBlockedReason ? 'incomplete' : 'active') : 'none'">
+            <header>
+              <h2>Cambios</h2>
+              <span>{{ saveBlockedReason || (roleHasChanges ? 'Listo' : 'Ninguno') }}</span>
+            </header>
+            <ul v-if="roleHasChanges">
+              <li v-for="line in changePreviewLines" :key="line">{{ line }}</li>
+            </ul>
+            <p v-else>Sin cambios pendientes.</p>
+            <label v-if="roleHasChanges" class="reason-field">
+              <span>Motivo</span>
+              <textarea v-model="roleChangeReason" rows="3" maxlength="500" placeholder="Solicitud o ticket interno" />
+            </label>
+            <div class="role-actions">
+              <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar</button>
+              <button class="btn btn-primary" type="button" :disabled="savingRoles || Boolean(saveBlockedReason)" @click="saveAdminRoles">
+                {{ savingRoles ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
+          </section>
+        </template>
+
+        <div v-else class="state-panel compact" data-state="empty">
+          <h2>Roles</h2>
+          <p>Selecciona una cuenta.</p>
+        </div>
+      </aside>
     </section>
   </section>
 </template>
@@ -328,10 +289,8 @@ import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
-const route = useRoute()
-const router = useRouter()
-
 type AccessState = 'active' | 'family' | 'incomplete' | 'none' | 'unknown'
+
 interface AccessLine {
   key: string
   title: string
@@ -340,18 +299,31 @@ interface AccessLine {
   label: string
 }
 
+interface AccessMatrixRow {
+  key: string
+  area: string
+  caption: string
+  scope: string
+  source: string
+  status: string
+  state: AccessState
+}
+
+const route = useRoute()
+const router = useRouter()
+
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string }> = [
   { value: 'all', label: 'Todas' },
-  { value: 'internal', label: 'Internas y staff' },
-  { value: 'schoolFamilies', label: 'Familias escolares' },
-  { value: 'daycare', label: 'Familias de guardería' },
-  { value: 'impersonable', label: 'Soporte familiar' }
+  { value: 'internal', label: 'Internas' },
+  { value: 'schoolFamilies', label: 'Escolar' },
+  { value: 'daycare', label: 'Guardería' },
+  { value: 'impersonable', label: 'Soporte' }
 ]
 
 const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string; impact: string }> = [
-  { key: 'daycareAdmin', label: 'Administración de guardería', impact: 'gestión de salas, familias, tareas, avisos y calendario' },
-  { key: 'communicationsAdmin', label: 'Comunicados administrativos', impact: 'preparación de comunicados generales' },
-  { key: 'accessHistoryAdmin', label: 'Historial y diagnósticos de acceso', impact: 'consulta de registros y diagnósticos de soporte' }
+  { key: 'daycareAdmin', label: 'Guardería', impact: 'administra unidades seleccionadas' },
+  { key: 'communicationsAdmin', label: 'Comunicados', impact: 'prepara comunicados administrativos' },
+  { key: 'accessHistoryAdmin', label: 'Historial', impact: 'consulta registros y diagnósticos' }
 ]
 
 const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
@@ -383,177 +355,6 @@ const query = computed(() => ({
   limit: limit.value
 }))
 
-const roleUnidadOptions = computed(() => {
-  const values = [
-    ...(directory.value?.unidades || []),
-    ...(selectedUser.value?.unidad || [])
-  ]
-  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
-})
-
-const directoryAdminCount = computed(() => directory.value?.users.filter((user) => user.adminScopes.length > 0).length || 0)
-
-const roleHasChanges = computed(() => {
-  const current = selectedUser.value?.roleAssignments || emptyRoleAssignments()
-  const roleChanged = assignableRoles.some((role) => Boolean(roleDraft.value[role.key]) !== Boolean(current[role.key]))
-  const currentUnits = normalizedRoleUnits(selectedUser.value?.unidad || [])
-  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
-  const unitsChanged = roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')
-  return roleChanged || unitsChanged
-})
-
-const saveBlockedReason = computed(() => {
-  if (!roleHasChanges.value) return 'Sin cambios pendientes'
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'Falta unidad de guardería'
-  if (roleChangeReason.value.trim().length < 12) return 'Falta motivo'
-  return ''
-})
-
-const currentAccessSummary = computed(() => {
-  if (!selectedUser.value) return 'Sin cuenta'
-  const count = currentAccessLines(selectedUser.value).filter((item) => item.state === 'active' || item.state === 'family').length
-  return count ? `${count} acceso(s) activo(s)` : 'Sin acceso activo'
-})
-
-const caseSteps = computed(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  const hasAnyLink = Boolean(user.productScopes.length || user.audience === 'internal' || user.adminScopes.length)
-  const hasAnyAccess = currentAccessLines(user).some((item) => item.state === 'active' || item.state === 'family')
-  return [
-    {
-      key: 'identity',
-      title: 'Identidad',
-      detail: accountLabel(user),
-      state: accountLabel(user) ? 'active' : 'incomplete'
-    },
-    {
-      key: 'relationships',
-      title: 'Vínculos',
-      detail: hasAnyLink ? relationshipSummary(user) : 'Sin vínculo detectado',
-      state: hasAnyLink ? 'active' : 'incomplete'
-    },
-    {
-      key: 'current-access',
-      title: 'Acceso actual',
-      detail: currentAccessSummary.value,
-      state: hasAnyAccess ? 'active' : 'none'
-    },
-    {
-      key: 'pending-change',
-      title: 'Cambio',
-      detail: roleHasChanges.value ? 'Requiere revisión y motivo' : 'Sin edición pendiente',
-      state: roleHasChanges.value ? 'incomplete' : 'none'
-    }
-  ] as Array<{ key: string; title: string; detail: string; state: AccessState }>
-})
-
-const caseWarnings = computed(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  const warnings: string[] = []
-  if (user.audience === 'internal' && !user.adminScopes.length && !user.productScopes.length) {
-    warnings.push('La cuenta parece interna, pero no tiene puesto, alcance o responsabilidad administrativa visible.')
-  }
-  if (user.productScopes.length && user.adminScopes.length) {
-    warnings.push('La cuenta mezcla acceso familiar y responsabilidades administrativas. Verifica que sea intencional y que no exponga datos fuera de su función.')
-  }
-  if (hasInheritedAdminAccess(user)) {
-    warnings.push('Hay acceso administrativo heredado por rutas o configuración anterior. Retirar un rol explícito puede no quitar todo el acceso efectivo.')
-  }
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
-    warnings.push('Administración de guardería no puede guardarse sin unidades autorizadas.')
-  }
-  return warnings
-})
-
-const identityFacts = computed(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  return [
-    {
-      label: 'Tipo de cuenta',
-      value: accountTypeLabel(user),
-      detail: personKindDetail(user)
-    },
-    {
-      label: 'Identificador de inicio',
-      value: accountLabel(user),
-      detail: user.email ? 'Correo de la cuenta' : user.username ? 'Usuario o matrícula registrada' : 'Solo ID interno'
-    },
-    {
-      label: 'Alcance detectado',
-      value: primaryScopeLabel(user),
-      detail: contextDetail(user)
-    },
-    {
-      label: 'Responsabilidad administrativa',
-      value: adminAccessLabel(user),
-      detail: adminAccessDetail(user)
-    }
-  ]
-})
-
-const relationshipRows = computed<AccessLine[]>(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  const rows: AccessLine[] = []
-  rows.push({
-    key: 'internal-account',
-    title: 'Cuenta interna o staff',
-    detail: user.audience === 'internal' || user.adminScopes.length ? internalAccountDetail(user) : 'No se detecta como cuenta de staff o soporte.',
-    state: user.audience === 'internal' || user.adminScopes.length ? 'active' : 'none',
-    label: user.audience === 'internal' || user.adminScopes.length ? 'Detectada' : 'No'
-  })
-  rows.push({
-    key: 'school-family-link',
-    title: 'Vínculo familiar escolar',
-    detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'No hay alumno o persona autorizada vinculada a esta cuenta.',
-    state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none',
-    label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'No'
-  })
-  rows.push({
-    key: 'daycare-family-link',
-    title: 'Vínculo familiar de guardería',
-    detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'No hay sala o unidad familiar vinculada a esta cuenta.',
-    state: user.productScopes.includes('daycare') ? 'family' : 'none',
-    label: user.productScopes.includes('daycare') ? 'Activo' : 'No'
-  })
-  return rows
-})
-
-const accessGroups = computed(() => selectedUser.value ? accessGroupsForUser(selectedUser.value) : [])
-
-const changePreviewLines = computed(() => {
-  const user = selectedUser.value
-  if (!user || !roleHasChanges.value) return ['No hay cambios pendientes.']
-  const current = user.roleAssignments || emptyRoleAssignments()
-  const lines: string[] = []
-  for (const role of assignableRoles) {
-    const before = Boolean(current[role.key])
-    const after = Boolean(roleDraft.value[role.key])
-    if (before !== after) {
-      lines.push(`${role.label}: ${after ? `se activará (${role.impact})` : 'se retirará el rol explícito'}.`)
-    }
-  }
-  const currentUnits = normalizedRoleUnits(user.unidad || [])
-  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
-  if (roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')) {
-    lines.push(`Alcance de guardería: ${draftUnits.length ? draftUnits.join(' · ') : 'sin unidades seleccionadas'}.`)
-  }
-  if (hasInheritedAdminAccess(user)) {
-    lines.push('Revisa acceso heredado: algunas rutas antiguas pueden seguir otorgando permisos aunque se retire un rol explícito.')
-  }
-  return lines.length ? lines : ['No hay cambios pendientes.']
-})
-
-const changePreviewTitle = computed(() => {
-  if (!roleHasChanges.value) return 'No se guardará nada hasta modificar una responsabilidad.'
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'El cambio está incompleto: falta seleccionar unidad de guardería.'
-  if (roleChangeReason.value.trim().length < 12) return 'Escribe el motivo antes de guardar el cambio.'
-  return 'Se enviará este cambio con motivo de soporte interno.'
-})
-
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
   query,
   watch: [query],
@@ -568,8 +369,131 @@ const isLoadingVisible = computed(() => pending.value && !directoryTimedOut.valu
 const loadProblem = computed(() => Boolean(directoryTimedOut.value || loadError.value))
 const loadProblemMessage = computed(() => {
   if (directoryTimedOut.value) return 'La consulta tardó demasiado. Reintenta para abrir una conexión nueva.'
-  const error = loadError.value as { data?: { statusMessage?: string }; statusMessage?: string; message?: string } | null
-  return error?.data?.statusMessage || error?.statusMessage || error?.message || 'La consulta falló antes de entregar contenido.'
+  return getErrorMessage(loadError.value, 'La consulta falló antes de entregar contenido.')
+})
+
+const roleUnidadOptions = computed(() => {
+  const values = [
+    ...(directory.value?.unidades || []),
+    ...(selectedUser.value?.unidad || [])
+  ]
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+})
+
+const directoryAdminCount = computed(() => directory.value?.users.filter((user) => user.adminScopes.length > 0).length || 0)
+
+const directoryMetrics = computed(() => [
+  { label: 'familias', value: directory.value?.metrics.familyUsers || 0 },
+  { label: 'internas', value: directory.value?.metrics.internalUsers || 0 },
+  { label: 'guardería', value: directory.value?.metrics.daycareFamilies || 0 },
+  { label: 'soporte', value: directory.value?.metrics.impersonable || 0 }
+])
+
+const roleHasChanges = computed(() => {
+  const current = selectedUser.value?.roleAssignments || emptyRoleAssignments()
+  const roleChanged = assignableRoles.some((role) => Boolean(roleDraft.value[role.key]) !== Boolean(current[role.key]))
+  const currentUnits = normalizedRoleUnits(selectedUser.value?.unidad || [])
+  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
+  const unitsChanged = roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')
+  return roleChanged || unitsChanged
+})
+
+const saveBlockedReason = computed(() => {
+  if (!roleHasChanges.value) return 'Sin cambios'
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'Falta unidad'
+  if (roleChangeReason.value.trim().length < 12) return 'Falta motivo'
+  return ''
+})
+
+const currentAccessSummary = computed(() => {
+  if (!selectedUser.value) return 'Sin cuenta'
+  const count = accessRowsForUser(selectedUser.value).filter((item) => item.state === 'active' || item.state === 'family').length
+  return count ? `${count} activo(s)` : 'Sin acceso activo'
+})
+
+const selectedSignals = computed(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  return [
+    { key: 'state', label: primaryAccessState(user).label, state: primaryAccessState(user).state },
+    { key: 'scope', label: primaryScopeLabel(user), state: primaryScopeLabel(user) === 'Sin alcance' ? 'incomplete' as const : 'active' as const },
+    { key: 'admin', label: adminAccessLabel(user), state: user.adminScopes.length ? 'active' as const : 'none' as const }
+  ]
+})
+
+const reviewFlags = computed(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  const flags: Array<{ key: string; label: string; value: string; state: AccessState }> = []
+  if (user.audience === 'internal' && !user.adminScopes.length && !user.productScopes.length) {
+    flags.push({ key: 'internal-role', label: 'Puesto', value: 'Sin responsabilidad', state: 'incomplete' })
+  }
+  if (!user.productScopes.length) {
+    flags.push({ key: 'family-link', label: 'Familia', value: 'Sin vínculo', state: 'none' })
+  }
+  if (hasInheritedAdminAccess(user)) {
+    flags.push({ key: 'inherited', label: 'Heredado', value: 'Revisar', state: 'incomplete' })
+  }
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
+    flags.push({ key: 'unit', label: 'Guardería', value: 'Falta unidad', state: 'incomplete' })
+  }
+  return flags
+})
+
+const relationshipRows = computed<AccessLine[]>(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  return [
+    {
+      key: 'internal-account',
+      title: 'Staff / interna',
+      detail: user.audience === 'internal' || user.adminScopes.length ? internalAccountDetail(user) : 'No detectada',
+      state: user.audience === 'internal' || user.adminScopes.length ? 'active' : 'none',
+      label: user.audience === 'internal' || user.adminScopes.length ? 'Sí' : 'No'
+    },
+    {
+      key: 'school-family-link',
+      title: 'Familia escolar',
+      detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'Sin alumno vinculado',
+      state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none',
+      label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'No'
+    },
+    {
+      key: 'daycare-family-link',
+      title: 'Vínculo guardería',
+      detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'Sin sala vinculada',
+      state: user.productScopes.includes('daycare') ? 'family' : 'none',
+      label: user.productScopes.includes('daycare') ? 'Activo' : 'No'
+    },
+    {
+      key: 'administrative-scope',
+      title: 'Responsabilidad admin',
+      detail: adminAccessDetail(user),
+      state: user.adminScopes.length ? 'active' : 'none',
+      label: user.adminScopes.length ? 'Activa' : 'No'
+    }
+  ]
+})
+
+const accessRows = computed<AccessMatrixRow[]>(() => selectedUser.value ? accessRowsForUser(selectedUser.value) : [])
+
+const changePreviewLines = computed(() => {
+  const user = selectedUser.value
+  if (!user || !roleHasChanges.value) return ['Sin cambios pendientes.']
+  const current = user.roleAssignments || emptyRoleAssignments()
+  const lines: string[] = []
+  for (const role of assignableRoles) {
+    const before = Boolean(current[role.key])
+    const after = Boolean(roleDraft.value[role.key])
+    if (before !== after) lines.push(`${role.label}: ${after ? role.impact : 'se retira'}.`)
+  }
+  const currentUnits = normalizedRoleUnits(user.unidad || [])
+  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
+  if (roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')) {
+    lines.push(`Unidades: ${draftUnits.length ? draftUnits.join(' · ') : 'sin unidad'}.`)
+  }
+  if (hasInheritedAdminAccess(user)) lines.push('Tiene acceso heredado por configuración anterior.')
+  return lines.length ? lines : ['Sin cambios pendientes.']
 })
 
 watch(pending, (value) => {
@@ -692,7 +616,7 @@ async function saveAdminRoles() {
   if (!selectedUser.value) return
   if (saveBlockedReason.value) {
     actionError.value = saveBlockedReason.value === 'Falta motivo'
-      ? 'Escribe un motivo claro antes de guardar el cambio de acceso.'
+      ? 'Escribe un motivo antes de guardar.'
       : saveBlockedReason.value
     return
   }
@@ -713,9 +637,9 @@ async function saveAdminRoles() {
       directory.value.metrics.daycareAdmins = directory.value.users.filter((user) => user.adminScopes.includes('daycare')).length
     }
     roleChangeReason.value = ''
-    actionNotice.value = 'Cambio de acceso guardado.'
-  } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar el cambio de acceso.'
+    actionNotice.value = 'Cambio guardado.'
+  } catch (error: unknown) {
+    actionError.value = getErrorMessage(error, 'No fue posible guardar el cambio.')
   } finally {
     savingRoles.value = false
   }
@@ -765,47 +689,27 @@ function labelList(values: string[], fallback: string) {
 }
 
 function productScopeLabel(scope: FamilyProductScope) {
-  if (scope === 'daycare') return 'familia de guardería'
-  if (scope === 'personasAutorizadas') return 'familia escolar'
+  if (scope === 'daycare') return 'guardería'
+  if (scope === 'personasAutorizadas') return 'escolar'
   return scope
 }
 
 function accountTypeLabel(user: SuperAdminUserSummary) {
-  if (user.audience === 'multiProductFamily') return 'Familia con acceso escolar y guardería'
+  if (user.audience === 'multiProductFamily') return 'Familia escolar + guardería'
   if (user.audience === 'daycareFamily') return 'Familia de guardería'
   if (user.audience === 'schoolFamily') return 'Familia escolar'
-  if (user.audience === 'internal') return 'Cuenta interna o staff'
-  return 'Cuenta sin vínculo clasificado'
+  if (user.audience === 'internal') return 'Cuenta interna'
+  return 'Cuenta sin clasificar'
 }
 
 function relationshipSummary(user: SuperAdminUserSummary) {
   const values: string[] = []
   if (user.audience === 'internal' || user.adminScopes.length) values.push('interna')
-  if (user.productScopes.includes('personasAutorizadas')) values.push('familia escolar')
-  if (user.productScopes.includes('daycare')) values.push('familia guardería')
-  return values.length ? values.join(' · ') : 'sin vínculo detectado'
+  if (user.productScopes.includes('personasAutorizadas')) values.push('escolar')
+  if (user.productScopes.includes('daycare')) values.push('guardería')
+  return values.length ? values.join(' · ') : 'sin vínculo'
 }
 
-function personKindDetail(user: SuperAdminUserSummary) {
-  if (user.productScopes.length) return `Vínculo familiar: ${user.productScopes.map(productScopeLabel).join(' · ')}`
-  if (user.adminScopes.length) return adminAccessLabel(user)
-  if (user.audience === 'internal') return 'Cuenta interna sin responsabilidad administrativa visible'
-  return 'No se encontró vínculo familiar, puesto interno o rol administrativo'
-}
-
-function contextFallback(user: SuperAdminUserSummary) {
-  if (user.campus) return user.campus
-  if (user.empresa) return user.empresa
-  return 'Sin alcance registrado'
-}
-
-function contextDetail(user: SuperAdminUserSummary) {
-  if (user.sala) return `Sala ${user.sala}`
-  if (user.campus || user.empresa) return contextFallback(user)
-  if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
-  if (user.unidad.length) return 'Unidad tomada de la cuenta'
-  return 'No hay sala, plantel, grupo o unidad asociada'
-}
 
 function primaryScopeLabel(user: SuperAdminUserSummary) {
   const values = [...user.plantel, ...user.unidad].filter(Boolean)
@@ -827,22 +731,20 @@ function adminAccessLabel(user: SuperAdminUserSummary) {
   if (user.adminScopes.includes('daycare')) labels.push('Guardería')
   if (user.adminScopes.includes('communications')) labels.push('Comunicados')
   if (user.adminScopes.includes('accessHistory')) labels.push('Historial')
-  return labels.length ? labels.join(' · ') : 'Sin responsabilidad administrativa'
+  return labels.length ? labels.join(' · ') : 'Sin rol admin'
 }
 
 function adminAccessDetail(user: SuperAdminUserSummary) {
-  if (adminAccessLabel(user) === 'Sin responsabilidad administrativa') {
-    return user.audience === 'internal' ? 'Puede recibir una responsabilidad si su puesto lo requiere.' : 'No es cuenta administrativa.'
-  }
-  if (hasInheritedAdminAccess(user)) return 'Incluye permisos heredados por rutas o configuración anterior.'
-  return 'Responsabilidades administrativas activas.'
+  if (adminAccessLabel(user) === 'Sin rol admin') return user.audience === 'internal' ? 'Disponible para asignación' : 'No administrativa'
+  if (hasInheritedAdminAccess(user)) return 'Incluye acceso heredado'
+  return 'Rol explícito'
 }
 
 function internalAccountDetail(user: SuperAdminUserSummary) {
-  if (user.email?.toLowerCase().endsWith('@casitaiedis.edu.mx')) return 'Correo institucional registrado.'
-  if (user.adminScopes.length) return 'Tiene responsabilidades administrativas activas.'
-  if (user.role) return 'Tiene rol legacy registrado.'
-  return 'Cuenta marcada como interna por datos de sesión.'
+  if (user.email?.toLowerCase().endsWith('@casitaiedis.edu.mx')) return 'Correo institucional'
+  if (user.adminScopes.length) return 'Responsabilidad activa'
+  if (user.role) return 'Rol legacy'
+  return 'Sesión interna'
 }
 
 function daycareFamilyDetail(user: SuperAdminUserSummary) {
@@ -853,22 +755,22 @@ function daycareFamilyDetail(user: SuperAdminUserSummary) {
 }
 
 function schoolFamilyDetail(user: SuperAdminUserSummary) {
-  return user.nombre_nino ? `Alumno vinculado: ${user.nombre_nino}` : primaryScopeLabel(user)
+  return user.nombre_nino ? `Alumno: ${user.nombre_nino}` : primaryScopeLabel(user)
 }
 
 function daycareAdminCurrentDetail(user: SuperAdminUserSummary) {
-  if (!user.unidad.length) return 'El rol existe, pero no hay unidad autorizada.'
-  return `Unidades autorizadas: ${user.unidad.join(' · ')}.`
+  if (!user.unidad.length) return 'Sin unidad'
+  return user.unidad.join(' · ')
 }
 
 function communicationsDetail(user: SuperAdminUserSummary) {
-  if (user.communicationsScopes.length) return `${user.communicationsScopes.length} alcance(s) específico(s) de comunicados configurado(s).`
-  if (user.roleAssignments.communicationsAdmin) return 'Rol explícito activo; revisar alcances de publicación si necesita enviar.'
-  return 'Acceso detectado por alcance o ruta existente.'
+  if (user.communicationsScopes.length) return `${user.communicationsScopes.length} alcance(s)`
+  if (user.roleAssignments.communicationsAdmin) return 'Rol explícito'
+  return 'Heredado'
 }
 
 function historyAccessDetail(user: SuperAdminUserSummary) {
-  return user.roleAssignments.accessHistoryAdmin ? 'Rol explícito activo para historial y diagnósticos.' : 'Acceso heredado por ruta o configuración anterior.'
+  return user.roleAssignments.accessHistoryAdmin ? 'Rol explícito' : 'Heredado'
 }
 
 function hasInheritedAdminAccess(user: SuperAdminUserSummary) {
@@ -881,62 +783,62 @@ function hasInheritedAdminAccess(user: SuperAdminUserSummary) {
   })
 }
 
-function currentAccessLines(user: SuperAdminUserSummary) {
-  return accessGroupsForUser(user).flatMap((group) => group.items)
-}
-
-function accessGroupsForUser(user: SuperAdminUserSummary) {
-  const familyItems: AccessLine[] = [
+function accessRowsForUser(user: SuperAdminUserSummary): AccessMatrixRow[] {
+  return [
     {
       key: 'school-family',
-      title: 'Portal familiar escolar',
-      detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'No puede abrir herramientas familiares escolares.',
-      state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none',
-      label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'Sin vínculo'
+      area: 'Portal escolar',
+      caption: 'familia',
+      scope: user.productScopes.includes('personasAutorizadas') ? primaryScopeLabel(user) : '—',
+      source: user.productScopes.includes('personasAutorizadas') ? 'vínculo familiar' : '—',
+      status: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'Sin vínculo',
+      state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none'
     },
     {
       key: 'daycare-family',
-      title: 'Portal familiar de guardería',
-      detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'No puede abrir avisos, tareas o calendario familiar de guardería.',
-      state: user.productScopes.includes('daycare') ? 'family' : 'none',
-      label: user.productScopes.includes('daycare') ? 'Activo' : 'Sin vínculo'
-    }
-  ]
-
-  const adminItems: AccessLine[] = [
+      area: 'Portal guardería',
+      caption: 'familia',
+      scope: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : '—',
+      source: user.productScopes.includes('daycare') ? 'vínculo familiar' : '—',
+      status: user.productScopes.includes('daycare') ? 'Activo' : 'Sin vínculo',
+      state: user.productScopes.includes('daycare') ? 'family' : 'none'
+    },
     {
       key: 'school-admin',
-      title: 'Administración escolar',
-      detail: user.adminScopes.includes('gestionEscolar') ? 'Gestiona familias y publicaciones según alcance escolar configurado.' : 'No tiene alcance escolar administrativo.',
-      state: user.adminScopes.includes('gestionEscolar') ? 'active' : 'none',
-      label: user.adminScopes.includes('gestionEscolar') ? 'Activo' : 'Sin rol'
+      area: 'Admin escolar',
+      caption: 'operación',
+      scope: user.adminScopes.includes('gestionEscolar') ? primaryScopeLabel(user) : '—',
+      source: user.adminScopes.includes('gestionEscolar') ? (user.roleAssignments.gestionEscolarAdmin ? 'rol explícito' : 'heredado') : '—',
+      status: user.adminScopes.includes('gestionEscolar') ? 'Activo' : 'Sin rol',
+      state: user.adminScopes.includes('gestionEscolar') ? 'active' : 'none'
     },
     {
       key: 'daycare-admin',
-      title: 'Administración de guardería',
-      detail: user.adminScopes.includes('daycare') ? daycareAdminCurrentDetail(user) : 'No administra salas o unidades de guardería.',
-      state: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'active' : 'incomplete') : 'none',
-      label: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'Activo' : 'Falta alcance') : 'Sin rol'
+      area: 'Admin guardería',
+      caption: 'operación',
+      scope: user.adminScopes.includes('daycare') ? daycareAdminCurrentDetail(user) : '—',
+      source: user.adminScopes.includes('daycare') ? (user.roleAssignments.daycareAdmin ? 'rol explícito' : 'heredado') : '—',
+      status: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'Activo' : 'Falta unidad') : 'Sin rol',
+      state: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'active' : 'incomplete') : 'none'
     },
     {
       key: 'communications',
-      title: 'Comunicados administrativos',
-      detail: user.adminScopes.includes('communications') ? communicationsDetail(user) : 'No puede preparar comunicados administrativos.',
-      state: user.adminScopes.includes('communications') ? 'active' : 'none',
-      label: user.adminScopes.includes('communications') ? 'Activo' : 'Sin rol'
+      area: 'Comunicados',
+      caption: 'módulo',
+      scope: user.adminScopes.includes('communications') ? primaryScopeLabel(user) : '—',
+      source: user.adminScopes.includes('communications') ? communicationsDetail(user) : '—',
+      status: user.adminScopes.includes('communications') ? 'Activo' : 'Sin rol',
+      state: user.adminScopes.includes('communications') ? 'active' : 'none'
     },
     {
       key: 'security',
-      title: 'Historial y diagnósticos',
-      detail: user.adminScopes.includes('accessHistory') ? historyAccessDetail(user) : 'No puede consultar registros de acceso o diagnósticos.',
-      state: user.adminScopes.includes('accessHistory') ? 'active' : 'none',
-      label: user.adminScopes.includes('accessHistory') ? 'Activo' : 'Sin rol'
+      area: 'Historial',
+      caption: 'seguridad',
+      scope: user.adminScopes.includes('accessHistory') ? 'global soporte' : '—',
+      source: user.adminScopes.includes('accessHistory') ? historyAccessDetail(user) : '—',
+      status: user.adminScopes.includes('accessHistory') ? 'Activo' : 'Sin rol',
+      state: user.adminScopes.includes('accessHistory') ? 'active' : 'none'
     }
-  ]
-
-  return [
-    { key: 'family', title: 'Acceso familiar', description: 'Relaciones con alumnos, familias, salas y portales de padres.', items: familyItems },
-    { key: 'administrative', title: 'Responsabilidades internas', description: 'Permisos concedidos a staff, soporte o administradores.', items: adminItems }
   ]
 }
 
@@ -946,15 +848,15 @@ function primaryAccessState(user: SuperAdminUserSummary) {
     return incomplete ? { state: 'incomplete' as const, label: 'Admin sin alcance' } : { state: 'active' as const, label: 'Admin' }
   }
   if (user.productScopes.length) return { state: 'family' as const, label: 'Familia' }
-  if (user.audience === 'internal') return { state: 'none' as const, label: 'Interna sin responsabilidad' }
-  return { state: 'unknown' as const, label: 'Revisar vínculo' }
+  if (user.audience === 'internal') return { state: 'none' as const, label: 'Interna sin rol' }
+  return { state: 'unknown' as const, label: 'Revisar' }
 }
 
 function impersonationButtonLabel(user: SuperAdminUserSummary) {
-  if (!user.canImpersonate) return 'Vista no disponible'
+  if (!user.canImpersonate) return 'No disponible'
   if (impersonatingId.value === user.id) return 'Abriendo...'
-  if (confirmingImpersonationId.value === user.id) return 'Confirmar vista familiar'
-  return 'Abrir vista familiar'
+  if (confirmingImpersonationId.value === user.id) return 'Confirmar'
+  return 'Abrir'
 }
 
 function cancelImpersonation() {
@@ -969,7 +871,7 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
     selectedUser.value = user
     syncQuery(user.id)
     actionError.value = ''
-    actionNotice.value = `Confirma para abrir la vista familiar de ${displayName(user)}.`
+    actionNotice.value = `Confirma la vista familiar de ${displayName(user)}.`
     return
   }
 
@@ -983,8 +885,8 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
     })
     actionNotice.value = 'Abriendo vista familiar.'
     await navigateTo(defaultFamilyRoute(response.user))
-  } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir esta vista familiar.'
+  } catch (error: unknown) {
+    actionError.value = getErrorMessage(error, 'No fue posible abrir esta vista familiar.')
   } finally {
     impersonatingId.value = null
     confirmingImpersonationId.value = null
@@ -994,260 +896,252 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
 function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   return value === 'daycare' || value === 'schoolFamilies' || value === 'internal' || value === 'impersonable' ? value : 'all'
 }
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== 'object') return fallback
+  const candidate = error as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+  return candidate.data?.statusMessage || candidate.statusMessage || candidate.message || fallback
+}
 </script>
 
 <style scoped>
 .access-console {
+  --surface: #ffffff;
+  --surface-muted: #f7f9fb;
+  --line: #dce5eb;
+  --line-soft: #e7edf2;
+  --ink: #152032;
+  --muted: #64748b;
+  --accent: #0d766d;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
-.page-intro,
-.directory-pane,
-.case-pane,
+.access-header,
+.directory-panel,
+.account-panel,
+.roles-panel,
 .state-panel {
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid #dce5eb;
-  border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
 }
 
-.page-intro {
-  align-items: end;
+.access-header {
+  align-items: center;
   display: flex;
-  gap: 18px;
+  gap: 16px;
   justify-content: space-between;
-  padding: clamp(18px, 2.2vw, 26px);
+  min-height: 76px;
+  padding: 16px 18px;
 }
 
-.kicker {
-  color: #526173;
+.eyebrow,
+.directory-head span,
+.roles-head span,
+.profile-copy p,
+.section-head span {
+  color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.11em;
-  margin: 0 0 4px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.page-intro h1,
-.directory-title h2,
-.case-header h2,
-.section-heading h3,
-.risk-panel h3,
-.support-section h3,
-.state-panel h2,
-.access-group h4,
-.review-panel h4 {
-  color: #152032;
-  margin: 0;
-}
-
-.page-intro h1 {
+.access-header h1 {
+  color: var(--ink);
   font-family: var(--font-body);
-  font-size: clamp(2rem, 3vw, 2.75rem);
-  letter-spacing: -0.035em;
+  font-size: clamp(1.55rem, 2vw, 2rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 3px 0 0;
 }
 
-.page-intro p:not(.kicker),
-.case-header p,
-.section-heading p,
-.risk-panel p,
-.support-section p,
-.access-group p,
-.locked-note,
-.review-panel p,
-.review-panel li,
-.reason-field small {
-  color: #627386;
-  margin: 0;
-}
-
-.head-actions,
+.header-actions,
 .role-actions,
-.support-actions {
+.support-row > div:last-child {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
-.access-workspace {
+.access-board {
   align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: minmax(300px, 330px) minmax(440px, 1fr) minmax(320px, 360px);
 }
 
-.directory-pane,
-.case-pane {
+.directory-panel,
+.account-panel,
+.roles-panel {
   align-content: start;
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 12px;
+  padding: 12px;
 }
 
-.directory-pane {
+.directory-panel,
+.roles-panel {
   position: sticky;
-  top: calc(var(--topbar-height) + 18px);
+  top: calc(var(--topbar-height) + 14px);
 }
 
-.directory-title,
-.section-heading,
-.case-status {
+.directory-head,
+.roles-head,
+.section-head,
+.change-panel header {
   align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
 }
 
-.directory-title > span,
-.section-heading > span,
-.case-status small {
-  color: #64748b;
-  font-size: 0.76rem;
+.directory-head strong,
+.roles-head strong,
+.section-head h2,
+.change-panel h2,
+.profile-card h2 {
+  color: var(--ink);
+  margin: 0;
+}
+
+.directory-head strong,
+.roles-head strong {
+  display: block;
+  font-size: 1rem;
+  margin-top: 2px;
+}
+
+.directory-head small {
+  color: var(--muted);
   font-weight: 800;
 }
 
-.directory-search {
+.searchbar {
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid #dce5eb;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 13px;
   display: grid;
-  gap: 9px;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  min-height: 48px;
-  padding: 6px 8px 6px 12px;
+  gap: 8px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  min-height: 46px;
+  padding: 5px 6px 5px 11px;
 }
 
-.directory-search input,
-.filter-row select,
+.searchbar input,
+.filters select,
 .reason-field textarea {
-  color: #152032;
+  color: var(--ink);
   font: inherit;
   min-width: 0;
   outline: 0;
 }
 
-.directory-search input,
-.filter-row select {
+.searchbar input,
+.filters select {
   background: transparent;
   border: 0;
 }
 
-.search-submit,
-.inline-link {
+.searchbar button,
+.inline-action {
+  align-items: center;
   background: #ffffff;
   border: 1px solid #cfe0e7;
   border-radius: 10px;
-  color: #0d766d;
+  color: var(--accent);
   cursor: pointer;
-  font-size: 0.82rem;
+  display: inline-flex;
+  font-size: 0.8rem;
   font-weight: 850;
+  justify-content: center;
   min-height: 34px;
   padding: 0 11px;
 }
 
-.inline-link {
-  align-items: center;
-  display: inline-flex;
-  justify-content: center;
-  min-height: 36px;
-  text-align: center;
-}
-
-.filter-row,
-.directory-summary,
-.identity-layout,
-.access-groups,
-.role-grid,
-.sensitive-grid {
+.filters {
   display: grid;
   gap: 8px;
-}
-
-.filter-row,
-.role-grid,
-.sensitive-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.filter-row label,
-.directory-summary div,
-.fact-list div,
-.relationship-list article,
-.access-group,
-.role-card,
-.scope-picker,
-.review-panel {
-  background: #fbfcfd;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
-}
-
-.filter-row label {
+.filters label {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   padding: 8px 10px;
 }
 
-.filter-row span,
-.directory-summary dt,
-.fact-list dt,
-.relationship-list span,
-.row-tags small,
-.reason-field span {
-  color: #6b7a8b;
-  font-size: 0.72rem;
-  font-weight: 850;
+.filters span,
+.metric-strip small,
+.person-meta small,
+.profile-copy small,
+.ledger-row small,
+.table-row small,
+.school-scope small,
+.switch-row small,
+.change-panel p,
+.change-panel li,
+.reason-field span,
+.reason-field textarea::placeholder,
+.locked-note,
+.support-row small {
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
-.directory-summary {
+.metric-strip {
+  display: grid;
+  gap: 6px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.directory-summary div {
+.metric-strip span {
+  background: var(--surface-muted);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
   display: grid;
   gap: 1px;
-  min-height: 48px;
-  padding: 8px 10px;
+  min-width: 0;
+  padding: 8px;
 }
 
-.directory-summary dt,
-.directory-summary dd {
-  margin: 0;
-}
-
-.directory-summary dd {
-  color: #152032;
-  font-size: 1rem;
-  font-weight: 900;
+.metric-strip strong {
+  color: var(--ink);
+  font-size: 0.96rem;
 }
 
 .people-list {
   display: grid;
-  gap: 6px;
-  max-height: calc(100vh - 352px);
+  gap: 5px;
+  max-height: calc(100vh - 342px);
   overflow: auto;
   padding-right: 2px;
 }
 
 .person-row {
   align-items: center;
-  background: #ffffff;
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: 13px;
+  border-radius: 14px;
   cursor: pointer;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(126px, auto);
-  padding: 9px;
+  gap: 9px;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(92px, auto);
+  padding: 8px;
   text-align: left;
 }
 
 .person-row:hover,
 .person-row.selected {
-  background: #f4faf8;
+  background: #f3faf8;
   border-color: #cae2dc;
 }
 
@@ -1256,26 +1150,26 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   background: #eef7f5;
   border: 1px solid #cae2dc;
   border-radius: 12px;
-  color: #0d766d;
+  color: var(--accent);
   display: inline-flex;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 900;
-  height: 42px;
+  height: 38px;
   justify-content: center;
-  width: 42px;
+  width: 38px;
 }
 
-.avatar.large {
-  border-radius: 16px;
-  font-size: 1.08rem;
-  height: 58px;
-  width: 58px;
+.avatar.hero {
+  border-radius: 18px;
+  font-size: 1.12rem;
+  height: 64px;
+  width: 64px;
 }
 
 .person-copy,
-.row-tags,
-.case-header > div,
-.case-status {
+.person-meta,
+.profile-copy,
+.roles-head > div {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1283,283 +1177,405 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 .person-copy strong,
 .person-copy small,
-.row-tags small,
-.fact-list dd,
-.fact-list small,
-.case-header h2,
-.case-header p,
-.case-status small {
+.person-meta small,
+.profile-copy h2,
+.profile-copy small,
+.roles-head strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .person-copy strong {
-  color: #152032;
-  font-size: 0.9rem;
+  color: var(--ink);
+  font-size: 0.86rem;
 }
 
-.person-copy small,
-.fact-list small,
-.relationship-list p,
-.access-line span,
-.role-card p,
-.scope-picker p {
-  color: #667789;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  margin: 0;
+.person-copy small {
+  color: #627386;
+  font-size: 0.74rem;
 }
 
-.row-tags,
-.case-status {
+.person-meta {
   justify-items: end;
 }
 
-.row-tags b,
-.case-status span,
-.access-line b,
-.assignment-section .section-heading > span,
-.review-panel .section-heading > span {
+.person-meta b,
+.profile-badges span,
+.roles-head b,
+.table-row b,
+.change-panel header span {
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 850;
-  padding: 6px 9px;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
-[data-state='active'] {
+.person-meta b[data-state='active'],
+.profile-badges span[data-state='active'],
+.roles-head b[data-state='active'],
+.table-row[data-state='active'] b,
+.change-panel header span[data-state='active'],
+.review-strip article[data-state='active'] {
   background: #e7f8ef;
   border: 1px solid #bfead0;
   color: #15803d;
 }
 
-[data-state='family'] {
+.person-meta b[data-state='family'],
+.profile-badges span[data-state='family'],
+.roles-head b[data-state='family'],
+.table-row[data-state='family'] b,
+.change-panel header span[data-state='family'],
+.review-strip article[data-state='family'] {
   background: #eef7fb;
   border: 1px solid #cfe7fb;
   color: #236188;
 }
 
-[data-state='incomplete'],
-[data-state='unknown'] {
+.person-meta b[data-state='incomplete'],
+.person-meta b[data-state='unknown'],
+.profile-badges span[data-state='incomplete'],
+.profile-badges span[data-state='unknown'],
+.roles-head b[data-state='incomplete'],
+.roles-head b[data-state='unknown'],
+.table-row[data-state='incomplete'] b,
+.table-row[data-state='unknown'] b,
+.change-panel header span[data-state='incomplete'],
+.change-panel header span[data-state='unknown'],
+.review-strip article[data-state='incomplete'],
+.review-strip article[data-state='unknown'] {
   background: #fff6df;
   border: 1px solid #f3d589;
   color: #8a650c;
 }
 
-[data-state='none'] {
+.person-meta b[data-state='none'],
+.profile-badges span[data-state='none'],
+.roles-head b[data-state='none'],
+.table-row[data-state='none'] b,
+.change-panel header span[data-state='none'],
+.review-strip article[data-state='none'] {
   background: #f4f6f8;
-  border: 1px solid #dce5eb;
-  color: #64748b;
+  border: 1px solid var(--line);
+  color: var(--muted);
 }
 
-.case-header {
+.school-scope[data-state='active'],
+.switch-row[data-state='active'] {
+  box-shadow: inset 4px 0 0 #16a34a;
+}
+
+.school-scope[data-state='incomplete'],
+.switch-row[data-state='incomplete'] {
+  box-shadow: inset 4px 0 0 #d97706;
+}
+
+.profile-card {
   align-items: center;
-  border-bottom: 1px solid #e4ebf0;
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-left: 6px solid #94a3b8;
+  border-radius: 18px;
   display: grid;
   gap: 14px;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
-  padding-bottom: 14px;
-}
-
-.case-header h2 {
-  font-family: var(--font-body);
-  font-size: clamp(1.45rem, 2.1vw, 2rem);
-}
-
-.case-status {
-  align-items: end;
-}
-
-.case-steps {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.case-steps li {
-  background: #fbfcfd;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
-  display: grid;
-  gap: 4px;
-  padding: 11px;
-}
-
-.case-steps strong,
-.relationship-list strong,
-.access-line strong,
-.role-card strong {
-  color: #152032;
-}
-
-.case-steps span {
-  color: #627386;
-  font-size: 0.76rem;
-  line-height: 1.35;
-}
-
-.risk-panel,
-.identity-section,
-.access-section,
-.assignment-section,
-.support-section {
-  border: 1px solid #e1e8ed;
-  border-radius: 15px;
-  display: grid;
-  gap: 12px;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, auto);
   padding: 14px;
 }
 
-.risk-panel {
-  background: #fffaf0;
-  border-color: #f3d589;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-}
+.profile-card[data-state='active'] { border-left-color: #16a34a; }
+.profile-card[data-state='family'] { border-left-color: #0284c7; }
+.profile-card[data-state='incomplete'],
+.profile-card[data-state='unknown'] { border-left-color: #d97706; }
+.profile-card[data-state='none'] { border-left-color: #94a3b8; }
 
-.risk-panel ul,
-.review-panel ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.risk-panel li {
-  color: #6b5608;
-  line-height: 1.45;
-}
-
-.section-heading.split,
-.compact-heading {
-  align-items: start;
-}
-
-.identity-layout {
-  grid-template-columns: minmax(240px, 0.92fr) minmax(0, 1.08fr);
-}
-
-.fact-list,
-.relationship-list,
-.access-lines {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.fact-list div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 12px;
-}
-
-.fact-list dd {
-  color: #152032;
-  font-weight: 900;
-  margin: 0;
-}
-
-.relationship-list article,
-.access-line {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 12px;
-}
-
-.relationship-list article[data-state],
-.access-line[data-state],
-.role-card[data-state] {
-  color: inherit;
-}
-
-.access-groups {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.access-group {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.access-group h4,
-.review-panel h4 {
+.profile-copy h2 {
   font-family: var(--font-body);
-  font-size: 1.02rem;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  letter-spacing: -0.03em;
 }
 
-.access-line {
-  background: #ffffff;
-  border: 1px solid #e1e8ed;
-  border-radius: 12px;
-}
-
-.role-card {
-  align-items: start;
-  display: grid;
-  gap: 10px;
-  min-height: 112px;
-  padding: 12px;
-}
-
-.role-card.selectable {
-  cursor: pointer;
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.role-card input {
-  accent-color: #0d766d;
-  margin-top: 3px;
-}
-
-.school-role {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.scope-picker {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-}
-
-.scope-picker legend {
-  color: #152032;
-  font-size: 0.86rem;
-  font-weight: 850;
-  padding: 0 4px;
-}
-
-.unit-grid {
+.profile-badges {
+  align-items: end;
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.review-strip {
+  display: grid;
   gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.unit-option {
-  background: #ffffff;
-  border: 1px solid #dce5eb;
-  border-radius: 999px;
-  color: #526173;
-  cursor: pointer;
+.review-strip article {
+  border-radius: 14px;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.review-strip span {
+  font-size: 0.7rem;
   font-weight: 850;
-  min-height: 36px;
-  padding: 0 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.unit-option.active {
+.review-strip strong {
+  font-size: 0.94rem;
+}
+
+.ledger-section,
+.matrix-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.section-head h2,
+.change-panel h2 {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+}
+
+.ledger {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.ledger-row {
+  align-items: center;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  min-height: 58px;
+  padding: 9px 4px;
+}
+
+.ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.ledger-row i {
+  border-radius: 999px;
+  height: 10px;
+  width: 10px;
+}
+
+.ledger-row[data-state='active'] i { background: #16a34a; }
+.ledger-row[data-state='family'] i { background: #0284c7; }
+.ledger-row[data-state='incomplete'],
+.ledger-row[data-state='unknown'] { background: #ffffff; }
+.ledger-row[data-state='incomplete'] i,
+.ledger-row[data-state='unknown'] i { background: #d97706; }
+.ledger-row[data-state='none'] { background: #ffffff; }
+.ledger-row[data-state='none'] i { background: #cbd5e1; }
+
+.ledger-row strong,
+.school-scope strong,
+.switch-row strong,
+.support-row strong {
+  color: var(--ink);
+}
+
+.ledger-row small,
+.table-row small,
+.school-scope small,
+.switch-row small,
+.support-row small {
+  display: block;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.ledger-row b {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.access-table {
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.table-row {
+  align-items: center;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(110px, 0.8fr) auto;
+  min-height: 54px;
+  padding: 9px 12px;
+}
+
+.table-row:last-child {
+  border-bottom: 0;
+}
+
+.table-row.table-head {
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  min-height: 40px;
+  text-transform: uppercase;
+}
+
+.table-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-row strong {
+  display: block;
+}
+
+.support-row {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.roles-head b {
+  align-self: start;
+}
+
+.role-controls {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.school-scope,
+.switch-row {
+  align-items: center;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  min-height: 66px;
+  padding: 12px;
+}
+
+.school-scope {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.switch-row {
+  cursor: pointer;
+  grid-template-columns: auto 42px minmax(0, 1fr);
+}
+
+.school-scope:last-child,
+.switch-row:last-child {
+  border-bottom: 0;
+}
+
+.switch-row input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.switch {
+  background: #cbd5e1;
+  border-radius: 999px;
+  height: 24px;
+  position: relative;
+  width: 42px;
+}
+
+.switch::after {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+  content: '';
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 0.16s ease;
+  width: 18px;
+}
+
+.switch-row input:checked + .switch {
+  background: var(--accent);
+}
+
+.switch-row input:checked + .switch::after {
+  transform: translateX(18px);
+}
+
+.scope-chips {
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px 12px;
+}
+
+.scope-chip {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+  min-height: 32px;
+  padding: 0 11px;
+}
+
+.scope-chip.active {
   background: #e7f8ef;
   border-color: #bfead0;
   color: #15803d;
 }
 
-.review-panel {
+.change-panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   padding: 12px;
+}
+
+.change-panel ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.change-panel p {
+  margin: 0;
 }
 
 .reason-field {
@@ -1567,24 +1583,24 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   gap: 6px;
 }
 
+.reason-field span {
+  font-weight: 850;
+}
+
 .reason-field textarea {
   background: #ffffff;
-  border: 1px solid #dce5eb;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  min-height: 84px;
+  min-height: 82px;
   padding: 10px 12px;
   resize: vertical;
 }
 
-.support-section {
-  align-items: center;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .locked-note {
-  background: #f8fafc;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 0;
   padding: 12px;
 }
 
@@ -1604,13 +1620,22 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .state-panel {
-  color: #667789;
+  color: var(--muted);
   display: grid;
   gap: 9px;
   min-height: 280px;
   place-items: center;
   padding: 24px;
   text-align: center;
+}
+
+.state-panel h2 {
+  color: var(--ink);
+  margin: 0;
+}
+
+.state-panel p {
+  margin: 0;
 }
 
 .state-panel.compact {
@@ -1621,15 +1646,25 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   min-height: 520px;
 }
 
-@media (max-width: 1180px) {
-  .access-workspace,
-  .identity-layout,
-  .access-groups,
-  .case-steps {
+@media (max-width: 1260px) {
+  .access-board {
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  }
+
+  .roles-panel {
+    grid-column: 2;
+    position: static;
+  }
+}
+
+@media (max-width: 980px) {
+  .access-board {
     grid-template-columns: 1fr;
   }
 
-  .directory-pane {
+  .directory-panel,
+  .roles-panel {
+    grid-column: auto;
     position: static;
   }
 
@@ -1638,40 +1673,34 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   }
 }
 
-@media (max-width: 760px) {
-  .page-intro,
-  .head-actions,
-  .directory-title,
-  .section-heading,
-  .risk-panel,
-  .support-section {
+@media (max-width: 720px) {
+  .access-header,
+  .support-row {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .head-actions,
+  .header-actions,
   .role-actions,
-  .support-actions {
+  .support-row > div:last-child {
     display: grid;
     justify-content: stretch;
   }
 
-  .filter-row,
-  .directory-summary,
-  .case-header,
+  .filters,
+  .metric-strip,
+  .review-strip,
+  .profile-card,
+  .table-row,
   .person-row,
-  .relationship-list article,
-  .access-line,
-  .role-grid,
-  .sensitive-grid,
-  .school-role,
-  .support-section {
+  .school-scope {
     grid-template-columns: 1fr;
   }
 
-  .row-tags,
-  .case-status {
+  .profile-badges,
+  .person-meta {
     align-items: start;
+    justify-content: start;
     justify-items: start;
   }
 }
