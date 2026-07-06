@@ -4,10 +4,10 @@
       <div>
         <p class="eyebrow">Superadmin</p>
         <h1>Husky Pass</h1>
-        <p>Busca un alumno o persona autorizada, confirma plantilla y genera el PDF correcto.</p>
+        
       </div>
       <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Cuentas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Sistema</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
@@ -227,7 +227,7 @@ const surveyLevelOptions: Array<{ key: PersonasSurveyNivelKey; label: string; de
 ]
 const configForm = reactive({
   surveyEnabled: false,
-  surveyTitle: 'Encuesta Personas Autorizadas',
+  surveyTitle: 'Encuesta Husky Pass',
   surveyEmbedUrl: '',
   surveysByNivel: surveyLevelOptions.reduce((acc, option) => {
     acc[option.key] = { enabled: false, title: option.defaultTitle, embedUrl: '' }
@@ -261,7 +261,7 @@ const pdfPreviewKey = computed(() => `pdf-${selectedPass.value?.personId || 'non
 watch(config, (value) => {
   if (!value) return
   configForm.surveyEnabled = Boolean(value.survey.enabled)
-  configForm.surveyTitle = value.survey.title || 'Encuesta Personas Autorizadas'
+  configForm.surveyTitle = value.survey.title || 'Encuesta Husky Pass'
   configForm.surveyEmbedUrl = value.survey.embedUrl || ''
   for (const option of surveyLevelOptions) {
     const survey = value.surveysByNivel?.[option.key]

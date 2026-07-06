@@ -1,11 +1,11 @@
 <template>
-  <section class="access-console" data-product-area="superadmin" data-product-screen="access-management">
-    <header class="access-header">
+  <section class="access-console" data-product-area="superadmin" data-product-screen="account-resolution">
+    <header class="ops-bar">
       <div>
         <p class="eyebrow">Super Admin</p>
-        <h1>Cuentas y acceso</h1>
+        <h1>Revisión de cuentas</h1>
       </div>
-      <div class="header-actions">
+      <div class="ops-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Alcance escolar</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
@@ -19,26 +19,39 @@
 
     <section v-if="loadProblem" class="state-panel" data-product-panel="superadmin-directory" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h2>No fue posible cargar el directorio</h2>
+      <h2>No fue posible cargar cuentas</h2>
       <p>{{ loadProblemMessage }}</p>
       <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-directorio" @click="refreshDirectory">Reintentar</button>
     </section>
 
-    <section v-else class="access-board" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
-      <aside class="directory-panel" aria-label="Directorio de cuentas">
-        <div class="directory-head">
+    <section v-else class="access-workbench" data-product-panel="superadmin-directory" :data-state="visibleUsers.length ? 'content' : 'empty'">
+      <aside class="queue-panel" aria-label="Cola de cuentas">
+        <div class="queue-head">
           <div>
-            <span>Directorio</span>
+            <span>Cola</span>
             <strong>{{ directory?.users.length || 0 }} cuentas</strong>
           </div>
-          <small>{{ directoryAdminCount }} admin</small>
+          <b>{{ directoryAdminCount }} admin</b>
         </div>
 
         <form class="searchbar" role="search" @submit.prevent="refreshDirectory">
           <FamilyPersonasIcon name="search" />
-          <input v-model="search" type="search" placeholder="Nombre, correo, matrícula, estudiante o sala" data-diagnostic-filter="buscar-usuario" />
+          <input v-model="search" type="search" placeholder="Nombre, correo, matrícula o sala" data-diagnostic-filter="buscar-usuario" />
           <button type="submit" :disabled="isLoadingVisible">Buscar</button>
         </form>
+
+        <div class="queue-tabs" aria-label="Vistas de revisión">
+          <button
+            v-for="tab in queueTabs"
+            :key="tab.key"
+            type="button"
+            :class="{ active: queueMode === tab.key }"
+            @click="queueMode = tab.key"
+          >
+            <strong>{{ tab.count }}</strong>
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
 
         <div class="filters" aria-label="Filtros de cuentas">
           <label>
@@ -56,20 +69,13 @@
           </label>
         </div>
 
-        <div class="metric-strip" aria-label="Resumen del directorio filtrado">
-          <span v-for="metric in directoryMetrics" :key="metric.label">
-            <strong>{{ metric.value }}</strong>
-            <small>{{ metric.label }}</small>
-          </span>
-        </div>
-
         <div v-if="isLoadingVisible" class="state-panel compact" data-product-loading>
           <HuskyPassLoader label="Cuentas" compact />
         </div>
 
-        <div v-else-if="directory?.users?.length" class="people-list" role="list">
+        <div v-else-if="visibleUsers.length" class="people-list" role="list">
           <button
-            v-for="user in directory.users"
+            v-for="user in visibleUsers"
             :key="user.id"
             class="person-row"
             :class="{ selected: clientReady && selectedUser?.id === user.id }"
@@ -93,32 +99,33 @@
         <div v-else class="state-panel compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Sin resultados</h2>
-          <p>Cambia la búsqueda o reduce los filtros.</p>
+          <p>Cambia búsqueda o filtros.</p>
         </div>
       </aside>
 
-      <main class="account-panel">
+      <main class="case-panel">
         <template v-if="clientReady && selectedUser">
-          <section class="profile-card" :data-state="primaryAccessState(selectedUser).state">
+          <section class="case-strip" :data-state="primaryAccessState(selectedUser).state">
             <span class="avatar hero">{{ initials(selectedUser) }}</span>
-            <div class="profile-copy">
+            <div class="case-title">
               <p>{{ accountTypeLabel(selectedUser) }}</p>
               <h2>{{ displayName(selectedUser) }}</h2>
               <small>{{ accountLabel(selectedUser) }} · ID {{ selectedUser.id }}</small>
             </div>
-            <div class="profile-badges">
-              <span v-for="signal in selectedSignals" :key="signal.key" :data-state="signal.state">{{ signal.label }}</span>
+            <div class="case-state">
+              <strong>{{ caseHeadline }}</strong>
+              <span>{{ primaryScopeLabel(selectedUser) }}</span>
             </div>
           </section>
 
-          <section v-if="reviewFlags.length" class="review-strip" aria-label="Puntos de revisión">
-            <article v-for="flag in reviewFlags" :key="flag.key" :data-state="flag.state">
-              <span>{{ flag.label }}</span>
-              <strong>{{ flag.value }}</strong>
-            </article>
+          <section class="resolution-banner" :data-state="primaryAccessState(selectedUser).state">
+            <strong>{{ nextMove.title }}</strong>
+            <span>{{ nextMove.meta }}</span>
+            <NuxtLink v-if="nextMove.to" class="inline-action" :to="nextMove.to">{{ nextMove.action }}</NuxtLink>
+            <button v-else class="inline-action" type="button" @click="selectResolution(nextMove.key)">{{ nextMove.action }}</button>
           </section>
 
-          <section class="ledger-section">
+          <section class="relationship-ledger">
             <header class="section-head">
               <h2>Vínculos</h2>
               <span>{{ relationshipSummary(selectedUser) }}</span>
@@ -135,19 +142,19 @@
             </div>
           </section>
 
-          <section class="matrix-section">
+          <section class="access-matrix">
             <header class="section-head">
-              <h2>Acceso actual</h2>
+              <h2>Acceso</h2>
               <span>{{ currentAccessSummary }}</span>
             </header>
-            <div class="access-table" role="table" aria-label="Acceso efectivo actual">
-              <div class="table-row table-head" role="row">
+            <div class="matrix" role="table" aria-label="Acceso efectivo actual">
+              <div class="matrix-row matrix-head" role="row">
                 <span role="columnheader">Área</span>
                 <span role="columnheader">Alcance</span>
                 <span role="columnheader">Origen</span>
                 <span role="columnheader">Estado</span>
               </div>
-              <div v-for="row in accessRows" :key="row.key" class="table-row" role="row" :data-state="row.state">
+              <div v-for="row in accessRows" :key="row.key" class="matrix-row" role="row" :data-state="row.state">
                 <span role="cell">
                   <strong>{{ row.area }}</strong>
                   <small>{{ row.caption }}</small>
@@ -162,7 +169,7 @@
           <section v-if="selectedUser.canImpersonate" class="support-row">
             <div>
               <strong>Vista familiar</strong>
-              <small>Solo soporte; no cambia roles.</small>
+              <small>Soporte sin cambiar roles.</small>
             </div>
             <div>
               <button class="btn btn-secondary" type="button" :disabled="impersonatingId === selectedUser.id" @click="requestImpersonation(selectedUser)">
@@ -176,33 +183,46 @@
         <div v-else class="state-panel detail-empty" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Selecciona una cuenta</h2>
-          <p>Verás vínculos, acceso actual y cambios pendientes.</p>
+          <p>El panel de resolución aparecerá a la derecha.</p>
         </div>
       </main>
 
-      <aside class="roles-panel" aria-label="Roles administrativos">
+      <aside class="resolve-panel" aria-label="Resolver acceso">
         <template v-if="clientReady && selectedUser">
-          <header class="roles-head">
+          <header class="resolve-head">
             <div>
-              <span>Roles</span>
-              <strong>{{ adminAccessLabel(selectedUser) }}</strong>
+              <span>Resolver</span>
+              <strong>{{ resolverTitle }}</strong>
             </div>
-            <b :data-state="roleHasChanges ? 'incomplete' : 'none'">{{ roleHasChanges ? 'Pendiente' : 'Sin cambios' }}</b>
+            <b :data-state="roleHasChanges ? 'incomplete' : 'none'">{{ roleHasChanges ? 'Pendiente' : 'Actual' }}</b>
           </header>
 
-          <section v-if="selectedUser.canManageAdminRoles" class="role-controls">
-            <article class="school-scope" :data-state="selectedUser.adminScopes.includes('gestionEscolar') ? 'active' : 'none'">
-              <div>
+          <section class="resolution-options">
+            <button
+              v-for="option in resolutionOptions"
+              :key="option.key"
+              type="button"
+              :class="{ active: resolverMode === option.key }"
+              :data-state="option.state"
+              @click="selectResolution(option.key)"
+            >
+              <span>{{ option.title }}</span>
+              <small>{{ option.meta }}</small>
+            </button>
+          </section>
+
+          <section v-if="selectedUser.canManageAdminRoles" class="role-editor">
+            <NuxtLink
+              class="school-scope"
+              :data-state="selectedUser.adminScopes.includes('gestionEscolar') ? 'active' : 'none'"
+              :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
+            >
+              <span>
                 <strong>Escolar</strong>
                 <small>{{ selectedUser.adminScopes.includes('gestionEscolar') ? primaryScopeLabel(selectedUser) : 'Sin alcance' }}</small>
-              </div>
-              <NuxtLink
-                class="inline-action"
-                :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
-              >
-                Editar
-              </NuxtLink>
-            </article>
+              </span>
+              <b>Editar</b>
+            </NuxtLink>
 
             <label class="switch-row" :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
               <input v-model="roleDraft.daycareAdmin" type="checkbox" />
@@ -232,7 +252,7 @@
               <span class="switch" aria-hidden="true" />
               <span>
                 <strong>Comunicados</strong>
-                <small>Preparación administrativa</small>
+                <small>Preparar publicaciones</small>
               </span>
             </label>
 
@@ -241,12 +261,12 @@
               <span class="switch" aria-hidden="true" />
               <span>
                 <strong>Historial</strong>
-                <small>Acceso y diagnósticos</small>
+                <small>Auditoría y diagnósticos</small>
               </span>
             </label>
           </section>
 
-          <p v-else class="locked-note">Cuenta no administrativa.</p>
+          <p v-else class="locked-note">Cuenta familiar. Usa vínculos, no roles internos.</p>
 
           <section class="change-panel" :data-state="roleHasChanges ? (saveBlockedReason ? 'incomplete' : 'active') : 'none'">
             <header>
@@ -259,7 +279,7 @@
             <p v-else>Sin cambios pendientes.</p>
             <label v-if="roleHasChanges" class="reason-field">
               <span>Motivo</span>
-              <textarea v-model="roleChangeReason" rows="3" maxlength="500" placeholder="Solicitud o ticket interno" />
+              <textarea v-model="roleChangeReason" rows="3" maxlength="500" placeholder="Ticket o solicitud interna" />
             </label>
             <div class="role-actions">
               <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar</button>
@@ -271,13 +291,14 @@
         </template>
 
         <div v-else class="state-panel compact" data-state="empty">
-          <h2>Roles</h2>
+          <h2>Resolver</h2>
           <p>Selecciona una cuenta.</p>
         </div>
       </aside>
     </section>
   </section>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -290,6 +311,8 @@ import { displayMatricula } from '~/utils/matricula'
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
 type AccessState = 'active' | 'family' | 'incomplete' | 'none' | 'unknown'
+type QueueMode = 'review' | 'internal' | 'families' | 'admins' | 'sensitive'
+type ResolverMode = 'school' | 'daycare' | 'communications' | 'history' | 'none'
 
 interface AccessLine {
   key: string
@@ -335,6 +358,8 @@ const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
 
 const selectedPlantel = ref(typeof route.query.plantel === 'string' ? route.query.plantel : '')
 const selectedScope = ref<SuperAdminDirectoryScope>(normalizeScope(route.query.scope))
+const queueMode = ref<QueueMode>('review')
+const resolverMode = ref<ResolverMode>('school')
 const selectedUser = ref<SuperAdminUserSummary | null>(null)
 const clientReady = ref(false)
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
@@ -382,12 +407,54 @@ const roleUnidadOptions = computed(() => {
 
 const directoryAdminCount = computed(() => directory.value?.users.filter((user) => user.adminScopes.length > 0).length || 0)
 
-const directoryMetrics = computed(() => [
-  { label: 'familias', value: directory.value?.metrics.familyUsers || 0 },
-  { label: 'internas', value: directory.value?.metrics.internalUsers || 0 },
-  { label: 'guardería', value: directory.value?.metrics.daycareFamilies || 0 },
-  { label: 'soporte', value: directory.value?.metrics.impersonable || 0 }
+const queueCounts = computed(() => {
+  const users = directory.value?.users || []
+  return {
+    review: users.filter(needsReview).length,
+    internal: users.filter((user) => user.audience === 'internal' || user.adminScopes.length).length,
+    families: users.filter((user) => user.productScopes.length > 0).length,
+    admins: users.filter((user) => user.adminScopes.length > 0).length,
+    sensitive: users.filter((user) => user.adminScopes.includes('communications') || user.adminScopes.includes('accessHistory') || user.canImpersonate).length
+  }
+})
+
+const queueTabs = computed<Array<{ key: QueueMode; label: string; count: number }>>(() => [
+  { key: 'review', label: 'Revisión', count: queueCounts.value.review },
+  { key: 'internal', label: 'Internas', count: queueCounts.value.internal },
+  { key: 'families', label: 'Familias', count: queueCounts.value.families },
+  { key: 'admins', label: 'Admins', count: queueCounts.value.admins },
+  { key: 'sensitive', label: 'Sensibles', count: queueCounts.value.sensitive }
 ])
+
+const visibleUsers = computed(() => {
+  const users = directory.value?.users || []
+  const rows = users.filter((user) => {
+    if (queueMode.value === 'review') return needsReview(user)
+    if (queueMode.value === 'internal') return user.audience === 'internal' || user.adminScopes.length
+    if (queueMode.value === 'families') return user.productScopes.length > 0
+    if (queueMode.value === 'admins') return user.adminScopes.length > 0
+    if (queueMode.value === 'sensitive') return user.adminScopes.includes('communications') || user.adminScopes.includes('accessHistory') || user.canImpersonate
+    return true
+  })
+  return rows.length ? rows : users
+})
+
+const caseHeadline = computed(() => selectedUser.value ? primaryAccessState(selectedUser.value).label : 'Sin cuenta')
+const resolverTitle = computed(() => selectedUser.value ? nextMoveForUser(selectedUser.value).title : 'Selecciona cuenta')
+
+const nextMove = computed(() => selectedUser.value ? nextMoveForUser(selectedUser.value) : { key: 'none' as ResolverMode, title: 'Selecciona una cuenta', meta: '', action: 'Ver', to: '' })
+
+const resolutionOptions = computed<Array<{ key: ResolverMode; title: string; meta: string; state: AccessState }>>(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  return [
+    { key: 'school', title: 'Dar acceso escolar', meta: user.adminScopes.includes('gestionEscolar') ? primaryScopeLabel(user) : 'Plantel, grado o grupo', state: user.adminScopes.includes('gestionEscolar') ? 'active' : 'none' },
+    { key: 'daycare', title: 'Dar acceso guardería', meta: roleUnidadDraft.value.length ? roleUnidadDraft.value.join(' · ') : 'Unidad requerida', state: roleDraft.value.daycareAdmin ? (roleUnidadDraft.value.length ? 'active' : 'incomplete') : 'none' },
+    { key: 'communications', title: 'Comunicados', meta: 'Preparar publicaciones', state: roleDraft.value.communicationsAdmin ? 'active' : 'none' },
+    { key: 'history', title: 'Historial', meta: 'Auditoría y diagnósticos', state: roleDraft.value.accessHistoryAdmin ? 'active' : 'none' },
+    { key: 'none', title: 'Sin acceso operativo', meta: user.productScopes.length ? 'Conservar vínculo familiar' : 'Cuenta sin roles', state: !user.adminScopes.length ? 'none' : 'incomplete' }
+  ]
+})
 
 const roleHasChanges = computed(() => {
   const current = selectedUser.value?.roleAssignments || emptyRoleAssignments()
@@ -409,35 +476,6 @@ const currentAccessSummary = computed(() => {
   if (!selectedUser.value) return 'Sin cuenta'
   const count = accessRowsForUser(selectedUser.value).filter((item) => item.state === 'active' || item.state === 'family').length
   return count ? `${count} activo(s)` : 'Sin acceso activo'
-})
-
-const selectedSignals = computed(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  return [
-    { key: 'state', label: primaryAccessState(user).label, state: primaryAccessState(user).state },
-    { key: 'scope', label: primaryScopeLabel(user), state: primaryScopeLabel(user) === 'Sin alcance' ? 'incomplete' as const : 'active' as const },
-    { key: 'admin', label: adminAccessLabel(user), state: user.adminScopes.length ? 'active' as const : 'none' as const }
-  ]
-})
-
-const reviewFlags = computed(() => {
-  const user = selectedUser.value
-  if (!user) return []
-  const flags: Array<{ key: string; label: string; value: string; state: AccessState }> = []
-  if (user.audience === 'internal' && !user.adminScopes.length && !user.productScopes.length) {
-    flags.push({ key: 'internal-role', label: 'Puesto', value: 'Sin responsabilidad', state: 'incomplete' })
-  }
-  if (!user.productScopes.length) {
-    flags.push({ key: 'family-link', label: 'Familia', value: 'Sin vínculo', state: 'none' })
-  }
-  if (hasInheritedAdminAccess(user)) {
-    flags.push({ key: 'inherited', label: 'Heredado', value: 'Revisar', state: 'incomplete' })
-  }
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
-    flags.push({ key: 'unit', label: 'Guardería', value: 'Falta unidad', state: 'incomplete' })
-  }
-  return flags
 })
 
 const relationshipRows = computed<AccessLine[]>(() => {
@@ -558,15 +596,55 @@ watch(directory, (value) => {
     selectedUser.value = selectedFromRoute
     return
   }
-  if (!selectedUser.value || !value.users.some((user) => user.id === selectedUser.value?.id)) {
-    selectedUser.value = value.users[0] || null
+  const rows = visibleUsers.value
+  if (!selectedUser.value || !rows.some((user) => user.id === selectedUser.value?.id)) {
+    selectedUser.value = rows[0] || value.users[0] || null
     syncQuery(selectedUser.value?.id)
   }
 }, { immediate: true })
 
+watch(visibleUsers, (rows) => {
+  if (!rows.length) return
+  if (!selectedUser.value || !rows.some((user) => user.id === selectedUser.value?.id)) {
+    selectedUser.value = rows[0]
+    syncQuery(rows[0].id)
+  }
+})
+
 watch(selectedUser, (user) => {
   syncRoleDraft(user)
+  resolverMode.value = user ? nextMoveForUser(user).key : 'school'
 })
+
+
+function needsReview(user: SuperAdminUserSummary) {
+  if (user.audience === 'internal' && !user.adminScopes.length && !user.productScopes.length) return true
+  if (user.adminScopes.includes('daycare') && !user.unidad.length) return true
+  if (hasInheritedAdminAccess(user)) return true
+  if (!user.productScopes.length && !user.adminScopes.length && user.audience === 'unknown') return true
+  return false
+}
+
+function nextMoveForUser(user: SuperAdminUserSummary): { key: ResolverMode; title: string; meta: string; action: string; to?: string } {
+  if (user.adminScopes.includes('daycare') && !user.unidad.length) return { key: 'daycare', title: 'Falta unidad de guardería', meta: 'Selecciona al menos una unidad', action: 'Elegir unidad' }
+  if (user.adminScopes.includes('gestionEscolar')) return { key: 'school', title: 'Admin escolar activo', meta: primaryScopeLabel(user), action: 'Ajustar', to: `/admin/superadmin/gestion-escolar?usuario=${user.id}&buscar=${encodeURIComponent(user.email || user.username || String(user.id))}` }
+  if (user.audience === 'internal' && !user.adminScopes.length) return { key: 'school', title: 'Definir responsabilidad', meta: primaryScopeLabel(user), action: 'Resolver' }
+  if (user.productScopes.length) return { key: 'none', title: 'Acceso familiar', meta: relationshipSummary(user), action: user.canImpersonate ? 'Abrir vista' : 'Ver' }
+  return { key: 'school', title: 'Cuenta sin acceso', meta: 'Revisar vínculo o rol', action: 'Resolver' }
+}
+
+function selectResolution(mode: ResolverMode) {
+  resolverMode.value = mode
+  if (mode === 'daycare') roleDraft.value.daycareAdmin = true
+  if (mode === 'communications') roleDraft.value.communicationsAdmin = !roleDraft.value.communicationsAdmin
+  if (mode === 'history') roleDraft.value.accessHistoryAdmin = !roleDraft.value.accessHistoryAdmin
+  if (mode === 'none') {
+    roleDraft.value.daycareAdmin = false
+    roleDraft.value.communicationsAdmin = false
+    roleDraft.value.accessHistoryAdmin = false
+    roleUnidadDraft.value = []
+  }
+}
 
 async function refreshDirectory() {
   actionError.value = ''
@@ -904,23 +982,26 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 </script>
 
+
 <style scoped>
 .access-console {
   --surface: #ffffff;
   --surface-muted: #f7f9fb;
   --line: #dce5eb;
   --line-soft: #e7edf2;
-  --ink: #152032;
+  --ink: #142033;
   --muted: #64748b;
   --accent: #0d766d;
+  --good: #13814f;
+  --warn: #b7791f;
   display: grid;
   gap: 12px;
 }
 
-.access-header,
-.directory-panel,
-.account-panel,
-.roles-panel,
+.ops-bar,
+.queue-panel,
+.case-panel,
+.resolve-panel,
 .state-panel {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -928,19 +1009,19 @@ function getErrorMessage(error: unknown, fallback: string) {
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
 }
 
-.access-header {
+.ops-bar {
   align-items: center;
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  min-height: 76px;
+  min-height: 72px;
   padding: 16px 18px;
 }
 
 .eyebrow,
-.directory-head span,
-.roles-head span,
-.profile-copy p,
+.queue-head span,
+.resolve-head span,
+.case-title p,
 .section-head span {
   color: var(--muted);
   font-size: 0.72rem;
@@ -950,16 +1031,24 @@ function getErrorMessage(error: unknown, fallback: string) {
   text-transform: uppercase;
 }
 
-.access-header h1 {
+.ops-bar h1,
+.case-title h2,
+.section-head h2,
+.change-panel h2,
+.resolve-head strong,
+.queue-head strong {
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: clamp(1.55rem, 2vw, 2rem);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin: 3px 0 0;
+  margin: 0;
 }
 
-.header-actions,
+.ops-bar h1 {
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.ops-actions,
 .role-actions,
 .support-row > div:last-child {
   display: flex;
@@ -968,30 +1057,30 @@ function getErrorMessage(error: unknown, fallback: string) {
   justify-content: flex-end;
 }
 
-.access-board {
+.access-workbench {
   align-items: start;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(300px, 330px) minmax(440px, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(310px, 348px) minmax(460px, 1fr) minmax(320px, 376px);
 }
 
-.directory-panel,
-.account-panel,
-.roles-panel {
+.queue-panel,
+.case-panel,
+.resolve-panel {
   align-content: start;
   display: grid;
   gap: 12px;
   padding: 12px;
 }
 
-.directory-panel,
-.roles-panel {
+.queue-panel,
+.resolve-panel {
   position: sticky;
   top: calc(var(--topbar-height) + 14px);
 }
 
-.directory-head,
-.roles-head,
+.queue-head,
+.resolve-head,
 .section-head,
 .change-panel header {
   align-items: center;
@@ -1000,32 +1089,30 @@ function getErrorMessage(error: unknown, fallback: string) {
   justify-content: space-between;
 }
 
-.directory-head strong,
-.roles-head strong,
-.section-head h2,
-.change-panel h2,
-.profile-card h2 {
-  color: var(--ink);
-  margin: 0;
-}
-
-.directory-head strong,
-.roles-head strong {
+.queue-head strong,
+.resolve-head strong {
   display: block;
   font-size: 1rem;
   margin-top: 2px;
 }
 
-.directory-head small {
-  color: var(--muted);
-  font-weight: 800;
+.queue-head b,
+.resolve-head b,
+.matrix-row b,
+.change-panel header span,
+.person-meta b {
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 850;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
 .searchbar {
   align-items: center;
   background: var(--surface-muted);
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 14px;
   display: grid;
   gap: 8px;
   grid-template-columns: 18px minmax(0, 1fr) auto;
@@ -1064,6 +1151,57 @@ function getErrorMessage(error: unknown, fallback: string) {
   padding: 0 11px;
 }
 
+.queue-tabs {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.queue-tabs button {
+  background: var(--surface-muted);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 8px 5px;
+  text-align: left;
+}
+
+.queue-tabs button.active {
+  background: #eef8f5;
+  border-color: #bfe1d9;
+  color: var(--accent);
+}
+
+.queue-tabs strong {
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.queue-tabs span,
+.filters span,
+.person-meta small,
+.person-copy small,
+.case-title small,
+.case-state span,
+.ledger-row small,
+.matrix-row small,
+.school-scope small,
+.switch-row small,
+.change-panel p,
+.change-panel li,
+.reason-field span,
+.reason-field textarea::placeholder,
+.locked-note,
+.support-row small,
+.resolution-options small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 .filters {
   display: grid;
   gap: 8px;
@@ -1079,49 +1217,10 @@ function getErrorMessage(error: unknown, fallback: string) {
   padding: 8px 10px;
 }
 
-.filters span,
-.metric-strip small,
-.person-meta small,
-.profile-copy small,
-.ledger-row small,
-.table-row small,
-.school-scope small,
-.switch-row small,
-.change-panel p,
-.change-panel li,
-.reason-field span,
-.reason-field textarea::placeholder,
-.locked-note,
-.support-row small {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.metric-strip {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.metric-strip span {
-  background: var(--surface-muted);
-  border: 1px solid var(--line-soft);
-  border-radius: 12px;
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-  padding: 8px;
-}
-
-.metric-strip strong {
-  color: var(--ink);
-  font-size: 0.96rem;
-}
-
 .people-list {
   display: grid;
   gap: 5px;
-  max-height: calc(100vh - 342px);
+  max-height: calc(100vh - 354px);
   overflow: auto;
   padding-right: 2px;
 }
@@ -1168,8 +1267,8 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 .person-copy,
 .person-meta,
-.profile-copy,
-.roles-head > div {
+.case-title,
+.resolve-head > div {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1178,9 +1277,9 @@ function getErrorMessage(error: unknown, fallback: string) {
 .person-copy strong,
 .person-copy small,
 .person-meta small,
-.profile-copy h2,
-.profile-copy small,
-.roles-head strong {
+.case-title h2,
+.case-title small,
+.resolve-head strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1191,44 +1290,21 @@ function getErrorMessage(error: unknown, fallback: string) {
   font-size: 0.86rem;
 }
 
-.person-copy small {
-  color: #627386;
-  font-size: 0.74rem;
-}
-
 .person-meta {
   justify-items: end;
 }
 
-.person-meta b,
-.profile-badges span,
-.roles-head b,
-.table-row b,
-.change-panel header span {
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 850;
-  padding: 5px 8px;
-  white-space: nowrap;
-}
-
 .person-meta b[data-state='active'],
-.profile-badges span[data-state='active'],
-.roles-head b[data-state='active'],
-.table-row[data-state='active'] b,
-.change-panel header span[data-state='active'],
-.review-strip article[data-state='active'] {
+.resolve-head b[data-state='active'],
+.matrix-row[data-state='active'] b,
+.change-panel header span[data-state='active'] {
   background: #e7f8ef;
   border: 1px solid #bfead0;
   color: #15803d;
 }
 
 .person-meta b[data-state='family'],
-.profile-badges span[data-state='family'],
-.roles-head b[data-state='family'],
-.table-row[data-state='family'] b,
-.change-panel header span[data-state='family'],
-.review-strip article[data-state='family'] {
+.matrix-row[data-state='family'] b {
   background: #eef7fb;
   border: 1px solid #cfe7fb;
   color: #236188;
@@ -1236,43 +1312,27 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 .person-meta b[data-state='incomplete'],
 .person-meta b[data-state='unknown'],
-.profile-badges span[data-state='incomplete'],
-.profile-badges span[data-state='unknown'],
-.roles-head b[data-state='incomplete'],
-.roles-head b[data-state='unknown'],
-.table-row[data-state='incomplete'] b,
-.table-row[data-state='unknown'] b,
+.resolve-head b[data-state='incomplete'],
+.resolve-head b[data-state='unknown'],
+.matrix-row[data-state='incomplete'] b,
+.matrix-row[data-state='unknown'] b,
 .change-panel header span[data-state='incomplete'],
-.change-panel header span[data-state='unknown'],
-.review-strip article[data-state='incomplete'],
-.review-strip article[data-state='unknown'] {
+.change-panel header span[data-state='unknown'] {
   background: #fff6df;
   border: 1px solid #f3d589;
   color: #8a650c;
 }
 
 .person-meta b[data-state='none'],
-.profile-badges span[data-state='none'],
-.roles-head b[data-state='none'],
-.table-row[data-state='none'] b,
-.change-panel header span[data-state='none'],
-.review-strip article[data-state='none'] {
+.resolve-head b[data-state='none'],
+.matrix-row[data-state='none'] b,
+.change-panel header span[data-state='none'] {
   background: #f4f6f8;
   border: 1px solid var(--line);
   color: var(--muted);
 }
 
-.school-scope[data-state='active'],
-.switch-row[data-state='active'] {
-  box-shadow: inset 4px 0 0 #16a34a;
-}
-
-.school-scope[data-state='incomplete'],
-.switch-row[data-state='incomplete'] {
-  box-shadow: inset 4px 0 0 #d97706;
-}
-
-.profile-card {
+.case-strip {
   align-items: center;
   background: #fbfcfd;
   border: 1px solid var(--line);
@@ -1280,56 +1340,63 @@ function getErrorMessage(error: unknown, fallback: string) {
   border-radius: 18px;
   display: grid;
   gap: 14px;
-  grid-template-columns: 64px minmax(0, 1fr) minmax(0, auto);
+  grid-template-columns: 64px minmax(0, 1fr) minmax(130px, auto);
   padding: 14px;
 }
 
-.profile-card[data-state='active'] { border-left-color: #16a34a; }
-.profile-card[data-state='family'] { border-left-color: #0284c7; }
-.profile-card[data-state='incomplete'],
-.profile-card[data-state='unknown'] { border-left-color: #d97706; }
-.profile-card[data-state='none'] { border-left-color: #94a3b8; }
+.case-strip[data-state='active'] { border-left-color: #16a34a; }
+.case-strip[data-state='family'] { border-left-color: #0284c7; }
+.case-strip[data-state='incomplete'],
+.case-strip[data-state='unknown'] { border-left-color: #d97706; }
+.case-strip[data-state='none'] { border-left-color: #94a3b8; }
 
-.profile-copy h2 {
-  font-family: var(--font-body);
-  font-size: clamp(1.45rem, 2.2vw, 2rem);
-  letter-spacing: -0.03em;
+.case-title h2 {
+  font-size: clamp(1.55rem, 2.2vw, 2.2rem);
+  letter-spacing: -0.04em;
 }
 
-.profile-badges {
-  align-items: end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.review-strip {
+.case-state {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  justify-items: end;
+  text-align: right;
 }
 
-.review-strip article {
-  border-radius: 14px;
+.case-state strong {
+  color: var(--ink);
+}
+
+.resolution-banner {
+  align-items: center;
+  background: #fff8ea;
+  border: 1px solid #f3d589;
+  border-radius: 16px;
   display: grid;
-  gap: 2px;
-  padding: 10px 12px;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto) auto;
+  padding: 12px 14px;
 }
 
-.review-strip span {
-  font-size: 0.7rem;
-  font-weight: 850;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.resolution-banner[data-state='active'],
+.resolution-banner[data-state='family'] {
+  background: #f3faf8;
+  border-color: #cae2dc;
 }
 
-.review-strip strong {
-  font-size: 0.94rem;
+.resolution-banner strong {
+  color: var(--ink);
 }
 
-.ledger-section,
-.matrix-section {
+.resolution-banner span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.relationship-ledger,
+.access-matrix,
+.change-panel,
+.support-row {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -1340,7 +1407,6 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 .section-head h2,
 .change-panel h2 {
-  font-family: var(--font-body);
   font-size: 1.05rem;
 }
 
@@ -1353,43 +1419,30 @@ function getErrorMessage(error: unknown, fallback: string) {
 .ledger-row {
   align-items: center;
   background: #ffffff;
-  border: 0;
   border-bottom: 1px solid var(--line-soft);
   display: grid;
   gap: 10px;
   grid-template-columns: 10px minmax(0, 1fr) auto;
-  min-height: 58px;
+  min-height: 56px;
   padding: 9px 4px;
 }
 
-.ledger-row:last-child {
-  border-bottom: 0;
-}
-
-.ledger-row i {
-  border-radius: 999px;
-  height: 10px;
-  width: 10px;
-}
-
+.ledger-row:last-child { border-bottom: 0; }
+.ledger-row i { border-radius: 999px; height: 10px; width: 10px; }
 .ledger-row[data-state='active'] i { background: #16a34a; }
 .ledger-row[data-state='family'] i { background: #0284c7; }
-.ledger-row[data-state='incomplete'],
-.ledger-row[data-state='unknown'] { background: #ffffff; }
 .ledger-row[data-state='incomplete'] i,
 .ledger-row[data-state='unknown'] i { background: #d97706; }
-.ledger-row[data-state='none'] { background: #ffffff; }
 .ledger-row[data-state='none'] i { background: #cbd5e1; }
-
 .ledger-row strong,
 .school-scope strong,
 .switch-row strong,
-.support-row strong {
+.support-row strong,
+.resolution-options span {
   color: var(--ink);
 }
-
 .ledger-row small,
-.table-row small,
+.matrix-row small,
 .school-scope small,
 .switch-row small,
 .support-row small {
@@ -1397,104 +1450,99 @@ function getErrorMessage(error: unknown, fallback: string) {
   line-height: 1.35;
   margin-top: 2px;
 }
+.ledger-row b { color: var(--muted); font-size: 0.78rem; }
 
-.ledger-row b {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.access-table {
+.matrix {
   border: 1px solid var(--line-soft);
   border-radius: 14px;
   overflow: hidden;
 }
-
-.table-row {
+.matrix-row {
   align-items: center;
   background: #ffffff;
-  border: 0;
   border-bottom: 1px solid var(--line-soft);
   color: var(--ink);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(110px, 0.8fr) auto;
-  min-height: 54px;
+  grid-template-columns: minmax(142px, 1.2fr) minmax(120px, 1fr) minmax(105px, 0.8fr) auto;
+  min-height: 52px;
   padding: 9px 12px;
 }
-
-.table-row:last-child {
-  border-bottom: 0;
-}
-
-.table-row.table-head {
+.matrix-row:last-child { border-bottom: 0; }
+.matrix-head {
   background: var(--surface-muted);
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 850;
   letter-spacing: 0.06em;
-  min-height: 40px;
+  min-height: 38px;
   text-transform: uppercase;
 }
-
-.table-row span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.table-row strong {
-  display: block;
-}
+.matrix-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.matrix-row strong { display: block; }
 
 .support-row {
   align-items: center;
   background: var(--surface-muted);
-  border: 1px solid var(--line);
-  border-radius: 16px;
   display: flex;
-  gap: 12px;
   justify-content: space-between;
-  padding: 12px;
 }
 
-.roles-head b {
-  align-self: start;
-}
-
-.role-controls {
-  border: 1px solid var(--line);
-  border-radius: 18px;
+.resolution-options {
   display: grid;
-  gap: 1px;
-  overflow: hidden;
+  gap: 7px;
 }
 
+.resolution-options button,
 .school-scope,
 .switch-row {
   align-items: center;
   background: #ffffff;
-  border: 0;
-  border-bottom: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
   color: inherit;
+  cursor: pointer;
   display: grid;
-  gap: 12px;
-  min-height: 66px;
-  padding: 12px;
+  min-height: 58px;
+  padding: 11px 12px;
+  text-align: left;
+}
+
+.resolution-options button {
+  gap: 3px;
+}
+
+.resolution-options button.active,
+.resolution-options button:hover {
+  background: #f3faf8;
+  border-color: #cae2dc;
+}
+
+.resolution-options button[data-state='active'] { box-shadow: inset 4px 0 0 #16a34a; }
+.resolution-options button[data-state='incomplete'] { box-shadow: inset 4px 0 0 #d97706; }
+
+.role-editor {
+  display: grid;
+  gap: 8px;
 }
 
 .school-scope {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.switch-row {
-  cursor: pointer;
-  grid-template-columns: auto 42px minmax(0, 1fr);
+.school-scope b {
+  color: var(--accent);
+  font-size: 0.78rem;
 }
 
-.school-scope:last-child,
-.switch-row:last-child {
-  border-bottom: 0;
+.switch-row {
+  grid-template-columns: 42px minmax(0, 1fr);
 }
+
+.school-scope[data-state='active'],
+.switch-row[data-state='active'] { box-shadow: inset 4px 0 0 #16a34a; }
+.school-scope[data-state='incomplete'],
+.switch-row[data-state='incomplete'] { box-shadow: inset 4px 0 0 #d97706; }
 
 .switch-row input {
   height: 1px;
@@ -1502,7 +1550,6 @@ function getErrorMessage(error: unknown, fallback: string) {
   position: absolute;
   width: 1px;
 }
-
 .switch {
   background: #cbd5e1;
   border-radius: 999px;
@@ -1510,7 +1557,6 @@ function getErrorMessage(error: unknown, fallback: string) {
   position: relative;
   width: 42px;
 }
-
 .switch::after {
   background: #ffffff;
   border-radius: 999px;
@@ -1523,24 +1569,18 @@ function getErrorMessage(error: unknown, fallback: string) {
   transition: transform 0.16s ease;
   width: 18px;
 }
-
-.switch-row input:checked + .switch {
-  background: var(--accent);
-}
-
-.switch-row input:checked + .switch::after {
-  transform: translateX(18px);
-}
+.switch-row input:checked + .switch { background: var(--accent); }
+.switch-row input:checked + .switch::after { transform: translateX(18px); }
 
 .scope-chips {
   background: var(--surface-muted);
-  border-bottom: 1px solid var(--line-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
   padding: 10px 12px;
 }
-
 .scope-chip {
   background: #ffffff;
   border: 1px solid var(--line);
@@ -1552,19 +1592,10 @@ function getErrorMessage(error: unknown, fallback: string) {
   min-height: 32px;
   padding: 0 11px;
 }
-
 .scope-chip.active {
   background: #e7f8ef;
   border-color: #bfead0;
   color: #15803d;
-}
-
-.change-panel {
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
 }
 
 .change-panel ul {
@@ -1573,20 +1604,9 @@ function getErrorMessage(error: unknown, fallback: string) {
   margin: 0;
   padding-left: 18px;
 }
-
-.change-panel p {
-  margin: 0;
-}
-
-.reason-field {
-  display: grid;
-  gap: 6px;
-}
-
-.reason-field span {
-  font-weight: 850;
-}
-
+.change-panel p { margin: 0; }
+.reason-field { display: grid; gap: 6px; }
+.reason-field span { font-weight: 850; }
 .reason-field textarea {
   background: #ffffff;
   border: 1px solid var(--line);
@@ -1612,13 +1632,11 @@ function getErrorMessage(error: unknown, fallback: string) {
   margin: 0;
   padding: 10px 12px;
 }
-
 .surface-message.error {
   background: #fff1f2;
   border-color: #fecdd3;
   color: #be123c;
 }
-
 .state-panel {
   color: var(--muted);
   display: grid;
@@ -1628,80 +1646,24 @@ function getErrorMessage(error: unknown, fallback: string) {
   padding: 24px;
   text-align: center;
 }
+.state-panel h2 { color: var(--ink); margin: 0; }
+.state-panel p { margin: 0; }
+.state-panel.compact { min-height: 180px; }
+.detail-empty { min-height: 520px; }
 
-.state-panel h2 {
-  color: var(--ink);
-  margin: 0;
+@media (max-width: 1280px) {
+  .access-workbench { grid-template-columns: minmax(310px, 348px) minmax(0, 1fr); }
+  .resolve-panel { grid-column: 2; position: static; }
 }
-
-.state-panel p {
-  margin: 0;
-}
-
-.state-panel.compact {
-  min-height: 180px;
-}
-
-.detail-empty {
-  min-height: 520px;
-}
-
-@media (max-width: 1260px) {
-  .access-board {
-    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
-  }
-
-  .roles-panel {
-    grid-column: 2;
-    position: static;
-  }
-}
-
 @media (max-width: 980px) {
-  .access-board {
-    grid-template-columns: 1fr;
-  }
-
-  .directory-panel,
-  .roles-panel {
-    grid-column: auto;
-    position: static;
-  }
-
-  .people-list {
-    max-height: none;
-  }
+  .access-workbench { grid-template-columns: 1fr; }
+  .queue-panel, .resolve-panel { grid-column: auto; position: static; }
+  .people-list { max-height: none; }
 }
-
 @media (max-width: 720px) {
-  .access-header,
-  .support-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .header-actions,
-  .role-actions,
-  .support-row > div:last-child {
-    display: grid;
-    justify-content: stretch;
-  }
-
-  .filters,
-  .metric-strip,
-  .review-strip,
-  .profile-card,
-  .table-row,
-  .person-row,
-  .school-scope {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-badges,
-  .person-meta {
-    align-items: start;
-    justify-content: start;
-    justify-items: start;
-  }
+  .ops-bar, .support-row { align-items: stretch; flex-direction: column; }
+  .ops-actions, .role-actions, .support-row > div:last-child { display: grid; justify-content: stretch; }
+  .filters, .queue-tabs, .case-strip, .matrix-row, .person-row, .school-scope, .resolution-banner { grid-template-columns: 1fr; }
+  .case-state, .person-meta { align-items: start; justify-content: start; justify-items: start; text-align: left; }
 }
 </style>

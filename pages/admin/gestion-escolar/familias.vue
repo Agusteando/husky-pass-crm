@@ -3,8 +3,8 @@
     <header class="support-head">
       <div>
         <p class="eyebrow">Familias</p>
-        <h1>Soporte escolar</h1>
-        <p>Consulta familias dentro de tu alcance y abre vista familiar solo cuando el soporte lo requiere.</p>
+        <h1>Familias</h1>
+        
       </div>
       <form class="support-search" @submit.prevent="refreshFamilies">
         <FamilyPersonasIcon name="search" />

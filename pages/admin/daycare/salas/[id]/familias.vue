@@ -6,7 +6,7 @@
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>Familias</h1>
-        <p>Administra cuentas familiares de guardería y revisa el acceso familiar de esta sala.</p>
+        
       </div>
       <div class="family-actions">
         <label class="search-field">

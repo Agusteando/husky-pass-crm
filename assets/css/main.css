@@ -581,3 +581,22 @@ body.pa-modal-open {
     flex-direction: column;
   }
 }
+
+/* Admin operational shell: compact, task-first surfaces. */
+.admin-experience-root :is(.workspace-head, .school-head, .support-head, .admin-comms .workspace-head, .publishing-head, .family-hero, .room-head, .env-head, .pass-head, .marbete-head) {
+  border-radius: 18px;
+  min-height: 72px;
+}
+
+.admin-experience-root :is(.workspace-head, .school-head, .support-head, .publishing-head, .family-hero, .env-head, .pass-head, .marbete-head) h1 {
+  font-family: var(--font-body);
+  letter-spacing: -0.04em;
+}
+
+.admin-experience-root :is(.workspace-head, .school-head, .support-head, .publishing-head, .family-hero, .env-head, .pass-head, .marbete-head) > div > p:not(.eyebrow) {
+  display: none;
+}
+
+.admin-experience-root :is(.head-actions, .head-action-stack, .head-controls, .family-actions) {
+  align-items: center;
+}

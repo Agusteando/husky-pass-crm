@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Comunicados</p>
         <h1>Comunicados</h1>
-        <p>Redacta, elige audiencia y publica avisos para familias por plantel, grado o grupo.</p>
+        
       </div>
       <div class="head-action-stack">
         <span v-if="data" class="permission-chip" :data-global="data.permissions.isGlobal">{{ data.permissions.isGlobal ? 'Global' : 'Alcance asignado' }}</span>

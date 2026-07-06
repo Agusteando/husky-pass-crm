@@ -4,11 +4,11 @@
       <div>
         <p class="eyebrow">Diagnóstico técnico</p>
         <h1>Estado del sistema</h1>
-        <p>Variables y estado de despliegue sin exponer secretos.</p>
+        
       </div>
       <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Directorio</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Personas Autorizadas</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Cuentas</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Husky Pass</NuxtLink>
         <button class="btn btn-secondary" type="button" :disabled="pending" data-diagnostic-action="actualizar-entorno" @click="refreshChecklist">
           {{ pending ? 'Revisando...' : 'Revisar' }}
         </button>

@@ -1,136 +1,121 @@
 <template>
-  <section class="daycare-console" data-product-area="daycare" data-product-screen="salas">
+  <section class="daycare-console" data-product-area="daycare" data-product-screen="rooms-console">
     <template v-if="clientReady">
-    <header class="daycare-head">
-      <div>
-        <p class="eyebrow">Guardería</p>
-        <h1>{{ selectedUnidad || 'Unidad pendiente' }}</h1>
-        <p>Elige una sala para ver familias, tareas, avisos y calendario dentro de un contexto claro.</p>
+      <header class="ops-bar">
+        <div>
+          <p class="eyebrow">Guardería</p>
+          <h1>{{ selectedUnidad || 'Salas' }}</h1>
+        </div>
+        <div class="head-controls">
+          <label>
+            <span>Unidad</span>
+            <select v-model="selectedUnidad" data-diagnostic-filter="unidad" @change="syncUnidad">
+              <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Buscar</span>
+            <input v-model="search" type="search" placeholder="Sala" data-diagnostic-filter="buscar-sala" />
+          </label>
+        </div>
+      </header>
+
+      <section v-if="noUnidadAvailable" class="state-panel" data-product-panel="daycare-unidades" data-state="unavailable">
+        <FamilyPersonasIcon name="daycare" />
+        <h2>Unidad pendiente</h2>
+        <p>Super Admin debe asignar una unidad.</p>
+      </section>
+
+      <p v-if="error" class="surface-message error">No fue posible cargar salas.</p>
+      <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
+      <p v-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
+      <div v-if="pending || unitsPending" class="state-panel" data-product-loading>
+        <HuskyPassLoader label="Salas" contained />
       </div>
-      <div class="head-controls">
-        <label>
-          <span>Unidad</span>
-          <select v-model="selectedUnidad" data-diagnostic-filter="unidad" @change="syncUnidad">
-            <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
-          </select>
-        </label>
-        <label>
-          <span>Buscar sala</span>
-          <input v-model="search" type="search" placeholder="Nombre de sala" data-diagnostic-filter="buscar-sala" />
-        </label>
-      </div>
-    </header>
 
-    <section v-if="noUnidadAvailable" class="state-panel" data-product-panel="daycare-unidades" data-state="unavailable">
-      <FamilyPersonasIcon name="daycare" />
-      <h2>Guardería no disponible</h2>
-      <p>Esta cuenta no tiene una unidad asignada.</p>
-    </section>
-
-    <p v-if="error" class="surface-message error">No fue posible cargar las salas de esta unidad.</p>
-    <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
-    <p v-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
-    <div v-if="pending || unitsPending" class="state-panel" data-product-loading>
-      <HuskyPassLoader label="Salas" contained />
-    </div>
-
-    <section v-else-if="!noUnidadAvailable" class="daycare-layout">
-      <aside class="rooms-pane" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
-        <div class="pane-title">
-          <div>
-            <p class="eyebrow">Salas</p>
-            <h2>{{ filteredSalas.length }} visibles</h2>
+      <section v-else-if="!noUnidadAvailable" class="rooms-workbench">
+        <aside class="rooms-pane" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
+          <div class="pane-title">
+            <div>
+              <p class="eyebrow">Salas</p>
+              <h2>{{ filteredSalas.length }} visibles</h2>
+            </div>
           </div>
-        </div>
 
-        <div v-if="filteredSalas.length" class="room-list" role="list">
-          <button
-            v-for="sala in filteredSalas"
-            :key="sala.id"
-            class="room-row"
-            :class="{ active: sala.id === selectedSalaId }"
-            type="button"
-            data-diagnostic-sala-option
-            :data-sala-id="String(sala.id)"
-            :aria-pressed="sala.id === selectedSalaId"
-            @click="selectSala(sala.id)"
-          >
-            <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
-            <span class="room-copy">
-              <strong>{{ sala.sala }}</strong>
-              <small>{{ sala.metrics.familias }} familias / {{ sala.metrics.totalRecursos }} publicaciones</small>
-            </span>
-          </button>
-        </div>
-        <div v-else class="state-panel compact" data-diagnostic="sala-unavailable" data-state="empty">
-          <FamilyPersonasIcon name="daycare" />
-          <h2>Sin salas</h2>
-          <p>No hay salas que coincidan con esta búsqueda o unidad.</p>
-        </div>
-      </aside>
-
-      <article v-if="selectedSala" class="room-detail" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
-        <div class="room-head">
-          <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
-          <div>
-            <p class="eyebrow">{{ selectedSala.unidad }}</p>
-            <h2>{{ selectedSala.sala }}</h2>
-            <p>Todo lo que publiques desde aquí será visible solo para estas familias.</p>
+          <div v-if="filteredSalas.length" class="room-list" role="list">
+            <button
+              v-for="sala in filteredSalas"
+              :key="sala.id"
+              class="room-row"
+              :class="{ active: sala.id === selectedSalaId }"
+              type="button"
+              data-diagnostic-sala-option
+              :data-sala-id="String(sala.id)"
+              :aria-pressed="sala.id === selectedSalaId"
+              @click="selectSala(sala.id)"
+            >
+              <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
+              <span class="room-copy">
+                <strong>{{ sala.sala }}</strong>
+                <small>{{ sala.metrics.familias }} familias · {{ sala.metrics.totalRecursos }} publicaciones</small>
+              </span>
+            </button>
           </div>
-          <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
-        </div>
-
-        <section class="room-facts" aria-label="Resumen de sala">
-          <article>
-            <span>Familias</span>
-            <strong>{{ selectedSala.metrics.familias }}</strong>
-          </article>
-          <article>
-            <span>Tareas</span>
-            <strong>{{ selectedSala.metrics.tareas }}</strong>
-          </article>
-          <article>
-            <span>Avisos</span>
-            <strong>{{ selectedSala.metrics.avisos }}</strong>
-          </article>
-          <article>
-            <span>Fechas</span>
-            <strong>{{ selectedSala.metrics.calendario }}</strong>
-          </article>
-        </section>
-
-        <section class="attention-panel">
-          <div>
-            <p class="eyebrow">Qué necesita atención</p>
-            <h3>Trabaja siempre dentro de {{ selectedSala.sala }}</h3>
+          <div v-else class="state-panel compact" data-diagnostic="sala-unavailable" data-state="empty">
+            <FamilyPersonasIcon name="daycare" />
+            <h2>Sin salas</h2>
+            <p>Cambia unidad o búsqueda.</p>
           </div>
-          <div class="action-grid">
+        </aside>
+
+        <article v-if="selectedSala" class="room-detail" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
+          <div class="room-head">
+            <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
+            <div>
+              <p class="eyebrow">{{ selectedSala.unidad }}</p>
+              <h2>{{ selectedSala.sala }}</h2>
+            </div>
+            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
+          </div>
+
+          <section class="room-facts" aria-label="Resumen de sala">
+            <article><span>Familias</span><strong>{{ selectedSala.metrics.familias }}</strong></article>
+            <article><span>Tareas</span><strong>{{ selectedSala.metrics.tareas }}</strong></article>
+            <article><span>Avisos</span><strong>{{ selectedSala.metrics.avisos }}</strong></article>
+            <article><span>Fechas</span><strong>{{ selectedSala.metrics.calendario }}</strong></article>
+          </section>
+        </article>
+
+        <aside v-if="selectedSala" class="action-panel">
+          <header class="pane-title">
+            <div>
+              <p class="eyebrow">Abrir</p>
+              <h2>{{ selectedSala.sala }}</h2>
+            </div>
+          </header>
+          <div class="action-list">
             <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
-              <strong>Ver familias</strong>
-              <small>Cuentas, acceso y soporte.</small>
+              <strong>Familias</strong><small>Cuentas y soporte.</small>
             </button>
             <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas', true)">
-              <strong>Nueva tarea</strong>
-              <small>Publicación para casa.</small>
+              <strong>Nueva tarea</strong><small>Trabajo en casa.</small>
             </button>
             <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
-              <strong>Crear aviso</strong>
-              <small>Mensaje de sala.</small>
+              <strong>Avisos</strong><small>Mensajes de sala.</small>
             </button>
             <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
-              <strong>Agregar fecha</strong>
-              <small>Evento visible.</small>
+              <strong>Calendario</strong><small>Fechas visibles.</small>
             </button>
           </div>
-        </section>
-      </article>
-    </section>
+        </aside>
+      </section>
     </template>
     <div v-else class="state-panel" data-product-loading>
       <HuskyPassLoader label="Salas" contained />
     </div>
   </section>
 </template>
+
 
 <script setup lang="ts">
 import { useAppSession } from '~/composables/useAppSession'
@@ -295,127 +280,151 @@ function roomInitials(value?: string | null) {
 }
 </script>
 
+
 <style scoped>
 .daycare-console {
+  --surface: #ffffff;
+  --line: #dce5eb;
+  --line-soft: #e8eef3;
+  --ink: #152032;
+  --muted: #64748b;
+  --accent: #0d766d;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
-.daycare-head,
+.ops-bar,
 .rooms-pane,
 .room-detail,
+.action-panel,
 .state-panel {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dce5eb;
-  border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .055);
 }
 
-.daycare-head {
-  align-items: end;
-  display: grid;
+.ops-bar {
+  align-items: center;
+  display: flex;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
-  padding: clamp(18px, 2.2vw, 28px);
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 16px 18px;
 }
 
-.daycare-head h1,
-.pane-title h2,
-.room-head h2,
-.attention-panel h3,
-.state-panel h2 {
-  color: #152032;
+h1,
+h2,
+p { margin: 0; }
+
+h1,
+h2 {
+  color: var(--ink);
   font-family: var(--font-body);
-  margin: 0;
+  line-height: 1.04;
 }
 
-.daycare-head h1 {
-  font-size: clamp(2rem, 3vw, 3.1rem);
+.ops-bar h1 {
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  letter-spacing: -.04em;
 }
 
-.daycare-head p:not(.eyebrow),
-.room-head p,
-.room-row small,
-.action-grid small {
-  color: #667789;
-  margin: 0;
+.eyebrow,
+.head-controls span,
+.room-facts span,
+.pane-title .eyebrow {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
 .head-controls {
+  align-items: center;
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  grid-template-columns: minmax(160px, 220px) minmax(180px, 260px);
 }
 
 .head-controls label {
   background: #f8fafc;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   display: grid;
-  gap: 5px;
-  padding: 9px 11px;
-}
-
-.head-controls span,
-.room-facts span {
-  color: #6b7a8b;
-  font-size: 0.72rem;
-  font-weight: 850;
-  text-transform: uppercase;
+  gap: 3px;
+  padding: 8px 10px;
 }
 
 .head-controls select,
 .head-controls input {
   background: transparent;
   border: 0;
-  color: #152032;
-  min-width: 0;
+  color: var(--ink);
   outline: 0;
 }
 
-.daycare-layout {
+.rooms-workbench {
   align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(300px, 410px) minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(300px, 340px);
 }
 
 .rooms-pane,
-.room-detail {
+.room-detail,
+.action-panel {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
 }
 
-.rooms-pane {
+.rooms-pane,
+.action-panel {
   position: sticky;
-  top: calc(var(--topbar-height) + 18px);
+  top: calc(var(--topbar-height) + 14px);
 }
 
-.room-list {
+.pane-title,
+.room-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.pane-title h2,
+.room-head h2 {
+  font-size: 1.08rem;
+}
+
+.room-list,
+.action-list {
   display: grid;
-  gap: 6px;
-  max-height: calc(100vh - 255px);
-  overflow: auto;
-  padding-right: 2px;
+  gap: 7px;
+}
+
+.room-row,
+.action-list button {
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
 }
 
 .room-row {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid transparent;
-  border-radius: 13px;
-  cursor: pointer;
   display: grid;
-  gap: 10px;
+  gap: 9px;
   grid-template-columns: 42px minmax(0, 1fr);
-  padding: 9px;
-  text-align: left;
+  padding: 8px;
 }
 
+.room-row:hover,
 .room-row.active,
-.room-row:hover {
-  background: #f4faf8;
+.action-list button:hover {
+  background: #f3faf8;
   border-color: #cae2dc;
 }
 
@@ -423,8 +432,8 @@ function roomInitials(value?: string | null) {
   align-items: center;
   background: #eef7f5;
   border: 1px solid #cae2dc;
-  border-radius: 12px;
-  color: #0d766d;
+  border-radius: 13px;
+  color: var(--accent);
   display: inline-flex;
   font-weight: 900;
   height: 42px;
@@ -433,10 +442,10 @@ function roomInitials(value?: string | null) {
 }
 
 .room-avatar.large {
-  border-radius: 16px;
-  font-size: 1.08rem;
-  height: 58px;
-  width: 58px;
+  border-radius: 18px;
+  font-size: 1.1rem;
+  height: 64px;
+  width: 64px;
 }
 
 .room-copy {
@@ -452,70 +461,41 @@ function roomInitials(value?: string | null) {
   white-space: nowrap;
 }
 
-.room-head {
-  align-items: center;
-  border-bottom: 1px solid #e1e8ed;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
-  padding-bottom: 14px;
+.room-copy strong,
+.action-list strong {
+  color: var(--ink);
+}
+
+.room-copy small,
+.action-list small {
+  color: var(--muted);
+  font-size: .75rem;
 }
 
 .room-facts {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .room-facts article {
   background: #f8fafc;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
   display: grid;
-  gap: 4px;
-  padding: 12px;
+  gap: 2px;
+  padding: 11px 12px;
 }
 
 .room-facts strong {
-  color: #152032;
-  font-size: 1.35rem;
+  color: var(--ink);
+  font-size: 1.3rem;
 }
 
-.attention-panel {
-  border: 1px solid #e1e8ed;
-  border-radius: 15px;
+.action-list button {
   display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.action-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.action-grid button {
-  background: #ffffff;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  gap: 5px;
-  min-height: 86px;
-  padding: 12px;
-  text-align: left;
-}
-
-.action-grid button:hover {
-  background: #f4faf8;
-  border-color: #cae2dc;
-}
-
-.action-grid strong,
-.action-grid small {
-  display: block;
+  gap: 3px;
+  padding: 13px 14px;
 }
 
 .surface-message {
@@ -526,52 +506,32 @@ function roomInitials(value?: string | null) {
   margin: 0;
   padding: 10px 12px;
 }
-
-.surface-message.error {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #be123c;
-}
-
+.surface-message.error { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
 .state-panel {
-  color: #667789;
+  color: var(--muted);
   display: grid;
   gap: 9px;
-  min-height: 240px;
+  min-height: 280px;
   place-items: center;
   padding: 24px;
   text-align: center;
 }
+.state-panel h2 { color: var(--ink); margin: 0; }
+.state-panel p { margin: 0; }
+.state-panel.compact { min-height: 180px; }
 
-.state-panel.compact {
-  min-height: 180px;
+@media (max-width: 1160px) {
+  .rooms-workbench { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
+  .action-panel { grid-column: 2; position: static; }
 }
-
-@media (max-width: 1120px) {
-  .daycare-head,
-  .daycare-layout,
-  .room-facts,
-  .action-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .rooms-pane {
-    position: static;
-  }
-
-  .room-list {
-    max-height: none;
-  }
-}
-
-@media (max-width: 760px) {
-  .daycare-head,
+@media (max-width: 880px) {
+  .ops-bar,
+  .rooms-workbench,
   .head-controls,
-  .daycare-layout,
-  .room-head,
-  .room-facts,
-  .action-grid {
+  .room-facts {
+    display: grid;
     grid-template-columns: 1fr;
   }
+  .rooms-pane { position: static; }
 }
 </style>

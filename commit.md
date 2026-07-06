@@ -1,1 +1,1 @@
-Rediseñar gestión de accesos administrativos
+Rediseña las consolas administrativas con flujos operativos claros

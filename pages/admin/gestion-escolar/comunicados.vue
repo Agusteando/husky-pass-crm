@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Comunicados</p>
         <h1>Publicar a familias</h1>
-        <p>{{ data?.permissions.canPublish ? 'Redacta, elige audiencia y publica cuando esté listo.' : 'Prepara borradores dentro de tu alcance.' }}</p>
+        
       </div>
       <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
     </header>

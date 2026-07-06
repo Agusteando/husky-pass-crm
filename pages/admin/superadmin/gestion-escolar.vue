@@ -1,32 +1,27 @@
 <template>
-  <section class="assignment-page" data-product-area="superadmin" data-product-screen="gestion-escolar-permissions">
-    <header class="assignment-hero">
+  <section class="assignment-page" data-product-area="superadmin" data-product-screen="school-scope-resolution">
+    <header class="ops-bar">
       <div>
-        <p class="eyebrow">Asignación Escolar</p>
-        <h1>Admins escolares</h1>
-        <p>Elige qué hará esta persona, define planteles o grupos y confirma el acceso antes de activarlo.</p>
-        <div class="hero-rail" aria-label="Planteles escolares">
-          <span v-for="plantel in visiblePlanteles" :key="plantel">{{ plantel }}</span>
-          <span v-if="!visiblePlanteles.length">Sin planteles detectados</span>
-        </div>
+        <p class="eyebrow">Super Admin</p>
+        <h1>Alcance escolar</h1>
       </div>
-      <section class="hero-metrics" aria-label="Resumen de admins escolares">
-        <article><span>Cuentas internas</span><strong>{{ data?.metrics.total || 0 }}</strong></article>
+      <div class="scope-metrics" aria-label="Resumen de alcance escolar">
+        <article><span>Cuentas</span><strong>{{ data?.metrics.total || 0 }}</strong></article>
         <article><span>Activos</span><strong>{{ data?.metrics.enabled || 0 }}</strong></article>
         <article><span>Planteles</span><strong>{{ options.planteles.length }}</strong></article>
-      </section>
+      </div>
     </header>
 
     <section class="assignment-shell">
       <aside class="operator-browser">
         <form class="search-card" role="search" @submit.prevent="refreshUsers">
           <FamilyPersonasIcon name="search" />
-          <input v-model="search" type="search" placeholder="Buscar admin, correo o matrícula" aria-label="Buscar usuario" />
+          <input v-model="search" type="search" placeholder="Nombre, correo o matrícula" aria-label="Buscar usuario" />
           <button class="mini-button" type="submit" :disabled="directoryLoading">Buscar</button>
         </form>
 
         <div class="browser-summary">
-          <span>{{ users.length }} personas</span>
+          <span>{{ users.length }} cuentas</span>
           <b>{{ data?.metrics.enabled || 0 }} activas</b>
         </div>
 
@@ -56,144 +51,138 @@
         <div class="identity-strip">
           <span class="avatar large">{{ initials(selectedUser) }}</span>
           <div>
-            <p class="eyebrow">Persona</p>
+            <p class="eyebrow">Cuenta</p>
             <h2>{{ displayName(selectedUser) }}</h2>
             <p>{{ selectedUser.email || selectedUser.username || `ID ${selectedUser.id}` }}</p>
           </div>
           <span class="state-pill" :data-state="draftState">{{ draftStateLabel }}</span>
         </div>
 
-        <section class="guidance-card" :data-state="draftState">
-          <div>
-            <p class="eyebrow">Resultado esperado</p>
-            <h3>{{ resultTitle }}</h3>
-          </div>
-          <p>{{ resultDescription }}</p>
+        <section class="flow-rail" aria-label="Estado de asignación escolar">
+          <article :data-active="selectedCapabilities.length > 0">
+            <span>01</span><strong>{{ profileHeadline }}</strong>
+          </article>
+          <article :data-active="draftPlanteles.length > 0">
+            <span>02</span><strong>{{ draftPlanteles.length ? draftPlanteles.join(' · ') : 'Sin plantel' }}</strong>
+          </article>
+          <article :data-active="canSave">
+            <span>03</span><strong>{{ resultTitle }}</strong>
+          </article>
         </section>
 
-        <section class="step-section">
-          <div class="step-head">
-            <span>1</span>
-            <div>
-              <p class="eyebrow">Responsabilidad</p>
-              <h3>{{ profileHeadline }}</h3>
-            </div>
-          </div>
-          <div class="profile-grid">
-            <button
-              v-for="profile in profiles"
-              :key="profile.key"
-              type="button"
-              class="profile-card"
-              :class="{ active: selectedProfile === profile.key }"
-              :disabled="saving"
-              @click="applyProfile(profile.key)"
-            >
-              <strong>{{ profile.label }}</strong>
-              <span>{{ profile.caption }}</span>
-            </button>
-          </div>
-        </section>
-
-        <section class="step-section">
-          <div class="step-head inline">
-            <span>2</span>
-            <div>
-              <p class="eyebrow">Plantel y alcance</p>
-              <h3>{{ draftPlanteles.length ? draftPlanteles.join(' · ') : 'Pendiente' }}</h3>
-            </div>
-            <button class="mini-button" type="button" :disabled="saving" @click="addScope()">Agregar alcance</button>
-          </div>
-
-          <div class="plantel-grid">
-            <button
-              v-for="plantel in options.planteles"
-              :key="plantel"
-              type="button"
-              class="plantel-chip"
-              :class="{ active: draftPlanteles.includes(plantel) }"
-              :disabled="saving"
-              @click="togglePlantel(plantel)"
-            >
-              {{ plantel }}
-            </button>
-          </div>
-
-          <div class="scope-stack" aria-label="Alcances asignados">
-            <article v-for="(assignment, index) in assignments" :key="assignment.uid" class="scope-card" :data-complete="assignment.scope.plantel ? 'true' : 'false'">
-              <header>
-                <span class="scope-number">{{ index + 1 }}</span>
-                <div>
-                  <strong>{{ formatGestionScope(assignment.scope) }}</strong>
-                  <small>{{ profileLabelFor(assignment.capabilities) }} · {{ assignment.capabilities.length }} acciones</small>
-                </div>
-                <button class="icon-button" type="button" :disabled="saving || assignments.length <= 1" aria-label="Quitar alcance" @click="removeScope(index)">
-                  <FamilyPersonasIcon name="trash" />
-                </button>
-              </header>
-
-              <AdminGestionScopePicker
-                v-model="assignment.scope"
-                :scope-tree="options.scopeTree"
-                :options="options"
+        <section class="scope-workspace">
+          <div class="profile-column">
+            <header class="section-head">
+              <h2>Responsabilidad</h2>
+              <span>{{ selectedProfile === 'custom' ? 'Personalizado' : 'Perfil' }}</span>
+            </header>
+            <div class="profile-grid">
+              <button
+                v-for="profile in profiles"
+                :key="profile.key"
+                type="button"
+                class="profile-card"
+                :class="{ active: selectedProfile === profile.key }"
                 :disabled="saving"
-                compact
-              />
+                @click="applyProfile(profile.key)"
+              >
+                <strong>{{ profile.shortLabel }}</strong>
+                <span>{{ profile.label }}</span>
+              </button>
+            </div>
 
-              <details class="capability-editor" :open="selectedProfile === 'custom'">
-                <summary>Ajuste avanzado</summary>
-                <div class="capability-grid">
-                  <button
-                    v-for="capability in capabilityOptions"
-                    :key="capability.value"
-                    type="button"
-                    class="capability-chip"
-                    :class="{ active: assignment.capabilities.includes(capability.value) }"
-                    :disabled="saving"
-                    @click="toggleCapability(assignment, capability.value)"
-                  >
-                    {{ capability.label }}
+            <header class="section-head compact-head">
+              <h2>Plantel</h2>
+              <button class="mini-button" type="button" :disabled="saving" @click="addScope()">Agregar</button>
+            </header>
+            <div class="plantel-grid">
+              <button
+                v-for="plantel in options.planteles"
+                :key="plantel"
+                type="button"
+                class="plantel-chip"
+                :class="{ active: draftPlanteles.includes(plantel) }"
+                :disabled="saving"
+                @click="togglePlantel(plantel)"
+              >
+                {{ plantel }}
+              </button>
+            </div>
+
+            <div class="scope-stack" aria-label="Alcances asignados">
+              <article v-for="(assignment, index) in assignments" :key="assignment.uid" class="scope-card" :data-complete="assignment.scope.plantel ? 'true' : 'false'">
+                <header>
+                  <span class="scope-number">{{ index + 1 }}</span>
+                  <div>
+                    <strong>{{ formatGestionScope(assignment.scope) }}</strong>
+                    <small>{{ profileLabelFor(assignment.capabilities) }} · {{ assignment.capabilities.length }}</small>
+                  </div>
+                  <button class="icon-button" type="button" :disabled="saving || assignments.length <= 1" aria-label="Quitar alcance" @click="removeScope(index)">
+                    <FamilyPersonasIcon name="trash" />
                   </button>
-                </div>
-              </details>
-            </article>
-          </div>
-        </section>
+                </header>
 
-        <section class="step-section outcome-section">
-          <div class="step-head">
-            <span>3</span>
-            <div>
-              <p class="eyebrow">Lo que podrá hacer</p>
-              <h3>{{ outcomeHeadline }}</h3>
+                <AdminGestionScopePicker
+                  v-model="assignment.scope"
+                  :scope-tree="options.scopeTree"
+                  :options="options"
+                  :disabled="saving"
+                  compact
+                />
+
+                <details class="capability-editor" :open="selectedProfile === 'custom'">
+                  <summary>Permisos</summary>
+                  <div class="capability-grid">
+                    <button
+                      v-for="capability in capabilityOptions"
+                      :key="capability.value"
+                      type="button"
+                      class="capability-chip"
+                      :class="{ active: assignment.capabilities.includes(capability.value) }"
+                      :disabled="saving"
+                      @click="toggleCapability(assignment, capability.value)"
+                    >
+                      {{ capability.label }}
+                    </button>
+                  </div>
+                </details>
+              </article>
             </div>
           </div>
-          <div class="outcome-grid">
-            <article v-for="item in outcomeItems" :key="item.label" :data-active="item.active">
-              <strong>{{ item.label }}</strong>
-              <small>{{ item.detail }}</small>
-            </article>
-          </div>
+
+          <aside class="outcome-panel">
+            <header class="section-head">
+              <h2>Resultado</h2>
+              <span>{{ outcomeHeadline }}</span>
+            </header>
+            <div class="outcome-grid">
+              <article v-for="item in outcomeItems" :key="item.label" :data-active="item.active">
+                <strong>{{ item.label }}</strong>
+                <small>{{ item.detail }}</small>
+              </article>
+            </div>
+
+            <p v-if="actionError" class="action-message error">{{ actionError }}</p>
+            <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
+
+            <div class="actions">
+              <button v-if="selectedUser.gestionEscolar.enabled" class="btn btn-secondary danger" type="button" :disabled="saving" @click="disablePermissions">Desactivar</button>
+              <button class="btn btn-secondary" type="button" :disabled="saving" @click="selectUser(selectedUser)">Restaurar</button>
+              <button class="btn btn-primary" type="button" :disabled="saving || !canSave" @click="savePermissions">{{ saving ? 'Guardando...' : 'Guardar alcance' }}</button>
+            </div>
+          </aside>
         </section>
-
-        <p v-if="actionError" class="action-message error">{{ actionError }}</p>
-        <p v-else-if="actionNotice" class="action-message">{{ actionNotice }}</p>
-
-        <div class="actions">
-          <button v-if="selectedUser.gestionEscolar.enabled" class="btn btn-secondary danger" type="button" :disabled="saving" @click="disablePermissions">Desactivar acceso</button>
-          <button class="btn btn-secondary" type="button" :disabled="saving" @click="selectUser(selectedUser)">Restaurar</button>
-          <button class="btn btn-primary" type="button" :disabled="saving || !canSave" @click="savePermissions">{{ saving ? 'Guardando...' : 'Activar Admin Escolar' }}</button>
-        </div>
       </section>
 
       <section v-else class="empty-selection">
         <FamilyPersonasIcon name="school" />
-        <h2>Selecciona una persona</h2>
-        <p>Verás perfiles, planteles y estados de acceso.</p>
+        <h2>Selecciona una cuenta</h2>
+        <p>Define responsabilidad, alcance y permisos.</p>
       </section>
     </section>
   </section>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
@@ -246,7 +235,6 @@ const options = computed<Options>(() => ({
   grupos: data.value?.options?.grupos || [],
   scopeTree: data.value?.options?.scopeTree || { planteles: [] }
 }))
-const visiblePlanteles = computed(() => options.value.planteles.slice(0, 9))
 const activeAssignments = computed(() => assignments.value.filter((assignment) => assignment.scope.plantel && assignment.capabilities.length))
 const draftPlanteles = computed(() => Array.from(new Set(activeAssignments.value.map((assignment) => String(assignment.scope.plantel || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')))
 const draftCapabilities = computed(() => Array.from(new Set(activeAssignments.value.flatMap((assignment) => assignment.capabilities))))
@@ -256,7 +244,6 @@ const draftState = computed<GestionEscolarAssignmentState>(() => canSave.value ?
 const draftStateLabel = computed(() => draftState.value === 'active' ? 'Listo para activar' : draftState.value === 'incomplete' ? 'Acceso incompleto' : 'Sin acceso')
 const profileHeadline = computed(() => selectedProfile.value === 'custom' ? 'Responsabilidad personalizada' : profiles.find((profile) => profile.key === selectedProfile.value)?.label || 'Responsabilidad')
 const resultTitle = computed(() => canSave.value ? `${draftPlanteles.value.length} plantel${draftPlanteles.value.length === 1 ? '' : 'es'} con ${draftCapabilities.value.length} acciones` : 'Falta completar el alcance')
-const resultDescription = computed(() => canSave.value ? 'La persona verá únicamente familias y contenido dentro del alcance seleccionado.' : 'Selecciona al menos un plantel y una responsabilidad antes de entregar acceso.')
 const outcomeHeadline = computed(() => selectedProfile.value === 'custom' ? 'Acceso ajustado manualmente' : profileHeadline.value)
 const outcomeItems = computed(() => [
   { label: 'Familias', detail: capabilityDetail(hasSelectedCapability('familias.view'), hasSelectedCapability('familias.impersonate') ? 'Consulta y vista familiar controlada.' : 'Solo lectura familiar.', 'Sin acceso.'), active: canSave.value && hasSelectedCapability('familias.view') },
@@ -483,30 +470,37 @@ async function persistPermissions(enabled: boolean, permissions: GestionEscolarP
 }
 </script>
 
+
 <style scoped>
 .assignment-page {
+  --surface: #ffffff;
+  --line: #dce5eb;
+  --line-soft: #e8eef3;
+  --ink: #152032;
+  --muted: #64748b;
+  --accent: #0d766d;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
-.assignment-hero,
+.ops-bar,
 .operator-browser,
 .editor-card,
 .empty-selection,
 .state-card {
   background: rgba(255, 255, 255, .96);
-  border: 1px solid #e2e8f0;
-  border-radius: 22px;
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
 }
 
-.assignment-hero {
-  align-items: end;
-  background: linear-gradient(135deg, #fff, #f8fbf2);
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
-  padding: clamp(18px, 2.6vw, 32px);
+.ops-bar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 16px 18px;
 }
 
 h1,
@@ -518,88 +512,54 @@ p {
 
 h1,
 h2,
-h3 {
-  color: #17233b;
-  line-height: 1.06;
+h3,
+.ops-bar h1 {
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.04;
 }
 
-h1 {
-  font-size: clamp(2.15rem, 3.8vw, 4rem);
+.ops-bar h1 {
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  letter-spacing: -0.04em;
 }
 
-.assignment-hero p {
-  max-width: 720px;
-}
-
-.hero-rail,
-.plantel-grid,
-.capability-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.hero-rail {
-  margin-top: 16px;
-}
-
-.hero-rail span,
-.plantel-chip,
-.capability-chip {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  color: #475569;
-  font-size: .78rem;
-  font-weight: 850;
-  min-height: 36px;
-  padding: 8px 11px;
-}
-
-.hero-metrics {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.hero-metrics article {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 14px;
-}
-
-.hero-metrics span,
-.browser-summary,
-.scope-card small,
-.profile-card span,
-.guidance-card p,
-.outcome-grid small,
-.identity-strip p {
-  color: #64748b;
-}
-
-.hero-metrics span,
+.eyebrow,
+.section-head span,
 .browser-summary span,
-.browser-summary b {
-  display: block;
-  font-size: .7rem;
+.browser-summary b,
+.scope-metrics span {
+  color: var(--muted);
+  font-size: .72rem;
   font-weight: 850;
-  letter-spacing: .06em;
+  letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.hero-metrics strong {
-  color: #10213b;
-  display: block;
-  font-size: 1.55rem;
-  margin-top: 6px;
+.scope-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(96px, 1fr));
+}
+
+.scope-metrics article {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+}
+
+.scope-metrics strong {
+  color: var(--ink);
+  font-size: 1.05rem;
 }
 
 .assignment-shell {
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
 }
 
 .operator-browser {
@@ -608,150 +568,44 @@ h1 {
   gap: 12px;
   padding: 12px;
   position: sticky;
-  top: calc(var(--topbar-height) + 18px);
+  top: calc(var(--topbar-height) + 14px);
 }
 
 .search-card {
   align-items: center;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   display: grid;
   gap: 8px;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  padding: 8px 10px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  min-height: 46px;
+  padding: 5px 6px 5px 11px;
 }
 
 .search-card input {
   background: transparent;
   border: 0;
-  color: #17233b;
+  color: var(--ink);
   min-width: 0;
   outline: 0;
 }
 
-.browser-summary {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.mini-button,
-.icon-button {
-  align-items: center;
-  background: #fff;
+.mini-button {
+  background: #ffffff;
   border: 1px solid #cfe0e7;
-  border-radius: 12px;
-  color: #0f8c9a;
-  display: inline-flex;
+  border-radius: 10px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: .78rem;
   font-weight: 850;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 34px;
+  padding: 0 11px;
 }
 
-.icon-button {
-  padding: 0;
-  width: 38px;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: .55;
-}
-
-.operator-list {
-  display: grid;
-  gap: 8px;
-  max-height: calc(100vh - 310px);
-  overflow: auto;
-}
-
-.operator-row {
-  align-items: center;
-  background: #fff;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  color: #17233b;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  padding: 10px;
-  text-align: left;
-}
-
-.operator-row.active,
-.operator-row:hover {
-  border-color: var(--color-brand-300);
-  box-shadow: var(--shadow-line);
-}
-
-.avatar,
-.scope-number,
-.step-head > span {
-  background: #fff7df;
-  border: 1px solid #f3d589;
-  border-radius: 14px;
-  color: #9a6700;
-  display: grid;
-  font-weight: 900;
-  height: 42px;
-  place-items: center;
-  width: 42px;
-}
-
-.avatar.large {
-  height: 58px;
-  width: 58px;
-}
-
-.operator-copy,
-.operator-copy strong,
-.operator-copy small {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.operator-row b,
-.state-pill {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  color: #64748b;
-  font-size: .72rem;
-  font-weight: 850;
-  max-width: 118px;
-  overflow: hidden;
-  padding: 6px 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.operator-row b[data-state='active'],
-.state-pill[data-state='active'] {
-  background: #e7f8ef;
-  border-color: #bfead0;
-  color: #15803d;
-}
-
-.operator-row b[data-state='incomplete'],
-.state-pill[data-state='incomplete'] {
-  background: #fff7df;
-  border-color: #f3d589;
-  color: #9a6700;
-}
-
-.editor-card {
-  display: grid;
-  gap: 14px;
-  padding: clamp(14px, 2vw, 22px);
-}
-
+.browser-summary,
+.section-head,
 .identity-strip,
-.step-head,
 .scope-card header,
 .actions {
   align-items: center;
@@ -760,79 +614,219 @@ button:disabled {
   justify-content: space-between;
 }
 
+.operator-list {
+  display: grid;
+  gap: 6px;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
+}
+
+.operator-row {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  padding: 8px;
+  text-align: left;
+}
+
+.operator-row:hover,
+.operator-row.active {
+  background: #f3faf8;
+  border-color: #cae2dc;
+}
+
+.avatar {
+  align-items: center;
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 900;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.avatar.large {
+  border-radius: 16px;
+  font-size: 1.05rem;
+  height: 58px;
+  width: 58px;
+}
+
+.operator-copy,
+.identity-strip > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.operator-copy strong,
+.operator-copy small,
+.identity-strip h2,
+.identity-strip p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operator-copy strong,
+.identity-strip h2 {
+  color: var(--ink);
+}
+
+.operator-copy small,
+.identity-strip p:not(.eyebrow),
+.scope-card small,
+.profile-card span,
+.outcome-grid small {
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.operator-row b,
+.state-pill {
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 850;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.operator-row b[data-state='active'],
+.state-pill[data-state='active'] {
+  background: #e7f8ef;
+  border: 1px solid #bfead0;
+  color: #15803d;
+}
+
+.operator-row b[data-state='incomplete'],
+.state-pill[data-state='incomplete'] {
+  background: #fff6df;
+  border: 1px solid #f3d589;
+  color: #8a650c;
+}
+
+.operator-row b[data-state='none'],
+.state-pill[data-state='none'] {
+  background: #f4f6f8;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.editor-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
 .identity-strip {
-  justify-content: start;
-}
-
-.identity-strip .state-pill {
-  margin-left: auto;
-}
-
-.guidance-card,
-.step-section {
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-radius: 18px;
   display: grid;
-  gap: 14px;
-  padding: 15px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  padding: 14px;
 }
 
-.guidance-card {
-  background: #fbfdff;
-}
-
-.guidance-card[data-state='active'] {
-  background: #f0f8e7;
-  border-color: var(--color-brand-200);
-}
-
-.step-head {
-  justify-content: start;
-}
-
-.step-head.inline {
-  justify-content: space-between;
-}
-
-.step-head.inline > div {
-  flex: 1;
-}
-
-.profile-grid {
+.flow-rail {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.flow-rail article {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+}
+
+.flow-rail article[data-active='true'] {
+  background: #f3faf8;
+  border-color: #cae2dc;
+}
+
+.flow-rail span {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 850;
+}
+
+.flow-rail strong,
+.profile-card strong,
+.scope-card strong,
+.outcome-grid strong {
+  color: var(--ink);
+}
+
+.scope-workspace {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.profile-column,
+.outcome-panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.compact-head {
+  margin-top: 4px;
+}
+
+.profile-grid,
+.plantel-grid,
+.capability-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-card,
+.plantel-chip,
+.capability-chip {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
 }
 
 .profile-card {
-  background: #fff;
-  border: 1px solid #d9e2ea;
-  border-radius: 16px;
-  color: #17233b;
   display: grid;
-  gap: 5px;
-  min-height: 96px;
-  padding: 13px;
+  gap: 3px;
+  min-width: 142px;
+  padding: 11px 12px;
   text-align: left;
 }
 
 .profile-card.active,
-.profile-card:hover,
 .plantel-chip.active,
 .capability-chip.active {
   background: #e7f8ef;
-  border-color: #9fd9b8;
-  color: #156235;
-}
-
-.profile-card span {
-  font-size: .76rem;
-  line-height: 1.35;
+  border-color: #bfead0;
+  color: #15803d;
 }
 
 .plantel-chip,
 .capability-chip {
-  cursor: pointer;
+  min-height: 34px;
+  padding: 0 11px;
 }
 
 .scope-stack {
@@ -841,79 +835,78 @@ button:disabled {
 }
 
 .scope-card {
-  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
-  border: 1px solid #dfe8ef;
-  border-radius: 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 10px;
+  padding: 11px;
 }
 
 .scope-card[data-complete='false'] {
+  background: #fff8ea;
   border-color: #f3d589;
 }
 
-.scope-card header {
-  justify-content: start;
+.scope-number {
+  align-items: center;
+  background: #eef7f5;
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: .76rem;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
 }
 
-.scope-card header div {
-  flex: 1;
-  min-width: 0;
-}
-
-.scope-card header strong,
-.scope-card header small {
-  display: block;
-}
-
-.capability-editor {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 10px 12px;
+.icon-button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  height: 34px;
+  width: 34px;
 }
 
 .capability-editor summary {
-  color: #17233b;
+  color: var(--accent);
   cursor: pointer;
+  font-size: .78rem;
   font-weight: 850;
 }
 
-.capability-grid {
-  margin-top: 10px;
-}
-
-.capability-chip {
-  font-size: .78rem;
+.outcome-panel {
+  align-content: start;
+  position: sticky;
+  top: calc(var(--topbar-height) + 14px);
 }
 
 .outcome-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .outcome-grid article {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
   display: grid;
-  gap: 5px;
-  min-height: 94px;
-  padding: 12px;
+  gap: 3px;
+  padding: 11px 12px;
 }
 
 .outcome-grid article[data-active='true'] {
-  background: #fff;
-  border-color: #9fd9b8;
+  background: #f3faf8;
+  border-color: #cae2dc;
 }
 
 .action-message {
   background: #edfdf7;
   border: 1px solid #b7ead6;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #047857;
+  margin: 0;
   padding: 10px 12px;
 }
 
@@ -923,58 +916,55 @@ button:disabled {
   color: #be123c;
 }
 
-.btn.danger {
-  color: #9f1239;
+.actions {
+  align-items: stretch;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.state-card,
-.empty-selection {
-  color: #64748b;
+.actions .danger {
+  color: #b4473f;
+}
+
+.empty-selection,
+.state-card {
+  color: var(--muted);
   display: grid;
-  gap: 8px;
-  min-height: 220px;
+  gap: 9px;
+  min-height: 360px;
   place-items: center;
   padding: 24px;
   text-align: center;
 }
 
 .state-card.compact {
-  min-height: 150px;
+  min-height: 160px;
 }
 
-@media (max-width: 1240px) {
+@media (max-width: 1120px) {
   .assignment-shell,
-  .assignment-hero {
+  .scope-workspace {
     grid-template-columns: 1fr;
   }
-
-  .operator-browser {
+  .operator-browser,
+  .outcome-panel {
     position: static;
   }
-
-  .profile-grid,
-  .outcome-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
-@media (max-width: 760px) {
-  .hero-metrics,
-  .profile-grid,
-  .outcome-grid {
+@media (max-width: 720px) {
+  .ops-bar,
+  .identity-strip,
+  .flow-rail {
+    align-items: stretch;
     grid-template-columns: 1fr;
   }
-
-  .identity-strip,
-  .step-head.inline,
-  .scope-card header,
-  .actions {
-    align-items: stretch;
-    flex-direction: column;
+  .ops-bar {
+    display: grid;
   }
-
-  .identity-strip .state-pill {
-    margin-left: 0;
+  .scope-metrics,
+  .operator-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

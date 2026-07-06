@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Personas Autorizadas</p>
         <h1>Historial de accesos</h1>
-        <p>Consulta entradas y salidas agrupadas por alumno y fecha.</p>
+        
       </div>
       <div class="head-actions">
         <a class="btn btn-secondary" :href="exportHref" data-diagnostic-action="exportar-accesos">Exportar CSV</a>

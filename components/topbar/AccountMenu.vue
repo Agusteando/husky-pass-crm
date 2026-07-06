@@ -1,7 +1,7 @@
 <template>
   <div v-if="session?.user" class="account-menu" :class="{ 'is-compact': props.presentation === 'compact' }" :data-account-kind="session.user.kind">
     <button class="account-trigger" type="button" data-diagnostic-action="abrir-menu-cuenta" :aria-expanded="open" :aria-label="`Abrir menu de cuenta de ${profileName}`" @click="open = !open">
-      <img v-if="session.user.picture" :src="session.user.picture" alt="" />
+      <img v-if="showPicture" :src="session.user.picture || ''" alt="" @error="pictureFailed = true" />
       <span v-else class="avatar">{{ initials }}</span>
       <span class="account-copy">
         <strong>{{ profileName }}</strong>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import type { ExperienceName } from '~/types/identity'
@@ -54,6 +54,9 @@ const props = withDefaults(defineProps<{
 
 const route = useRoute()
 const open = ref(false)
+const pictureFailed = ref(false)
+
+const showPicture = computed(() => Boolean(props.session?.user?.picture && !pictureFailed.value))
 
 const profileName = computed(() => props.profileName || props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Usuario')
 const profileDetail = computed(() => {
@@ -64,6 +67,10 @@ const profileDetail = computed(() => {
   if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
   return displayMatriculaCandidate(user.username) || user.email || 'Familia escolar'
 })
+watch(() => props.session?.user?.picture, () => {
+  pictureFailed.value = false
+})
+
 const initials = computed(() => {
   const source = profileName.value || 'HP'
   return source.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')

@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">Escolar</p>
         <h1>{{ scopeLabel }}</h1>
-        <p>{{ contextSentence }}</p>
+        
       </div>
       <div class="head-actions">
         <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Ver familias</NuxtLink>
@@ -53,7 +53,7 @@
             <div class="section-title">
               <div>
                 <p class="eyebrow">Hoy</p>
-                <h2>Qué revisar primero</h2>
+                <h2>Abrir</h2>
               </div>
               <span>{{ scopeLabel }}</span>
             </div>
@@ -76,7 +76,7 @@
                 <p class="eyebrow">Alcance</p>
                 <h2>{{ scopeLabel }}</h2>
               </div>
-              <p>Todo lo que consultas o publicas queda limitado a este contexto.</p>
+              <p></p>
             </div>
 
             <div class="scope-list">
@@ -122,12 +122,6 @@ const scopeLabel = computed(() => {
   if (planteles.length === 1) return `Plantel ${planteles[0]}`
   return `${planteles.length} planteles`
 })
-const contextSentence = computed(() => {
-  const families = overview.value?.reach.families || 0
-  if (!modules.value.length) return 'Tu acceso aparecerá aquí cuando Super Admin complete tu alcance.'
-  return `Operas ${families} familias dentro de ${scopeLabel.value}.`
-})
-
 const todayTasks = computed(() => {
   const tasks: Array<{ title: string; detail: string; action: string; icon: string; to: string }> = []
   if (hasModule('familias')) {

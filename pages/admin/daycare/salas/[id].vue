@@ -15,7 +15,7 @@
         <div>
           <p class="eyebrow">{{ overview.sala.unidad }}</p>
           <h1>{{ overview.sala.sala }}</h1>
-          <p>Familias y publicaciones visibles solo para esta sala.</p>
+          
         </div>
         <div class="head-actions">
           <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala">Vista familiar</button>
@@ -34,8 +34,8 @@
         <article class="today-panel">
           <div class="section-title">
             <div>
-              <p class="eyebrow">Qué hacer</p>
-              <h2>Acciones de sala</h2>
+              <p class="eyebrow">Abrir</p>
+              <h2>Sala</h2>
             </div>
           </div>
           <div class="action-grid">
