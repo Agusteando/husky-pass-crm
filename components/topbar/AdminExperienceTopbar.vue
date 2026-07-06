@@ -18,7 +18,7 @@
 
       <form v-if="session?.user?.isSuperAdmin" class="admin-search" role="search" @submit.prevent="submitSearch">
         <FamilyPersonasIcon name="search" />
-        <input v-model="search" type="search" placeholder="Buscar persona" aria-label="Buscar persona" />
+        <input v-model="search" type="search" placeholder="Buscar cuenta" aria-label="Buscar cuenta" />
       </form>
 
       <div v-if="persona.context" class="admin-context" :data-persona="persona.key">

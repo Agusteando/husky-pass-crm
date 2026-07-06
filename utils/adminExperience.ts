@@ -47,7 +47,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     return {
       key: 'superAdmin',
       title: 'Super Admin',
-      subtitle: 'Personas y accesos',
+      subtitle: 'Accesos y auditoría',
       context: '',
       homeTo
     }
@@ -107,7 +107,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
 
   if (user.isSuperAdmin) {
     return [
-      { key: 'personas', label: 'Personas', to: '/admin/superadmin', icon: 'people' },
+      { key: 'personas', label: 'Accesos', to: '/admin/superadmin', icon: 'security' },
       { key: 'escolar', label: 'Escolar', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
       { key: 'guarderia', label: 'Guardería', to: daycareRouteForUser(user), icon: 'daycare' },
       { key: 'seguridad', label: 'Seguridad', to: '/admin/historial-accesos', icon: 'history' }

@@ -1,13 +1,14 @@
 <template>
-  <section class="superadmin-console" data-product-area="superadmin" data-product-screen="directory">
-    <header class="admin-page-head">
+  <section class="superadmin-console" data-product-area="superadmin" data-product-screen="access-management">
+    <header class="access-header">
       <div>
-        <p class="eyebrow">Super Admin</p>
-        <h1>Personas</h1>
-        <p>Busca una cuenta, entiende qué es y corrige su acceso sin revisar datos técnicos.</p>
+        <p class="eyebrow">Super Admin · Seguridad operativa</p>
+        <h1>Gestión de accesos</h1>
+        <p>Ubica una cuenta, confirma sus vínculos escolares y ajusta roles administrativos con alcance explícito.</p>
       </div>
       <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Asignar Escolar Admin</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Alcances escolares</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
           {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}
         </button>
@@ -19,28 +20,36 @@
 
     <section v-if="loadProblem" class="state-panel" data-product-panel="superadmin-directory" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h2>No fue posible cargar personas</h2>
+      <h2>No fue posible cargar el directorio</h2>
       <p>{{ loadProblemMessage }}</p>
       <button class="btn btn-secondary" type="button" data-diagnostic-action="reintentar-directorio" @click="refreshDirectory">Reintentar</button>
     </section>
 
-    <section v-else class="people-workspace" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
-      <aside class="directory-pane">
+    <section v-else class="access-workspace" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
+      <aside class="directory-pane" aria-label="Directorio de cuentas">
+        <div class="pane-heading">
+          <div>
+            <p class="eyebrow">Directorio</p>
+            <h2>Cuentas</h2>
+          </div>
+          <span>{{ directory?.users.length || 0 }} visibles</span>
+        </div>
+
         <form class="directory-search" role="search" @submit.prevent="refreshDirectory">
           <FamilyPersonasIcon name="search" />
-          <input v-model="search" type="search" placeholder="Nombre, correo, matrícula o sala" data-diagnostic-filter="buscar-usuario" />
+          <input v-model="search" type="search" placeholder="Nombre, correo, matrícula, estudiante o sala" data-diagnostic-filter="buscar-usuario" />
           <button class="search-submit" type="submit" :disabled="isLoadingVisible">Buscar</button>
         </form>
 
-        <div class="filter-row" aria-label="Filtros de personas">
+        <div class="filter-row" aria-label="Filtros de cuentas">
           <label>
-            <span>Tipo</span>
+            <span>Perfil</span>
             <select v-model="selectedScope" data-diagnostic-filter="tipo-persona">
               <option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </label>
           <label>
-            <span>Plantel o unidad</span>
+            <span>Alcance</span>
             <select v-model="selectedPlantel" data-diagnostic-filter="plantel">
               <option value="">Todos</option>
               <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
@@ -48,13 +57,14 @@
           </label>
         </div>
 
-        <div class="directory-summary">
-          <span>{{ directory?.users.length || 0 }} personas</span>
-          <strong>{{ directory?.metrics.internalUsers || 0 }} administradores</strong>
+        <div class="metric-strip" aria-label="Resumen del directorio">
+          <span><b>{{ directory?.metrics.familyUsers || 0 }}</b> familias</span>
+          <span><b>{{ directory?.metrics.internalUsers || 0 }}</b> internas</span>
+          <span><b>{{ directory?.metrics.impersonable || 0 }}</b> soporte</span>
         </div>
 
         <div v-if="isLoadingVisible" class="state-panel compact" data-product-loading>
-          <HuskyPassLoader label="Personas" compact />
+          <HuskyPassLoader label="Cuentas" compact />
         </div>
 
         <div v-else-if="directory?.users?.length" class="people-list" role="list">
@@ -75,7 +85,7 @@
             </span>
             <span class="row-meta">
               <b :data-state="primaryAccessState(user).state">{{ primaryAccessState(user).label }}</b>
-              <small>{{ audienceLabel(user) }}</small>
+              <small>{{ rowScopeLabel(user) }}</small>
             </span>
           </button>
         </div>
@@ -83,7 +93,7 @@
         <div v-else class="state-panel compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Sin resultados</h2>
-          <p>Ajusta la búsqueda o cambia el filtro.</p>
+          <p>Ajusta la búsqueda o cambia un filtro.</p>
         </div>
       </aside>
 
@@ -91,101 +101,93 @@
         <template v-if="clientReady && selectedUser">
           <header class="identity-panel">
             <span class="avatar large">{{ initials(selectedUser) }}</span>
-            <div>
-              <p class="eyebrow">{{ audienceLabel(selectedUser) }}</p>
+            <div class="identity-copy">
+              <p class="eyebrow">{{ accountTypeLabel(selectedUser) }}</p>
               <h2>{{ displayName(selectedUser) }}</h2>
-              <p>{{ accountLabel(selectedUser) }}</p>
+              <p>{{ accountLabel(selectedUser) }} · ID {{ selectedUser.id }}</p>
             </div>
-            <span class="status-badge" :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
+            <div class="identity-status">
+              <span class="status-badge" :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
+              <small>{{ adminAccessLabel(selectedUser) }}</small>
+            </div>
           </header>
 
-          <section class="next-panel" :data-state="primaryAccessState(selectedUser).state">
+          <section class="resolution-panel" :data-state="primaryAccessState(selectedUser).state">
             <div>
-              <p class="eyebrow">Siguiente acción</p>
-              <h3>{{ nextActionTitle }}</h3>
-              <p>{{ nextActionDetail }}</p>
+              <p class="eyebrow">Revisión</p>
+              <h3>{{ reviewTitle }}</h3>
+              <p>{{ reviewDetail }}</p>
             </div>
-            <NuxtLink
-              v-if="showEscolarAction"
-              class="btn btn-primary"
-              :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
-            >
-              Editar acceso escolar
-            </NuxtLink>
-            <button
-              v-else-if="selectedUser.canImpersonate"
-              class="btn btn-primary"
-              type="button"
-              data-diagnostic-action="impersonar-usuario"
-              :disabled="impersonatingId === selectedUser.id"
-              @click="requestImpersonation(selectedUser)"
-            >
-              {{ impersonationButtonLabel(selectedUser) }}
-            </button>
+            <div class="resolution-actions">
+              <NuxtLink
+                v-if="showEscolarAction"
+                class="btn btn-primary"
+                :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
+              >
+                Editar alcance escolar
+              </NuxtLink>
+              <button
+                v-if="selectedUser.canImpersonate"
+                class="btn btn-secondary"
+                type="button"
+                data-diagnostic-action="impersonar-usuario"
+                :disabled="impersonatingId === selectedUser.id"
+                @click="requestImpersonation(selectedUser)"
+              >
+                {{ impersonationButtonLabel(selectedUser) }}
+              </button>
+            </div>
           </section>
 
-          <section class="facts-grid" aria-label="Resumen de persona">
-            <article>
-              <span>Cuenta</span>
-              <strong>{{ selectedUser.email ? 'Correo' : selectedUser.username ? 'Matrícula' : 'ID' }}</strong>
-              <small>{{ accountLabel(selectedUser) }}</small>
-            </article>
-            <article>
-              <span>Persona</span>
-              <strong>{{ audienceLabel(selectedUser) }}</strong>
-              <small>{{ personKindDetail(selectedUser) }}</small>
-            </article>
-            <article>
-              <span>Contexto</span>
-              <strong>{{ primaryScopeLabel(selectedUser) }}</strong>
-              <small>{{ selectedUser.sala ? `Sala ${selectedUser.sala}` : contextFallback(selectedUser) }}</small>
-            </article>
-            <article>
-              <span>Acceso admin</span>
-              <strong>{{ adminAccessLabel(selectedUser) }}</strong>
-              <small>{{ adminAccessDetail(selectedUser) }}</small>
-            </article>
+          <section class="context-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Identificación segura</p>
+                <h3>Cuenta y vínculos</h3>
+              </div>
+              <span>{{ selectedUser.canManageAdminRoles ? 'Editable' : 'Solo consulta' }}</span>
+            </div>
+
+            <div class="facts-grid" aria-label="Resumen de la cuenta">
+              <article>
+                <span>Cuenta</span>
+                <strong>{{ selectedUser.email ? 'Correo institucional' : selectedUser.username ? 'Matrícula / usuario' : 'ID interno' }}</strong>
+                <small>{{ accountLabel(selectedUser) }}</small>
+              </article>
+              <article>
+                <span>Perfil</span>
+                <strong>{{ accountTypeLabel(selectedUser) }}</strong>
+                <small>{{ personKindDetail(selectedUser) }}</small>
+              </article>
+              <article>
+                <span>Alcance encontrado</span>
+                <strong>{{ primaryScopeLabel(selectedUser) }}</strong>
+                <small>{{ contextDetail(selectedUser) }}</small>
+              </article>
+              <article>
+                <span>Rol administrativo</span>
+                <strong>{{ adminAccessLabel(selectedUser) }}</strong>
+                <small>{{ adminAccessDetail(selectedUser) }}</small>
+              </article>
+            </div>
           </section>
 
           <section class="access-section">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Acceso</p>
-                <h3>Qué puede hacer esta persona</h3>
+                <p class="eyebrow">Permisos efectivos</p>
+                <h3>Qué puede abrir ahora</h3>
               </div>
               <span>{{ accessSummary }}</span>
             </div>
 
-            <div class="access-list">
-              <article>
+            <div class="access-matrix">
+              <article v-for="item in effectiveAccessRows" :key="item.key" :data-state="item.state">
                 <div>
-                  <strong>Familia escolar</strong>
-                  <small>{{ selectedUser.productScopes.includes('personasAutorizadas') ? 'Puede entrar a Personas Autorizadas.' : 'No tiene experiencia familiar escolar.' }}</small>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.detail }}</small>
                 </div>
-                <b :data-state="selectedUser.productScopes.includes('personasAutorizadas') ? 'active' : 'none'">{{ selectedUser.productScopes.includes('personasAutorizadas') ? 'Activo' : 'Sin acceso' }}</b>
-              </article>
-              <article>
-                <div>
-                  <strong>Familia guardería</strong>
-                  <small>{{ selectedUser.productScopes.includes('daycare') ? daycareFamilyDetail(selectedUser) : 'No tiene experiencia familiar de guardería.' }}</small>
-                </div>
-                <b :data-state="selectedUser.productScopes.includes('daycare') ? 'active' : 'none'">{{ selectedUser.productScopes.includes('daycare') ? 'Activo' : 'Sin acceso' }}</b>
-              </article>
-              <article>
-                <div>
-                  <strong>Admin Escolar</strong>
-                  <small>{{ selectedGestionEscolarActive ? 'Responsabilidad escolar asignada.' : 'Se asigna por plantel, grado o grupo.' }}</small>
-                </div>
-                <NuxtLink class="inline-action" :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }">
-                  {{ selectedGestionEscolarActive ? 'Editar' : 'Asignar' }}
-                </NuxtLink>
-              </article>
-              <article>
-                <div>
-                  <strong>Admin Guardería</strong>
-                  <small>{{ roleDraft.daycareAdmin ? guarderiaAdminDetail : 'Puede gestionar unidades y salas asignadas.' }}</small>
-                </div>
-                <b :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">{{ roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'Activo' : 'Incompleto') : 'Sin acceso' }}</b>
+                <b>{{ item.label }}</b>
               </article>
             </div>
           </section>
@@ -193,63 +195,84 @@
           <section class="assignment-section">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Asignar Guardería Admin</p>
-                <h3>Unidad y responsabilidad</h3>
+                <p class="eyebrow">Editar roles</p>
+                <h3>Administración de guardería y permisos sensibles</h3>
               </div>
               <span :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
-                {{ roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'Listo' : 'Falta unidad') : 'Sin acceso' }}
+                {{ roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'Alcance definido' : 'Falta alcance') : 'Sin guardería admin' }}
               </span>
             </div>
 
             <template v-if="selectedUser.canManageAdminRoles">
-              <label class="switch-row">
+              <label class="role-switch">
                 <input v-model="roleDraft.daycareAdmin" type="checkbox" />
                 <span>
-                  <strong>Será Admin Guardería</strong>
-                  <small>Verá salas, familias, tareas, avisos y calendario de las unidades elegidas.</small>
+                  <strong>Habilitar administración de guardería</strong>
+                  <small>Permite gestionar salas, familias, tareas, avisos y calendario únicamente en las unidades autorizadas.</small>
                 </span>
               </label>
 
-              <div v-if="roleDraft.daycareAdmin" class="unit-grid" aria-label="Unidades de guardería">
-                <button
-                  v-for="unidad in roleUnidadOptions"
-                  :key="unidad"
-                  class="unit-option"
-                  :class="{ active: roleUnidadDraft.includes(unidad) }"
-                  type="button"
-                  @click="toggleRoleUnidad(unidad)"
-                >
-                  {{ unidad }}
-                </button>
-                <p v-if="!roleUnidadOptions.length">No hay unidades disponibles para asignar.</p>
-              </div>
+              <fieldset v-if="roleDraft.daycareAdmin" class="scope-picker" aria-label="Unidades de guardería autorizadas">
+                <legend>Unidades autorizadas</legend>
+                <div class="unit-grid">
+                  <button
+                    v-for="unidad in roleUnidadOptions"
+                    :key="unidad"
+                    class="unit-option"
+                    :class="{ active: roleUnidadDraft.includes(unidad) }"
+                    type="button"
+                    @click="toggleRoleUnidad(unidad)"
+                  >
+                    {{ unidad }}
+                  </button>
+                </div>
+                <p v-if="!roleUnidadOptions.length">No hay unidades disponibles para esta cuenta.</p>
+              </fieldset>
 
-              <details class="secondary-access">
-                <summary>Accesos sensibles</summary>
+              <section class="sensitive-panel" aria-label="Permisos administrativos sensibles">
+                <div>
+                  <p class="eyebrow">Permisos adicionales</p>
+                  <h4>Acceso sensible</h4>
+                  <p>Activa estos permisos solo cuando el puesto lo requiera. Los cambios deben poder justificarse en soporte interno.</p>
+                </div>
                 <label>
                   <input v-model="roleDraft.accessHistoryAdmin" type="checkbox" />
-                  <span>Historial y validaciones</span>
+                  <span>
+                    <strong>Seguridad e historial</strong>
+                    <small>Consulta validaciones, historial de accesos y diagnósticos operativos.</small>
+                  </span>
                 </label>
                 <label>
                   <input v-model="roleDraft.communicationsAdmin" type="checkbox" />
-                  <span>Comunicados generales</span>
+                  <span>
+                    <strong>Comunicados generales</strong>
+                    <small>Puede preparar comunicados administrativos según el alcance configurado.</small>
+                  </span>
                 </label>
-              </details>
+              </section>
+
+              <section v-if="roleHasChanges" class="change-preview" aria-live="polite">
+                <p class="eyebrow">Antes de guardar</p>
+                <h4>{{ changePreviewTitle }}</h4>
+                <ul>
+                  <li v-for="line in changePreviewLines" :key="line">{{ line }}</li>
+                </ul>
+              </section>
 
               <div class="role-actions">
-                <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Restaurar</button>
-                <button class="btn btn-primary" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando...' : 'Guardar acceso' }}</button>
+                <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar cambios</button>
+                <button class="btn btn-primary" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando...' : 'Guardar roles' }}</button>
               </div>
             </template>
 
-            <p v-else class="muted">Solo cuentas institucionales o internas pueden recibir acceso administrativo.</p>
+            <p v-else class="locked-note">Esta cuenta no es institucional ni interna. No puede recibir roles administrativos desde este panel.</p>
           </section>
 
           <section v-if="selectedUser.canImpersonate" class="support-section">
             <div>
-              <p class="eyebrow">Soporte</p>
-              <h3>Vista familiar controlada</h3>
-              <p>Úsala solo cuando necesites revisar lo que ve la familia.</p>
+              <p class="eyebrow">Soporte familiar</p>
+              <h3>Vista controlada</h3>
+              <p>Úsala solo para resolver un caso activo. La sesión de soporte queda separada de la edición de roles.</p>
             </div>
             <div class="support-actions">
               <button class="btn btn-secondary" type="button" :disabled="impersonatingId === selectedUser.id" @click="requestImpersonation(selectedUser)">
@@ -262,8 +285,8 @@
 
         <div v-else class="state-panel detail-empty" data-state="empty">
           <FamilyPersonasIcon name="people" />
-          <h2>Selecciona una persona</h2>
-          <p>Verás cuenta, tipo, contexto, acceso y la siguiente acción válida.</p>
+          <h2>Selecciona una cuenta</h2>
+          <p>Verás vínculos, permisos efectivos, alcance administrativo y acciones de soporte.</p>
         </div>
       </section>
     </section>
@@ -285,16 +308,16 @@ const router = useRouter()
 
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string }> = [
   { value: 'all', label: 'Todas' },
-  { value: 'internal', label: 'Administradores' },
+  { value: 'internal', label: 'Cuentas internas' },
   { value: 'schoolFamilies', label: 'Familias escolares' },
   { value: 'daycare', label: 'Familias guardería' },
-  { value: 'impersonable', label: 'Soporte' }
+  { value: 'impersonable', label: 'Soporte familiar' }
 ]
 
-const assignableRoles: Array<{ key: SuperAdminAssignableRole }> = [
-  { key: 'daycareAdmin' },
-  { key: 'communicationsAdmin' },
-  { key: 'accessHistoryAdmin' }
+const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string }> = [
+  { key: 'daycareAdmin', label: 'Admin Guardería' },
+  { key: 'communicationsAdmin', label: 'Comunicados generales' },
+  { key: 'accessHistoryAdmin', label: 'Seguridad e historial' }
 ]
 
 const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
@@ -343,28 +366,104 @@ const roleHasChanges = computed(() => {
 })
 const showEscolarAction = computed(() => Boolean(selectedUser.value && (selectedUser.value.audience === 'internal' || selectedGestionEscolarActive.value)))
 const accessSummary = computed(() => {
-  if (!selectedUser.value) return 'Sin persona'
+  if (!selectedUser.value) return 'Sin cuenta'
   const count = [
     selectedUser.value.productScopes.includes('personasAutorizadas'),
     selectedUser.value.productScopes.includes('daycare'),
     selectedGestionEscolarActive.value,
-    roleDraft.value.daycareAdmin
+    roleDraft.value.daycareAdmin,
+    roleDraft.value.communicationsAdmin || selectedUser.value.adminScopes.includes('communications'),
+    roleDraft.value.accessHistoryAdmin || selectedUser.value.adminScopes.includes('accessHistory')
   ].filter(Boolean).length
-  return count ? `${count} accesos` : 'Sin acceso'
+  return count ? `${count} permisos` : 'Sin permisos'
 })
 const guarderiaAdminDetail = computed(() => roleUnidadDraft.value.length ? roleUnidadDraft.value.join(' · ') : 'Selecciona al menos una unidad.')
-const nextActionTitle = computed(() => {
-  if (!selectedUser.value) return 'Selecciona una persona'
-  if (selectedUser.value.audience === 'internal' && !selectedGestionEscolarActive.value && !roleDraft.value.daycareAdmin) return 'Define si será Admin Escolar o Guardería'
-  if (primaryAccessState(selectedUser.value).state === 'incomplete') return 'Completa el alcance antes de entregar acceso'
-  if (selectedUser.value.canImpersonate) return 'Soporte disponible con confirmación'
-  return 'Revisa responsabilidades y contexto'
+const reviewTitle = computed(() => {
+  if (!selectedUser.value) return 'Selecciona una cuenta'
+  if (selectedUser.value.audience === 'internal' && !selectedGestionEscolarActive.value && !roleDraft.value.daycareAdmin) return 'Cuenta interna sin responsabilidad asignada'
+  if (primaryAccessState(selectedUser.value).state === 'incomplete') return 'Rol administrativo sin alcance operativo'
+  if (selectedUser.value.canImpersonate && !selectedUser.value.canManageAdminRoles) return 'Cuenta familiar: soporte sin editar roles'
+  if (selectedUser.value.canImpersonate) return 'Cuenta con vista familiar disponible'
+  return 'Permisos listos para revisión'
 })
-const nextActionDetail = computed(() => {
+const reviewDetail = computed(() => {
   if (!selectedUser.value) return ''
-  if (showEscolarAction.value) return 'Asigna plantel, grado o grupo desde el flujo guiado de Escolar.'
-  if (selectedUser.value.canImpersonate) return 'Puedes abrir su vista familiar con confirmación.'
-  return 'No hay una acción sensible disponible para esta cuenta.'
+  if (showEscolarAction.value && !selectedGestionEscolarActive.value) return 'Asigna el alcance escolar desde el flujo dedicado para evitar mezclar roles, grados y grupos en este panel.'
+  if (selectedGestionEscolarActive.value) return 'El alcance escolar se administra por plantel, nivel, grado o grupo desde su flujo dedicado.'
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'El rol de guardería no debe quedar activo sin unidades autorizadas.'
+  if (selectedUser.value.canImpersonate) return 'Puedes abrir una vista familiar controlada para soporte. No uses esa acción para validar permisos administrativos.'
+  return 'Revisa la cuenta antes de guardar cambios; este panel solo edita roles administrativos permitidos.'
+})
+const effectiveAccessRows = computed(() => {
+  if (!selectedUser.value) return []
+  const user = selectedUser.value
+  return [
+    {
+      key: 'school-family',
+      title: 'Familia escolar',
+      detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'Sin vínculo escolar familiar encontrado.',
+      state: user.productScopes.includes('personasAutorizadas') ? 'active' : 'none',
+      label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'No asignado'
+    },
+    {
+      key: 'daycare-family',
+      title: 'Familia guardería',
+      detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'Sin vínculo familiar de guardería encontrado.',
+      state: user.productScopes.includes('daycare') ? 'active' : 'none',
+      label: user.productScopes.includes('daycare') ? 'Activo' : 'No asignado'
+    },
+    {
+      key: 'school-admin',
+      title: 'Admin Escolar',
+      detail: selectedGestionEscolarActive.value ? 'Alcance administrado por plantel, nivel, grado o grupo.' : 'Se configura desde el flujo de alcances escolares.',
+      state: selectedGestionEscolarActive.value ? 'active' : 'none',
+      label: selectedGestionEscolarActive.value ? 'Activo' : 'Sin rol'
+    },
+    {
+      key: 'daycare-admin',
+      title: 'Admin Guardería',
+      detail: roleDraft.value.daycareAdmin ? guarderiaAdminDetail.value : 'Sin gestión administrativa de salas.',
+      state: roleDraft.value.daycareAdmin ? (roleUnidadDraft.value.length ? 'active' : 'incomplete') : 'none',
+      label: roleDraft.value.daycareAdmin ? (roleUnidadDraft.value.length ? 'Activo' : 'Falta alcance') : 'Sin rol'
+    },
+    {
+      key: 'communications',
+      title: 'Comunicados generales',
+      detail: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? communicationsDetail(user) : 'No puede administrar comunicados generales.',
+      state: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? 'active' : 'none',
+      label: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? 'Activo' : 'Sin rol'
+    },
+    {
+      key: 'security',
+      title: 'Seguridad e historial',
+      detail: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'Puede consultar validaciones, historial y herramientas de diagnóstico.' : 'No puede consultar historial de accesos.',
+      state: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'active' : 'none',
+      label: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'Activo' : 'Sin rol'
+    }
+  ]
+})
+const changePreviewLines = computed(() => {
+  const user = selectedUser.value
+  if (!user || !roleHasChanges.value) return []
+  const current = user.roleAssignments || emptyRoleAssignments()
+  const lines: string[] = []
+  for (const role of assignableRoles) {
+    const before = Boolean(current[role.key])
+    const after = Boolean(roleDraft.value[role.key])
+    if (before !== after) lines.push(`${role.label}: ${after ? 'se activará' : 'se retirará'}.`)
+  }
+  const currentUnits = normalizedRoleUnits(user.unidad || [])
+  const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
+  if (roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')) {
+    lines.push(`Unidades de guardería: ${draftUnits.length ? draftUnits.join(' · ') : 'sin unidades seleccionadas'}.`)
+  }
+  return lines
+})
+const changePreviewTitle = computed(() => {
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'No se puede guardar hasta seleccionar al menos una unidad.'
+  if (roleDraft.value.daycareAdmin) return 'Se guardará acceso administrativo con alcance de guardería.'
+  if (!roleDraft.value.communicationsAdmin && !roleDraft.value.accessHistoryAdmin) return 'Se retirarán los roles administrativos editables en este panel.'
+  return 'Se actualizarán permisos administrativos sensibles.'
 })
 
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
@@ -522,9 +621,9 @@ async function saveAdminRoles() {
       directory.value.metrics.internalUsers = directory.value.users.filter((user) => user.audience === 'internal' || user.adminScopes.length).length
       directory.value.metrics.daycareAdmins = directory.value.users.filter((user) => user.adminScopes.includes('daycare')).length
     }
-    actionNotice.value = 'Acceso actualizado.'
+    actionNotice.value = 'Roles administrativos actualizados.'
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar el acceso.'
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar los roles.'
   } finally {
     savingRoles.value = false
   }
@@ -574,37 +673,51 @@ function labelList(values: string[], fallback: string) {
 }
 
 function productScopeLabel(scope: FamilyProductScope) {
-  if (scope === 'daycare') return 'Familia guardería'
-  if (scope === 'personasAutorizadas') return 'Familia escolar'
+  if (scope === 'daycare') return 'familia guardería'
+  if (scope === 'personasAutorizadas') return 'familia escolar'
   return scope
 }
 
-function audienceLabel(user: SuperAdminUserSummary) {
+function accountTypeLabel(user: SuperAdminUserSummary) {
   if (user.audience === 'multiProductFamily') return 'Familia escolar y guardería'
   if (user.audience === 'daycareFamily') return 'Familia guardería'
   if (user.audience === 'schoolFamily') return 'Familia escolar'
-  if (user.audience === 'internal') return 'Administrador'
-  return 'Sin clasificar'
+  if (user.audience === 'internal') return 'Cuenta interna'
+  return 'Sin vínculo clasificado'
 }
 
 function personKindDetail(user: SuperAdminUserSummary) {
-  if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
+  if (user.productScopes.length) return `Acceso familiar: ${user.productScopes.map(productScopeLabel).join(' · ')}`
   if (user.adminScopes.length) return adminAccessLabel(user)
-  return 'Cuenta sin experiencia asignada'
+  if (user.audience === 'internal') return 'Cuenta institucional sin rol administrativo activo'
+  return 'No se encontró vínculo familiar o administrativo'
 }
 
 function contextFallback(user: SuperAdminUserSummary) {
   if (user.campus) return user.campus
   if (user.empresa) return user.empresa
-  return 'Sin sala'
+  return 'Sin alcance registrado'
+}
+
+function contextDetail(user: SuperAdminUserSummary) {
+  if (user.sala) return `Sala ${user.sala}`
+  if (user.campus || user.empresa) return contextFallback(user)
+  if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
+  return 'No hay sala, plantel o unidad asociada'
 }
 
 function primaryScopeLabel(user: SuperAdminUserSummary) {
   const values = [...user.plantel, ...user.unidad].filter(Boolean)
-  if (values.length) return labelList(values, 'Pendiente')
-  if (user.campus || user.empresa) return user.campus || user.empresa || 'Pendiente'
+  if (values.length) return labelList(values, 'Sin alcance')
+  if (user.campus || user.empresa) return user.campus || user.empresa || 'Sin alcance'
   if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
-  return 'Pendiente'
+  return 'Sin alcance'
+}
+
+function rowScopeLabel(user: SuperAdminUserSummary) {
+  const scope = primaryScopeLabel(user)
+  if (user.sala) return `${scope} · Sala ${user.sala}`
+  return scope
 }
 
 function adminAccessLabel(user: SuperAdminUserSummary) {
@@ -613,33 +726,43 @@ function adminAccessLabel(user: SuperAdminUserSummary) {
   if (roleDraft.value.daycareAdmin || user.adminScopes.includes('daycare')) labels.push('Guardería')
   if (roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory')) labels.push('Seguridad')
   if (roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications')) labels.push('Comunicados')
-  return labels.length ? labels.join(' · ') : 'Sin admin'
+  return labels.length ? labels.join(' · ') : 'Sin rol administrativo'
 }
 
 function adminAccessDetail(user: SuperAdminUserSummary) {
-  if (adminAccessLabel(user) === 'Sin admin') return user.audience === 'internal' ? 'Puede recibir una responsabilidad.' : 'No es cuenta administrativa.'
-  return 'Responsabilidades activas'
+  if (adminAccessLabel(user) === 'Sin rol administrativo') return user.audience === 'internal' ? 'Puede recibir una responsabilidad si su puesto lo requiere.' : 'No es cuenta administrativa.'
+  return 'Responsabilidades administrativas activas.'
 }
 
 function daycareFamilyDetail(user: SuperAdminUserSummary) {
   return user.sala ? `${primaryScopeLabel(user)} · Sala ${user.sala}` : primaryScopeLabel(user)
 }
 
+function schoolFamilyDetail(user: SuperAdminUserSummary) {
+  return user.nombre_nino ? `Vínculo con ${user.nombre_nino}` : primaryScopeLabel(user)
+}
+
+function communicationsDetail(user: SuperAdminUserSummary) {
+  if (user.communicationsScopes.length) return `${user.communicationsScopes.length} alcance(s) de comunicados configurado(s).`
+  if (roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications')) return 'Puede administrar comunicados generales.'
+  return 'Sin alcance de comunicados.'
+}
+
 function primaryAccessState(user: SuperAdminUserSummary) {
   if (user.adminScopes.includes('gestionEscolar') || user.adminScopes.includes('daycare') || user.adminScopes.includes('communications') || user.adminScopes.includes('accessHistory')) {
     const hasConcreteScope = user.adminScopes.includes('gestionEscolar') || user.unidad.length || user.communicationsScopes.length || user.adminScopes.includes('accessHistory')
-    return hasConcreteScope ? { state: 'active', label: 'Admin activo' } : { state: 'incomplete', label: 'Admin incompleto' }
+    return hasConcreteScope ? { state: 'active', label: 'Admin con alcance' } : { state: 'incomplete', label: 'Admin sin alcance' }
   }
   if (user.productScopes.length) return { state: 'family', label: 'Familia' }
-  if (user.audience === 'internal') return { state: 'none', label: 'Sin admin' }
+  if (user.audience === 'internal') return { state: 'none', label: 'Interna sin rol' }
   return { state: 'unknown', label: 'Revisar' }
 }
 
 function impersonationButtonLabel(user: SuperAdminUserSummary) {
   if (!user.canImpersonate) return 'Vista no disponible'
   if (impersonatingId.value === user.id) return 'Abriendo...'
-  if (confirmingImpersonationId.value === user.id) return 'Confirmar vista'
-  return 'Vista familiar'
+  if (confirmingImpersonationId.value === user.id) return 'Confirmar vista familiar'
+  return 'Abrir vista familiar'
 }
 
 function cancelImpersonation() {
@@ -654,7 +777,7 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
     selectedUser.value = user
     syncQuery(user.id)
     actionError.value = ''
-    actionNotice.value = `Confirma para entrar como ${displayName(user)}.`
+    actionNotice.value = `Confirma para abrir la vista familiar de ${displayName(user)}.`
     return
   }
 
@@ -687,67 +810,75 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   gap: 16px;
 }
 
-.admin-page-head,
+.access-header,
 .directory-pane,
 .person-pane,
 .state-panel {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid #dce5eb;
   border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
 }
 
-.admin-page-head {
+.access-header {
   align-items: end;
   display: flex;
-  gap: 16px;
+  gap: 18px;
   justify-content: space-between;
-  padding: clamp(18px, 2.2vw, 28px);
+  padding: clamp(18px, 2.2vw, 26px);
 }
 
-.admin-page-head h1,
+.access-header h1,
+.pane-heading h2,
 .identity-panel h2,
 .section-title h3,
-.next-panel h3,
-.state-panel h2 {
+.resolution-panel h3,
+.support-section h3,
+.state-panel h2,
+.sensitive-panel h4,
+.change-preview h4 {
   color: #152032;
   margin: 0;
 }
 
-.admin-page-head h1 {
+.access-header h1 {
   font-family: var(--font-body);
-  font-size: clamp(2rem, 3vw, 3.1rem);
-  letter-spacing: 0;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  letter-spacing: -0.03em;
 }
 
-.admin-page-head p:not(.eyebrow),
+.access-header p:not(.eyebrow),
 .identity-panel p,
-.next-panel p,
-.muted {
-  color: #667789;
+.resolution-panel p,
+.locked-note,
+.support-section p,
+.sensitive-panel p,
+.change-preview li {
+  color: #627386;
   margin: 0;
 }
 
 .head-actions,
 .role-actions,
-.support-actions {
+.support-actions,
+.resolution-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
 }
 
-.people-workspace {
+.access-workspace {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(330px, 430px) minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
 }
 
 .directory-pane,
 .person-pane {
   align-content: start;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: 14px;
 }
 
@@ -755,6 +886,23 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   align-self: start;
   position: sticky;
   top: calc(var(--topbar-height) + 18px);
+}
+
+.pane-heading,
+.section-title,
+.identity-status {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.pane-heading > span,
+.section-title > span,
+.identity-status small {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .directory-search {
@@ -791,16 +939,32 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: 0 11px;
 }
 
-.filter-row {
+.filter-row,
+.metric-strip,
+.facts-grid,
+.access-matrix {
   display: grid;
   gap: 8px;
+}
+
+.filter-row {
   grid-template-columns: 1fr 1fr;
 }
 
-.filter-row label {
+.filter-row label,
+.metric-strip span,
+.facts-grid article,
+.access-matrix article,
+.role-switch,
+.scope-picker,
+.sensitive-panel,
+.change-preview {
   background: #fbfcfd;
   border: 1px solid #dce5eb;
-  border-radius: 12px;
+  border-radius: 13px;
+}
+
+.filter-row label {
   display: grid;
   gap: 4px;
   padding: 8px 10px;
@@ -808,30 +972,35 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 .filter-row span,
 .facts-grid span,
-.directory-summary span,
 .section-title span,
-.row-meta small {
+.row-meta small,
+.metric-strip span,
+.change-preview .eyebrow {
   color: #6b7a8b;
   font-size: 0.72rem;
   font-weight: 800;
 }
 
-.directory-summary {
-  align-items: center;
-  color: #152032;
-  display: flex;
-  justify-content: space-between;
+.metric-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.directory-summary strong {
-  color: #0d766d;
-  font-size: 0.82rem;
+.metric-strip span {
+  align-content: center;
+  display: grid;
+  min-height: 46px;
+  padding: 8px 10px;
+}
+
+.metric-strip b {
+  color: #152032;
+  font-size: 1rem;
 }
 
 .people-list {
   display: grid;
   gap: 6px;
-  max-height: calc(100vh - 305px);
+  max-height: calc(100vh - 338px);
   overflow: auto;
   padding-right: 2px;
 }
@@ -844,7 +1013,7 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(92px, auto);
+  grid-template-columns: 42px minmax(0, 1fr) minmax(108px, auto);
   padding: 9px;
   text-align: left;
 }
@@ -877,7 +1046,8 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .person-copy,
-.row-meta {
+.row-meta,
+.identity-copy {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -888,7 +1058,9 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 .row-meta b,
 .row-meta small,
 .facts-grid strong,
-.facts-grid small {
+.facts-grid small,
+.identity-copy h2,
+.identity-copy p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -901,9 +1073,10 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 .person-copy small,
 .facts-grid small,
-.access-list small,
-.switch-row small,
-.support-section p {
+.access-matrix small,
+.role-switch small,
+.sensitive-panel small,
+.scope-picker p {
   color: #667789;
   font-size: 0.78rem;
   line-height: 1.45;
@@ -915,7 +1088,7 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 .row-meta b,
 .status-badge,
-.access-list b,
+.access-matrix b,
 .assignment-section .section-title > span {
   border-radius: 999px;
   font-size: 0.72rem;
@@ -962,7 +1135,12 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   font-size: clamp(1.45rem, 2.1vw, 2rem);
 }
 
-.next-panel {
+.identity-status {
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+.resolution-panel {
   align-items: center;
   background: #f8fafc;
   border: 1px solid #dce5eb;
@@ -973,16 +1151,22 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: 14px;
 }
 
-.facts-grid {
+.context-panel,
+.access-section,
+.assignment-section,
+.support-section {
+  border: 1px solid #e1e8ed;
+  border-radius: 15px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  padding: 14px;
+}
+
+.facts-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .facts-grid article {
-  background: #fbfcfd;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
   display: grid;
   gap: 4px;
   min-width: 0;
@@ -994,57 +1178,41 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   font-size: 0.96rem;
 }
 
-.access-section,
-.assignment-section,
-.support-section {
-  border: 1px solid #e1e8ed;
-  border-radius: 15px;
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.section-title {
-  align-items: center;
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
-}
-
 .section-title h3,
-.next-panel h3,
+.resolution-panel h3,
 .support-section h3 {
   font-family: var(--font-body);
   font-size: 1.08rem;
 }
 
-.access-list {
-  display: grid;
-  gap: 8px;
+.access-matrix {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.access-list article {
+.access-matrix article {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px;
 }
 
-.access-list strong,
-.switch-row strong {
+.access-matrix strong,
+.role-switch strong,
+.sensitive-panel strong {
   color: #152032;
   display: block;
 }
 
-.switch-row {
+.access-matrix article[data-state='active'],
+.access-matrix article[data-state='family'],
+.access-matrix article[data-state='none'],
+.access-matrix article[data-state='incomplete'] {
+  color: inherit;
+}
+
+.role-switch {
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid #dce5eb;
-  border-radius: 14px;
   cursor: pointer;
   display: grid;
   gap: 12px;
@@ -1052,9 +1220,23 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: 12px;
 }
 
-.switch-row input,
-.secondary-access input {
+.role-switch input,
+.sensitive-panel input {
   accent-color: #0d766d;
+}
+
+.scope-picker {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.scope-picker legend {
+  color: #152032;
+  font-size: 0.86rem;
+  font-weight: 850;
+  padding: 0 4px;
 }
 
 .unit-grid {
@@ -1080,29 +1262,45 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   color: #15803d;
 }
 
-.secondary-access {
-  border-top: 1px solid #e1e8ed;
-  padding-top: 10px;
+.sensitive-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
 }
 
-.secondary-access summary {
-  color: #526173;
-  cursor: pointer;
-  font-size: 0.84rem;
-  font-weight: 850;
+.sensitive-panel label {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px;
 }
 
-.secondary-access label {
-  align-items: center;
-  color: #152032;
-  display: inline-flex;
+.change-preview {
+  display: grid;
   gap: 8px;
-  margin: 10px 14px 0 0;
+  padding: 12px;
+}
+
+.change-preview ul {
+  color: #526173;
+  margin: 0;
+  padding-left: 18px;
 }
 
 .support-section {
   align-items: center;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.locked-note {
+  background: #f8fafc;
+  border: 1px solid #dce5eb;
+  border-radius: 13px;
+  padding: 12px;
 }
 
 .surface-message {
@@ -1139,8 +1337,9 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 @media (max-width: 1180px) {
-  .people-workspace,
-  .facts-grid {
+  .access-workspace,
+  .facts-grid,
+  .access-matrix {
     grid-template-columns: 1fr;
   }
 
@@ -1154,31 +1353,36 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 @media (max-width: 760px) {
-  .admin-page-head,
+  .access-header,
   .head-actions,
   .section-title,
-  .support-section {
+  .support-section,
+  .pane-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
   .head-actions,
   .role-actions,
-  .support-actions {
+  .support-actions,
+  .resolution-actions {
     display: grid;
     justify-content: stretch;
   }
 
   .filter-row,
+  .metric-strip,
   .identity-panel,
-  .next-panel,
+  .resolution-panel,
   .person-row,
-  .access-list article,
+  .access-matrix article,
   .support-section {
     grid-template-columns: 1fr;
   }
 
-  .row-meta {
+  .row-meta,
+  .identity-status {
+    align-items: start;
     justify-items: start;
   }
 }

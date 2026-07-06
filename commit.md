@@ -1,1 +1,1 @@
-Rediseña la experiencia administrativa principal
+Rediseña la gestión de accesos de Super Admin
