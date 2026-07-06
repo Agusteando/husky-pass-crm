@@ -3,7 +3,7 @@
     brand-to="/login"
     eyebrow="Acceso único"
     title="Acceso Husky Pass"
-    description="Familias y equipo interno entran desde una sola puerta; los permisos abren el espacio correcto."
+    description="Familias y equipo interno entran desde una sola puerta."
     experience="admin"
   >
     <UnifiedLoginForm />

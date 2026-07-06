@@ -32,7 +32,7 @@ import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
 import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/personasConfig'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken, hasSchoolAdminScope } from '~/utils/sessionScopes'
 import { normalizeEmail } from '~/utils/superAdmin'
 import { displayMatriculaCandidate, normalizeMatricula } from '~/utils/matricula'
 import { shortHash } from '~/server/utils/logger'
@@ -208,7 +208,7 @@ async function gestionWrite(sql: string, params: Array<string | number | boolean
     return await legacyWrite(sql, params)
   } catch (error) {
     if (isGestionSchemaMissing(error)) {
-      throw publicError(503, 'Gestion Escolar requiere aplicar la migracion SQL antes de guardar cambios.')
+      throw publicError(503, 'Escolar requiere aplicar la migracion SQL antes de guardar cambios.')
     }
     throw error
   }
@@ -414,15 +414,15 @@ function permissionsForCapability(permissions: GestionEscolarPermission[], capab
 
 export async function getGestionCapabilities(user: AppSessionUser) {
   if (user.isSuperAdmin) return [...GESTION_ESCOLAR_CAPABILITIES]
-  if (!hasGestionEscolarAdminScope(user)) return []
+  if (!hasSchoolAdminScope(user)) return []
   const permissions = await effectiveGestionPermissionsForUser(user)
   return Array.from(new Set(permissions.map((permission) => permission.capability)))
 }
 
 export async function assertGestionCapability(user: AppSessionUser, capability: GestionEscolarCapability, target: GestionEscolarScope) {
   if (user.isSuperAdmin) return
-  if (!hasGestionEscolarAdminScope(user)) {
-    throw publicError(403, 'Gestion Escolar no esta habilitado para esta cuenta.')
+  if (!hasSchoolAdminScope(user)) {
+    throw publicError(403, 'Escolar no esta habilitado para esta cuenta.')
   }
   const permissions = permissionsForCapability(await effectiveGestionPermissionsForUser(user), capability)
   const normalizedTarget = normalizeGestionScope(target)
@@ -448,81 +448,54 @@ function superAdminGestionPermissions(userId: number): GestionEscolarPermission[
   }))
 }
 
-function expandLegacyGestionPlanteles(values: Array<string | null | undefined>) {
-  const raw = values.flatMap((value) => csvToList(String(value || ''))).map(upper).filter(Boolean)
-  const planteles = new Set<string>()
-  const add = (value: string) => {
-    if (!value) return
-    planteles.add(value)
-  }
-
-  for (const value of raw) {
-    if (value === 'IECS') {
-      add('PREEM')
-      add('PREET')
-      continue
-    }
-    if (value === 'IEDIS') {
-      add('PM')
-      add('PT')
-      add('SM')
-      add('ST')
-      continue
-    }
-    if (/METEPEC/.test(value)) {
-      add('PREEM')
-      add('PM')
-      add('SM')
-      continue
-    }
-    if (/TOLUCA/.test(value)) {
-      add('PT')
-      add('ST')
-      continue
-    }
-    if (value === 'CM') {
-      add('PREEM')
-      continue
-    }
-    if (['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST'].includes(value)) {
-      add(value)
-    }
-  }
-
-  return Array.from(planteles)
-}
-
-function legacyGestionFallbackPermissions(user: AppSessionUser): GestionEscolarPermission[] {
-  if (user.isSuperAdmin || !hasGestionEscolarAdminScope(user)) return []
-  const planteles = expandLegacyGestionPlanteles([
-    ...user.plantel,
-    ...user.unidades,
-    user.campus,
-    user.empresa
-  ])
-  const scopedPlanteles = planteles.length ? planteles : ['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST']
-  return scopedPlanteles.flatMap((plantel) => GESTION_ESCOLAR_CAPABILITIES.map((capability) => ({
-    userId: user.id,
-    capability,
-    enabled: true,
-    isGlobal: false,
-    plantel,
-    nivel: null,
-    grado: null,
-    grupo: null
-  })))
-}
-
 async function effectiveGestionPermissionsForUser(user: AppSessionUser) {
   if (user.isSuperAdmin) return superAdminGestionPermissions(user.id)
-  const explicit = await getGestionPermissionsForUser(user.id)
-  return explicit.length ? explicit : legacyGestionFallbackPermissions(user)
+  if (!hasSchoolAdminScope(user)) return []
+  const rows = await gestionQuery<GestionPermissionRow[]>(
+    `SELECT id, user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at
+     FROM gestion_escolar_permissions
+     WHERE user_id = ? AND enabled = 1 AND is_global = 0 AND plantel IS NOT NULL AND TRIM(CAST(plantel AS CHAR)) <> ''
+     ORDER BY plantel ASC, nivel ASC, grado ASC, grupo ASC`,
+    [user.id]
+  )
+  const scopeKeys = new Set<string>()
+  const scopes: GestionEscolarPermission[] = []
+  for (const row of rows) {
+    const scope = normalizeGestionScope({
+      plantel: row.plantel,
+      nivel: row.nivel,
+      grado: row.grado,
+      grupo: row.grupo
+    })
+    if (!scope.plantel) continue
+    const key = scopeKey(scope)
+    if (scopeKeys.has(key)) continue
+    scopeKeys.add(key)
+    for (const capability of GESTION_ESCOLAR_CAPABILITIES) {
+      scopes.push({
+        id: Number(row.id),
+        userId: user.id,
+        capability,
+        enabled: true,
+        isGlobal: false,
+        plantel: scope.plantel,
+        nivel: scope.nivel,
+        grado: scope.grado,
+        grupo: scope.grupo,
+        assignedBy: row.assigned_by ? Number(row.assigned_by) : null,
+        updatedBy: row.updated_by ? Number(row.updated_by) : null,
+        createdAt: toIso(row.created_at),
+        updatedAt: toIso(row.updated_at)
+      })
+    }
+  }
+  return scopes
 }
 
 
 export async function getGestionCommunicationScopes(user: AppSessionUser): Promise<CommunicationAdminScopeInput[]> {
   if (user.isSuperAdmin) return [{ isGlobal: true, plantel: null, nivel: null, grado: null, grupo: null, canCreate: true, canPublish: true }]
-  if (!hasGestionEscolarAdminScope(user)) return []
+  if (!hasSchoolAdminScope(user)) return []
   const permissions = await effectiveGestionPermissionsForUser(user)
   const map = new Map<string, CommunicationAdminScopeInput>()
   for (const permission of permissions) {
@@ -875,7 +848,7 @@ export async function summarizeGestionPermissions(userId: number): Promise<Gesti
   const roles = csvToList(String(target?.role || '')).map((role) => role.toUpperCase())
   return {
     enabled: permissions.length > 0,
-    state: assignmentState(hasRoleToken(roles, GESTION_ESCOLAR_ROLE), permissions),
+    state: assignmentState(hasRoleToken(roles, SCHOOL_ADMIN_ROLE), permissions),
     profile: profileFromCapabilities(capabilities),
     capabilities,
     permissions,
@@ -940,7 +913,7 @@ function normalizePermissionInput(userId: number, input: GestionEscolarPermissio
     throw publicError(400, 'Gestion Escolar requiere un alcance explicito por plantel.')
   }
   if (!scope.plantel) {
-    throw publicError(400, 'Selecciona un plantel para cada alcance de Gestion Escolar.')
+    throw publicError(400, 'Selecciona un plantel para cada rol escolar.')
   }
   return {
     userId,
@@ -992,7 +965,7 @@ export async function setGestionPermissionsForUser(actor: AppSessionUser, userId
     : []
 
   if (enabled && !permissions.length) {
-    throw publicError(400, 'Selecciona al menos un plantel y un permiso de Gestion Escolar.')
+    throw publicError(400, 'Selecciona al menos un plantel escolar.')
   }
 
   try {
@@ -1010,13 +983,13 @@ export async function setGestionPermissionsForUser(actor: AppSessionUser, userId
       }
 
       const roles = new Set(csvToList(String(target.role || '')).map((role) => role.toUpperCase()))
-      if (permissions.length) roles.add(GESTION_ESCOLAR_ROLE)
-      else roles.delete(GESTION_ESCOLAR_ROLE)
+      if (permissions.length) roles.add(SCHOOL_ADMIN_ROLE)
+      else roles.delete(SCHOOL_ADMIN_ROLE)
       await tx.write('UPDATE users SET role = ? WHERE id = ?', [Array.from(roles).join(','), userId])
     })
   } catch (error) {
     if (isGestionSchemaMissing(error)) {
-      throw publicError(503, 'Gestion Escolar requiere aplicar la migracion SQL antes de guardar cambios.')
+      throw publicError(503, 'Escolar requiere aplicar la migracion SQL antes de guardar cambios.')
     }
     throw error
   }
@@ -1024,7 +997,7 @@ export async function setGestionPermissionsForUser(actor: AppSessionUser, userId
   await auditGestionAction({
     actorUserId: actor.id,
     targetUserId: userId,
-    action: permissions.length ? 'gestion.permissions.updated' : 'gestion.permissions.disabled',
+    action: permissions.length ? 'school.roles.updated' : 'school.roles.disabled',
     module: 'superadmin',
     metadata: {
       capabilities: Array.from(new Set(permissions.map((permission) => permission.capability))),
@@ -1488,7 +1461,7 @@ export async function getGestionFamilyDetail(user: AppSessionUser, familyUserId:
 
 export async function canGestionImpersonateFamily(actor: AppSessionUser, targetUserId: number) {
   if (actor.isSuperAdmin) return { allowed: true, scope: { isGlobal: true } as GestionEscolarScope }
-  if (!hasGestionEscolarAdminScope(actor)) return { allowed: false, reason: 'Gestion Escolar no habilitado.' }
+  if (!hasSchoolAdminScope(actor)) return { allowed: false, reason: 'Rol escolar no habilitado.' }
   const list = await listGestionFamilies(actor, { limit: 500 })
   const family = list.rows.find((row) => row.userId === targetUserId)
   if (!family) return { allowed: false, reason: 'La familia esta fuera de tu alcance.' }
@@ -1500,7 +1473,7 @@ export async function assertTargetIsFamilyOnly(targetUserId: number) {
   const legacy = await findLegacyUserById(targetUserId)
   if (!legacy) throw publicError(404, 'Cuenta familiar no encontrada')
   const roles = csvToList(legacy.raw.role)
-  const internal = hasRoleToken(roles, GESTION_ESCOLAR_ROLE) || hasRoleToken(roles, COMMUNICATIONS_ADMIN_ROLE) || roles.some((role) => /ROLE_HUSKY(?!_USER)/i.test(role))
+  const internal = hasRoleToken(roles, SCHOOL_ADMIN_ROLE) || hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
   const email = normalizeEmail(legacy.raw.email)
   if (internal || email.endsWith('@casitaiedis.edu.mx')) {
     throw publicError(403, 'No se puede impersonar personal interno.')

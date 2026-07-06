@@ -16,7 +16,7 @@ import type {
 import type { AuthorizedChild } from '~/types/daycare'
 import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { getGestionCommunicationScopes } from '~/server/data/gestionEscolar'
-import { csvToList, legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
+import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
 
 interface CommunicationRow extends RowDataPacket {
@@ -56,17 +56,6 @@ interface CommunicationAttachmentRow extends RowDataPacket {
   kind: CommunicationAttachmentKind | null
   thumbnail_url: string | null
   uploaded_at: string | null
-}
-
-interface CommunicationScopeRow extends RowDataPacket {
-  user_id: number
-  is_global: number | boolean | null
-  plantel: string | null
-  nivel: string | null
-  grado: string | null
-  grupo: string | null
-  can_create: number | boolean | null
-  can_publish: number | boolean | null
 }
 
 interface CommunicationOptionsRow extends RowDataPacket {
@@ -207,19 +196,6 @@ function communicationFromRow(row: CommunicationRow, audience: CommunicationAudi
   })
 }
 
-function scopeFromRow(row: CommunicationScopeRow): CommunicationAdminScope {
-  return {
-    userId: Number(row.user_id),
-    isGlobal: Boolean(row.is_global),
-    plantel: upper(row.plantel),
-    nivel: clean(row.nivel),
-    grado: clean(row.grado),
-    grupo: upper(row.grupo),
-    canCreate: Boolean(row.can_create),
-    canPublish: Boolean(row.can_publish)
-  }
-}
-
 function normalizeScopeInput(scope: CommunicationAdminScopeInput): CommunicationAdminScopeInput {
   const isGlobal = Boolean(scope.isGlobal)
   return {
@@ -301,16 +277,7 @@ function derivedPlantelSql(alias = 'm') {
   END`
 }
 
-async function loadAdminScopes(userId: number) {
-  const rows = await legacyQuery<CommunicationScopeRow[]>(
-    `SELECT user_id, is_global, plantel, nivel, grado, grupo, can_create, can_publish
-     FROM comunicados_admin_scopes
-     WHERE user_id = ?
-     ORDER BY is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
-    [userId]
-  )
-  return rows.map(scopeFromRow)
-}
+
 
 async function getCommunicationAccess(user: AppSessionUser): Promise<CommunicationAccess> {
   if (user.isSuperAdmin) {
@@ -339,19 +306,17 @@ async function getCommunicationAccess(user: AppSessionUser): Promise<Communicati
     }
   }
 
-  const scopes = await loadAdminScopes(user.id)
-  const isGlobal = scopes.some((scope) => scope.isGlobal)
   return {
-    isGlobal,
-    canCreate: scopes.some((scope) => scope.canCreate),
-    canPublish: scopes.some((scope) => scope.canPublish),
-    scopes
+    isGlobal: false,
+    canCreate: false,
+    canPublish: false,
+    scopes: []
   }
 }
 
 function assertAccessConfigured(access: CommunicationAccess) {
   if (!access.isGlobal && !access.scopes.length) {
-    throw publicError(403, 'El usuario tiene el rol de Comunicados, pero superadmin aún no le asignó plantel, grado o grupo.')
+    throw publicError(403, 'La cuenta no tiene plantel escolar asignado.')
   }
 }
 
@@ -712,45 +677,3 @@ export async function saveCommunication(user: AppSessionUser, input: SaveCommuni
   return message
 }
 
-export async function getCommunicationScopesForUsers(userIds: number[]) {
-  const cleanIds = Array.from(new Set(userIds.filter((id) => Number.isFinite(id))))
-  if (!cleanIds.length) return new Map<number, CommunicationAdminScope[]>()
-  const placeholders = cleanIds.map(() => '?').join(',')
-  const rows = await legacyQuery<CommunicationScopeRow[]>(
-    `SELECT user_id, is_global, plantel, nivel, grado, grupo, can_create, can_publish
-     FROM comunicados_admin_scopes
-     WHERE user_id IN (${placeholders})
-     ORDER BY is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
-    cleanIds
-  )
-  const map = new Map<number, CommunicationAdminScope[]>()
-  for (const row of rows) {
-    const key = Number(row.user_id)
-    map.set(key, [...(map.get(key) || []), scopeFromRow(row)])
-  }
-  return map
-}
-
-export async function setCommunicationScopesForUser(actor: AppSessionUser, userId: number, enabled: boolean, scopesInput: CommunicationAdminScopeInput[]) {
-  const scopes = enabled ? scopesInput.map(normalizeScopeInput).filter((scope) => scope.isGlobal || scope.plantel) : []
-  await legacyWrite('DELETE FROM comunicados_admin_scopes WHERE user_id = ?', [userId])
-  for (const scope of scopes) {
-    await legacyWrite(
-      `INSERT INTO comunicados_admin_scopes (user_id, is_global, plantel, nivel, grado, grupo, can_create, can_publish, created_by, updated_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-      [userId, scope.isGlobal ? 1 : 0, scope.plantel || null, scope.nivel || null, scope.grado || null, scope.grupo || null, scope.canCreate === false ? 0 : 1, scope.canPublish ? 1 : 0, actor.id, actor.id]
-    )
-  }
-
-  const user = await legacyOne<RowDataPacket>('SELECT id, role FROM users WHERE id = ? LIMIT 1', [userId])
-  if (!user) throw publicError(404, 'Usuario no encontrado.')
-  const roles = new Set(csvToList(String(user.role || '')).map((role) => role.toUpperCase()))
-  if (enabled && scopes.length) roles.add('ROLE_HUSKY_COMUNICADOS')
-  else roles.delete('ROLE_HUSKY_COMUNICADOS')
-  await legacyWrite('UPDATE users SET role = ? WHERE id = ?', [Array.from(roles).join(','), userId])
-
-  return {
-    enabled: enabled && scopes.length > 0,
-    scopes: enabled ? scopes : []
-  }
-}

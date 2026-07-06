@@ -1,35 +1,35 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import { publicError } from '~/server/utils/httpError'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, ACCESS_HISTORY_ADMIN_ROLE, effectiveAdminUser, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import {
+  DAYCARE_ADMIN_ROLE,
+  effectiveAdminUser,
+  hasDaycareAdminScope,
+  hasFamilyScope,
+  hasRoleToken,
+  hasSchoolAdminScope
+} from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
-  if (user.kind !== 'family') return false
-
-  if (scope === 'daycare') {
-    const daycare = user.scopes?.daycare
-    return Boolean(daycare?.unidad && daycare?.sala)
-  }
-
-  if (scope === 'personasAutorizadas') {
-    return Boolean(user.scopes?.personasAutorizadas)
-  }
-
-  return false
+  return hasFamilyScope(user, scope)
 }
 
 export function isSuperAdmin(user: AppSessionUser | null | undefined) {
   return Boolean(effectiveAdminUser(user)?.isSuperAdmin)
 }
 
+export function assertSuperAdmin(user: AppSessionUser) {
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo Super Admin puede realizar esta accion.')
+}
+
 export function assertDaycareFamily(user: AppSessionUser) {
   if (!hasFamilyProductScope(user, 'daycare')) {
-    throw publicError(403, 'Acceso de guardería no autorizado')
+    throw publicError(403, 'Acceso de guarderia no autorizado')
   }
 }
 
 export function assertPersonasAutorizadasFamily(user: AppSessionUser) {
   if (!hasFamilyProductScope(user, 'personasAutorizadas')) {
-    throw publicError(403, 'Acceso a Personas Autorizadas no autorizado')
+    throw publicError(403, 'Acceso escolar familiar no autorizado')
   }
 }
 
@@ -40,49 +40,20 @@ export function assertDaycareAdmin(user: AppSessionUser) {
 
   if (isSuperAdmin(user)) return
 
-  const hasDaycarePermission = hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
-  if (!hasDaycarePermission || user.unidades.length === 0) {
-    throw publicError(403, 'El usuario no tiene alcance de guardería')
+  if (!hasDaycareAdminScope(user) || !hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE)) {
+    throw publicError(403, 'La cuenta no tiene unidad de guarderia asignada')
   }
 }
 
-export function assertCommunicationsAdmin(user: AppSessionUser) {
-  if (user.kind !== 'admin') {
-    throw publicError(403, 'Acceso interno no autorizado')
-  }
-
-  if (isSuperAdmin(user)) return
-
-  const hasPermission = hasCommunicationsAdminScope(user) || hasGestionEscolarAdminScope(user) || hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE)
-  if (!hasPermission) {
-    throw publicError(403, 'El usuario no tiene alcance para gestionar comunicados.')
-  }
-}
-
-export function assertGestionEscolarAdmin(user: AppSessionUser) {
-  if (user.kind !== 'admin') {
-    throw publicError(403, 'Acceso interno no autorizado')
-  }
-
-  if (isSuperAdmin(user)) return
-
-  if (!hasGestionEscolarAdminScope(user) && !hasRoleToken(user.roles, GESTION_ESCOLAR_ROLE)) {
-    throw publicError(403, 'El usuario no tiene acceso a Gestion Escolar.')
-  }
-}
-
-export function assertAccessHistoryAdmin(user: AppSessionUser) {
+export function assertSchoolAdmin(user: AppSessionUser) {
   if (user.kind !== 'admin') {
     throw publicError(403, 'Acceso administrativo no autorizado')
   }
 
   if (isSuperAdmin(user)) return
 
-  const routeText = user.routes.map((route) => route.route).join(' ')
-  const roleText = user.roles.join(' ')
-  const hasReportAccess = hasRoleToken(user.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
-  if (!hasReportAccess) {
-    throw publicError(403, 'El usuario no tiene alcance para consultar historial de accesos.')
+  if (!hasSchoolAdminScope(user)) {
+    throw publicError(403, 'La cuenta no tiene rol escolar asignado')
   }
 }
 

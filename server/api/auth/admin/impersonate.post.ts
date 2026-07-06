@@ -8,7 +8,7 @@ import { findLegacyUserById } from '~/server/data/mysqlAuth'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 import { auditGestionImpersonation, canGestionImpersonateFamily } from '~/server/data/gestionEscolar'
-import { effectiveAdminUser, hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { DAYCARE_ADMIN_ROLE, SCHOOL_ADMIN_ROLE, effectiveAdminUser, hasDaycareAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 import { parseOrBadRequest } from '~/server/utils/validation'
 
 const schema = z.object({ userId: z.coerce.number().int().positive() })
@@ -19,7 +19,7 @@ type SupportScope =
   | { kind: 'daycare'; segment: 'guarderia' }
 
 function hasInternalRole(roles: string[]) {
-  return roles.some((role) => /ROLE_HUSKY(?!_USER)|GESTION_ESCOLAR|COMUNICADOS|ACCESOS/i.test(role))
+  return hasRoleToken(roles, SCHOOL_ADMIN_ROLE) || hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
 }
 
 function targetSegment(target: AppSessionUser): 'escolar' | 'guarderia' {
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
   const supportScope = await resolveFamilySupportScope(current, familyUser)
   if (supportScope.kind === 'school') {
-    await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'start', reason: 'Soporte Gestion Escolar', scope: supportScope.auditScope })
+    await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'start', reason: 'Soporte escolar', scope: supportScope.auditScope })
   } else if (supportScope.kind === 'superadmin') {
     await auditGestionImpersonation({ actorUserId: current.id, targetUserId: body.userId, action: 'start', reason: 'Soporte Superadmin', scope: supportScope.auditScope })
   }

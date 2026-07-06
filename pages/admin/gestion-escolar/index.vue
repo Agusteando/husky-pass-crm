@@ -8,7 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Ver familias</NuxtLink>
-        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Crear comunicado</NuxtLink>
+        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Comunicados</NuxtLink>
       </div>
     </header>
 
@@ -127,7 +127,7 @@ const todayTasks = computed(() => {
   if (hasModule('familias')) {
     tasks.push({
       title: 'Familias y personas autorizadas',
-      detail: `${overview.value?.reach.families || 0} familias visibles con plantel y grupo.`,
+      detail: `${overview.value?.reach.families || 0} familias en tu plantel.`,
       action: 'Revisar',
       icon: 'people',
       to: '/admin/gestion-escolar/familias'
@@ -136,17 +136,17 @@ const todayTasks = computed(() => {
   if (hasModule('comunicados')) {
     tasks.push({
       title: 'Comunicados',
-      detail: capabilityLabel('comunicados') === 'Publicar' ? 'Puedes publicar mensajes para tu audiencia.' : 'Puedes preparar borradores.',
-      action: capabilityLabel('comunicados'),
+      detail: 'Mensajes para familias del plantel.',
+      action: 'Abrir',
       icon: 'announcement',
       to: '/admin/gestion-escolar/comunicados'
     })
   }
   if (hasModule('encuestas')) {
-    tasks.push({ title: 'Encuestas', detail: 'Mantén formularios activos para familias reales.', action: 'Gestionar', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
+    tasks.push({ title: 'Encuestas', detail: 'Formularios activos para familias.', action: 'Abrir', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
   }
   if (hasModule('convenios')) {
-    tasks.push({ title: 'Convenios', detail: 'Controla qué documentos están visibles.', action: capabilityLabel('convenios'), icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
+    tasks.push({ title: 'Convenios', detail: 'Documentos visibles para familias.', action: 'Abrir', icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
   }
   return tasks
 })
@@ -156,7 +156,7 @@ const workflowModules = computed(() => modules.value.map((module) => ({
   icon: moduleIcon(module.key),
   title: workflowTitle(module.key),
   description: workflowDescription(module.key),
-  cta: module.key === 'familias' ? 'Abrir' : capabilityLabel(module.key)
+  cta: 'Abrir'
 })))
 
 function hasModule(key: GestionEscolarModuleKey) {
@@ -184,14 +184,6 @@ function workflowDescription(key: GestionEscolarModuleKey) {
   return 'Publica documentos visibles para familias.'
 }
 
-function capabilityLabel(key: GestionEscolarModuleKey) {
-  const module = modules.value.find((item) => item.key === key)
-  if (!module) return 'Sin acceso'
-  if (key === 'comunicados') return module.capabilities.includes('comunicados.publish') ? 'Publicar' : 'Borradores'
-  if (key === 'convenios') return module.capabilities.includes('convenios.publish') ? 'Publicar' : 'Editar'
-  if (key === 'familias') return module.capabilities.includes('familias.impersonate') ? 'Vista familiar' : 'Consulta'
-  return 'Gestionar'
-}
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
-import { assertCommunicationsAdmin } from '~/server/utils/authz'
+import { assertSchoolAdmin } from '~/server/utils/authz'
 import { saveCommunication } from '~/server/data/communications'
 import { publicError } from '~/server/utils/httpError'
 
@@ -39,7 +39,7 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  assertCommunicationsAdmin(user)
+  assertSchoolAdmin(user)
   const body = schema.parse(await readBody(event))
   if (body.status === 'sent' && !body.audience.planteles.length) {
     throw publicError(400, 'Selecciona al menos un plantel antes de enviar.')

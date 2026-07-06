@@ -16,7 +16,7 @@ export function adminOrigin(user: AppSessionUser): AdminImpersonationOrigin {
     unidades: user.unidades,
     plantel: user.plantel,
     routes: user.routes,
-    productScopes: user.productScopes.filter((scope) => ['daycareAdmin', 'communicationsAdmin', 'gestionEscolarAdmin', 'accessHistoryAdmin', 'superAdmin'].includes(scope)) as AdminImpersonationOrigin['productScopes'],
+    productScopes: user.productScopes.filter((scope) => ['daycareAdmin', 'schoolAdmin', 'superAdmin'].includes(scope)) as AdminImpersonationOrigin['productScopes'],
     scopes: {},
     anonymous: false,
     loggedin: true

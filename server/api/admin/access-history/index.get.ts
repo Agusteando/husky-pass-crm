@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
-import { assertAccessHistoryAdmin } from '~/server/utils/authz'
+import { assertSuperAdmin } from '~/server/utils/authz'
 import { getAdminAccessHistory } from '~/server/data/accessHistory'
 import { requireSession } from '~/server/utils/session'
 
@@ -14,6 +14,6 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  assertAccessHistoryAdmin(user)
+  assertSuperAdmin(user)
   return getAdminAccessHistory(schema.parse(getQuery(event)))
 })

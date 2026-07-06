@@ -71,8 +71,8 @@
         </div>
         <div class="status-row" aria-label="Estado">
           <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
-          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.permissions.canPublish" /> Programado</label>
-          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" :disabled="!data?.permissions.canPublish" /> Publicado</label>
+          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" /> Programado</label>
+          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" /> Publicado</label>
         </div>
         <label v-if="form.status === 'scheduled'" class="field">
           <span>Publicar desde</span>
@@ -142,7 +142,7 @@ const scope = ref<GestionEscolarScope>({ isGlobal: false, plantel: null, nivel: 
 const audienceReady = computed(() => Boolean(scope.value.plantel))
 const publishReadinessLabel = computed(() => {
   if (!audienceReady.value) return 'Falta audiencia'
-  return data.value?.permissions.canPublish ? 'Puede publicar' : 'Solo borrador'
+  return 'Listo'
 })
 const form = reactive({
   id: '',

@@ -1,20 +1,7 @@
 import type { AppSessionUser } from '~/types/session'
-import {
-  defaultAdminRoute,
-  effectiveAdminUser,
-  hasAccessHistoryAdminScope,
-  hasCommunicationsAdminScope,
-  hasDaycareAdminScope,
-  hasGestionEscolarAdminScope
-} from '~/utils/sessionScopes'
+import { defaultAdminRoute, effectiveAdminUser, hasDaycareAdminScope, hasSchoolAdminScope } from '~/utils/sessionScopes'
 
-export type AdminPersonaKey =
-  | 'superAdmin'
-  | 'escolarAdmin'
-  | 'daycareAdmin'
-  | 'communicationsAdmin'
-  | 'accessHistoryAdmin'
-  | 'limitedAdmin'
+export type AdminPersonaKey = 'superAdmin' | 'schoolAdmin' | 'daycareAdmin' | 'limitedAdmin'
 
 export interface AdminNavItem {
   key: string
@@ -38,9 +25,9 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
   if (!admin) {
     return {
       key: 'limitedAdmin',
-      title: 'Administración',
-      subtitle: 'Sesión no disponible',
-      context: 'Sin contexto activo',
+      title: 'Administracion',
+      subtitle: 'Sesion no disponible',
+      context: '',
       homeTo
     }
   }
@@ -49,17 +36,17 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     return {
       key: 'superAdmin',
       title: 'Super Admin',
-      subtitle: 'Cuentas · permisos · auditoría',
+      subtitle: 'Usuarios y roles',
       context: '',
       homeTo
     }
   }
 
-  if (hasGestionEscolarAdminScope(admin)) {
+  if (hasSchoolAdminScope(admin)) {
     return {
-      key: 'escolarAdmin',
+      key: 'schoolAdmin',
       title: 'Escolar',
-      subtitle: 'Familias y publicaciones',
+      subtitle: 'Husky Pass',
       context: summarizeSchoolContext(admin),
       homeTo
     }
@@ -68,38 +55,18 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
   if (hasDaycareAdminScope(admin)) {
     return {
       key: 'daycareAdmin',
-      title: 'Guardería',
+      title: 'Guarderia',
       subtitle: 'Salas y familias',
-      context: admin.unidades.length ? admin.unidades.join(' / ') : 'Unidad pendiente',
-      homeTo
-    }
-  }
-
-  if (hasCommunicationsAdminScope(admin)) {
-    return {
-      key: 'communicationsAdmin',
-      title: 'Comunicados',
-      subtitle: 'Publicaciones escolares',
-      context: summarizeSchoolContext(admin),
-      homeTo
-    }
-  }
-
-  if (hasAccessHistoryAdminScope(admin)) {
-    return {
-      key: 'accessHistoryAdmin',
-      title: 'Seguridad',
-      subtitle: 'Historial de accesos',
-      context: 'Acciones sensibles',
+      context: admin.unidades.length ? admin.unidades.join(' / ') : '',
       homeTo
     }
   }
 
   return {
     key: 'limitedAdmin',
-    title: 'Administración',
-    subtitle: 'Acceso incompleto',
-    context: 'Solicita asignación a Super Admin',
+    title: 'Administracion',
+    subtitle: 'Acceso pendiente',
+    context: '',
     homeTo
   }
 }
@@ -110,48 +77,36 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
 
   if (admin.isSuperAdmin) {
     return [
-      { key: 'cuentas', label: 'Cuentas', to: '/admin/superadmin', icon: 'security' },
-      { key: 'acceso-escolar', label: 'Acceso escolar', shortLabel: 'Escolar', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
-      { key: 'salas', label: 'Salas', to: daycareRouteForUser(admin), icon: 'daycare' },
-      { key: 'auditoria', label: 'Auditoría', to: '/admin/historial-accesos', icon: 'history' }
+      { key: 'usuarios', label: 'Usuarios', to: '/admin/superadmin', icon: 'people' },
+      { key: 'escolar', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
+      { key: 'guarderia', label: 'Guarderia', to: daycareRouteForUser(admin), icon: 'daycare' }
     ]
   }
 
-  const items: AdminNavItem[] = []
-  if (hasGestionEscolarAdminScope(admin)) {
-    items.push(
+  if (hasSchoolAdminScope(admin)) {
+    return [
       { key: 'escolar-home', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
       { key: 'familias', label: 'Familias', to: '/admin/gestion-escolar/familias', icon: 'people' },
       { key: 'comunicados', label: 'Comunicados', to: '/admin/gestion-escolar/comunicados', icon: 'announcement' },
       { key: 'encuestas', label: 'Encuestas', to: '/admin/gestion-escolar/encuestas', icon: 'survey' },
       { key: 'convenios', label: 'Convenios', to: '/admin/gestion-escolar/convenios', icon: 'handshake' }
-    )
+    ]
   }
 
   if (hasDaycareAdminScope(admin)) {
-    items.push({ key: 'guarderia-salas', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' })
+    return [{ key: 'guarderia', label: 'Guarderia', to: daycareRouteForUser(admin), icon: 'daycare' }]
   }
 
-  if (hasCommunicationsAdminScope(admin) && !items.some((item) => item.key === 'comunicados')) {
-    items.push({ key: 'comunicados', label: 'Comunicados', to: '/admin/comunicados', icon: 'announcement' })
-  }
-
-  if (hasAccessHistoryAdminScope(admin)) {
-    items.push({ key: 'seguridad', label: 'Seguridad', to: '/admin/historial-accesos', icon: 'history' })
-  }
-
-  return items
+  return []
 }
 
 export function adminScopeSummary(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return []
-  if (admin.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guardería', 'Seguridad']
+  if (admin.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guarderia']
   const scopes: string[] = []
-  if (hasGestionEscolarAdminScope(admin)) scopes.push('Escolar')
-  if (hasDaycareAdminScope(admin)) scopes.push('Guardería')
-  if (hasCommunicationsAdminScope(admin)) scopes.push('Comunicados')
-  if (hasAccessHistoryAdminScope(admin)) scopes.push('Seguridad')
+  if (hasSchoolAdminScope(admin)) scopes.push('Escolar')
+  if (hasDaycareAdminScope(admin)) scopes.push('Guarderia')
   return scopes
 }
 
@@ -166,5 +121,5 @@ function summarizeSchoolContext(user: AppSessionUser) {
   if (planteles.length) return planteles.join(' / ')
   if (user.campus) return user.campus
   if (user.empresa) return user.empresa
-  return 'Acceso escolar asignado'
+  return ''
 }

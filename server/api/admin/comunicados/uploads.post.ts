@@ -1,13 +1,13 @@
 import { defineEventHandler, readMultipartFormData } from 'h3'
 import { requireSession } from '~/server/utils/session'
-import { assertCommunicationsAdmin } from '~/server/utils/authz'
+import { assertSchoolAdmin } from '~/server/utils/authz'
 import { externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
 import { normalizeCommunicationAttachment } from '~/server/data/communications'
 import { publicError } from '~/server/utils/httpError'
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  assertCommunicationsAdmin(user)
+  assertSchoolAdmin(user)
   const parts = await readMultipartFormData(event)
   const filePart = parts?.find((part) => part.name === 'file' && part.data?.length)
   if (!filePart?.data?.length) throw publicError(400, 'Selecciona un archivo para adjuntar.')

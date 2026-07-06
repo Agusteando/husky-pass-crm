@@ -1,7 +1,7 @@
 import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
-import { assertGestionEscolarAdmin } from '~/server/utils/authz'
+import { assertSchoolAdmin } from '~/server/utils/authz'
 import { saveGestionScopedContent } from '~/server/data/gestionEscolar'
 import { withRequestBoundary } from '~/server/utils/logger'
 import { parseOrBadRequest } from '~/server/utils/validation'
@@ -25,7 +25,7 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  assertGestionEscolarAdmin(user)
+  assertSchoolAdmin(user)
   const body = parseOrBadRequest(schema, await readBody(event), 'Revisa el enlace, el estado y el alcance antes de guardar.')
   return withRequestBoundary(event, 'gestion-escolar.scoped-content.save', () => saveGestionScopedContent(user, body), { userId: user.id, kind: body.kind })
 })

@@ -2,9 +2,7 @@ import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 
 export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
 export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
-export const COMMUNICATIONS_ADMIN_ROLE = 'ROLE_HUSKY_COMUNICADOS'
-export const GESTION_ESCOLAR_ROLE = 'ROLE_HUSKY_GESTION_ESCOLAR'
-export const ACCESS_HISTORY_ADMIN_ROLE = 'ROLE_HUSKY_ACCESOS'
+export const SCHOOL_ADMIN_ROLE = 'ROLE_CTRL'
 
 export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
@@ -45,48 +43,27 @@ export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return false
   if (admin.isSuperAdmin) return true
-  const hasPermission = hasRoleToken(admin.roles, DAYCARE_ADMIN_ROLE) || admin.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
-  return hasPermission && admin.unidades.length > 0
+  return hasRoleToken(admin.roles, DAYCARE_ADMIN_ROLE) && admin.unidades.length > 0
 }
 
-export function hasCommunicationsAdminScope(user: AppSessionUser | null | undefined) {
+export function hasSchoolAdminScope(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return false
   if (admin.isSuperAdmin) return true
-  const routeText = admin.routes.map((route) => route.route).join(' ')
-  const roleText = admin.roles.join(' ')
-  return hasRoleToken(admin.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(`${routeText} ${roleText}`)
-}
-
-export function hasGestionEscolarAdminScope(user: AppSessionUser | null | undefined) {
-  const admin = effectiveAdminUser(user)
-  if (!admin) return false
-  if (admin.isSuperAdmin) return true
-  return hasRoleToken(admin.roles, GESTION_ESCOLAR_ROLE) || admin.productScopes.includes('gestionEscolarAdmin')
-}
-
-export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefined) {
-  const admin = effectiveAdminUser(user)
-  if (!admin) return false
-  if (admin.isSuperAdmin) return true
-  const routeText = admin.routes.map((route) => route.route).join(' ')
-  const roleText = admin.roles.join(' ')
-  return hasRoleToken(admin.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  return hasRoleToken(admin.roles, SCHOOL_ADMIN_ROLE)
 }
 
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
-  return Boolean(admin && (admin.isSuperAdmin || hasGestionEscolarAdminScope(admin) || hasDaycareAdminScope(admin) || hasCommunicationsAdminScope(admin) || hasAccessHistoryAdminScope(admin)))
+  return Boolean(admin && (admin.isSuperAdmin || hasSchoolAdminScope(admin) || hasDaycareAdminScope(admin)))
 }
 
 export function defaultAdminRoute(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return '/login'
   if (admin.isSuperAdmin) return '/admin/superadmin'
-  if (hasGestionEscolarAdminScope(admin)) return '/admin/gestion-escolar'
+  if (hasSchoolAdminScope(admin)) return '/admin/gestion-escolar'
   if (hasDaycareAdminScope(admin)) return '/admin/daycare/salas'
-  if (hasCommunicationsAdminScope(admin)) return '/admin/comunicados'
-  if (hasAccessHistoryAdminScope(admin)) return '/admin/historial-accesos'
   return '/login'
 }
 
@@ -113,7 +90,7 @@ export function familyNavItems(user: AppSessionUser | null | undefined, activeSc
 
   if (showDaycare && hasFamilyScope(user, 'daycare')) {
     items.push(
-      { label: 'Guardería', to: '/familia/daycare', icon: 'daycare' },
+      { label: 'Guarderia', to: '/familia/daycare', icon: 'daycare' },
       { label: 'Tareas', to: '/familia/daycare/tareas', icon: 'edit' },
       { label: 'Avisos', to: '/familia/daycare/avisos', icon: 'survey' },
       { label: 'Calendario', to: '/familia/daycare/calendario', icon: 'calendar' }
@@ -129,7 +106,7 @@ export function familyNavItems(user: AppSessionUser | null | undefined, activeSc
   }
 
   if (items.length) {
-    items.push({ label: 'Seguridad', to: '/familia/cuenta/seguridad', icon: 'security' })
+    items.push({ label: 'Cuenta', to: '/familia/cuenta/seguridad', icon: 'security' })
   }
 
   return items

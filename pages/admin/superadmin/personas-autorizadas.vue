@@ -9,8 +9,6 @@
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Cuentas</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/entorno">Sistema</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
       </div>
     </header>
 

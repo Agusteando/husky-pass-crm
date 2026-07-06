@@ -76,7 +76,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   context: 'neutral',
   heading: 'Acceso seguro',
-  description: 'Tu cuenta abre automáticamente el espacio disponible por permisos.',
+  description: 'Tu cuenta abre automaticamente el espacio disponible.',
   showRegistration: false
 })
 

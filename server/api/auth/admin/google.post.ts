@@ -5,8 +5,8 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { assertAccessHistoryAdmin, assertCommunicationsAdmin, assertDaycareAdmin, assertGestionEscolarAdmin } from '~/server/utils/authz'
-import { defaultAdminRoute, hasAccessHistoryAdminScope, hasCommunicationsAdminScope, hasDaycareAdminScope, hasGestionEscolarAdminScope } from '~/utils/sessionScopes'
+import { assertDaycareAdmin, assertSchoolAdmin } from '~/server/utils/authz'
+import { defaultAdminRoute, hasDaycareAdminScope, hasSchoolAdminScope } from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -46,16 +46,12 @@ export default defineEventHandler(async (event) => {
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  if (hasGestionEscolarAdminScope(sessionUser)) {
-    assertGestionEscolarAdmin(sessionUser)
+  if (hasSchoolAdminScope(sessionUser)) {
+    assertSchoolAdmin(sessionUser)
   } else if (hasDaycareAdminScope(sessionUser)) {
     assertDaycareAdmin(sessionUser)
-  } else if (hasCommunicationsAdminScope(sessionUser)) {
-    assertCommunicationsAdmin(sessionUser)
-  } else if (hasAccessHistoryAdminScope(sessionUser)) {
-    assertAccessHistoryAdmin(sessionUser)
   } else {
-    throw publicError(403, 'Tu cuenta institucional no tiene un módulo administrativo asignado.')
+    throw publicError(403, 'Tu cuenta institucional no tiene un espacio administrativo asignado.')
   }
 
   setAppSession(event, sessionUser)
