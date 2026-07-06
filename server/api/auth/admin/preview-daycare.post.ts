@@ -6,12 +6,13 @@ import { getSalaById } from '~/server/data/mysqlDaycare'
 import { assertDaycareAdmin } from '~/server/utils/authz'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
+import { effectiveAdminUser } from '~/utils/sessionScopes'
 
 const schema = z.object({ sala: z.coerce.number().int().positive() })
 
 export default defineEventHandler(async (event) => {
-  const admin = getAppSession(event).user
-  if (!admin) throw publicError(401, 'Sesión no válida')
+  const admin = effectiveAdminUser(getAppSession(event).user)
+  if (!admin) throw publicError(401, 'Sesión administrativa no válida')
   assertDaycareAdmin(admin)
   const body = schema.parse(await readBody(event))
   const sala = await getSalaById(admin, body.sala)

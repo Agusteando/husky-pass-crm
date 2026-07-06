@@ -1,6 +1,7 @@
 import type { AppSessionUser } from '~/types/session'
 import {
   defaultAdminRoute,
+  effectiveAdminUser,
   hasAccessHistoryAdminScope,
   hasCommunicationsAdminScope,
   hasDaycareAdminScope,
@@ -32,8 +33,9 @@ export interface AdminPersonaSummary {
 }
 
 export function adminPersonaForUser(user: AppSessionUser | null | undefined): AdminPersonaSummary {
-  const homeTo = defaultAdminRoute(user)
-  if (!user || user.kind !== 'admin') {
+  const admin = effectiveAdminUser(user)
+  const homeTo = defaultAdminRoute(admin)
+  if (!admin) {
     return {
       key: 'limitedAdmin',
       title: 'Administración',
@@ -43,7 +45,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     }
   }
 
-  if (user.isSuperAdmin) {
+  if (admin.isSuperAdmin) {
     return {
       key: 'superAdmin',
       title: 'Super Admin',
@@ -53,37 +55,37 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     }
   }
 
-  if (hasGestionEscolarAdminScope(user)) {
+  if (hasGestionEscolarAdminScope(admin)) {
     return {
       key: 'escolarAdmin',
       title: 'Escolar',
       subtitle: 'Familias y publicaciones',
-      context: summarizeSchoolContext(user),
+      context: summarizeSchoolContext(admin),
       homeTo
     }
   }
 
-  if (hasDaycareAdminScope(user)) {
+  if (hasDaycareAdminScope(admin)) {
     return {
       key: 'daycareAdmin',
       title: 'Guardería',
       subtitle: 'Salas y familias',
-      context: user.unidades.length ? user.unidades.join(' / ') : 'Unidad pendiente',
+      context: admin.unidades.length ? admin.unidades.join(' / ') : 'Unidad pendiente',
       homeTo
     }
   }
 
-  if (hasCommunicationsAdminScope(user)) {
+  if (hasCommunicationsAdminScope(admin)) {
     return {
       key: 'communicationsAdmin',
       title: 'Comunicados',
       subtitle: 'Publicaciones escolares',
-      context: summarizeSchoolContext(user),
+      context: summarizeSchoolContext(admin),
       homeTo
     }
   }
 
-  if (hasAccessHistoryAdminScope(user)) {
+  if (hasAccessHistoryAdminScope(admin)) {
     return {
       key: 'accessHistoryAdmin',
       title: 'Seguridad',
@@ -103,19 +105,20 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
 }
 
 export function adminNavigationForUser(user: AppSessionUser | null | undefined): AdminNavItem[] {
-  if (!user || user.kind !== 'admin') return []
+  const admin = effectiveAdminUser(user)
+  if (!admin) return []
 
-  if (user.isSuperAdmin) {
+  if (admin.isSuperAdmin) {
     return [
       { key: 'cuentas', label: 'Cuentas', to: '/admin/superadmin', icon: 'security' },
       { key: 'alcance-escolar', label: 'Alcance', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
-      { key: 'salas', label: 'Salas', to: daycareRouteForUser(user), icon: 'daycare' },
+      { key: 'salas', label: 'Salas', to: daycareRouteForUser(admin), icon: 'daycare' },
       { key: 'auditoria', label: 'Auditoría', to: '/admin/historial-accesos', icon: 'history' }
     ]
   }
 
   const items: AdminNavItem[] = []
-  if (hasGestionEscolarAdminScope(user)) {
+  if (hasGestionEscolarAdminScope(admin)) {
     items.push(
       { key: 'escolar-home', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
       { key: 'familias', label: 'Familias', to: '/admin/gestion-escolar/familias', icon: 'people' },
@@ -125,15 +128,15 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
     )
   }
 
-  if (hasDaycareAdminScope(user)) {
-    items.push({ key: 'guarderia-salas', label: 'Guardería', to: daycareRouteForUser(user), icon: 'daycare' })
+  if (hasDaycareAdminScope(admin)) {
+    items.push({ key: 'guarderia-salas', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' })
   }
 
-  if (hasCommunicationsAdminScope(user) && !items.some((item) => item.key === 'comunicados')) {
+  if (hasCommunicationsAdminScope(admin) && !items.some((item) => item.key === 'comunicados')) {
     items.push({ key: 'comunicados', label: 'Comunicados', to: '/admin/comunicados', icon: 'announcement' })
   }
 
-  if (hasAccessHistoryAdminScope(user)) {
+  if (hasAccessHistoryAdminScope(admin)) {
     items.push({ key: 'seguridad', label: 'Seguridad', to: '/admin/historial-accesos', icon: 'history' })
   }
 
@@ -141,13 +144,14 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
 }
 
 export function adminScopeSummary(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return []
-  if (user.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guardería', 'Seguridad']
+  const admin = effectiveAdminUser(user)
+  if (!admin) return []
+  if (admin.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guardería', 'Seguridad']
   const scopes: string[] = []
-  if (hasGestionEscolarAdminScope(user)) scopes.push('Escolar')
-  if (hasDaycareAdminScope(user)) scopes.push('Guardería')
-  if (hasCommunicationsAdminScope(user)) scopes.push('Comunicados')
-  if (hasAccessHistoryAdminScope(user)) scopes.push('Seguridad')
+  if (hasGestionEscolarAdminScope(admin)) scopes.push('Escolar')
+  if (hasDaycareAdminScope(admin)) scopes.push('Guardería')
+  if (hasCommunicationsAdminScope(admin)) scopes.push('Comunicados')
+  if (hasAccessHistoryAdminScope(admin)) scopes.push('Seguridad')
   return scopes
 }
 

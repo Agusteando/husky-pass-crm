@@ -3,6 +3,7 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import type { AppSessionUser, PublicSession } from '~/types/session'
+import { effectiveAdminUser } from '~/utils/sessionScopes'
 import { publicError } from '~/server/utils/httpError'
 
 const cookieName = 'hpc_session'
@@ -54,16 +55,6 @@ export function getAppSession(event: H3Event): PublicSession {
   }
 }
 
-function adminOriginAsSessionUser(user: AppSessionUser): AppSessionUser | null {
-  if (user.kind === 'admin') return user
-  const admin = user.impersonation?.admin
-  if (!admin) return null
-  return {
-    ...admin,
-    scopes: {},
-    impersonation: user.impersonation
-  } as AppSessionUser
-}
 
 export function requireSession(event: H3Event, kind?: 'family' | 'admin') {
   const session = getAppSession(event)
@@ -72,7 +63,7 @@ export function requireSession(event: H3Event, kind?: 'family' | 'admin') {
   }
 
   if (kind === 'admin') {
-    const admin = adminOriginAsSessionUser(session.user)
+    const admin = effectiveAdminUser(session.user)
     if (!admin) throw publicError(401, 'Sesión no válida')
     return admin
   }

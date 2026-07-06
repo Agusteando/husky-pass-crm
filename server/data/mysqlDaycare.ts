@@ -16,6 +16,7 @@ import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { logPersonasWarning, logPersonasDebug } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
 import { normalizeMatricula } from '~/utils/matricula'
+import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
@@ -641,27 +642,29 @@ export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {
   const rows = await legacyQuery<(FamilyAccount & RowDataPacket)[]>(
     `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala
      FROM users
-     WHERE FIND_IN_SET(?, unidad) AND role LIKE '%HUSKY%' AND sala = ?
+     WHERE FIND_IN_SET(?, REPLACE(COALESCE(unidad, ''), ' ', '')) > 0
+       AND FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
+       AND CAST(sala AS CHAR) = CAST(? AS CHAR)
      ORDER BY id ASC`,
-    [sala.unidad, salaId]
+    [sala.unidad, DAYCARE_FAMILY_ROLE, salaId]
   )
   return { sala, rows }
 }
 
 export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload) {
   const sala = await getSalaById(user, Number(payload.sala))
-  const role = payload.role && payload.role.includes('HUSKY') ? payload.role : 'ROLE_HUSKY_USER'
+  const role = DAYCARE_FAMILY_ROLE
 
   if (payload.id) {
     const existing = await legacyOne<RowDataPacket>('SELECT id, role, unidad, sala FROM users WHERE id = ? LIMIT 1', [payload.id])
     if (!existing) throw publicError(404, 'Cuenta familiar no encontrada')
 
-    const existingRole = String(existing.role || '').toUpperCase()
+    const existingRoles = String(existing.role || '').split(',').map((item) => item.trim()).filter(Boolean)
     const existingUnidades = String(existing.unidad || '').split(',').map((item) => item.trim()).filter(Boolean)
     const sameSala = String(existing.sala || '') === String(sala.id)
     const sameUnidad = existingUnidades.includes(sala.unidad)
 
-    if (!existingRole.includes('HUSKY') || !sameSala || !sameUnidad) {
+    if (!hasRoleToken(existingRoles, DAYCARE_FAMILY_ROLE) || !sameSala || !sameUnidad) {
       throw publicError(403, 'Cuenta familiar fuera del alcance de esta sala')
     }
 
@@ -867,8 +870,10 @@ async function getSalaMetrics(sala: Sala) {
     legacyOne<RowDataPacket>(
       `SELECT COUNT(*) AS familias
        FROM users
-       WHERE FIND_IN_SET(?, unidad) AND role LIKE '%HUSKY%' AND sala = ?`,
-      [sala.unidad, sala.id]
+       WHERE FIND_IN_SET(?, REPLACE(COALESCE(unidad, ''), ' ', '')) > 0
+         AND FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
+         AND CAST(sala AS CHAR) = CAST(? AS CHAR)`,
+      [sala.unidad, DAYCARE_FAMILY_ROLE, sala.id]
     ),
     legacyOne<RowDataPacket>(
       `SELECT
@@ -916,10 +921,12 @@ export async function getSalaOperationalOverview(user: AppSessionUser, salaId: n
     legacyQuery<(FamilyAccount & RowDataPacket)[]>(
       `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala
        FROM users
-       WHERE FIND_IN_SET(?, unidad) AND role LIKE '%HUSKY%' AND sala = ?
+       WHERE FIND_IN_SET(?, REPLACE(COALESCE(unidad, ''), ' ', '')) > 0
+         AND FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
+         AND CAST(sala AS CHAR) = CAST(? AS CHAR)
        ORDER BY id DESC
        LIMIT 5`,
-      [sala.unidad, sala.id]
+      [sala.unidad, DAYCARE_FAMILY_ROLE, sala.id]
     )
   ])
 

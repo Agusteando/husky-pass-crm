@@ -1,6 +1,6 @@
 import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 import { publicError } from '~/server/utils/httpError'
-import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, ACCESS_HISTORY_ADMIN_ROLE, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
+import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, GESTION_ESCOLAR_ROLE, ACCESS_HISTORY_ADMIN_ROLE, effectiveAdminUser, hasCommunicationsAdminScope, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 
 export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProductScope) {
   if (user.kind !== 'family') return false
@@ -18,7 +18,7 @@ export function hasFamilyProductScope(user: AppSessionUser, scope: FamilyProduct
 }
 
 export function isSuperAdmin(user: AppSessionUser | null | undefined) {
-  return Boolean(user?.kind === 'admin' && user.isSuperAdmin)
+  return Boolean(effectiveAdminUser(user)?.isSuperAdmin)
 }
 
 export function assertDaycareFamily(user: AppSessionUser) {

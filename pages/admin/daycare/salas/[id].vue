@@ -93,6 +93,7 @@ import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import type { SalaOverview } from '~/types/daycare'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { setCachedRouteSession } from '~/utils/routeSession'
+import { hasDaycareAdminScope } from '~/utils/sessionScopes'
 import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
 
@@ -104,7 +105,7 @@ const actionError = ref('')
 const isSalaSummary = computed(() => route.path.replace(/\/$/, '') === `/admin/daycare/salas/${salaId}`)
 const { data: session } = useAppSession()
 const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/admin/salas/${salaId}/overview`, { timeout: 15000 })
-const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
+const canPreviewAsFamily = computed(() => hasDaycareAdminScope(session.value?.user))
 
 const sections = computed(() => [
   { abbr: 'FA', title: 'Familias', description: 'Cuentas, acceso y soporte.', to: `/admin/daycare/salas/${salaId}/familias` },

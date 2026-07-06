@@ -15,7 +15,7 @@
         </NuxtLink>
       </nav>
       <div class="profile" v-if="session?.user">
-        <img v-if="session.user.picture" :src="session.user.picture" alt="" />
+        <img v-if="showPicture" :src="session.user.picture || ''" alt="" @error="pictureFailed = true" />
         <span v-else class="avatar">{{ initials }}</span>
         <div class="profile-copy">
           <strong>{{ profileName }}</strong>
@@ -40,12 +40,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
+import { defaultAdminRoute, effectiveAdminUser } from '~/utils/sessionScopes'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -54,6 +55,13 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const pictureFailed = ref(false)
+
+const showPicture = computed(() => Boolean(props.session?.user?.picture && !pictureFailed.value))
+
+watch(() => props.session?.user?.picture, () => {
+  pictureFailed.value = false
+})
 
 const profileName = computed(() => props.session?.user?.displayName || displayMatriculaCandidate(props.session?.user?.username) || props.session?.user?.email || 'Usuario')
 const profileDetail = computed(() => props.session?.user?.email || displayMatriculaCandidate(props.session?.user?.username) || sessionRoleLabel.value)
@@ -61,7 +69,8 @@ const profileDetail = computed(() => props.session?.user?.email || displayMatric
 const sessionRoleLabel = computed(() => {
   const user = props.session?.user
   if (!user) return ''
-  if (user.kind === 'admin') return user.isSuperAdmin ? 'Superadmin' : 'Admin guardería'
+  const admin = effectiveAdminUser(user)
+  if (admin) return admin.isSuperAdmin ? 'Superadmin' : 'Admin'
   if (user.productScopes.includes('daycare') && user.productScopes.includes('personasAutorizadas')) return 'Familia multiproducto'
   if (user.productScopes.includes('daycare')) return 'Familia guardería'
   if (user.productScopes.includes('personasAutorizadas')) return 'Personas Autorizadas'
@@ -71,7 +80,8 @@ const sessionRoleLabel = computed(() => {
 const sessionScopeLabel = computed(() => {
   const user = props.session?.user
   if (!user) return ''
-  if (user.kind === 'admin') return user.unidades.length ? user.unidades.join(' · ') : 'Sin unidad asignada'
+  const admin = effectiveAdminUser(user)
+  if (admin) return admin.unidades.length ? admin.unidades.join(' · ') : 'Administración'
   const daycare = user.scopes.daycare
   if (daycare) return `${daycare.unidad} · Sala ${daycare.sala}`
   return user.campus || user.empresa || ''
@@ -99,9 +109,7 @@ function navKey(label: string) {
 
 async function exitImpersonation() {
   const impersonation = props.session?.user?.impersonation
-  const target = impersonation?.mode === 'daycarePreview'
-    ? '/admin/daycare/salas'
-    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
+  const target = impersonation?.admin ? defaultAdminRoute(impersonation.admin) : '/admin/daycare/salas'
   const response = await $fetch<PublicSession>('/api/auth/impersonation/exit', { method: 'POST' })
   setCachedRouteSession(response)
   await navigateTo(target)
@@ -111,7 +119,7 @@ async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
   setCachedRouteSession(anonymousSession)
   const user = props.session?.user
-  const target = props.session?.user?.kind === 'admin'
+  const target = effectiveAdminUser(props.session?.user)
     ? defaultLoginRouteForExperience('admin')
     : route.path.startsWith('/familia/daycare')
       ? defaultLoginRouteForExperience('guarderia')

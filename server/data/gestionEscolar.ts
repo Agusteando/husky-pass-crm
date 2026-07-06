@@ -414,7 +414,7 @@ function permissionsForCapability(permissions: GestionEscolarPermission[], capab
 export async function getGestionCapabilities(user: AppSessionUser) {
   if (user.isSuperAdmin) return [...GESTION_ESCOLAR_CAPABILITIES]
   if (!hasGestionEscolarAdminScope(user)) return []
-  const permissions = await getGestionPermissionsForUser(user.id)
+  const permissions = await effectiveGestionPermissionsForUser(user)
   return Array.from(new Set(permissions.map((permission) => permission.capability)))
 }
 
@@ -423,7 +423,7 @@ export async function assertGestionCapability(user: AppSessionUser, capability: 
   if (!hasGestionEscolarAdminScope(user)) {
     throw publicError(403, 'Gestion Escolar no esta habilitado para esta cuenta.')
   }
-  const permissions = permissionsForCapability(await getGestionPermissionsForUser(user.id), capability)
+  const permissions = permissionsForCapability(await effectiveGestionPermissionsForUser(user), capability)
   const normalizedTarget = normalizeGestionScope(target)
   if (permissions.some((permission) => gestionScopeCoversTarget(permission, normalizedTarget))) return
   throw publicError(403, 'El alcance asignado no permite realizar esta accion.')
@@ -447,10 +447,82 @@ function superAdminGestionPermissions(userId: number): GestionEscolarPermission[
   }))
 }
 
+function expandLegacyGestionPlanteles(values: Array<string | null | undefined>) {
+  const raw = values.flatMap((value) => csvToList(String(value || ''))).map(upper).filter(Boolean)
+  const planteles = new Set<string>()
+  const add = (value: string) => {
+    if (!value) return
+    planteles.add(value)
+  }
+
+  for (const value of raw) {
+    if (value === 'IECS') {
+      add('PREEM')
+      add('PREET')
+      continue
+    }
+    if (value === 'IEDIS') {
+      add('PM')
+      add('PT')
+      add('SM')
+      add('ST')
+      continue
+    }
+    if (/METEPEC/.test(value)) {
+      add('PREEM')
+      add('PM')
+      add('SM')
+      continue
+    }
+    if (/TOLUCA/.test(value)) {
+      add('PT')
+      add('ST')
+      continue
+    }
+    if (value === 'CM') {
+      add('PREEM')
+      continue
+    }
+    if (['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST'].includes(value)) {
+      add(value)
+    }
+  }
+
+  return Array.from(planteles)
+}
+
+function legacyGestionFallbackPermissions(user: AppSessionUser): GestionEscolarPermission[] {
+  if (user.isSuperAdmin || !hasGestionEscolarAdminScope(user)) return []
+  const planteles = expandLegacyGestionPlanteles([
+    ...user.plantel,
+    ...user.unidades,
+    user.campus,
+    user.empresa
+  ])
+  const scopedPlanteles = planteles.length ? planteles : ['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST']
+  return scopedPlanteles.flatMap((plantel) => GESTION_ESCOLAR_CAPABILITIES.map((capability) => ({
+    userId: user.id,
+    capability,
+    enabled: true,
+    isGlobal: false,
+    plantel,
+    nivel: null,
+    grado: null,
+    grupo: null
+  })))
+}
+
+async function effectiveGestionPermissionsForUser(user: AppSessionUser) {
+  if (user.isSuperAdmin) return superAdminGestionPermissions(user.id)
+  const explicit = await getGestionPermissionsForUser(user.id)
+  return explicit.length ? explicit : legacyGestionFallbackPermissions(user)
+}
+
+
 export async function getGestionCommunicationScopes(user: AppSessionUser): Promise<CommunicationAdminScopeInput[]> {
   if (user.isSuperAdmin) return [{ isGlobal: true, plantel: null, nivel: null, grado: null, grupo: null, canCreate: true, canPublish: true }]
   if (!hasGestionEscolarAdminScope(user)) return []
-  const permissions = await getGestionPermissionsForUser(user.id)
+  const permissions = await effectiveGestionPermissionsForUser(user)
   const map = new Map<string, CommunicationAdminScopeInput>()
   for (const permission of permissions) {
     if (permission.capability !== 'comunicados.create' && permission.capability !== 'comunicados.publish') continue
@@ -782,12 +854,12 @@ function latestPermissionUpdate(permissions: GestionEscolarPermission[]) {
 
 async function getReachForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
   if (!permissions.length) return EMPTY_REACH
-  const families = await loadSchoolFamilies(800)
+  const families = await loadSchoolFamilies(8000)
   return reachFromFamilies(familiesForPermissions(families, permissions, capability))
 }
 
 async function getOptionsForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
-  const families = await loadSchoolFamilies(800)
+  const families = await loadSchoolFamilies(8000)
   const visible = permissions.length ? familiesForPermissions(families, permissions, capability) : families
   return optionsFromFamilies(visible)
 }
@@ -989,8 +1061,8 @@ function moduleSummary(key: GestionEscolarModuleKey, permissions: GestionEscolar
 }
 
 export async function getGestionOverview(user: AppSessionUser): Promise<GestionEscolarOverviewResponse> {
-  const permissions = user.isSuperAdmin ? superAdminGestionPermissions(user.id) : await getGestionPermissionsForUser(user.id)
-  const families = permissions.length ? await loadSchoolFamilies(1200) : []
+  const permissions = await effectiveGestionPermissionsForUser(user)
+  const families = permissions.length ? await loadSchoolFamilies(8000) : []
   const visibleFamilies = permissions.length ? familiesForPermissions(families, permissions) : []
   const reach = reachFromFamilies(visibleFamilies)
   const options = optionsFromFamilies(visibleFamilies)
@@ -1077,7 +1149,7 @@ function validateContentInput(input: SaveGestionEscolarScopedContentInput) {
 }
 
 export async function listGestionScopedContent(user: AppSessionUser, kind: GestionEscolarContentKind): Promise<GestionEscolarScopedContentResponse> {
-  const permissions = user.isSuperAdmin ? superAdminGestionPermissions(user.id) : await getGestionPermissionsForUser(user.id)
+  const permissions = await effectiveGestionPermissionsForUser(user)
   const canManage = user.isSuperAdmin || canUseCapability(permissions, manageCapability(kind))
   const canPublish = user.isSuperAdmin || canUseCapability(permissions, kind === 'encuesta' ? 'encuestas.manage' : 'convenios.publish')
   if (!canManage && !canPublish) throw publicError(403, 'No tienes acceso a este modulo.')
@@ -1299,9 +1371,9 @@ async function resolveScopedContentForFamilyRow(family: GestionEscolarFamilyRow,
 }
 
 export async function listGestionFamilies(user: AppSessionUser, filters: { search?: string; limit?: number } = {}): Promise<GestionEscolarFamiliesResponse> {
-  const permissions = user.isSuperAdmin ? superAdminGestionPermissions(user.id) : await getGestionPermissionsForUser(user.id)
+  const permissions = await effectiveGestionPermissionsForUser(user)
   if (!user.isSuperAdmin && !canUseCapability(permissions, 'familias.view')) throw publicError(403, 'No tienes visibilidad de familias.')
-  const allFamilies = await loadSchoolFamilies(filters.limit ? Math.max(filters.limit, 200) : 1200)
+  const allFamilies = await loadSchoolFamilies(8000)
   const visible = user.isSuperAdmin ? allFamilies : familiesForPermissions(allFamilies, permissions, 'familias.view')
   const search = clean(filters.search).toLowerCase()
   const searched = search

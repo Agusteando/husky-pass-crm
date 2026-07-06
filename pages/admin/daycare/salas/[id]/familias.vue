@@ -95,7 +95,7 @@ import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
-import { defaultFamilyRoute } from '~/utils/sessionScopes'
+import { defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -113,8 +113,8 @@ const previewing = ref(false)
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
 const { data: session } = useAppSession()
-const canPreviewSala = computed(() => Boolean(session.value?.user?.kind === 'admin'))
-const canImpersonateAccounts = computed(() => Boolean(session.value?.user?.isSuperAdmin))
+const canPreviewSala = computed(() => hasDaycareAdminScope(session.value?.user))
+const canImpersonateAccounts = computed(() => hasDaycareAdminScope(session.value?.user))
 const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId },
   timeout: 15000

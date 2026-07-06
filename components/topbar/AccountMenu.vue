@@ -42,6 +42,7 @@ import type { ExperienceName } from '~/types/identity'
 import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
+import { defaultAdminRoute, effectiveAdminUser } from '~/utils/sessionScopes'
 
 const props = withDefaults(defineProps<{
   session?: PublicSession | null
@@ -63,7 +64,8 @@ const profileDetail = computed(() => {
   if (props.profileDetail) return props.profileDetail
   const user = props.session?.user
   if (!user) return ''
-  if (user.kind === 'admin') return user.isSuperAdmin ? 'Super Admin' : (user.unidades[0] || 'Administración')
+  const admin = effectiveAdminUser(user)
+  if (admin) return admin.isSuperAdmin ? 'Super Admin' : (admin.unidades[0] || 'Administración')
   if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
   return displayMatriculaCandidate(user.username) || user.email || 'Familia escolar'
 })
@@ -79,9 +81,7 @@ const initials = computed(() => {
 async function exitImpersonation() {
   open.value = false
   const impersonation = props.session?.user?.impersonation
-  const target = impersonation?.mode === 'daycarePreview'
-    ? '/admin/daycare/salas'
-    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
+  const target = impersonation?.admin ? defaultAdminRoute(impersonation.admin) : '/admin/daycare/salas'
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
   setCachedRouteSession(null)
   await navigateTo(target)
@@ -91,7 +91,7 @@ async function logout() {
   open.value = false
   await $fetch('/api/auth/logout', { method: 'POST' })
   const user = props.session?.user
-  const target = user?.kind === 'admin'
+  const target = effectiveAdminUser(user)
     ? defaultLoginRouteForExperience('admin')
     : props.experience === 'guarderia' || route.path.startsWith('/familia/daycare')
       ? defaultLoginRouteForExperience('guarderia')

@@ -9,7 +9,7 @@ import type {
   InstitutionName
 } from '~/types/identity'
 import { normalizeMatricula } from './matricula'
-import { hasFamilyScope } from './sessionScopes'
+import { defaultAdminRoute, effectiveAdminUser, hasFamilyScope } from './sessionScopes'
 
 const HUSKY_LOGO = '/brand/husky-pass-logo.png'
 const IECS_LOGO = '/brand/iecs-logo.png'
@@ -158,7 +158,7 @@ export function institutionFromContextData(input: ExperienceContextInput): Insti
 
 function userCanUseExperience(user: AppSessionUser | null | undefined, experience: ExperienceName) {
   if (!user) return false
-  if (experience === 'admin') return user.kind === 'admin'
+  if (experience === 'admin') return Boolean(effectiveAdminUser(user))
   if (user.kind !== 'family') return false
   if (experience === 'guarderia') return hasFamilyScope(user, 'daycare')
   return hasFamilyScope(user, 'personasAutorizadas')
@@ -173,7 +173,7 @@ export function recoveryRouteForExperience(experience: ExperienceName) {
 }
 
 export function defaultRouteForExperience(user: AppSessionUser | null | undefined, experience: ExperienceName) {
-  if (experience === 'admin') return user?.isSuperAdmin ? '/admin/superadmin' : '/admin/daycare/salas'
+  if (experience === 'admin') return defaultAdminRoute(user)
   if (experience === 'guarderia' && hasFamilyScope(user, 'daycare')) return '/familia/daycare'
   if (experience === 'escolar' && hasFamilyScope(user, 'personasAutorizadas')) return '/familia/personas-autorizadas'
   return '/login'
@@ -190,7 +190,7 @@ export function resolveExperienceContext(input: ExperienceContextInput = {}): Ex
   let reason: string
 
   let experience: ExperienceName
-  if (user?.kind === 'admin' || explicitRequested === 'admin' || routeRequested === 'admin') {
+  if (effectiveAdminUser(user) || explicitRequested === 'admin' || routeRequested === 'admin') {
     experience = 'admin'
     reason = 'resolved-administrative-context'
   } else if (explicitRequested) {

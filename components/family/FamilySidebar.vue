@@ -19,7 +19,7 @@ import { computed } from 'vue'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
-import { familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
+import { defaultAdminRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 import { setCachedRouteSession } from '~/utils/routeSession'
 
 const props = defineProps<{ session?: PublicSession | null }>()
@@ -55,9 +55,7 @@ const secondaryName = computed(() => {
 
 async function exitPreview() {
   const impersonation = props.session?.user?.impersonation
-  const target = impersonation?.mode === 'daycarePreview'
-    ? '/admin/daycare/salas'
-    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
+  const target = impersonation?.admin ? defaultAdminRoute(impersonation.admin) : '/admin/daycare/salas'
   const response = await $fetch<PublicSession>('/api/auth/impersonation/exit', { method: 'POST' })
   setCachedRouteSession(response)
   await navigateTo(target)

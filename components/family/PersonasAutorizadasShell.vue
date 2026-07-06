@@ -209,6 +209,7 @@ import { personasFamilyThemeContextKey, usePersonasFamilyTheme } from '~/composa
 import { resolveGrupoIcon, type GrupoIconManifest } from '~/utils/grupoIcons'
 import { normalizeMatricula } from '~/utils/matricula'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
+import { defaultAdminRoute } from '~/utils/sessionScopes'
 
 withDefaults(defineProps<{ title?: string }>(), { title: 'Personas Autorizadas' })
 
@@ -517,9 +518,7 @@ function initialsFromName(value: string) {
 async function exitImpersonation() {
   studentMenuOpen.value = false
   const impersonation = session.value?.user?.impersonation
-  const target = impersonation?.mode === 'daycarePreview'
-    ? '/admin/daycare/salas'
-    : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
+  const target = impersonation?.admin ? defaultAdminRoute(impersonation.admin) : '/admin/daycare/salas'
   await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
   setCachedRouteSession(null)
   await navigateTo(target)

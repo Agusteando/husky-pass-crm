@@ -16,7 +16,7 @@
         </NuxtLink>
       </nav>
 
-      <form v-if="session?.user?.isSuperAdmin" class="admin-search" role="search" @submit.prevent="submitSearch">
+      <form v-if="persona.key === 'superAdmin'" class="admin-search" role="search" @submit.prevent="submitSearch">
         <FamilyPersonasIcon name="search" />
         <input v-model="search" type="search" placeholder="Buscar cuenta" aria-label="Buscar cuenta" />
       </form>
@@ -58,7 +58,7 @@ function isActive(to: string) {
 
 async function submitSearch() {
   const value = search.value.trim()
-  if (!value || !props.session?.user?.isSuperAdmin) return
+  if (!value || props.persona.key !== 'superAdmin') return
   await navigateTo({ path: '/admin/superadmin', query: { buscar: value } })
 }
 </script>

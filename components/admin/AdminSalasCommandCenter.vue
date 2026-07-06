@@ -124,6 +124,7 @@ import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { SalaSummary } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
+import { hasDaycareAdminScope } from '~/utils/sessionScopes'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,7 +136,7 @@ const selectedSalaId = ref<number | null>(normalizeSalaQuery(route.query.sala))
 const actionError = ref('')
 const actionNotice = ref('')
 const clientReady = ref(false)
-const canPreviewAsFamily = computed(() => Boolean(session.value?.user?.kind === 'admin'))
+const canPreviewAsFamily = computed(() => hasDaycareAdminScope(session.value?.user))
 
 onMounted(() => {
   clientReady.value = true

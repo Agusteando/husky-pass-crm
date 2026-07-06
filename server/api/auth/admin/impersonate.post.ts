@@ -8,7 +8,7 @@ import { findLegacyUserById } from '~/server/data/mysqlAuth'
 import { getAppSession, setAppSession } from '~/server/utils/session'
 import { adminOrigin } from '~/server/utils/impersonation'
 import { auditGestionImpersonation, canGestionImpersonateFamily } from '~/server/data/gestionEscolar'
-import { hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { effectiveAdminUser, hasDaycareAdminScope } from '~/utils/sessionScopes'
 import { parseOrBadRequest } from '~/server/utils/validation'
 
 const schema = z.object({ userId: z.coerce.number().int().positive() })
@@ -46,9 +46,9 @@ async function resolveFamilySupportScope(actor: AppSessionUser, target: AppSessi
 }
 
 export default defineEventHandler(async (event) => {
-  const current = getAppSession(event).user
-  if (!current) throw publicError(401, 'Sesión no válida')
-  if (current.kind !== 'admin') throw publicError(403, 'La vista de soporte requiere una sesión administrativa.')
+  const currentSessionUser = getAppSession(event).user
+  const current = effectiveAdminUser(currentSessionUser)
+  if (!current) throw publicError(401, 'Sesión administrativa no válida')
 
   const body = parseOrBadRequest(schema, await readBody(event), 'Indica una familia valida para iniciar la vista de soporte.')
   const legacy = await findLegacyUserById(body.userId)

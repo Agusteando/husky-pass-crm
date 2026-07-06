@@ -10,6 +10,22 @@ export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
 }
 
+export function effectiveAdminUser(user: AppSessionUser | null | undefined): AppSessionUser | null {
+  if (!user) return null
+  if (user.kind === 'admin') return user
+  const admin = user.impersonation?.admin
+  if (!admin) return null
+  return {
+    ...admin,
+    scopes: {},
+    impersonation: user.impersonation
+  } as AppSessionUser
+}
+
+export function isEffectiveSuperAdmin(user: AppSessionUser | null | undefined) {
+  return Boolean(effectiveAdminUser(user)?.isSuperAdmin)
+}
+
 export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: FamilyProductScope) {
   if (!user || user.kind !== 'family') return false
 
@@ -26,45 +42,51 @@ export function hasFamilyScope(user: AppSessionUser | null | undefined, scope: F
 }
 
 export function hasDaycareAdminScope(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return false
-  if (user.isSuperAdmin) return true
-  const hasPermission = hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE) || user.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
-  return hasPermission && user.unidades.length > 0
+  const admin = effectiveAdminUser(user)
+  if (!admin) return false
+  if (admin.isSuperAdmin) return true
+  const hasPermission = hasRoleToken(admin.roles, DAYCARE_ADMIN_ROLE) || admin.routes.some((route) => /guarder[ií]a|husky|daycare/i.test(route.route))
+  return hasPermission && admin.unidades.length > 0
 }
 
 export function hasCommunicationsAdminScope(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return false
-  if (user.isSuperAdmin) return true
-  const routeText = user.routes.map((route) => route.route).join(' ')
-  const roleText = user.roles.join(' ')
-  return hasRoleToken(user.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(`${routeText} ${roleText}`)
+  const admin = effectiveAdminUser(user)
+  if (!admin) return false
+  if (admin.isSuperAdmin) return true
+  const routeText = admin.routes.map((route) => route.route).join(' ')
+  const roleText = admin.roles.join(' ')
+  return hasRoleToken(admin.roles, COMMUNICATIONS_ADMIN_ROLE) || /comunicados|comunicaciones|avisos/i.test(`${routeText} ${roleText}`)
 }
 
 export function hasGestionEscolarAdminScope(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return false
-  if (user.isSuperAdmin) return true
-  return hasRoleToken(user.roles, GESTION_ESCOLAR_ROLE) || user.productScopes.includes('gestionEscolarAdmin')
+  const admin = effectiveAdminUser(user)
+  if (!admin) return false
+  if (admin.isSuperAdmin) return true
+  return hasRoleToken(admin.roles, GESTION_ESCOLAR_ROLE) || admin.productScopes.includes('gestionEscolarAdmin')
 }
 
 export function hasAccessHistoryAdminScope(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return false
-  if (user.isSuperAdmin) return true
-  const routeText = user.routes.map((route) => route.route).join(' ')
-  const roleText = user.roles.join(' ')
-  return hasRoleToken(user.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
+  const admin = effectiveAdminUser(user)
+  if (!admin) return false
+  if (admin.isSuperAdmin) return true
+  const routeText = admin.routes.map((route) => route.route).join(' ')
+  const roleText = admin.roles.join(' ')
+  return hasRoleToken(admin.roles, ACCESS_HISTORY_ADMIN_ROLE) || /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|marbete|validar|historial|acceso|husky/i.test(`${routeText} ${roleText}`)
 }
 
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
-  return Boolean(user?.kind === 'admin' && (user.isSuperAdmin || hasGestionEscolarAdminScope(user) || hasDaycareAdminScope(user) || hasCommunicationsAdminScope(user) || hasAccessHistoryAdminScope(user)))
+  const admin = effectiveAdminUser(user)
+  return Boolean(admin && (admin.isSuperAdmin || hasGestionEscolarAdminScope(admin) || hasDaycareAdminScope(admin) || hasCommunicationsAdminScope(admin) || hasAccessHistoryAdminScope(admin)))
 }
 
 export function defaultAdminRoute(user: AppSessionUser | null | undefined) {
-  if (!user || user.kind !== 'admin') return '/login'
-  if (user.isSuperAdmin) return '/admin/superadmin'
-  if (hasGestionEscolarAdminScope(user)) return '/admin/gestion-escolar'
-  if (hasDaycareAdminScope(user)) return '/admin/daycare/salas'
-  if (hasCommunicationsAdminScope(user)) return '/admin/comunicados'
-  if (hasAccessHistoryAdminScope(user)) return '/admin/historial-accesos'
+  const admin = effectiveAdminUser(user)
+  if (!admin) return '/login'
+  if (admin.isSuperAdmin) return '/admin/superadmin'
+  if (hasGestionEscolarAdminScope(admin)) return '/admin/gestion-escolar'
+  if (hasDaycareAdminScope(admin)) return '/admin/daycare/salas'
+  if (hasCommunicationsAdminScope(admin)) return '/admin/comunicados'
+  if (hasAccessHistoryAdminScope(admin)) return '/admin/historial-accesos'
   return '/login'
 }
 
@@ -79,7 +101,7 @@ export function defaultFamilyRoute(user: AppSessionUser | null | undefined) {
 
 export function defaultSessionRoute(user: AppSessionUser | null | undefined) {
   if (!user) return '/login'
-  if (user.kind === 'admin') return defaultAdminRoute(user)
+  if (effectiveAdminUser(user) && user.kind === 'admin') return defaultAdminRoute(user)
   return defaultFamilyRoute(user)
 }
 

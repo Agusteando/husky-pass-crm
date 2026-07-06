@@ -1,1 +1,1 @@
-Corrige impersonación administrativa y mensajes de autorización
+Corrige autorización administrativa y carga de familias por alcance
