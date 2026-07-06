@@ -458,7 +458,7 @@ async function ensureCommunicationStarterAccess(actor: AppSessionUser, userId: n
   }
 }
 
-export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser, userId: number, input: { roles: SuperAdminRoleAssignments; unidades?: string[] }) {
+export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser, userId: number, input: { roles: SuperAdminRoleAssignments; unidades?: string[]; reason?: string }) {
   const target = await legacyOne<RowDataPacket & { id: number; email: string | null; role: string | null; unidad: string | null }>(
     'SELECT id, email, role, unidad FROM users WHERE id = ? LIMIT 1',
     [userId]

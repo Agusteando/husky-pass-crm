@@ -1,1 +1,1 @@
-Rediseña la gestión de accesos de Super Admin
+Rediseñar gestión de accesos administrativos

@@ -1,16 +1,16 @@
 <template>
-  <section class="superadmin-console" data-product-area="superadmin" data-product-screen="access-management">
-    <header class="access-header">
+  <section class="access-console" data-product-area="superadmin" data-product-screen="access-management">
+    <header class="page-intro">
       <div>
-        <p class="eyebrow">Super Admin · Seguridad operativa</p>
-        <h1>Gestión de accesos</h1>
-        <p>Ubica una cuenta, confirma sus vínculos escolares y ajusta roles administrativos con alcance explícito.</p>
+        <p class="kicker">Super Admin</p>
+        <h1>Administración de cuentas y permisos</h1>
+        <p>Busca una cuenta, verifica sus vínculos reales y guarda cambios de acceso con alcance, impacto y motivo claros.</p>
       </div>
       <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Alcances escolares</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Editar alcance escolar</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Ver historial</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
-          {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}
+          {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar directorio' }}
         </button>
       </div>
     </header>
@@ -27,10 +27,10 @@
 
     <section v-else class="access-workspace" data-product-panel="superadmin-directory" :data-state="directory?.users?.length ? 'content' : 'empty'">
       <aside class="directory-pane" aria-label="Directorio de cuentas">
-        <div class="pane-heading">
+        <div class="directory-title">
           <div>
-            <p class="eyebrow">Directorio</p>
-            <h2>Cuentas</h2>
+            <p class="kicker">Directorio</p>
+            <h2>Buscar cuenta</h2>
           </div>
           <span>{{ directory?.users.length || 0 }} visibles</span>
         </div>
@@ -43,13 +43,13 @@
 
         <div class="filter-row" aria-label="Filtros de cuentas">
           <label>
-            <span>Perfil</span>
+            <span>Tipo de cuenta</span>
             <select v-model="selectedScope" data-diagnostic-filter="tipo-persona">
               <option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </label>
           <label>
-            <span>Alcance</span>
+            <span>Plantel o unidad</span>
             <select v-model="selectedPlantel" data-diagnostic-filter="plantel">
               <option value="">Todos</option>
               <option v-for="plantel in directory?.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
@@ -57,11 +57,24 @@
           </label>
         </div>
 
-        <div class="metric-strip" aria-label="Resumen del directorio">
-          <span><b>{{ directory?.metrics.familyUsers || 0 }}</b> familias</span>
-          <span><b>{{ directory?.metrics.internalUsers || 0 }}</b> internas</span>
-          <span><b>{{ directory?.metrics.impersonable || 0 }}</b> soporte</span>
-        </div>
+        <dl class="directory-summary" aria-label="Resumen del directorio filtrado">
+          <div>
+            <dt>Cuentas</dt>
+            <dd>{{ directory?.users.length || 0 }}</dd>
+          </div>
+          <div>
+            <dt>Familias</dt>
+            <dd>{{ directory?.metrics.familyUsers || 0 }}</dd>
+          </div>
+          <div>
+            <dt>Internas</dt>
+            <dd>{{ directory?.metrics.internalUsers || 0 }}</dd>
+          </div>
+          <div>
+            <dt>Admins</dt>
+            <dd>{{ directoryAdminCount }}</dd>
+          </div>
+        </dl>
 
         <div v-if="isLoadingVisible" class="state-panel compact" data-product-loading>
           <HuskyPassLoader label="Cuentas" compact />
@@ -83,7 +96,7 @@
               <strong>{{ displayName(user) }}</strong>
               <small>{{ accountLabel(user) }}</small>
             </span>
-            <span class="row-meta">
+            <span class="row-tags">
               <b :data-state="primaryAccessState(user).state">{{ primaryAccessState(user).label }}</b>
               <small>{{ rowScopeLabel(user) }}</small>
             </span>
@@ -93,128 +106,135 @@
         <div v-else class="state-panel compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Sin resultados</h2>
-          <p>Ajusta la búsqueda o cambia un filtro.</p>
+          <p>Cambia la búsqueda o reduce los filtros.</p>
         </div>
       </aside>
 
-      <section class="person-pane">
+      <section class="case-pane">
         <template v-if="clientReady && selectedUser">
-          <header class="identity-panel">
+          <header class="case-header">
             <span class="avatar large">{{ initials(selectedUser) }}</span>
-            <div class="identity-copy">
-              <p class="eyebrow">{{ accountTypeLabel(selectedUser) }}</p>
+            <div>
+              <p class="kicker">Cuenta seleccionada</p>
               <h2>{{ displayName(selectedUser) }}</h2>
               <p>{{ accountLabel(selectedUser) }} · ID {{ selectedUser.id }}</p>
             </div>
-            <div class="identity-status">
-              <span class="status-badge" :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
-              <small>{{ adminAccessLabel(selectedUser) }}</small>
+            <div class="case-status">
+              <span :data-state="primaryAccessState(selectedUser).state">{{ primaryAccessState(selectedUser).label }}</span>
+              <small>{{ primaryScopeLabel(selectedUser) }}</small>
             </div>
           </header>
 
-          <section class="resolution-panel" :data-state="primaryAccessState(selectedUser).state">
+          <ol class="case-steps" aria-label="Flujo de revisión de acceso">
+            <li v-for="step in caseSteps" :key="step.key" :data-state="step.state">
+              <strong>{{ step.title }}</strong>
+              <span>{{ step.detail }}</span>
+            </li>
+          </ol>
+
+          <section v-if="caseWarnings.length" class="risk-panel" aria-label="Pendientes antes de asignar acceso">
             <div>
-              <p class="eyebrow">Revisión</p>
-              <h3>{{ reviewTitle }}</h3>
-              <p>{{ reviewDetail }}</p>
+              <h3>Antes de cambiar permisos</h3>
+              <p>Estos puntos deben estar claros para no mezclar identidad, vínculos familiares y responsabilidades internas.</p>
             </div>
-            <div class="resolution-actions">
-              <NuxtLink
-                v-if="showEscolarAction"
-                class="btn btn-primary"
-                :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
-              >
-                Editar alcance escolar
-              </NuxtLink>
-              <button
-                v-if="selectedUser.canImpersonate"
-                class="btn btn-secondary"
-                type="button"
-                data-diagnostic-action="impersonar-usuario"
-                :disabled="impersonatingId === selectedUser.id"
-                @click="requestImpersonation(selectedUser)"
-              >
-                {{ impersonationButtonLabel(selectedUser) }}
-              </button>
-            </div>
+            <ul>
+              <li v-for="warning in caseWarnings" :key="warning">{{ warning }}</li>
+            </ul>
           </section>
 
-          <section class="context-panel">
-            <div class="section-title">
+          <section class="identity-section">
+            <div class="section-heading">
               <div>
-                <p class="eyebrow">Identificación segura</p>
-                <h3>Cuenta y vínculos</h3>
+                <h3>Identidad y vínculos detectados</h3>
+                <p>La decisión de acceso debe salir de estos datos, no de una etiqueta suelta de rol.</p>
               </div>
-              <span>{{ selectedUser.canManageAdminRoles ? 'Editable' : 'Solo consulta' }}</span>
             </div>
 
-            <div class="facts-grid" aria-label="Resumen de la cuenta">
-              <article>
-                <span>Cuenta</span>
-                <strong>{{ selectedUser.email ? 'Correo institucional' : selectedUser.username ? 'Matrícula / usuario' : 'ID interno' }}</strong>
-                <small>{{ accountLabel(selectedUser) }}</small>
-              </article>
-              <article>
-                <span>Perfil</span>
-                <strong>{{ accountTypeLabel(selectedUser) }}</strong>
-                <small>{{ personKindDetail(selectedUser) }}</small>
-              </article>
-              <article>
-                <span>Alcance encontrado</span>
-                <strong>{{ primaryScopeLabel(selectedUser) }}</strong>
-                <small>{{ contextDetail(selectedUser) }}</small>
-              </article>
-              <article>
-                <span>Rol administrativo</span>
-                <strong>{{ adminAccessLabel(selectedUser) }}</strong>
-                <small>{{ adminAccessDetail(selectedUser) }}</small>
-              </article>
+            <div class="identity-layout">
+              <dl class="fact-list">
+                <div v-for="fact in identityFacts" :key="fact.label">
+                  <dt>{{ fact.label }}</dt>
+                  <dd>{{ fact.value }}</dd>
+                  <small>{{ fact.detail }}</small>
+                </div>
+              </dl>
+
+              <div class="relationship-list" aria-label="Vínculos escolares y administrativos">
+                <article v-for="item in relationshipRows" :key="item.key" :data-state="item.state">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <p>{{ item.detail }}</p>
+                  </div>
+                  <span>{{ item.label }}</span>
+                </article>
+              </div>
             </div>
           </section>
 
           <section class="access-section">
-            <div class="section-title">
+            <div class="section-heading split">
               <div>
-                <p class="eyebrow">Permisos efectivos</p>
-                <h3>Qué puede abrir ahora</h3>
+                <h3>Acceso efectivo actual</h3>
+                <p>Separado por tipo de vínculo para no confundir familia, puesto interno, módulo y alcance.</p>
               </div>
-              <span>{{ accessSummary }}</span>
+              <span>{{ currentAccessSummary }}</span>
             </div>
 
-            <div class="access-matrix">
-              <article v-for="item in effectiveAccessRows" :key="item.key" :data-state="item.state">
-                <div>
-                  <strong>{{ item.title }}</strong>
-                  <small>{{ item.detail }}</small>
+            <div class="access-groups">
+              <article v-for="group in accessGroups" :key="group.key" class="access-group">
+                <header>
+                  <h4>{{ group.title }}</h4>
+                  <p>{{ group.description }}</p>
+                </header>
+                <div class="access-lines">
+                  <div v-for="item in group.items" :key="item.key" class="access-line" :data-state="item.state">
+                    <div>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.detail }}</span>
+                    </div>
+                    <b>{{ item.label }}</b>
+                  </div>
                 </div>
-                <b>{{ item.label }}</b>
               </article>
             </div>
           </section>
 
           <section class="assignment-section">
-            <div class="section-title">
+            <div class="section-heading split">
               <div>
-                <p class="eyebrow">Editar roles</p>
-                <h3>Administración de guardería y permisos sensibles</h3>
+                <h3>Editar responsabilidades administrativas</h3>
+                <p>Este panel edita guardería, comunicados e historial. El alcance escolar usa su propio flujo por plantel, nivel, grado o grupo.</p>
               </div>
-              <span :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
-                {{ roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'Alcance definido' : 'Falta alcance') : 'Sin guardería admin' }}
-              </span>
+              <span :data-state="roleHasChanges ? 'incomplete' : 'none'">{{ roleHasChanges ? 'Cambio pendiente' : 'Sin cambios' }}</span>
             </div>
 
             <template v-if="selectedUser.canManageAdminRoles">
-              <label class="role-switch">
-                <input v-model="roleDraft.daycareAdmin" type="checkbox" />
-                <span>
-                  <strong>Habilitar administración de guardería</strong>
-                  <small>Permite gestionar salas, familias, tareas, avisos y calendario únicamente en las unidades autorizadas.</small>
-                </span>
-              </label>
+              <div class="role-grid">
+                <article class="role-card school-role" :data-state="selectedUser.adminScopes.includes('gestionEscolar') ? 'active' : 'none'">
+                  <div>
+                    <strong>Administración escolar</strong>
+                    <p>Planteles, niveles, grados y grupos se asignan en el flujo escolar para mantener el alcance explícito.</p>
+                  </div>
+                  <NuxtLink
+                    class="inline-link"
+                    :to="{ path: '/admin/superadmin/gestion-escolar', query: { usuario: selectedUser.id, buscar: selectedUser.email || selectedUser.username || String(selectedUser.id) } }"
+                  >
+                    Editar alcance escolar
+                  </NuxtLink>
+                </article>
+
+                <label class="role-card selectable" :data-state="roleDraft.daycareAdmin ? (roleUnidadDraft.length ? 'active' : 'incomplete') : 'none'">
+                  <input v-model="roleDraft.daycareAdmin" type="checkbox" />
+                  <span>
+                    <strong>Administración de guardería</strong>
+                    <p>Gestiona salas, familias, tareas, avisos y calendario solo en las unidades seleccionadas.</p>
+                  </span>
+                </label>
+              </div>
 
               <fieldset v-if="roleDraft.daycareAdmin" class="scope-picker" aria-label="Unidades de guardería autorizadas">
-                <legend>Unidades autorizadas</legend>
-                <div class="unit-grid">
+                <legend>Unidades autorizadas para guardería</legend>
+                <div v-if="roleUnidadOptions.length" class="unit-grid">
                   <button
                     v-for="unidad in roleUnidadOptions"
                     :key="unidad"
@@ -226,53 +246,58 @@
                     {{ unidad }}
                   </button>
                 </div>
-                <p v-if="!roleUnidadOptions.length">No hay unidades disponibles para esta cuenta.</p>
+                <p v-else>No hay unidades disponibles para esta cuenta. Agrega el alcance operativo antes de guardar.</p>
               </fieldset>
 
-              <section class="sensitive-panel" aria-label="Permisos administrativos sensibles">
-                <div>
-                  <p class="eyebrow">Permisos adicionales</p>
-                  <h4>Acceso sensible</h4>
-                  <p>Activa estos permisos solo cuando el puesto lo requiera. Los cambios deben poder justificarse en soporte interno.</p>
-                </div>
-                <label>
-                  <input v-model="roleDraft.accessHistoryAdmin" type="checkbox" />
-                  <span>
-                    <strong>Seguridad e historial</strong>
-                    <small>Consulta validaciones, historial de accesos y diagnósticos operativos.</small>
-                  </span>
-                </label>
-                <label>
+              <div class="sensitive-grid" aria-label="Permisos sensibles">
+                <label class="role-card selectable" :data-state="roleDraft.communicationsAdmin ? 'active' : 'none'">
                   <input v-model="roleDraft.communicationsAdmin" type="checkbox" />
                   <span>
-                    <strong>Comunicados generales</strong>
-                    <small>Puede preparar comunicados administrativos según el alcance configurado.</small>
+                    <strong>Comunicados administrativos</strong>
+                    <p>Puede preparar comunicados generales. La publicación debe respetar los alcances configurados.</p>
                   </span>
                 </label>
-              </section>
+                <label class="role-card selectable" :data-state="roleDraft.accessHistoryAdmin ? 'active' : 'none'">
+                  <input v-model="roleDraft.accessHistoryAdmin" type="checkbox" />
+                  <span>
+                    <strong>Historial y diagnósticos de acceso</strong>
+                    <p>Consulta validaciones, registros de entrada/salida y diagnósticos operativos de soporte.</p>
+                  </span>
+                </label>
+              </div>
 
-              <section v-if="roleHasChanges" class="change-preview" aria-live="polite">
-                <p class="eyebrow">Antes de guardar</p>
-                <h4>{{ changePreviewTitle }}</h4>
+              <section class="review-panel" aria-live="polite">
+                <div class="section-heading split compact-heading">
+                  <div>
+                    <h4>Revisión antes de guardar</h4>
+                    <p>{{ changePreviewTitle }}</p>
+                  </div>
+                  <span :data-state="saveBlockedReason ? 'incomplete' : roleHasChanges ? 'active' : 'none'">{{ saveBlockedReason || 'Listo para guardar' }}</span>
+                </div>
                 <ul>
                   <li v-for="line in changePreviewLines" :key="line">{{ line }}</li>
                 </ul>
+                <label v-if="roleHasChanges" class="reason-field">
+                  <span>Motivo del cambio</span>
+                  <textarea v-model="roleChangeReason" rows="3" maxlength="500" placeholder="Ejemplo: se asigna por solicitud de Dirección para administrar la unidad ISSSTE MET durante el ciclo actual." />
+                  <small>Obligatorio. Mínimo 12 caracteres. Evita datos personales innecesarios.</small>
+                </label>
+                <div class="role-actions">
+                  <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar cambios</button>
+                  <button class="btn btn-primary" type="button" :disabled="savingRoles || Boolean(saveBlockedReason)" @click="saveAdminRoles">
+                    {{ savingRoles ? 'Guardando...' : 'Guardar cambio de acceso' }}
+                  </button>
+                </div>
               </section>
-
-              <div class="role-actions">
-                <button class="btn btn-secondary" type="button" :disabled="savingRoles || !roleHasChanges" @click="resetRoleDraft">Descartar cambios</button>
-                <button class="btn btn-primary" type="button" :disabled="savingRoles || !roleHasChanges" @click="saveAdminRoles">{{ savingRoles ? 'Guardando...' : 'Guardar roles' }}</button>
-              </div>
             </template>
 
-            <p v-else class="locked-note">Esta cuenta no es institucional ni interna. No puede recibir roles administrativos desde este panel.</p>
+            <p v-else class="locked-note">Esta cuenta no es institucional ni administrativa. Primero corrige el vínculo de identidad antes de conceder responsabilidades internas.</p>
           </section>
 
           <section v-if="selectedUser.canImpersonate" class="support-section">
             <div>
-              <p class="eyebrow">Soporte familiar</p>
-              <h3>Vista controlada</h3>
-              <p>Úsala solo para resolver un caso activo. La sesión de soporte queda separada de la edición de roles.</p>
+              <h3>Soporte familiar controlado</h3>
+              <p>Abre la vista familiar solo para un caso activo. Esta acción no modifica roles ni alcances administrativos.</p>
             </div>
             <div class="support-actions">
               <button class="btn btn-secondary" type="button" :disabled="impersonatingId === selectedUser.id" @click="requestImpersonation(selectedUser)">
@@ -286,7 +311,7 @@
         <div v-else class="state-panel detail-empty" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Selecciona una cuenta</h2>
-          <p>Verás vínculos, permisos efectivos, alcance administrativo y acciones de soporte.</p>
+          <p>Verás identidad, vínculos, acceso efectivo, responsabilidades editables e impacto antes de guardar.</p>
         </div>
       </section>
     </section>
@@ -306,18 +331,27 @@ definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 const route = useRoute()
 const router = useRouter()
 
+type AccessState = 'active' | 'family' | 'incomplete' | 'none' | 'unknown'
+interface AccessLine {
+  key: string
+  title: string
+  detail: string
+  state: AccessState
+  label: string
+}
+
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string }> = [
   { value: 'all', label: 'Todas' },
-  { value: 'internal', label: 'Cuentas internas' },
+  { value: 'internal', label: 'Internas y staff' },
   { value: 'schoolFamilies', label: 'Familias escolares' },
-  { value: 'daycare', label: 'Familias guardería' },
+  { value: 'daycare', label: 'Familias de guardería' },
   { value: 'impersonable', label: 'Soporte familiar' }
 ]
 
-const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string }> = [
-  { key: 'daycareAdmin', label: 'Admin Guardería' },
-  { key: 'communicationsAdmin', label: 'Comunicados generales' },
-  { key: 'accessHistoryAdmin', label: 'Seguridad e historial' }
+const assignableRoles: Array<{ key: SuperAdminAssignableRole; label: string; impact: string }> = [
+  { key: 'daycareAdmin', label: 'Administración de guardería', impact: 'gestión de salas, familias, tareas, avisos y calendario' },
+  { key: 'communicationsAdmin', label: 'Comunicados administrativos', impact: 'preparación de comunicados generales' },
+  { key: 'accessHistoryAdmin', label: 'Historial y diagnósticos de acceso', impact: 'consulta de registros y diagnósticos de soporte' }
 ]
 
 const emptyRoleAssignments = (): SuperAdminRoleAssignments => ({
@@ -339,6 +373,7 @@ const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
 const roleDraft = ref<SuperAdminRoleAssignments>(emptyRoleAssignments())
 const roleUnidadDraft = ref<string[]>([])
+const roleChangeReason = ref('')
 const savingRoles = ref(false)
 
 const query = computed(() => ({
@@ -348,7 +383,6 @@ const query = computed(() => ({
   limit: limit.value
 }))
 
-const selectedGestionEscolarActive = computed(() => Boolean(selectedUser.value?.adminScopes.includes('gestionEscolar') || roleDraft.value.gestionEscolarAdmin))
 const roleUnidadOptions = computed(() => {
   const values = [
     ...(directory.value?.unidades || []),
@@ -356,6 +390,9 @@ const roleUnidadOptions = computed(() => {
   ]
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 })
+
+const directoryAdminCount = computed(() => directory.value?.users.filter((user) => user.adminScopes.length > 0).length || 0)
+
 const roleHasChanges = computed(() => {
   const current = selectedUser.value?.roleAssignments || emptyRoleAssignments()
   const roleChanged = assignableRoles.some((role) => Boolean(roleDraft.value[role.key]) !== Boolean(current[role.key]))
@@ -364,106 +401,157 @@ const roleHasChanges = computed(() => {
   const unitsChanged = roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')
   return roleChanged || unitsChanged
 })
-const showEscolarAction = computed(() => Boolean(selectedUser.value && (selectedUser.value.audience === 'internal' || selectedGestionEscolarActive.value)))
-const accessSummary = computed(() => {
+
+const saveBlockedReason = computed(() => {
+  if (!roleHasChanges.value) return 'Sin cambios pendientes'
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'Falta unidad de guardería'
+  if (roleChangeReason.value.trim().length < 12) return 'Falta motivo'
+  return ''
+})
+
+const currentAccessSummary = computed(() => {
   if (!selectedUser.value) return 'Sin cuenta'
-  const count = [
-    selectedUser.value.productScopes.includes('personasAutorizadas'),
-    selectedUser.value.productScopes.includes('daycare'),
-    selectedGestionEscolarActive.value,
-    roleDraft.value.daycareAdmin,
-    roleDraft.value.communicationsAdmin || selectedUser.value.adminScopes.includes('communications'),
-    roleDraft.value.accessHistoryAdmin || selectedUser.value.adminScopes.includes('accessHistory')
-  ].filter(Boolean).length
-  return count ? `${count} permisos` : 'Sin permisos'
+  const count = currentAccessLines(selectedUser.value).filter((item) => item.state === 'active' || item.state === 'family').length
+  return count ? `${count} acceso(s) activo(s)` : 'Sin acceso activo'
 })
-const guarderiaAdminDetail = computed(() => roleUnidadDraft.value.length ? roleUnidadDraft.value.join(' · ') : 'Selecciona al menos una unidad.')
-const reviewTitle = computed(() => {
-  if (!selectedUser.value) return 'Selecciona una cuenta'
-  if (selectedUser.value.audience === 'internal' && !selectedGestionEscolarActive.value && !roleDraft.value.daycareAdmin) return 'Cuenta interna sin responsabilidad asignada'
-  if (primaryAccessState(selectedUser.value).state === 'incomplete') return 'Rol administrativo sin alcance operativo'
-  if (selectedUser.value.canImpersonate && !selectedUser.value.canManageAdminRoles) return 'Cuenta familiar: soporte sin editar roles'
-  if (selectedUser.value.canImpersonate) return 'Cuenta con vista familiar disponible'
-  return 'Permisos listos para revisión'
-})
-const reviewDetail = computed(() => {
-  if (!selectedUser.value) return ''
-  if (showEscolarAction.value && !selectedGestionEscolarActive.value) return 'Asigna el alcance escolar desde el flujo dedicado para evitar mezclar roles, grados y grupos en este panel.'
-  if (selectedGestionEscolarActive.value) return 'El alcance escolar se administra por plantel, nivel, grado o grupo desde su flujo dedicado.'
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'El rol de guardería no debe quedar activo sin unidades autorizadas.'
-  if (selectedUser.value.canImpersonate) return 'Puedes abrir una vista familiar controlada para soporte. No uses esa acción para validar permisos administrativos.'
-  return 'Revisa la cuenta antes de guardar cambios; este panel solo edita roles administrativos permitidos.'
-})
-const effectiveAccessRows = computed(() => {
-  if (!selectedUser.value) return []
+
+const caseSteps = computed(() => {
   const user = selectedUser.value
+  if (!user) return []
+  const hasAnyLink = Boolean(user.productScopes.length || user.audience === 'internal' || user.adminScopes.length)
+  const hasAnyAccess = currentAccessLines(user).some((item) => item.state === 'active' || item.state === 'family')
   return [
     {
-      key: 'school-family',
-      title: 'Familia escolar',
-      detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'Sin vínculo escolar familiar encontrado.',
-      state: user.productScopes.includes('personasAutorizadas') ? 'active' : 'none',
-      label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'No asignado'
+      key: 'identity',
+      title: 'Identidad',
+      detail: accountLabel(user),
+      state: accountLabel(user) ? 'active' : 'incomplete'
     },
     {
-      key: 'daycare-family',
-      title: 'Familia guardería',
-      detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'Sin vínculo familiar de guardería encontrado.',
-      state: user.productScopes.includes('daycare') ? 'active' : 'none',
-      label: user.productScopes.includes('daycare') ? 'Activo' : 'No asignado'
+      key: 'relationships',
+      title: 'Vínculos',
+      detail: hasAnyLink ? relationshipSummary(user) : 'Sin vínculo detectado',
+      state: hasAnyLink ? 'active' : 'incomplete'
     },
     {
-      key: 'school-admin',
-      title: 'Admin Escolar',
-      detail: selectedGestionEscolarActive.value ? 'Alcance administrado por plantel, nivel, grado o grupo.' : 'Se configura desde el flujo de alcances escolares.',
-      state: selectedGestionEscolarActive.value ? 'active' : 'none',
-      label: selectedGestionEscolarActive.value ? 'Activo' : 'Sin rol'
+      key: 'current-access',
+      title: 'Acceso actual',
+      detail: currentAccessSummary.value,
+      state: hasAnyAccess ? 'active' : 'none'
     },
     {
-      key: 'daycare-admin',
-      title: 'Admin Guardería',
-      detail: roleDraft.value.daycareAdmin ? guarderiaAdminDetail.value : 'Sin gestión administrativa de salas.',
-      state: roleDraft.value.daycareAdmin ? (roleUnidadDraft.value.length ? 'active' : 'incomplete') : 'none',
-      label: roleDraft.value.daycareAdmin ? (roleUnidadDraft.value.length ? 'Activo' : 'Falta alcance') : 'Sin rol'
+      key: 'pending-change',
+      title: 'Cambio',
+      detail: roleHasChanges.value ? 'Requiere revisión y motivo' : 'Sin edición pendiente',
+      state: roleHasChanges.value ? 'incomplete' : 'none'
+    }
+  ] as Array<{ key: string; title: string; detail: string; state: AccessState }>
+})
+
+const caseWarnings = computed(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  const warnings: string[] = []
+  if (user.audience === 'internal' && !user.adminScopes.length && !user.productScopes.length) {
+    warnings.push('La cuenta parece interna, pero no tiene puesto, alcance o responsabilidad administrativa visible.')
+  }
+  if (user.productScopes.length && user.adminScopes.length) {
+    warnings.push('La cuenta mezcla acceso familiar y responsabilidades administrativas. Verifica que sea intencional y que no exponga datos fuera de su función.')
+  }
+  if (hasInheritedAdminAccess(user)) {
+    warnings.push('Hay acceso administrativo heredado por rutas o configuración anterior. Retirar un rol explícito puede no quitar todo el acceso efectivo.')
+  }
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
+    warnings.push('Administración de guardería no puede guardarse sin unidades autorizadas.')
+  }
+  return warnings
+})
+
+const identityFacts = computed(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  return [
+    {
+      label: 'Tipo de cuenta',
+      value: accountTypeLabel(user),
+      detail: personKindDetail(user)
     },
     {
-      key: 'communications',
-      title: 'Comunicados generales',
-      detail: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? communicationsDetail(user) : 'No puede administrar comunicados generales.',
-      state: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? 'active' : 'none',
-      label: roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications') ? 'Activo' : 'Sin rol'
+      label: 'Identificador de inicio',
+      value: accountLabel(user),
+      detail: user.email ? 'Correo de la cuenta' : user.username ? 'Usuario o matrícula registrada' : 'Solo ID interno'
     },
     {
-      key: 'security',
-      title: 'Seguridad e historial',
-      detail: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'Puede consultar validaciones, historial y herramientas de diagnóstico.' : 'No puede consultar historial de accesos.',
-      state: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'active' : 'none',
-      label: roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory') ? 'Activo' : 'Sin rol'
+      label: 'Alcance detectado',
+      value: primaryScopeLabel(user),
+      detail: contextDetail(user)
+    },
+    {
+      label: 'Responsabilidad administrativa',
+      value: adminAccessLabel(user),
+      detail: adminAccessDetail(user)
     }
   ]
 })
+
+const relationshipRows = computed<AccessLine[]>(() => {
+  const user = selectedUser.value
+  if (!user) return []
+  const rows: AccessLine[] = []
+  rows.push({
+    key: 'internal-account',
+    title: 'Cuenta interna o staff',
+    detail: user.audience === 'internal' || user.adminScopes.length ? internalAccountDetail(user) : 'No se detecta como cuenta de staff o soporte.',
+    state: user.audience === 'internal' || user.adminScopes.length ? 'active' : 'none',
+    label: user.audience === 'internal' || user.adminScopes.length ? 'Detectada' : 'No'
+  })
+  rows.push({
+    key: 'school-family-link',
+    title: 'Vínculo familiar escolar',
+    detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'No hay alumno o persona autorizada vinculada a esta cuenta.',
+    state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none',
+    label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'No'
+  })
+  rows.push({
+    key: 'daycare-family-link',
+    title: 'Vínculo familiar de guardería',
+    detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'No hay sala o unidad familiar vinculada a esta cuenta.',
+    state: user.productScopes.includes('daycare') ? 'family' : 'none',
+    label: user.productScopes.includes('daycare') ? 'Activo' : 'No'
+  })
+  return rows
+})
+
+const accessGroups = computed(() => selectedUser.value ? accessGroupsForUser(selectedUser.value) : [])
+
 const changePreviewLines = computed(() => {
   const user = selectedUser.value
-  if (!user || !roleHasChanges.value) return []
+  if (!user || !roleHasChanges.value) return ['No hay cambios pendientes.']
   const current = user.roleAssignments || emptyRoleAssignments()
   const lines: string[] = []
   for (const role of assignableRoles) {
     const before = Boolean(current[role.key])
     const after = Boolean(roleDraft.value[role.key])
-    if (before !== after) lines.push(`${role.label}: ${after ? 'se activará' : 'se retirará'}.`)
+    if (before !== after) {
+      lines.push(`${role.label}: ${after ? `se activará (${role.impact})` : 'se retirará el rol explícito'}.`)
+    }
   }
   const currentUnits = normalizedRoleUnits(user.unidad || [])
   const draftUnits = normalizedRoleUnits(roleUnidadDraft.value)
   if (roleDraft.value.daycareAdmin && currentUnits.join('|') !== draftUnits.join('|')) {
-    lines.push(`Unidades de guardería: ${draftUnits.length ? draftUnits.join(' · ') : 'sin unidades seleccionadas'}.`)
+    lines.push(`Alcance de guardería: ${draftUnits.length ? draftUnits.join(' · ') : 'sin unidades seleccionadas'}.`)
   }
-  return lines
+  if (hasInheritedAdminAccess(user)) {
+    lines.push('Revisa acceso heredado: algunas rutas antiguas pueden seguir otorgando permisos aunque se retire un rol explícito.')
+  }
+  return lines.length ? lines : ['No hay cambios pendientes.']
 })
+
 const changePreviewTitle = computed(() => {
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'No se puede guardar hasta seleccionar al menos una unidad.'
-  if (roleDraft.value.daycareAdmin) return 'Se guardará acceso administrativo con alcance de guardería.'
-  if (!roleDraft.value.communicationsAdmin && !roleDraft.value.accessHistoryAdmin) return 'Se retirarán los roles administrativos editables en este panel.'
-  return 'Se actualizarán permisos administrativos sensibles.'
+  if (!roleHasChanges.value) return 'No se guardará nada hasta modificar una responsabilidad.'
+  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) return 'El cambio está incompleto: falta seleccionar unidad de guardería.'
+  if (roleChangeReason.value.trim().length < 12) return 'Escribe el motivo antes de guardar el cambio.'
+  return 'Se enviará este cambio con motivo de soporte interno.'
 })
 
 const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAdminDirectoryResponse>('/api/admin/superadmin/users', {
@@ -582,6 +670,7 @@ function normalizedRoleUnits(values: string[]) {
 function syncRoleDraft(user: SuperAdminUserSummary | null) {
   roleDraft.value = user?.roleAssignments ? { ...user.roleAssignments } : emptyRoleAssignments()
   roleUnidadDraft.value = normalizedRoleUnits(user?.unidad || [])
+  roleChangeReason.value = ''
 }
 
 function resetRoleDraft() {
@@ -601,8 +690,10 @@ function toggleRoleUnidad(unidad: string) {
 
 async function saveAdminRoles() {
   if (!selectedUser.value) return
-  if (roleDraft.value.daycareAdmin && !roleUnidadDraft.value.length) {
-    actionError.value = 'Selecciona al menos una unidad para Admin Guardería.'
+  if (saveBlockedReason.value) {
+    actionError.value = saveBlockedReason.value === 'Falta motivo'
+      ? 'Escribe un motivo claro antes de guardar el cambio de acceso.'
+      : saveBlockedReason.value
     return
   }
 
@@ -612,7 +703,7 @@ async function saveAdminRoles() {
   try {
     const updated = await $fetch<SuperAdminUserSummary>(`/api/admin/superadmin/users/${selectedUser.value.id}/roles`, {
       method: 'POST',
-      body: { roles: roleDraft.value, unidades: roleUnidadDraft.value }
+      body: { roles: roleDraft.value, unidades: roleUnidadDraft.value, reason: roleChangeReason.value.trim() }
     })
 
     selectedUser.value = updated
@@ -621,9 +712,10 @@ async function saveAdminRoles() {
       directory.value.metrics.internalUsers = directory.value.users.filter((user) => user.audience === 'internal' || user.adminScopes.length).length
       directory.value.metrics.daycareAdmins = directory.value.users.filter((user) => user.adminScopes.includes('daycare')).length
     }
-    actionNotice.value = 'Roles administrativos actualizados.'
+    roleChangeReason.value = ''
+    actionNotice.value = 'Cambio de acceso guardado.'
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar los roles.'
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar el cambio de acceso.'
   } finally {
     savingRoles.value = false
   }
@@ -673,24 +765,32 @@ function labelList(values: string[], fallback: string) {
 }
 
 function productScopeLabel(scope: FamilyProductScope) {
-  if (scope === 'daycare') return 'familia guardería'
+  if (scope === 'daycare') return 'familia de guardería'
   if (scope === 'personasAutorizadas') return 'familia escolar'
   return scope
 }
 
 function accountTypeLabel(user: SuperAdminUserSummary) {
-  if (user.audience === 'multiProductFamily') return 'Familia escolar y guardería'
-  if (user.audience === 'daycareFamily') return 'Familia guardería'
+  if (user.audience === 'multiProductFamily') return 'Familia con acceso escolar y guardería'
+  if (user.audience === 'daycareFamily') return 'Familia de guardería'
   if (user.audience === 'schoolFamily') return 'Familia escolar'
-  if (user.audience === 'internal') return 'Cuenta interna'
-  return 'Sin vínculo clasificado'
+  if (user.audience === 'internal') return 'Cuenta interna o staff'
+  return 'Cuenta sin vínculo clasificado'
+}
+
+function relationshipSummary(user: SuperAdminUserSummary) {
+  const values: string[] = []
+  if (user.audience === 'internal' || user.adminScopes.length) values.push('interna')
+  if (user.productScopes.includes('personasAutorizadas')) values.push('familia escolar')
+  if (user.productScopes.includes('daycare')) values.push('familia guardería')
+  return values.length ? values.join(' · ') : 'sin vínculo detectado'
 }
 
 function personKindDetail(user: SuperAdminUserSummary) {
-  if (user.productScopes.length) return `Acceso familiar: ${user.productScopes.map(productScopeLabel).join(' · ')}`
+  if (user.productScopes.length) return `Vínculo familiar: ${user.productScopes.map(productScopeLabel).join(' · ')}`
   if (user.adminScopes.length) return adminAccessLabel(user)
-  if (user.audience === 'internal') return 'Cuenta institucional sin rol administrativo activo'
-  return 'No se encontró vínculo familiar o administrativo'
+  if (user.audience === 'internal') return 'Cuenta interna sin responsabilidad administrativa visible'
+  return 'No se encontró vínculo familiar, puesto interno o rol administrativo'
 }
 
 function contextFallback(user: SuperAdminUserSummary) {
@@ -703,7 +803,8 @@ function contextDetail(user: SuperAdminUserSummary) {
   if (user.sala) return `Sala ${user.sala}`
   if (user.campus || user.empresa) return contextFallback(user)
   if (user.productScopes.length) return user.productScopes.map(productScopeLabel).join(' · ')
-  return 'No hay sala, plantel o unidad asociada'
+  if (user.unidad.length) return 'Unidad tomada de la cuenta'
+  return 'No hay sala, plantel, grupo o unidad asociada'
 }
 
 function primaryScopeLabel(user: SuperAdminUserSummary) {
@@ -722,40 +823,131 @@ function rowScopeLabel(user: SuperAdminUserSummary) {
 
 function adminAccessLabel(user: SuperAdminUserSummary) {
   const labels: string[] = []
-  if (selectedGestionEscolarActive.value) labels.push('Escolar')
-  if (roleDraft.value.daycareAdmin || user.adminScopes.includes('daycare')) labels.push('Guardería')
-  if (roleDraft.value.accessHistoryAdmin || user.adminScopes.includes('accessHistory')) labels.push('Seguridad')
-  if (roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications')) labels.push('Comunicados')
-  return labels.length ? labels.join(' · ') : 'Sin rol administrativo'
+  if (user.adminScopes.includes('gestionEscolar')) labels.push('Escolar')
+  if (user.adminScopes.includes('daycare')) labels.push('Guardería')
+  if (user.adminScopes.includes('communications')) labels.push('Comunicados')
+  if (user.adminScopes.includes('accessHistory')) labels.push('Historial')
+  return labels.length ? labels.join(' · ') : 'Sin responsabilidad administrativa'
 }
 
 function adminAccessDetail(user: SuperAdminUserSummary) {
-  if (adminAccessLabel(user) === 'Sin rol administrativo') return user.audience === 'internal' ? 'Puede recibir una responsabilidad si su puesto lo requiere.' : 'No es cuenta administrativa.'
+  if (adminAccessLabel(user) === 'Sin responsabilidad administrativa') {
+    return user.audience === 'internal' ? 'Puede recibir una responsabilidad si su puesto lo requiere.' : 'No es cuenta administrativa.'
+  }
+  if (hasInheritedAdminAccess(user)) return 'Incluye permisos heredados por rutas o configuración anterior.'
   return 'Responsabilidades administrativas activas.'
 }
 
+function internalAccountDetail(user: SuperAdminUserSummary) {
+  if (user.email?.toLowerCase().endsWith('@casitaiedis.edu.mx')) return 'Correo institucional registrado.'
+  if (user.adminScopes.length) return 'Tiene responsabilidades administrativas activas.'
+  if (user.role) return 'Tiene rol legacy registrado.'
+  return 'Cuenta marcada como interna por datos de sesión.'
+}
+
 function daycareFamilyDetail(user: SuperAdminUserSummary) {
-  return user.sala ? `${primaryScopeLabel(user)} · Sala ${user.sala}` : primaryScopeLabel(user)
+  const parts = [primaryScopeLabel(user)]
+  if (user.sala) parts.push(`Sala ${user.sala}`)
+  if (user.nombre_nino) parts.push(user.nombre_nino)
+  return parts.filter(Boolean).join(' · ')
 }
 
 function schoolFamilyDetail(user: SuperAdminUserSummary) {
-  return user.nombre_nino ? `Vínculo con ${user.nombre_nino}` : primaryScopeLabel(user)
+  return user.nombre_nino ? `Alumno vinculado: ${user.nombre_nino}` : primaryScopeLabel(user)
+}
+
+function daycareAdminCurrentDetail(user: SuperAdminUserSummary) {
+  if (!user.unidad.length) return 'El rol existe, pero no hay unidad autorizada.'
+  return `Unidades autorizadas: ${user.unidad.join(' · ')}.`
 }
 
 function communicationsDetail(user: SuperAdminUserSummary) {
-  if (user.communicationsScopes.length) return `${user.communicationsScopes.length} alcance(s) de comunicados configurado(s).`
-  if (roleDraft.value.communicationsAdmin || user.adminScopes.includes('communications')) return 'Puede administrar comunicados generales.'
-  return 'Sin alcance de comunicados.'
+  if (user.communicationsScopes.length) return `${user.communicationsScopes.length} alcance(s) específico(s) de comunicados configurado(s).`
+  if (user.roleAssignments.communicationsAdmin) return 'Rol explícito activo; revisar alcances de publicación si necesita enviar.'
+  return 'Acceso detectado por alcance o ruta existente.'
+}
+
+function historyAccessDetail(user: SuperAdminUserSummary) {
+  return user.roleAssignments.accessHistoryAdmin ? 'Rol explícito activo para historial y diagnósticos.' : 'Acceso heredado por ruta o configuración anterior.'
+}
+
+function hasInheritedAdminAccess(user: SuperAdminUserSummary) {
+  return user.adminScopes.some((scope) => {
+    if (scope === 'gestionEscolar') return !user.roleAssignments.gestionEscolarAdmin
+    if (scope === 'daycare') return !user.roleAssignments.daycareAdmin
+    if (scope === 'communications') return !user.roleAssignments.communicationsAdmin
+    if (scope === 'accessHistory') return !user.roleAssignments.accessHistoryAdmin
+    return false
+  })
+}
+
+function currentAccessLines(user: SuperAdminUserSummary) {
+  return accessGroupsForUser(user).flatMap((group) => group.items)
+}
+
+function accessGroupsForUser(user: SuperAdminUserSummary) {
+  const familyItems: AccessLine[] = [
+    {
+      key: 'school-family',
+      title: 'Portal familiar escolar',
+      detail: user.productScopes.includes('personasAutorizadas') ? schoolFamilyDetail(user) : 'No puede abrir herramientas familiares escolares.',
+      state: user.productScopes.includes('personasAutorizadas') ? 'family' : 'none',
+      label: user.productScopes.includes('personasAutorizadas') ? 'Activo' : 'Sin vínculo'
+    },
+    {
+      key: 'daycare-family',
+      title: 'Portal familiar de guardería',
+      detail: user.productScopes.includes('daycare') ? daycareFamilyDetail(user) : 'No puede abrir avisos, tareas o calendario familiar de guardería.',
+      state: user.productScopes.includes('daycare') ? 'family' : 'none',
+      label: user.productScopes.includes('daycare') ? 'Activo' : 'Sin vínculo'
+    }
+  ]
+
+  const adminItems: AccessLine[] = [
+    {
+      key: 'school-admin',
+      title: 'Administración escolar',
+      detail: user.adminScopes.includes('gestionEscolar') ? 'Gestiona familias y publicaciones según alcance escolar configurado.' : 'No tiene alcance escolar administrativo.',
+      state: user.adminScopes.includes('gestionEscolar') ? 'active' : 'none',
+      label: user.adminScopes.includes('gestionEscolar') ? 'Activo' : 'Sin rol'
+    },
+    {
+      key: 'daycare-admin',
+      title: 'Administración de guardería',
+      detail: user.adminScopes.includes('daycare') ? daycareAdminCurrentDetail(user) : 'No administra salas o unidades de guardería.',
+      state: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'active' : 'incomplete') : 'none',
+      label: user.adminScopes.includes('daycare') ? (user.unidad.length ? 'Activo' : 'Falta alcance') : 'Sin rol'
+    },
+    {
+      key: 'communications',
+      title: 'Comunicados administrativos',
+      detail: user.adminScopes.includes('communications') ? communicationsDetail(user) : 'No puede preparar comunicados administrativos.',
+      state: user.adminScopes.includes('communications') ? 'active' : 'none',
+      label: user.adminScopes.includes('communications') ? 'Activo' : 'Sin rol'
+    },
+    {
+      key: 'security',
+      title: 'Historial y diagnósticos',
+      detail: user.adminScopes.includes('accessHistory') ? historyAccessDetail(user) : 'No puede consultar registros de acceso o diagnósticos.',
+      state: user.adminScopes.includes('accessHistory') ? 'active' : 'none',
+      label: user.adminScopes.includes('accessHistory') ? 'Activo' : 'Sin rol'
+    }
+  ]
+
+  return [
+    { key: 'family', title: 'Acceso familiar', description: 'Relaciones con alumnos, familias, salas y portales de padres.', items: familyItems },
+    { key: 'administrative', title: 'Responsabilidades internas', description: 'Permisos concedidos a staff, soporte o administradores.', items: adminItems }
+  ]
 }
 
 function primaryAccessState(user: SuperAdminUserSummary) {
-  if (user.adminScopes.includes('gestionEscolar') || user.adminScopes.includes('daycare') || user.adminScopes.includes('communications') || user.adminScopes.includes('accessHistory')) {
-    const hasConcreteScope = user.adminScopes.includes('gestionEscolar') || user.unidad.length || user.communicationsScopes.length || user.adminScopes.includes('accessHistory')
-    return hasConcreteScope ? { state: 'active', label: 'Admin con alcance' } : { state: 'incomplete', label: 'Admin sin alcance' }
+  if (user.adminScopes.length) {
+    const incomplete = user.adminScopes.includes('daycare') && !user.unidad.length
+    return incomplete ? { state: 'incomplete' as const, label: 'Admin sin alcance' } : { state: 'active' as const, label: 'Admin' }
   }
-  if (user.productScopes.length) return { state: 'family', label: 'Familia' }
-  if (user.audience === 'internal') return { state: 'none', label: 'Interna sin rol' }
-  return { state: 'unknown', label: 'Revisar' }
+  if (user.productScopes.length) return { state: 'family' as const, label: 'Familia' }
+  if (user.audience === 'internal') return { state: 'none' as const, label: 'Interna sin responsabilidad' }
+  return { state: 'unknown' as const, label: 'Revisar vínculo' }
 }
 
 function impersonationButtonLabel(user: SuperAdminUserSummary) {
@@ -805,14 +997,14 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 </script>
 
 <style scoped>
-.superadmin-console {
+.access-console {
   display: grid;
   gap: 16px;
 }
 
-.access-header,
+.page-intro,
 .directory-pane,
-.person-pane,
+.case-pane,
 .state-panel {
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid #dce5eb;
@@ -820,7 +1012,7 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
 }
 
-.access-header {
+.page-intro {
   align-items: end;
   display: flex;
   gap: 18px;
@@ -828,40 +1020,51 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: clamp(18px, 2.2vw, 26px);
 }
 
-.access-header h1,
-.pane-heading h2,
-.identity-panel h2,
-.section-title h3,
-.resolution-panel h3,
+.kicker {
+  color: #526173;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.page-intro h1,
+.directory-title h2,
+.case-header h2,
+.section-heading h3,
+.risk-panel h3,
 .support-section h3,
 .state-panel h2,
-.sensitive-panel h4,
-.change-preview h4 {
+.access-group h4,
+.review-panel h4 {
   color: #152032;
   margin: 0;
 }
 
-.access-header h1 {
+.page-intro h1 {
   font-family: var(--font-body);
   font-size: clamp(2rem, 3vw, 2.75rem);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
 }
 
-.access-header p:not(.eyebrow),
-.identity-panel p,
-.resolution-panel p,
-.locked-note,
+.page-intro p:not(.kicker),
+.case-header p,
+.section-heading p,
+.risk-panel p,
 .support-section p,
-.sensitive-panel p,
-.change-preview li {
+.access-group p,
+.locked-note,
+.review-panel p,
+.review-panel li,
+.reason-field small {
   color: #627386;
   margin: 0;
 }
 
 .head-actions,
 .role-actions,
-.support-actions,
-.resolution-actions {
+.support-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -869,13 +1072,14 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .access-workspace {
+  align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
 }
 
 .directory-pane,
-.person-pane {
+.case-pane {
   align-content: start;
   display: grid;
   gap: 14px;
@@ -883,23 +1087,22 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .directory-pane {
-  align-self: start;
   position: sticky;
   top: calc(var(--topbar-height) + 18px);
 }
 
-.pane-heading,
-.section-title,
-.identity-status {
+.directory-title,
+.section-heading,
+.case-status {
   align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
 }
 
-.pane-heading > span,
-.section-title > span,
-.identity-status small {
+.directory-title > span,
+.section-heading > span,
+.case-status small {
   color: #64748b;
   font-size: 0.76rem;
   font-weight: 800;
@@ -918,47 +1121,65 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .directory-search input,
-.filter-row select {
-  background: transparent;
-  border: 0;
+.filter-row select,
+.reason-field textarea {
   color: #152032;
+  font: inherit;
   min-width: 0;
   outline: 0;
 }
 
+.directory-search input,
+.filter-row select {
+  background: transparent;
+  border: 0;
+}
+
 .search-submit,
-.inline-action {
+.inline-link {
   background: #ffffff;
   border: 1px solid #cfe0e7;
   border-radius: 10px;
   color: #0d766d;
   cursor: pointer;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 850;
   min-height: 34px;
   padding: 0 11px;
 }
 
+.inline-link {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 36px;
+  text-align: center;
+}
+
 .filter-row,
-.metric-strip,
-.facts-grid,
-.access-matrix {
+.directory-summary,
+.identity-layout,
+.access-groups,
+.role-grid,
+.sensitive-grid {
   display: grid;
   gap: 8px;
 }
 
-.filter-row {
-  grid-template-columns: 1fr 1fr;
+.filter-row,
+.role-grid,
+.sensitive-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .filter-row label,
-.metric-strip span,
-.facts-grid article,
-.access-matrix article,
-.role-switch,
+.directory-summary div,
+.fact-list div,
+.relationship-list article,
+.access-group,
+.role-card,
 .scope-picker,
-.sensitive-panel,
-.change-preview {
+.review-panel {
   background: #fbfcfd;
   border: 1px solid #dce5eb;
   border-radius: 13px;
@@ -971,36 +1192,42 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .filter-row span,
-.facts-grid span,
-.section-title span,
-.row-meta small,
-.metric-strip span,
-.change-preview .eyebrow {
+.directory-summary dt,
+.fact-list dt,
+.relationship-list span,
+.row-tags small,
+.reason-field span {
   color: #6b7a8b;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 850;
 }
 
-.metric-strip {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.directory-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.metric-strip span {
-  align-content: center;
+.directory-summary div {
   display: grid;
-  min-height: 46px;
+  gap: 1px;
+  min-height: 48px;
   padding: 8px 10px;
 }
 
-.metric-strip b {
+.directory-summary dt,
+.directory-summary dd {
+  margin: 0;
+}
+
+.directory-summary dd {
   color: #152032;
   font-size: 1rem;
+  font-weight: 900;
 }
 
 .people-list {
   display: grid;
   gap: 6px;
-  max-height: calc(100vh - 338px);
+  max-height: calc(100vh - 352px);
   overflow: auto;
   padding-right: 2px;
 }
@@ -1013,7 +1240,7 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(108px, auto);
+  grid-template-columns: 42px minmax(0, 1fr) minmax(126px, auto);
   padding: 9px;
   text-align: left;
 }
@@ -1046,8 +1273,9 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .person-copy,
-.row-meta,
-.identity-copy {
+.row-tags,
+.case-header > div,
+.case-status {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1055,12 +1283,12 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 .person-copy strong,
 .person-copy small,
-.row-meta b,
-.row-meta small,
-.facts-grid strong,
-.facts-grid small,
-.identity-copy h2,
-.identity-copy p {
+.row-tags small,
+.fact-list dd,
+.fact-list small,
+.case-header h2,
+.case-header p,
+.case-status small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1072,24 +1300,27 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 .person-copy small,
-.facts-grid small,
-.access-matrix small,
-.role-switch small,
-.sensitive-panel small,
+.fact-list small,
+.relationship-list p,
+.access-line span,
+.role-card p,
 .scope-picker p {
   color: #667789;
   font-size: 0.78rem;
   line-height: 1.45;
+  margin: 0;
 }
 
-.row-meta {
+.row-tags,
+.case-status {
   justify-items: end;
 }
 
-.row-meta b,
-.status-badge,
-.access-matrix b,
-.assignment-section .section-title > span {
+.row-tags b,
+.case-status span,
+.access-line b,
+.assignment-section .section-heading > span,
+.review-panel .section-heading > span {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 850;
@@ -1121,7 +1352,7 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   color: #64748b;
 }
 
-.identity-panel {
+.case-header {
   align-items: center;
   border-bottom: 1px solid #e4ebf0;
   display: grid;
@@ -1130,28 +1361,48 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding-bottom: 14px;
 }
 
-.identity-panel h2 {
+.case-header h2 {
   font-family: var(--font-body);
   font-size: clamp(1.45rem, 2.1vw, 2rem);
 }
 
-.identity-status {
-  align-items: flex-end;
-  flex-direction: column;
+.case-status {
+  align-items: end;
 }
 
-.resolution-panel {
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #dce5eb;
-  border-radius: 15px;
+.case-steps {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 14px;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.context-panel,
+.case-steps li {
+  background: #fbfcfd;
+  border: 1px solid #dce5eb;
+  border-radius: 13px;
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+}
+
+.case-steps strong,
+.relationship-list strong,
+.access-line strong,
+.role-card strong {
+  color: #152032;
+}
+
+.case-steps span {
+  color: #627386;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.risk-panel,
+.identity-section,
 .access-section,
 .assignment-section,
 .support-section {
@@ -1162,34 +1413,55 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: 14px;
 }
 
-.facts-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.risk-panel {
+  background: #fffaf0;
+  border-color: #f3d589;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
 }
 
-.facts-grid article {
+.risk-panel ul,
+.review-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.risk-panel li {
+  color: #6b5608;
+  line-height: 1.45;
+}
+
+.section-heading.split,
+.compact-heading {
+  align-items: start;
+}
+
+.identity-layout {
+  grid-template-columns: minmax(240px, 0.92fr) minmax(0, 1.08fr);
+}
+
+.fact-list,
+.relationship-list,
+.access-lines {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.fact-list div {
   display: grid;
   gap: 4px;
   min-width: 0;
   padding: 12px;
 }
 
-.facts-grid strong {
+.fact-list dd {
   color: #152032;
-  font-size: 0.96rem;
+  font-weight: 900;
+  margin: 0;
 }
 
-.section-title h3,
-.resolution-panel h3,
-.support-section h3 {
-  font-family: var(--font-body);
-  font-size: 1.08rem;
-}
-
-.access-matrix {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.access-matrix article {
+.relationship-list article,
+.access-line {
   align-items: center;
   display: grid;
   gap: 12px;
@@ -1197,32 +1469,54 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   padding: 12px;
 }
 
-.access-matrix strong,
-.role-switch strong,
-.sensitive-panel strong {
-  color: #152032;
-  display: block;
-}
-
-.access-matrix article[data-state='active'],
-.access-matrix article[data-state='family'],
-.access-matrix article[data-state='none'],
-.access-matrix article[data-state='incomplete'] {
+.relationship-list article[data-state],
+.access-line[data-state],
+.role-card[data-state] {
   color: inherit;
 }
 
-.role-switch {
-  align-items: center;
-  cursor: pointer;
+.access-groups {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.access-group {
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
   padding: 12px;
 }
 
-.role-switch input,
-.sensitive-panel input {
+.access-group h4,
+.review-panel h4 {
+  font-family: var(--font-body);
+  font-size: 1.02rem;
+}
+
+.access-line {
+  background: #ffffff;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+}
+
+.role-card {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  min-height: 112px;
+  padding: 12px;
+}
+
+.role-card.selectable {
+  cursor: pointer;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.role-card input {
   accent-color: #0d766d;
+  margin-top: 3px;
+}
+
+.school-role {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .scope-picker {
@@ -1262,33 +1556,24 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
   color: #15803d;
 }
 
-.sensitive-panel {
+.review-panel {
   display: grid;
   gap: 12px;
   padding: 12px;
 }
 
-.sensitive-panel label {
-  align-items: start;
+.reason-field {
+  display: grid;
+  gap: 6px;
+}
+
+.reason-field textarea {
   background: #ffffff;
-  border: 1px solid #e1e8ed;
+  border: 1px solid #dce5eb;
   border-radius: 12px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr);
-  padding: 10px;
-}
-
-.change-preview {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-}
-
-.change-preview ul {
-  color: #526173;
-  margin: 0;
-  padding-left: 18px;
+  min-height: 84px;
+  padding: 10px 12px;
+  resize: vertical;
 }
 
 .support-section {
@@ -1338,8 +1623,9 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 @media (max-width: 1180px) {
   .access-workspace,
-  .facts-grid,
-  .access-matrix {
+  .identity-layout,
+  .access-groups,
+  .case-steps {
     grid-template-columns: 1fr;
   }
 
@@ -1353,35 +1639,38 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 }
 
 @media (max-width: 760px) {
-  .access-header,
+  .page-intro,
   .head-actions,
-  .section-title,
-  .support-section,
-  .pane-heading {
+  .directory-title,
+  .section-heading,
+  .risk-panel,
+  .support-section {
     align-items: stretch;
     flex-direction: column;
   }
 
   .head-actions,
   .role-actions,
-  .support-actions,
-  .resolution-actions {
+  .support-actions {
     display: grid;
     justify-content: stretch;
   }
 
   .filter-row,
-  .metric-strip,
-  .identity-panel,
-  .resolution-panel,
+  .directory-summary,
+  .case-header,
   .person-row,
-  .access-matrix article,
+  .relationship-list article,
+  .access-line,
+  .role-grid,
+  .sensitive-grid,
+  .school-role,
   .support-section {
     grid-template-columns: 1fr;
   }
 
-  .row-meta,
-  .identity-status {
+  .row-tags,
+  .case-status {
     align-items: start;
     justify-items: start;
   }
