@@ -29,7 +29,7 @@
       </section>
 
       <template v-else>
-        <section class="scope-strip" aria-label="Alcance escolar">
+        <section class="scope-strip" aria-label="Acceso escolar asignado">
           <article>
             <span>Familias</span>
             <strong>{{ overview?.reach.families || 0 }}</strong>
@@ -73,7 +73,7 @@
           <aside class="scope-panel">
             <div class="section-title vertical">
               <div>
-                <p class="eyebrow">Alcance</p>
+                <p class="eyebrow">Planteles</p>
                 <h2>{{ scopeLabel }}</h2>
               </div>
               <p></p>
@@ -86,7 +86,7 @@
               </article>
               <article v-if="!(overview?.options.scopeTree.planteles || []).length">
                 <strong>Sin plantel</strong>
-                <small>Solicita completar tu alcance.</small>
+                <small>Solicita completar tu acceso escolar.</small>
               </article>
             </div>
           </aside>
@@ -118,7 +118,7 @@ const { data: overview, pending, error: loadError } = useFetch<GestionEscolarOve
 const modules = computed(() => overview.value?.modules.filter((module) => module.enabled) || [])
 const scopeLabel = computed(() => {
   const planteles = overview.value?.reach.planteles || []
-  if (!planteles.length) return 'Alcance pendiente'
+  if (!planteles.length) return 'Acceso pendiente'
   if (planteles.length === 1) return `Plantel ${planteles[0]}`
   return `${planteles.length} planteles`
 })

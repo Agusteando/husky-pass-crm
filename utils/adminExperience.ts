@@ -49,7 +49,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     return {
       key: 'superAdmin',
       title: 'Super Admin',
-      subtitle: 'Cuentas · alcance · auditoría',
+      subtitle: 'Cuentas · permisos · auditoría',
       context: '',
       homeTo
     }
@@ -111,7 +111,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
   if (admin.isSuperAdmin) {
     return [
       { key: 'cuentas', label: 'Cuentas', to: '/admin/superadmin', icon: 'security' },
-      { key: 'alcance-escolar', label: 'Alcance', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
+      { key: 'acceso-escolar', label: 'Acceso escolar', shortLabel: 'Escolar', to: '/admin/superadmin/gestion-escolar', icon: 'school' },
       { key: 'salas', label: 'Salas', to: daycareRouteForUser(admin), icon: 'daycare' },
       { key: 'auditoria', label: 'Auditoría', to: '/admin/historial-accesos', icon: 'history' }
     ]
@@ -166,5 +166,5 @@ function summarizeSchoolContext(user: AppSessionUser) {
   if (planteles.length) return planteles.join(' / ')
   if (user.campus) return user.campus
   if (user.empresa) return user.empresa
-  return 'Alcance escolar asignado'
+  return 'Acceso escolar asignado'
 }

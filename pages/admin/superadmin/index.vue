@@ -6,7 +6,7 @@
         <h1>Revisión de cuentas</h1>
       </div>
       <div class="ops-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Alcance escolar</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/gestion-escolar">Acceso escolar</NuxtLink>
         <NuxtLink class="btn btn-secondary" to="/admin/historial-accesos">Historial</NuxtLink>
         <button class="btn btn-primary" type="button" data-diagnostic-action="actualizar-directorio" :disabled="isLoadingVisible" @click="refreshDirectory">
           {{ isLoadingVisible ? 'Actualizando...' : 'Actualizar' }}
@@ -150,7 +150,7 @@
             <div class="matrix" role="table" aria-label="Acceso efectivo actual">
               <div class="matrix-row matrix-head" role="row">
                 <span role="columnheader">Área</span>
-                <span role="columnheader">Alcance</span>
+                <span role="columnheader">Plantel / unidad</span>
                 <span role="columnheader">Origen</span>
                 <span role="columnheader">Estado</span>
               </div>

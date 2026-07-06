@@ -35,6 +35,7 @@ import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/pers
 import { COMMUNICATIONS_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, GESTION_ESCOLAR_ROLE, hasGestionEscolarAdminScope, hasRoleToken } from '~/utils/sessionScopes'
 import { normalizeEmail } from '~/utils/superAdmin'
 import { displayMatriculaCandidate, normalizeMatricula } from '~/utils/matricula'
+import { shortHash } from '~/server/utils/logger'
 
 interface GestionPermissionRow extends RowDataPacket {
   id: number
@@ -242,7 +243,7 @@ export function formatGestionScopeLabel(scope: GestionEscolarScope) {
     normalized.nivel,
     normalized.grado && `Grado ${normalized.grado}`,
     normalized.grupo && `Grupo ${normalized.grupo}`
-  ].filter(Boolean).join(' · ') || 'Alcance por definir'
+  ].filter(Boolean).join(' · ') || 'Plantel por definir'
 }
 
 function gradeMatches(scopeGrade?: string | null, value?: string | null) {
@@ -985,7 +986,7 @@ function expandDependentGestionPermissions(permissions: GestionEscolarPermission
   return expanded
 }
 
-export async function setGestionPermissionsForUser(actor: AppSessionUser, userId: number, enabled: boolean, inputs: GestionEscolarPermissionInput[]) {
+export async function setGestionPermissionsForUser(actor: AppSessionUser, userId: number, enabled: boolean, inputs: GestionEscolarPermissionInput[], reason: string) {
   const permissions = enabled
     ? expandDependentGestionPermissions(inputs.map((input) => normalizePermissionInput(userId, input)).filter((item): item is GestionEscolarPermission => Boolean(item)))
     : []
@@ -1027,6 +1028,8 @@ export async function setGestionPermissionsForUser(actor: AppSessionUser, userId
     module: 'superadmin',
     metadata: {
       capabilities: Array.from(new Set(permissions.map((permission) => permission.capability))),
+      reasonHash: shortHash(reason),
+      reasonLength: reason.length,
       permissions: permissions.map((permission) => ({
         capability: permission.capability,
         scope: normalizeGestionScope(permission)
@@ -1477,7 +1480,7 @@ export async function getGestionFamilyDetail(user: AppSessionUser, familyUserId:
     },
     supportPreview: [
       { label: 'Cuenta', value: family.parentStatus === 'active' ? 'Activa' : family.parentStatus === 'limited' ? 'Limitada' : 'Incompleta' },
-      { label: 'Alcance', value: formatGestionScopeLabel(familyScope(family)) },
+      { label: 'Plantel / grupo', value: formatGestionScopeLabel(familyScope(family)) },
       { label: 'Accesos', value: family.features.join(' · ') }
     ]
   }

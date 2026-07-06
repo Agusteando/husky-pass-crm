@@ -20,13 +20,14 @@ const permissionSchema = z.object({
 
 const schema = z.object({
   enabled: z.boolean().optional().default(true),
-  permissions: z.array(permissionSchema).optional().default([])
+  permissions: z.array(permissionSchema).optional().default([]),
+  reason: z.string().trim().min(12).max(500)
 })
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
   if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede asignar Gestion Escolar.')
   const id = parseOrBadRequest(idSchema, getRouterParam(event, 'id'), 'Selecciona un usuario interno valido.')
-  const body = parseOrBadRequest(schema, await readBody(event), 'Revisa las capacidades y alcances antes de guardar.')
-  return withRequestBoundary(event, 'superadmin.gestion-escolar.save', () => setGestionPermissionsForUser(user, id, body.enabled, body.permissions), { userId: user.id, targetUserId: id })
+  const body = parseOrBadRequest(schema, await readBody(event), 'Revisa rol, plantel y motivo antes de guardar.')
+  return withRequestBoundary(event, 'superadmin.gestion-escolar.save', () => setGestionPermissionsForUser(user, id, body.enabled, body.permissions, body.reason), { userId: user.id, targetUserId: id })
 })

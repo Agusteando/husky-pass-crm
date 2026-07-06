@@ -7,7 +7,7 @@
         
       </div>
       <div class="head-action-stack">
-        <span v-if="data" class="permission-chip" :data-global="data.permissions.isGlobal">{{ data.permissions.isGlobal ? 'Global' : 'Alcance asignado' }}</span>
+        <span v-if="data" class="permission-chip" :data-global="data.permissions.isGlobal">{{ data.permissions.isGlobal ? 'Global' : 'Audiencia asignada' }}</span>
         <button class="btn btn-primary" type="button" @click="resetDraft">
           <FamilyPersonasIcon name="plus" />
           Nuevo comunicado
