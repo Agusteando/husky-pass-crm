@@ -45,6 +45,7 @@ import { displayMatriculaCandidate } from '~/utils/matricula'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
+import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -101,12 +102,14 @@ async function exitImpersonation() {
   const target = impersonation?.mode === 'daycarePreview'
     ? '/admin/daycare/salas'
     : impersonation?.admin?.isSuperAdmin ? '/admin/superadmin' : impersonation?.admin?.productScopes?.includes('gestionEscolarAdmin') ? '/admin/gestion-escolar/familias' : '/admin/daycare/salas'
-  await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
+  const response = await $fetch<PublicSession>('/api/auth/impersonation/exit', { method: 'POST' })
+  setCachedRouteSession(response)
   await navigateTo(target)
 }
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
+  setCachedRouteSession(anonymousSession)
   const user = props.session?.user
   const target = props.session?.user?.kind === 'admin'
     ? defaultLoginRouteForExperience('admin')

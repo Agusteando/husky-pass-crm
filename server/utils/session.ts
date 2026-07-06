@@ -54,10 +54,32 @@ export function getAppSession(event: H3Event): PublicSession {
   }
 }
 
+function adminOriginAsSessionUser(user: AppSessionUser): AppSessionUser | null {
+  if (user.kind === 'admin') return user
+  const admin = user.impersonation?.admin
+  if (!admin) return null
+  return {
+    ...admin,
+    scopes: {},
+    impersonation: user.impersonation
+  } as AppSessionUser
+}
+
 export function requireSession(event: H3Event, kind?: 'family' | 'admin') {
   const session = getAppSession(event)
-  if (!session.user || (kind && session.user.kind !== kind)) {
+  if (!session.user) {
     throw publicError(401, 'Sesión no válida')
   }
+
+  if (kind === 'admin') {
+    const admin = adminOriginAsSessionUser(session.user)
+    if (!admin) throw publicError(401, 'Sesión no válida')
+    return admin
+  }
+
+  if (kind === 'family' && session.user.kind !== 'family') {
+    throw publicError(401, 'Sesión no válida')
+  }
+
   return session.user
 }

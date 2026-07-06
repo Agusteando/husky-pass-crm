@@ -169,6 +169,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { navigateTo, useFetch } from 'nuxt/app'
 import type { GestionEscolarFamiliesResponse, GestionEscolarFamilyDetailResponse, GestionEscolarFamilyRow } from '~/types/gestionEscolar'
+import type { PublicSession } from '~/types/session'
+import { setCachedRouteSession } from '~/utils/routeSession'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
@@ -244,11 +246,12 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   impersonating.value = true
   actionError.value = ''
   try {
-    await $fetch('/api/auth/admin/impersonate', { method: 'POST', body: { userId: family.userId } })
+    const response = await $fetch<PublicSession>('/api/auth/admin/impersonate', { method: 'POST', body: { userId: family.userId } })
+    setCachedRouteSession(response)
     await navigateTo('/familia/personas-autorizadas')
   } catch (error) {
     const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure.data?.statusMessage || failure.data?.message || failure.statusMessage || failure.message || 'No pudimos abrir la vista familiar.'
+    actionError.value = failure.data?.message || failure.data?.statusMessage || failure.message || failure.statusMessage || 'No pudimos abrir la vista familiar.'
   } finally {
     impersonating.value = false
   }

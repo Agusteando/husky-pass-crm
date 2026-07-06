@@ -303,9 +303,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { AppSessionUser, FamilyProductScope } from '~/types/session'
+import type { AppSessionUser, FamilyProductScope, PublicSession } from '~/types/session'
 import type { SuperAdminAssignableRole, SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
+import { setCachedRouteSession } from '~/utils/routeSession'
 import { displayMatricula } from '~/utils/matricula'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
@@ -957,11 +958,12 @@ async function requestImpersonation(user: SuperAdminUserSummary) {
   actionNotice.value = ''
   impersonatingId.value = user.id
   try {
-    const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
+    const response = await $fetch<{ user: AppSessionUser } & PublicSession>('/api/auth/admin/impersonate', {
       method: 'POST',
       body: { userId: user.id }
     })
     actionNotice.value = 'Abriendo vista familiar.'
+    setCachedRouteSession(response)
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (error: unknown) {
     actionError.value = getErrorMessage(error, 'No fue posible abrir esta vista familiar.')
@@ -977,8 +979,8 @@ function normalizeScope(value: unknown): SuperAdminDirectoryScope {
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== 'object') return fallback
-  const candidate = error as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-  return candidate.data?.statusMessage || candidate.statusMessage || candidate.message || fallback
+  const candidate = error as { data?: { message?: string; statusMessage?: string }; message?: string; statusMessage?: string }
+  return candidate.data?.message || candidate.data?.statusMessage || candidate.message || candidate.statusMessage || fallback
 }
 </script>
 

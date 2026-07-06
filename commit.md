@@ -1,1 +1,1 @@
-Rediseña las consolas administrativas con flujos operativos claros
+Corrige impersonación administrativa y mensajes de autorización

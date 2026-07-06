@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<number, string> = {
   504: 'Tiempo de espera'
 }
 
-export function publicError(statusCode: number, message: string, statusMessage = STATUS_LABELS[statusCode] || 'Error', data?: Record<string, unknown>) {
+export function publicError(statusCode: number, message: string, statusMessage = message || STATUS_LABELS[statusCode] || 'Error', data?: Record<string, unknown>) {
   return createError({
     statusCode,
     statusMessage,

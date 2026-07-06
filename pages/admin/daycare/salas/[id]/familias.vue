@@ -93,7 +93,8 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
 import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
-import type { AppSessionUser } from '~/types/session'
+import type { AppSessionUser, PublicSession } from '~/types/session'
+import { setCachedRouteSession } from '~/utils/routeSession'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 
@@ -242,14 +243,15 @@ async function impersonate(userId?: number) {
   actionNotice.value = ''
   impersonatingId.value = userId
   try {
-    const response = await $fetch<{ user: AppSessionUser }>('/api/auth/admin/impersonate', {
+    const response = await $fetch<{ user: AppSessionUser } & PublicSession>('/api/auth/admin/impersonate', {
       method: 'POST',
       body: { userId }
     })
     actionNotice.value = 'Abriendo vista familiar.'
+    setCachedRouteSession(response)
     await navigateTo(defaultFamilyRoute(response.user))
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible abrir la vista familiar.'
   } finally {
     impersonatingId.value = null
     confirmingImpersonationId.value = null
@@ -261,11 +263,12 @@ async function previewSala() {
   actionNotice.value = ''
   previewing.value = true
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
+    const response = await $fetch<PublicSession>('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: salaId } })
     actionNotice.value = 'Abriendo vista familiar de sala.'
+    setCachedRouteSession(response)
     await navigateTo('/familia/daycare')
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible abrir la vista familiar.'
   } finally {
     previewing.value = false
   }

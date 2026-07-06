@@ -122,6 +122,8 @@ import { useAppSession } from '~/composables/useAppSession'
 import { computed, onMounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { SalaSummary } from '~/types/daycare'
+import type { PublicSession } from '~/types/session'
+import { setCachedRouteSession } from '~/utils/routeSession'
 
 const route = useRoute()
 const router = useRouter()
@@ -246,11 +248,12 @@ async function previewSala(id: number) {
   actionError.value = ''
   actionNotice.value = ''
   try {
-    await $fetch('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
+    const response = await $fetch<PublicSession>('/api/auth/admin/preview-daycare', { method: 'POST', body: { sala: id } })
     actionNotice.value = 'Abriendo vista familiar de sala.'
+    setCachedRouteSession(response)
     await navigateTo('/familia/daycare')
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible abrir la vista familiar.'
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible abrir la vista familiar.'
   }
 }
 
