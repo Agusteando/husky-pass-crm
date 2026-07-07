@@ -4,10 +4,10 @@
       eyebrow="Alumno"
       title="Foto del alumno"
       description="Mantén una fotografía clara y actual para generar los Husky Pass."
-      :meta="currentPhoto ? 'Foto lista' : 'Foto pendiente'"
+      :meta="currentPhoto ? 'Foto disponible' : 'Sin foto'"
       :theme="theme"
       ambassador-variant="preview"
-      :ambassador-title="currentPhoto ? 'Foto lista' : 'Te ayudo con la foto'"
+      :ambassador-title="currentPhoto ? 'Foto disponible' : 'Te ayudo con la foto'"
       :ambassador-message="currentPhoto ? 'La identificación visual ya puede respaldar los Husky Pass.' : 'Una foto frontal y clara reduce rechazos al generar pases.'"
       :ambassador-tone="currentPhoto ? 'success' : 'notice'"
     />
@@ -50,7 +50,7 @@
         </div>
 
         <div class="photo-next-step" :data-state="currentPhoto ? 'ready' : 'pending'">
-          <strong>{{ currentPhoto ? 'Foto lista para Husky Pass' : 'Siguiente paso' }}</strong>
+          <strong>{{ currentPhoto ? 'Foto disponible para Husky Pass' : 'Siguiente paso' }}</strong>
           <span>{{ currentPhoto ? 'Puedes actualizarla cuando cambie o si el colegio solicita una nueva toma.' : 'Sube una foto frontal y clara para habilitar la generación de Husky Pass.' }}</span>
         </div>
       </article>

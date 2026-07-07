@@ -22,17 +22,12 @@
 
     <section v-else class="support-layout">
       <aside class="family-pane">
-        <div class="metrics-row">
-          <article><span>Familias</span><strong>{{ data?.metrics.families || 0 }}</strong></article>
-          <article><span>Autorizados</span><strong>{{ data?.metrics.withAuthorizedPeople || 0 }}</strong></article>
-          <article><span>Vista familiar</span><strong>{{ data?.metrics.canImpersonate || 0 }}</strong></article>
-        </div>
-
         <div class="pane-title">
           <div>
-            <p class="eyebrow">Resultados</p>
-            <h2>{{ data?.rows.length || 0 }} familias visibles</h2>
+            <p class="eyebrow">Directorio</p>
+            <h2>{{ data?.rows.length || 0 }} familias</h2>
           </div>
+          <span class="count-chip">{{ data?.metrics.withAuthorizedPeople || 0 }} autorizados</span>
         </div>
 
         <div v-if="data?.rows.length" class="family-list">
@@ -79,27 +74,12 @@
             </div>
           </header>
 
-          <section class="facts-grid">
-            <article>
-              <span>Plantel</span>
-              <strong>{{ detail.family.plantel }}{{ detail.family.grado ? ` / ${detail.family.grado}` : '' }}</strong>
-            </article>
-            <article>
-              <span>Estado</span>
-              <strong>{{ statusLabel(detail.family.parentStatus) }}</strong>
-            </article>
-            <article>
-              <span>Estudiantes</span>
-              <strong>{{ detail.students.length }}</strong>
-            </article>
-            <article>
-              <span>Autorizados</span>
-              <strong>{{ detail.authorizedPeople.length }}</strong>
-            </article>
-            <article>
-              <span>Vista familiar</span>
-              <strong>{{ detail.family.canImpersonate ? 'Permitida' : 'Solo lectura' }}</strong>
-            </article>
+          <section class="family-brief" aria-label="Resumen familiar">
+            <span>{{ detail.family.plantel }}{{ detail.family.grado ? ` · ${detail.family.grado}` : '' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</span>
+            <span :data-status="detail.family.parentStatus">{{ statusLabel(detail.family.parentStatus) }}</span>
+            <span>{{ detail.students.length }} estudiante{{ detail.students.length === 1 ? '' : 's' }}</span>
+            <span>{{ detail.authorizedPeople.length }} autorizado{{ detail.authorizedPeople.length === 1 ? '' : 's' }}</span>
+            <span>{{ detail.family.canImpersonate ? 'Vista familiar' : 'Solo lectura' }}</span>
           </section>
 
           <section class="detail-grid">
@@ -112,9 +92,15 @@
             </article>
             <article>
               <p class="eyebrow">Personas autorizadas</p>
-              <p v-for="person in detail.authorizedPeople" :key="person.id">
-                <strong>{{ person.name }}</strong>
-                <small>{{ person.relationship || 'Parentesco pendiente' }} · {{ person.hasPhoto ? 'Foto lista' : 'Foto pendiente' }}</small>
+              <p v-for="person in detail.authorizedPeople" :key="person.id" class="authorized-person">
+                <span class="person-copy">
+                  <strong>{{ person.name }}</strong>
+                  <small>{{ person.relationship || 'Parentesco pendiente' }}</small>
+                </span>
+                <span class="photo-signal" :data-ready="person.hasPhoto ? 'ready' : 'missing'" :title="person.hasPhoto ? 'Con foto' : 'Sin foto'">
+                  <FamilyPersonasIcon :name="person.hasPhoto ? 'camera' : 'alert'" />
+                  <span>{{ person.hasPhoto ? 'Con foto' : 'Sin foto' }}</span>
+                </span>
               </p>
               <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
             </article>
@@ -134,13 +120,12 @@
           <section class="signals-panel">
             <p class="eyebrow">Cuenta</p>
             <div>
-              <span v-for="item in detail.supportPreview" :key="item.label">{{ item.label }}: {{ item.value }}</span>
+              <span v-for="item in detail.supportPreview" :key="item.label"><strong>{{ item.label }}</strong>{{ item.value }}</span>
               <span v-for="signal in detail.family.contactSignals" :key="signal">{{ signal }}</span>
             </div>
           </section>
 
           <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
-          <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         </template>
 
         <div v-else-if="detailError" class="state-panel compact" data-state="error">
@@ -154,6 +139,21 @@
         </div>
       </section>
     </section>
+    <Teleport to="body">
+      <section v-if="confirmingId && detail" class="support-modal" @click.self="confirmingId = null">
+        <article role="dialog" aria-modal="true" aria-labelledby="family-preview-title">
+          <p class="eyebrow">Vista familiar</p>
+          <h2 id="family-preview-title">{{ detail.family.studentName }}</h2>
+          <p>{{ detail.family.plantel }}{{ detail.family.grado ? ` · ${detail.family.grado}` : '' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</p>
+          <footer>
+            <button class="inline-action" type="button" @click="confirmingId = null">Cancelar</button>
+            <button class="btn btn-primary" type="button" :disabled="impersonating" @click="impersonate(detail.family)">
+              {{ impersonating ? 'Abriendo...' : 'Abrir vista familiar' }}
+            </button>
+          </footer>
+        </article>
+      </section>
+    </Teleport>
   </section>
 </template>
 
@@ -223,8 +223,7 @@ async function selectFamily(family: GestionEscolarFamilyRow) {
 }
 
 function impersonationLabel(userId: number) {
-  if (impersonating.value) return 'Abriendo...'
-  if (confirmingId.value === userId) return 'Confirmar vista'
+  if (impersonating.value && confirmingId.value === userId) return 'Abriendo...'
   return 'Vista familiar'
 }
 
@@ -232,7 +231,7 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   if (!family.canImpersonate) return
   if (confirmingId.value !== family.userId) {
     confirmingId.value = family.userId
-    actionNotice.value = `Confirma para abrir la vista familiar de ${family.studentName}.`
+    actionNotice.value = ''
     return
   }
   impersonating.value = true
@@ -252,6 +251,13 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 <style scoped>
 .families-support {
+  --ink: #102235;
+  --muted: #617187;
+  --line: rgba(18, 95, 89, 0.16);
+  --soft: #f7fbfa;
+  --accent: #07877d;
+  --accent-dark: #075f58;
+  --sun: #f6b94f;
   display: grid;
   gap: 16px;
 }
@@ -260,57 +266,82 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 .family-pane,
 .detail-pane,
 .state-panel {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dce5eb;
-  border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
 }
 
 .support-head {
-  align-items: end;
+  align-items: center;
+  background:
+    radial-gradient(circle at 10% 18%, rgba(8, 135, 125, 0.12), transparent 34%),
+    radial-gradient(circle at 90% 12%, rgba(246, 185, 79, 0.18), transparent 30%),
+    linear-gradient(135deg, #ffffff, #fbfdf6);
   display: grid;
-  gap: 16px;
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 480px);
-  padding: clamp(18px, 2.2vw, 28px);
+  overflow: hidden;
+  padding: clamp(20px, 3vw, 34px);
+  position: relative;
+}
+
+.support-head::after {
+  background: linear-gradient(180deg, #07877d, #8bbf48);
+  border-radius: 999px;
+  content: '';
+  height: 86px;
+  opacity: 0.14;
+  position: absolute;
+  right: 28px;
+  top: -42px;
+  transform: rotate(35deg);
+  width: 14px;
 }
 
 .support-head h1,
 .pane-title h2,
 .detail-head h2,
 .state-panel h2 {
-  color: #152032;
-  font-family: var(--font-body);
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
   margin: 0;
 }
 
 .support-head h1 {
-  font-size: clamp(2rem, 3vw, 3.1rem);
+  font-size: clamp(2.3rem, 4.2vw, 4rem);
+  letter-spacing: -0.03em;
+  line-height: 0.92;
 }
 
-.support-head p:not(.eyebrow),
-.detail-head p,
-.detail-grid small,
-.family-row small {
-  color: #667789;
-  margin: 0;
+.eyebrow {
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
 }
 
 .support-search {
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid #dce5eb;
-  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 14px 30px rgba(14, 40, 55, 0.06);
   display: grid;
-  gap: 9px;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  min-height: 50px;
-  padding: 6px 8px 6px 12px;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  min-height: 56px;
+  padding: 7px 8px 7px 15px;
+  position: relative;
+  z-index: 1;
 }
 
 .support-search input {
   background: transparent;
   border: 0;
-  color: #152032;
+  color: var(--ink);
   min-width: 0;
   outline: 0;
 }
@@ -318,14 +349,14 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 .support-search button,
 .inline-action {
   background: #ffffff;
-  border: 1px solid #cfe0e7;
-  border-radius: 10px;
-  color: #0d766d;
+  border: 1px solid rgba(8, 135, 125, 0.24);
+  border-radius: 13px;
+  color: var(--accent-dark);
   cursor: pointer;
   font-size: 0.82rem;
-  font-weight: 850;
-  min-height: 34px;
-  padding: 0 11px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 13px;
 }
 
 .support-layout {
@@ -347,81 +378,70 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   top: calc(var(--topbar-height) + 18px);
 }
 
-.metrics-row,
-.facts-grid,
-.detail-grid {
-  display: grid;
-  gap: 10px;
+.pane-title {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 2px 4px;
 }
 
-.metrics-row {
-  grid-template-columns: repeat(3, 1fr);
+.pane-title h2 {
+  font-size: clamp(1.45rem, 2vw, 1.85rem);
 }
 
-.metrics-row article,
-.facts-grid article,
-.detail-grid article,
-.signals-panel {
-  background: #f8fafc;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-}
-
-.metrics-row span,
-.facts-grid span {
-  color: #6b7a8b;
-  font-size: 0.7rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.metrics-row strong,
-.facts-grid strong {
-  color: #152032;
-  font-size: 1.25rem;
+.count-chip {
+  background: #fff6df;
+  border: 1px solid rgba(246, 185, 79, 0.36);
+  border-radius: 999px;
+  color: #8a650c;
+  font-size: 0.74rem;
+  font-weight: 900;
+  padding: 7px 10px;
 }
 
 .family-list {
   display: grid;
-  gap: 6px;
-  max-height: calc(100vh - 340px);
+  gap: 7px;
+  max-height: calc(100vh - 275px);
   overflow: auto;
-  padding-right: 2px;
+  padding-right: 3px;
 }
 
 .family-row {
   align-items: center;
   background: #ffffff;
   border: 1px solid transparent;
-  border-radius: 13px;
+  border-radius: 18px;
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  padding: 9px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 10px;
   text-align: left;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .family-row.active,
 .family-row:hover {
-  background: #f4faf8;
-  border-color: #cae2dc;
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border-color: rgba(8, 135, 125, 0.22);
+}
+
+.family-row.active {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .avatar {
   align-items: center;
-  background: #eef7f5;
-  border: 1px solid #cae2dc;
-  border-radius: 12px;
-  color: #0d766d;
+  background: linear-gradient(135deg, #eefaf7, #fff6df);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 15px;
+  color: var(--accent-dark);
   display: inline-flex;
-  font-weight: 900;
-  height: 42px;
+  font-weight: 950;
+  height: 44px;
   justify-content: center;
-  width: 42px;
+  width: 44px;
 }
 
 .family-copy {
@@ -437,35 +457,54 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   white-space: nowrap;
 }
 
+.family-copy strong {
+  color: var(--ink);
+}
+
+.family-copy small,
+.detail-head p,
+.detail-grid small {
+  color: var(--muted);
+  margin: 0;
+}
+
 .family-row b {
   background: #f4f6f8;
-  border: 1px solid #dce5eb;
   border-radius: 999px;
   color: #64748b;
   font-size: 0.72rem;
-  font-weight: 850;
+  font-weight: 900;
   padding: 6px 9px;
 }
 
 .family-row b[data-status='active'] {
-  background: #e7f8ef;
-  border-color: #bfead0;
-  color: #15803d;
+  background: #e5f8ee;
+  color: #148044;
 }
 
 .family-row b[data-status='incomplete'] {
-  background: #fff6df;
-  border-color: #f3d589;
+  background: #fff3d5;
   color: #8a650c;
+}
+
+.detail-pane {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(249, 253, 250, 0.93));
 }
 
 .detail-head {
   align-items: start;
-  border-bottom: 1px solid #e1e8ed;
+  border-bottom: 1px solid rgba(18, 95, 89, 0.12);
   display: flex;
-  gap: 14px;
+  gap: 18px;
   justify-content: space-between;
-  padding-bottom: 14px;
+  padding: 4px 2px 16px;
+}
+
+.detail-head h2 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  letter-spacing: -0.02em;
+  line-height: 0.98;
 }
 
 .detail-actions {
@@ -475,12 +514,54 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   justify-content: flex-end;
 }
 
-.facts-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+.detail-actions .btn-primary,
+.support-modal .btn-primary {
+  background: #21324a;
+  border-radius: 14px;
+  box-shadow: 0 16px 30px rgba(33, 50, 74, 0.18);
+  min-height: 42px;
+}
+
+.family-brief {
+  align-items: center;
+  background: #f6fbfa;
+  border: 1px solid rgba(18, 95, 89, 0.12);
+  border-radius: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+
+.family-brief span {
+  background: #ffffff;
+  border: 1px solid rgba(18, 95, 89, 0.10);
+  border-radius: 999px;
+  color: #46586e;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.family-brief span[data-status='active'] {
+  background: #e5f8ee;
+  color: #148044;
 }
 
 .detail-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
+}
+
+.detail-grid article,
+.signals-panel {
+  background: #f8fbfb;
+  border: 1px solid rgba(18, 95, 89, 0.12);
+  border-radius: 20px;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
 }
 
 .detail-grid strong,
@@ -492,6 +573,42 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   margin: 0;
 }
 
+.authorized-person {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.person-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.photo-signal {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 999px;
+  color: #64748b;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  gap: 5px;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.photo-signal[data-ready='ready'] {
+  background: #e5f8ee;
+  color: #148044;
+}
+
+.photo-signal[data-ready='missing'] {
+  background: #fff3d5;
+  color: #8a650c;
+}
+
 .signals-panel div {
   display: flex;
   flex-wrap: wrap;
@@ -499,19 +616,26 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 }
 
 .signals-panel span {
+  align-items: center;
   background: #ffffff;
-  border: 1px solid #dce5eb;
+  border: 1px solid rgba(18, 95, 89, 0.10);
   border-radius: 999px;
   color: #526173;
+  display: inline-flex;
   font-size: 0.76rem;
   font-weight: 850;
+  gap: 6px;
   padding: 7px 10px;
+}
+
+.signals-panel strong {
+  color: #243244;
 }
 
 .surface-message {
   background: #edfdf7;
   border: 1px solid #b7ead6;
-  border-radius: 12px;
+  border-radius: 14px;
   color: #047857;
   margin: 0;
   padding: 10px 12px;
@@ -524,7 +648,7 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 }
 
 .state-panel {
-  color: #667789;
+  color: var(--muted);
   display: grid;
   gap: 9px;
   min-height: 240px;
@@ -537,10 +661,52 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   min-height: 190px;
 }
 
+.support-modal {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.34);
+  display: grid;
+  inset: 0;
+  padding: 18px;
+  place-items: center;
+  position: fixed;
+  z-index: 90;
+}
+
+.support-modal article {
+  background: #ffffff;
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+  display: grid;
+  gap: 10px;
+  max-width: 440px;
+  padding: 22px;
+  width: min(100%, 440px);
+}
+
+.support-modal h2 {
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.support-modal p:not(.eyebrow) {
+  color: var(--muted);
+  margin: 0;
+}
+
+.support-modal footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
 @media (max-width: 1120px) {
   .support-head,
   .support-layout,
-  .facts-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -556,13 +722,14 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 @media (max-width: 720px) {
   .support-search,
-  .metrics-row,
-  .family-row {
+  .family-row,
+  .authorized-person {
     grid-template-columns: 1fr;
   }
 
   .detail-head,
-  .detail-actions {
+  .detail-actions,
+  .support-modal footer {
     align-items: stretch;
     flex-direction: column;
   }

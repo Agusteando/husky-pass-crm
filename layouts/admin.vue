@@ -24,7 +24,10 @@ const topbarItems = computed(() => adminNavigationForUser(session.value?.user))
 
 <style scoped>
 .admin-experience-root {
-  background: var(--color-page);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(8, 135, 125, 0.08), transparent 30%),
+    radial-gradient(circle at 92% 4%, rgba(246, 185, 79, 0.10), transparent 28%),
+    linear-gradient(180deg, #fbfdf9 0%, var(--color-page) 64%, #eef5f6 100%);
   min-height: 100vh;
   --topbar-height: 64px;
 }
@@ -32,7 +35,7 @@ const topbarItems = computed(() => adminNavigationForUser(session.value?.user))
 .workspace-shell {
   display: grid;
   gap: 16px;
-  padding: 16px 0 36px;
+  padding: 18px 0 40px;
 }
 
 .workspace-shell.full-width {

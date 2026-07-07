@@ -67,7 +67,7 @@
           <div class="simple-list">
             <p v-for="person in detail.authorizedPeople" :key="person.id">
               <strong>{{ person.name }}</strong>
-              <small>{{ person.relationship || 'Parentesco pendiente' }} · {{ person.hasPhoto ? 'Foto lista' : 'Foto pendiente' }}</small>
+              <small>{{ person.relationship || 'Parentesco pendiente' }} · {{ person.hasPhoto ? 'Con foto' : 'Sin foto' }}</small>
             </p>
             <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
           </div>

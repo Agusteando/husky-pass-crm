@@ -1,1 +1,1 @@
-Rediseña experiencia administrativa de Husky Pass
+Refina la experiencia visual de administración y elimina lenguaje interno

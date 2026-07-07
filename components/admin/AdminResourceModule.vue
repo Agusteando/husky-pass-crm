@@ -8,26 +8,20 @@
         <h1>{{ title }}</h1>
       </div>
       <div class="module-actions">
-        <label class="search-field">
-          <span>Buscar</span>
-          <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" data-diagnostic-filter="buscar-recurso" />
+        <label class="search-field search-field-wide">
+          <FamilyPersonasIcon name="search" />
+          <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" aria-label="Buscar publicación" data-diagnostic-filter="buscar-recurso" />
         </label>
-        <label class="search-field">
-          <span>Estado</span>
-          <select v-model="visibilityFilter" class="select" data-diagnostic-filter="estado-recurso">
-            <option value="published">Publicadas</option>
-            <option value="hidden">Ocultas</option>
-            <option value="all">Todas</option>
-          </select>
-        </label>
-        <label class="search-field">
-          <span>Archivo</span>
-          <select v-model="resourceFilter" class="select" data-diagnostic-filter="archivo-recurso">
-            <option value="all">Todos</option>
-            <option value="with">Con archivo</option>
-            <option value="without">Sin archivo</option>
-          </select>
-        </label>
+        <select v-model="visibilityFilter" class="select filter-select" aria-label="Estado" data-diagnostic-filter="estado-recurso">
+          <option value="published">Publicadas</option>
+          <option value="hidden">Ocultas</option>
+          <option value="all">Todas</option>
+        </select>
+        <select v-model="resourceFilter" class="select filter-select" aria-label="Archivo" data-diagnostic-filter="archivo-recurso">
+          <option value="all">Archivos</option>
+          <option value="with">Con archivo</option>
+          <option value="without">Sin archivo</option>
+        </select>
         <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" @click="startCreate()">{{ actionLabel }}</button>
       </div>
     </header>
@@ -78,7 +72,7 @@
             </span>
             <span class="row-status">
               <strong :class="isHiddenResource(item.hidden) ? 'status-hidden' : 'status-published'">{{ isHiddenResource(item.hidden) ? 'Oculta' : 'Publicada' }}</strong>
-              <small>{{ item.resource ? 'Con archivo' : 'Sin archivo' }}</small>
+              <small>{{ item.resource ? 'Adjunto' : 'Sin adjunto' }}</small>
             </span>
           </button>
         </div>
@@ -87,21 +81,20 @@
 
       <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Vista previa</p>
-              <h2>{{ selected.title || 'Sin título' }}</h2>
-            </div>
+          <div class="notice-preview">
+            <span class="notice-date">{{ compactDate(selected.date || selected.timestamp) }}</span>
             <span class="scope-pill" :class="{ muted: isHiddenResource(selected.hidden) }">{{ isHiddenResource(selected.hidden) ? 'Oculta' : 'Publicada' }}</span>
+            <h2>{{ selected.title || 'Sin título' }}</h2>
+            <p>{{ stripHtml(selected.description) || 'Sin descripción.' }}</p>
           </div>
-          <p>{{ stripHtml(selected.description) || 'Sin descripción.' }}</p>
-          <dl>
-            <div><dt>Fecha</dt><dd>{{ formatDate(selected.date || selected.timestamp, '—') }}</dd></div>
-            <div><dt>Autor</dt><dd>{{ selected.autor || '—' }}</dd></div>
-            <div><dt>Estado familiar</dt><dd>{{ isHiddenResource(selected.hidden) ? 'No visible para familias' : 'Visible para familias' }}</dd></div>
-            <div><dt>Archivo</dt><dd>{{ selected.resource || 'Sin archivo' }}</dd></div>
-            <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
-          </dl>
+
+          <div class="preview-meta">
+            <span><FamilyPersonasIcon name="calendar" />{{ formatDate(selected.date || selected.timestamp, '—') }}</span>
+            <span><FamilyPersonasIcon name="person" />{{ selected.autor || '—' }}</span>
+            <span><FamilyPersonasIcon name="people" />{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</span>
+            <span v-if="selected.resource"><FamilyPersonasIcon name="attachment" />Adjunto</span>
+          </div>
+
           <div class="preview-actions">
             <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener" data-diagnostic-link="abrir-recurso">Abrir recurso</a>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" @click="editing = { ...selected }">Editar</button>
@@ -366,54 +359,126 @@ function isCreateQuery(value: unknown) {
 
 <style scoped>
 .resource-module {
-  gap: 12px;
+  --ink: #102235;
+  --muted: #617187;
+  --line: rgba(18, 95, 89, 0.16);
+  --accent: #07877d;
+  --accent-dark: #075f58;
+  --sun: #f6b94f;
+  gap: 14px;
 }
 
 .module-hero {
   align-items: end;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-soft);
+  background:
+    radial-gradient(circle at 9% 14%, rgba(8, 135, 125, 0.12), transparent 34%),
+    radial-gradient(circle at 82% 0%, rgba(246, 185, 79, 0.20), transparent 28%),
+    linear-gradient(135deg, #ffffff, #fbfdf6);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(440px, 0.9fr);
-  padding: clamp(12px, 1.8vw, 18px);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(520px, 0.95fr);
+  overflow: hidden;
+  padding: clamp(18px, 2.4vw, 28px);
+  position: relative;
+}
+
+.module-hero::after {
+  background: linear-gradient(180deg, var(--accent), #8bbf48);
+  border-radius: 999px;
+  content: '';
+  height: 82px;
+  opacity: 0.14;
+  position: absolute;
+  right: 34px;
+  top: -40px;
+  transform: rotate(34deg);
+  width: 14px;
 }
 
 .module-hero h1 {
-  font-size: clamp(1.4rem, 2.2vw, 2rem);
-  margin-bottom: 6px;
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  font-size: clamp(1.8rem, 3.2vw, 3rem);
+  letter-spacing: -0.03em;
+  line-height: 0.96;
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
 }
 
 .module-actions {
-  align-items: end;
+  align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.42fr) minmax(150px, 0.46fr) auto;
+  grid-template-columns: minmax(190px, 1fr) minmax(132px, 0.36fr) minmax(132px, 0.36fr) auto;
+  position: relative;
+  z-index: 1;
 }
 
 .search-field {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 17px;
+  box-shadow: 0 14px 30px rgba(14, 40, 55, 0.06);
+  color: var(--accent-dark);
   display: grid;
-  gap: 5px;
+  gap: 9px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  min-height: 48px;
+  padding: 6px 12px;
 }
 
-.search-field span {
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.search-field .input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.filter-select {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 15px;
+  min-height: 48px;
+}
+
+.module-actions .btn-primary {
+  background: #21324a;
+  border-radius: 15px;
+  box-shadow: 0 16px 30px rgba(33, 50, 74, 0.18);
+  min-height: 48px;
+  white-space: nowrap;
 }
 
 .resource-desk {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 380px);
+}
+
+.resource-list-card,
+.preview-card,
+.loading-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(14, 40, 55, 0.07);
 }
 
 .resource-list-card {
   min-width: 0;
+  padding: 14px;
 }
 
 .section-head {
@@ -421,52 +486,59 @@ function isCreateQuery(value: unknown) {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .section-head h2 {
-  font-size: 1.2rem;
-  margin-bottom: 0;
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  margin: 0;
 }
 
 .scope-pill {
-  background: var(--color-brand-100);
+  background: #effaf7;
+  border: 1px solid rgba(8, 135, 125, 0.16);
   border-radius: 999px;
-  color: var(--color-brand-900);
+  color: var(--accent-dark);
   font-size: 0.78rem;
-  font-weight: 600;
-  padding: 6px 10px;
+  font-weight: 900;
+  padding: 7px 10px;
   white-space: nowrap;
 }
 
 .scope-pill.muted {
-  background: #e9e9e6;
-  color: var(--color-muted);
+  background: #f2f4f5;
+  color: var(--muted);
 }
 
 .resource-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .resource-row {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 18px;
   cursor: pointer;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 64px minmax(0, 1fr) minmax(108px, auto);
-  padding: 8px;
+  gap: 12px;
+  grid-template-columns: 66px minmax(0, 1fr) minmax(100px, auto);
+  padding: 10px;
   text-align: left;
   width: 100%;
 }
 
 .resource-row:hover,
 .resource-row.active {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-300);
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border-color: rgba(8, 135, 125, 0.22);
+}
+
+.resource-row.active {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .resource-row.hidden {
@@ -474,13 +546,13 @@ function isCreateQuery(value: unknown) {
 }
 
 .row-date {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  color: var(--color-muted);
+  background: #fff7df;
+  border: 1px solid rgba(246, 185, 79, 0.32);
+  border-radius: 14px;
+  color: #8a650c;
   font-size: 0.78rem;
-  font-weight: 600;
-  padding: 7px 8px;
+  font-weight: 900;
+  padding: 8px;
   text-align: center;
   text-transform: capitalize;
 }
@@ -488,7 +560,7 @@ function isCreateQuery(value: unknown) {
 .row-main,
 .row-status {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -500,9 +572,13 @@ function isCreateQuery(value: unknown) {
   white-space: nowrap;
 }
 
+.row-main strong {
+  color: var(--ink);
+}
+
 .row-main small,
 .row-status small {
-  color: var(--color-muted);
+  color: var(--muted);
   font-size: 0.78rem;
 }
 
@@ -513,7 +589,7 @@ function isCreateQuery(value: unknown) {
 .status-hidden,
 .status-published {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 900;
 }
 
 .status-hidden {
@@ -521,41 +597,76 @@ function isCreateQuery(value: unknown) {
 }
 
 .status-published {
-  color: var(--color-brand-700);
+  color: var(--accent-dark);
 }
 
 .preview-card {
   align-self: start;
   display: grid;
-  gap: 12px;
+  gap: 13px;
+  padding: 14px;
   position: sticky;
-  top: calc(var(--topbar-height) + 12px);
+  top: calc(var(--topbar-height) + 14px);
 }
 
-.preview-card dl {
+.notice-preview {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(8, 135, 125, 0.10), transparent 34%),
+    linear-gradient(135deg, #ffffff, #fffaf0);
+  border: 1px solid rgba(8, 135, 125, 0.14);
+  border-radius: 22px;
   display: grid;
   gap: 10px;
+  padding: 16px;
+}
+
+.notice-date {
+  background: #fff7df;
+  border: 1px solid rgba(246, 185, 79, 0.36);
+  border-radius: 999px;
+  color: #8a650c;
+  font-size: 0.76rem;
+  font-weight: 900;
+  justify-self: start;
+  padding: 7px 10px;
+  text-transform: capitalize;
+}
+
+.notice-preview .scope-pill {
+  justify-self: start;
+}
+
+.notice-preview h2 {
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  line-height: 1;
   margin: 0;
 }
 
-.preview-card dl div {
-  border-bottom: 1px solid var(--color-border);
-  display: grid;
-  gap: 2px;
-  padding-bottom: 8px;
-}
-
-.preview-card dt {
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.preview-card dd {
+.notice-preview p {
+  color: var(--muted);
+  line-height: 1.45;
   margin: 0;
-  word-break: break-word;
+}
+
+.preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview-meta span {
+  align-items: center;
+  background: #f8fbfb;
+  border: 1px solid rgba(18, 95, 89, 0.10);
+  border-radius: 999px;
+  color: #46586e;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 6px;
+  padding: 7px 10px;
 }
 
 .preview-actions {
@@ -575,7 +686,8 @@ function isCreateQuery(value: unknown) {
 }
 
 .loading-card {
-  color: var(--color-muted);
+  color: var(--muted);
+  padding: 20px;
 }
 
 @media (max-width: 1180px) {
