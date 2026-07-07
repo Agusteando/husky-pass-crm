@@ -57,6 +57,8 @@ export interface DaycareRosterEntry {
 
 export interface DaycareRosterOverlay {
   available: boolean
+  sourceState?: 'connected' | 'unavailable'
+  sourceMessage?: string | null
   summary: {
     inSala: number
     linked: number

@@ -26,11 +26,12 @@ type CachedRoster = {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000
-const FETCH_TIMEOUT_MS = 1800
+const FETCH_TIMEOUT_MS = Number(process.env.DAYCARE_ROSTER_TIMEOUT_MS || 7000)
 let rosterCache: CachedRoster | null = null
 
 function sourceUrl() {
-  return process.env.DAYCARE_ROSTER_SOURCE_URL || DAYCARE_ROSTER_SOURCE_URL
+  const configured = String(process.env.DAYCARE_ROSTER_SOURCE_URL || '').trim()
+  return configured || DAYCARE_ROSTER_SOURCE_URL
 }
 
 function childNameFromRow(row: RawRosterRow) {
@@ -138,7 +139,7 @@ function suggestionForAccount(account: FamilyAccount, entry: DaycareRosterEntry 
 export async function buildDaycareRosterOverlay(unidad: string, currentSala: Sala, accounts: FamilyAccount[]): Promise<DaycareRosterOverlay> {
   const source = await fetchRosterEntries()
   if (!source.sourceAvailable) {
-    return { available: false, summary: { inSala: 0, linked: 0, pending: 0, moved: 0 }, sourceOnly: [] }
+    return { available: false, sourceState: 'unavailable', sourceMessage: 'La lista externa no respondió. La plataforma sigue usando las cuentas guardadas.', summary: { inSala: 0, linked: 0, pending: 0, moved: 0 }, sourceOnly: [] }
   }
 
   const entriesForUnidad = source.entries.filter((entry) => rosterSheetMatchesUnidad(entry.sourceSheet, unidad))
@@ -164,6 +165,8 @@ export async function buildDaycareRosterOverlay(unidad: string, currentSala: Sal
 
   return {
     available: true,
+    sourceState: 'connected',
+    sourceMessage: null,
     summary: {
       inSala: entriesForUnidad.filter((entry) => entry.normalizedSala === currentSalaName).length,
       linked,

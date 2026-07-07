@@ -1,6 +1,8 @@
-import { randomBytes } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { publicError } from '~/server/utils/httpError'
+import { useRuntimeConfig } from 'nitropack/runtime'
+import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { H3Event } from 'h3'
 import type { AppSessionUser } from '~/types/session'
@@ -57,6 +59,7 @@ export interface DaycareRegistrationLink {
 }
 
 const REGISTRATION_LINK_TABLE = 'hp_daycare_registration_links'
+const SIGNED_LINK_PREFIX = 's:'
 
 function clean(value: unknown) {
   return String(value || '').trim()
@@ -89,6 +92,63 @@ function assertStrongEnoughPassword(password: string) {
 
 function makeToken() {
   return randomBytes(18).toString('base64url')
+}
+
+function base64url(input: string | Buffer) {
+  return Buffer.from(input).toString('base64url')
+}
+
+function registrationLinkSecret() {
+  return String(useRuntimeConfig().sessionSecret || process.env.SESSION_SECRET || 'change-me-before-production')
+}
+
+function signLinkPayload(payload: string) {
+  return createHmac('sha256', registrationLinkSecret()).update(payload).digest('base64url')
+}
+
+function verifyLinkSignature(payload: string, signature: string) {
+  const expected = signLinkPayload(payload)
+  const a = Buffer.from(signature)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+function makeSignedRegistrationToken(salaId: number) {
+  const payload = base64url(JSON.stringify({ sala: salaId, issuedAt: Date.now(), nonce: randomBytes(8).toString('hex') }))
+  return `${SIGNED_LINK_PREFIX}${payload}.${signLinkPayload(payload)}`
+}
+
+function parseSignedRegistrationToken(token: string) {
+  const raw = clean(token)
+  if (!raw.startsWith(SIGNED_LINK_PREFIX)) return null
+  const body = raw.slice(SIGNED_LINK_PREFIX.length)
+  const [payload, signature] = body.split('.')
+  if (!payload || !signature || !verifyLinkSignature(payload, signature)) {
+    throw publicError(404, 'El enlace de registro no es válido.')
+  }
+  try {
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { sala?: unknown }
+    const salaId = Number(decoded.sala)
+    if (!Number.isInteger(salaId) || salaId <= 0) throw new Error('bad sala')
+    return salaId
+  } catch {
+    throw publicError(404, 'El enlace de registro no es válido.')
+  }
+}
+
+async function signedRegistrationLinkFor(event: H3Event, salaId: number) {
+  const sala = await resolvePublicSala(salaId)
+  const token = makeSignedRegistrationToken(sala.id)
+  return {
+    token,
+    salaId: sala.id,
+    sala: sala.sala,
+    unidad: sala.unidad,
+    createdAt: null,
+    regeneratedAt: null,
+    url: daycareRegistrationUrl(event, token),
+    qrUrl: daycareRegistrationQrUrl(event, token)
+  }
 }
 
 function publicBaseUrl(event: H3Event) {
@@ -201,31 +261,41 @@ function daycareScopeFor(row: ExistingUserRow) {
 }
 
 export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, event: H3Event, salaId: number, regenerate = false) {
-  await ensureRegistrationLinkTable()
   const sala = await resolveAdminSala(user, salaId)
 
-  if (regenerate) {
-    await legacyWrite(`UPDATE ${REGISTRATION_LINK_TABLE} SET active = 0 WHERE sala_id = ? AND active = 1`, [sala.id])
-  }
+  try {
+    await ensureRegistrationLinkTable()
 
-  const existing = !regenerate
-    ? await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE sala_id = ? AND active = 1 LIMIT 1`, [sala.id])
-    : null
-  if (existing?.token) return mapLink(existing, event)
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const token = makeToken()
-    try {
-      await legacyWrite(
-        `INSERT INTO ${REGISTRATION_LINK_TABLE} (token, sala_id, unidad, sala_name, created_by, regenerated_at)
-         VALUES (?, ?, ?, ?, ?, ${regenerate ? 'CURRENT_TIMESTAMP' : 'NULL'})`,
-        [token, sala.id, sala.unidad, sala.sala, user.email || user.username || String(user.id)]
-      )
-      const row = await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? LIMIT 1`, [token])
-      if (row) return mapLink(row, event)
-    } catch (error) {
-      if (attempt === 3) throw error
+    if (regenerate) {
+      await legacyWrite(`UPDATE ${REGISTRATION_LINK_TABLE} SET active = 0 WHERE sala_id = ? AND active = 1`, [sala.id])
     }
+
+    const existing = !regenerate
+      ? await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE sala_id = ? AND active = 1 LIMIT 1`, [sala.id])
+      : null
+    if (existing?.token) return mapLink(existing, event)
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const token = makeToken()
+      try {
+        await legacyWrite(
+          `INSERT INTO ${REGISTRATION_LINK_TABLE} (token, sala_id, unidad, sala_name, created_by, regenerated_at)
+           VALUES (?, ?, ?, ?, ?, ${regenerate ? 'CURRENT_TIMESTAMP' : 'NULL'})`,
+          [token, sala.id, sala.unidad, sala.sala, user.email || user.username || String(user.id)]
+        )
+        const row = await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? LIMIT 1`, [token])
+        if (row) return mapLink(row, event)
+      } catch (error) {
+        if (attempt === 3) throw error
+      }
+    }
+  } catch (error) {
+    logPersonasWarning('daycare-registration-link-persistent-store-unavailable', {
+      salaId: sala.id,
+      unidad: sala.unidad,
+      message: error instanceof Error ? error.message : String(error)
+    })
+    return signedRegistrationLinkFor(event, sala.id)
   }
 
   throw publicError(500, 'No fue posible generar el enlace de registro.')
@@ -234,13 +304,35 @@ export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, e
 export async function resolveDaycareRegistrationLink(token: string, event?: H3Event) {
   const code = clean(token)
   if (!code || code.length < 12) throw publicError(404, 'El enlace de registro no es válido.')
-  await ensureRegistrationLinkTable()
-  const row = await legacyOne<RegistrationLinkRow>(
-    `SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? AND active = 1 LIMIT 1`,
-    [code]
-  )
-  if (!row || !boolFromDb(row.active)) throw publicError(404, 'El enlace de registro no está activo.')
-  return mapLink(row, event)
+
+  const signedSalaId = parseSignedRegistrationToken(code)
+  if (signedSalaId) {
+    const sala = await resolvePublicSala(signedSalaId)
+    return {
+      token: code,
+      salaId: sala.id,
+      sala: sala.sala,
+      unidad: sala.unidad,
+      createdAt: null,
+      regeneratedAt: null,
+      url: event ? daycareRegistrationUrl(event, code) : undefined,
+      qrUrl: event ? daycareRegistrationQrUrl(event, code) : undefined
+    }
+  }
+
+  try {
+    await ensureRegistrationLinkTable()
+    const row = await legacyOne<RegistrationLinkRow>(
+      `SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? AND active = 1 LIMIT 1`,
+      [code]
+    )
+    if (!row || !boolFromDb(row.active)) throw publicError(404, 'El enlace de registro no está activo.')
+    return mapLink(row, event)
+  } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
+    logPersonasWarning('daycare-registration-link-resolve-failed', { message: error instanceof Error ? error.message : String(error) })
+    throw publicError(503, 'No fue posible validar el enlace de registro. Intenta de nuevo.')
+  }
 }
 
 export async function registerDaycareFamily(input: DaycareRegistrationInput) {

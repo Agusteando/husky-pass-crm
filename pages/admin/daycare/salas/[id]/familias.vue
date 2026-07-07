@@ -39,6 +39,13 @@
         <small>lista de sala</small>
       </article>
     </section>
+    <section v-else-if="data?.roster" class="roster-strip muted-roster" aria-label="Lista de sala no disponible">
+      <article>
+        <span class="roster-dot warm">!</span>
+        <strong>Lista externa sin conexión</strong>
+        <small>{{ data.roster.sourceMessage || 'Las familias guardadas siguen disponibles.' }}</small>
+      </article>
+    </section>
 
     <AdminModal
       v-if="editing"
@@ -127,6 +134,7 @@
         </div>
         <div class="registration-link-copy">
           <p>Comparte este acceso con familias de la sala para que creen su cuenta.</p>
+          <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
           <div class="link-box">
             <span>{{ registrationLink?.url || 'Generando enlace…' }}</span>
             <button class="btn btn-secondary" type="button" :disabled="!registrationLink?.url" @click="copyRegistrationLink">Copiar</button>
@@ -498,7 +506,7 @@ async function loadRegistrationLink(regenerate = false) {
       : await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { query: { sala: salaId } })
     registrationLink.value = response.link
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible preparar el link de registro.'
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible preparar el link de registro.'
   } finally {
     registrationLoading.value = false
   }
@@ -533,7 +541,7 @@ async function sendRegistrationLink() {
     actionNotice.value = response.emailed ? 'Link de registro enviado.' : 'No se envió ningún correo.'
     registrationEmail.value = ''
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible enviar el link.'
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible enviar el link.'
   } finally {
     registrationLoading.value = false
   }
@@ -1164,6 +1172,12 @@ function initials(value?: string | null) {
   margin: 0;
 }
 
+.registration-link-copy .compact-alert {
+  background: #fff5ed;
+  border-color: #ffd7bd;
+  color: #8a3b1e;
+}
+
 .link-box {
   align-items: center;
   background: #fff;
@@ -1195,6 +1209,19 @@ function initials(value?: string | null) {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.muted-roster {
+  background: rgba(255, 247, 237, 0.82);
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  border-radius: 24px;
+  grid-template-columns: 1fr;
+  padding: 0;
+}
+
+.muted-roster article {
+  background: transparent;
+  border: 0;
 }
 
 .roster-strip article {

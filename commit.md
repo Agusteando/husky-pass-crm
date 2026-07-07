@@ -1,1 +1,1 @@
-Corrige modales de familias y endurece flujos de guardería
+Corrige enlaces de registro y visibilidad de lista externa de guardería
