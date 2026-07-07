@@ -5,7 +5,7 @@
         <span class="brand-orb" aria-hidden="true"><FamilyPersonasIcon name="people" /></span>
         <div>
           <p class="eyebrow">Super Admin</p>
-          <h1>Usuarios y roles</h1>
+          <h1>Centro de usuarios</h1>
         </div>
       </div>
       <button class="utility-action" type="button" :disabled="pending" @click="refreshDirectory">
@@ -241,9 +241,9 @@ const router = useRouter()
 const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string }> = [
   { value: 'all', label: 'Todos' },
   { value: 'internal', label: 'Internos' },
-  { value: 'schoolFamilies', label: 'Familias escolar' },
+  { value: 'schoolFamilies', label: 'Familias escolares' },
   { value: 'daycare', label: 'Familias guardería' },
-  { value: 'impersonable', label: 'Soporte' }
+  { value: 'impersonable', label: 'Vista familiar' }
 ]
 
 const selectedPlantel = ref(queryValue(route.query.plantel))

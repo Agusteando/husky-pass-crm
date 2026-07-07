@@ -67,7 +67,10 @@
           <div class="simple-list">
             <p v-for="person in detail.authorizedPeople" :key="person.id">
               <strong>{{ person.name }}</strong>
-              <small>{{ person.relationship || 'Parentesco pendiente' }} · {{ person.hasPhoto ? 'Con foto' : 'Sin foto' }}</small>
+              <small>{{ person.relationship || 'Parentesco pendiente' }}</small>
+              <span class="photo-dot" :data-ready="person.hasPhoto ? 'ready' : 'missing'" :title="person.hasPhoto ? 'Foto capturada' : 'Foto pendiente'">
+                <FamilyPersonasIcon :name="person.hasPhoto ? 'camera' : 'alert'" />
+              </span>
             </p>
             <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
           </div>
@@ -97,8 +100,8 @@
         <article class="panel wide-panel">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Soporte</p>
-              <h2>Señales de soporte</h2>
+              <p class="eyebrow">Acceso familiar</p>
+              <h2>Estado de cuenta</h2>
             </div>
           </div>
           <div class="signal-grid">
@@ -368,6 +371,26 @@ h2 {
   font-size: .8rem;
   font-weight: 850;
   text-align: right;
+}
+
+.photo-dot {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  margin-top: 6px;
+  width: 28px;
+}
+
+.photo-dot[data-ready='ready'] {
+  background: #e5f8ee;
+  color: #148044;
+}
+
+.photo-dot[data-ready='missing'] {
+  background: #fff3d5;
+  color: #8a650c;
 }
 
 .simple-list p,

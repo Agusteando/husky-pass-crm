@@ -144,6 +144,13 @@ function hasModule(key: GestionEscolarModuleKey) {
 
 <style scoped>
 .school-console {
+  --ink: #102235;
+  --muted: #607086;
+  --line: rgba(18, 95, 89, 0.16);
+  --line-soft: rgba(18, 95, 89, 0.10);
+  --accent: #07877d;
+  --accent-dark: #075f58;
+  --sun: #f6b94f;
   display: grid;
   gap: 16px;
 }
@@ -153,32 +160,61 @@ function hasModule(key: GestionEscolarModuleKey) {
 .scope-panel,
 .state-panel {
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dce5eb;
-  border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
 }
 
 .school-head {
-  align-items: end;
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  padding: clamp(18px, 2.2vw, 28px);
+  align-items: center;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(8, 135, 125, 0.13), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(246, 185, 79, 0.20), transparent 28%),
+    linear-gradient(135deg, #ffffff, #fbfdf6);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding: clamp(18px, 2.4vw, 28px);
+  position: relative;
+}
+
+.school-head::after {
+  background: linear-gradient(180deg, var(--accent), #8bbf48);
+  border-radius: 999px;
+  content: '';
+  height: 82px;
+  opacity: 0.14;
+  position: absolute;
+  right: 28px;
+  top: -40px;
+  transform: rotate(34deg);
+  width: 14px;
+}
+
+.school-head h1,
+.section-title h2,
+.scope-panel h2,
+.state-panel h2 {
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  margin: 0;
 }
 
 .school-head h1 {
-  color: #152032;
-  font-family: var(--font-body);
-  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
-  margin: 0;
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
 }
 
-.school-head p:not(.eyebrow),
-.scope-panel p,
-.work-row small,
-.scope-list small {
-  color: #667789;
-  margin: 0;
+.eyebrow,
+.scope-strip span {
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
 }
 
 .head-actions {
@@ -186,6 +222,14 @@ function hasModule(key: GestionEscolarModuleKey) {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.head-actions .btn-primary {
+  background: #21324a;
+  border-radius: 15px;
+  box-shadow: 0 16px 30px rgba(33, 50, 74, 0.18);
 }
 
 .scope-strip {
@@ -196,64 +240,58 @@ function hasModule(key: GestionEscolarModuleKey) {
 
 .scope-strip article {
   background: #ffffff;
-  border: 1px solid #dce5eb;
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(14, 40, 55, 0.05);
   display: grid;
-  gap: 4px;
+  gap: 5px;
+  min-height: 84px;
   padding: 14px;
 }
 
-.scope-strip span {
-  color: #6b7a8b;
-  font-size: 0.72rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
 .scope-strip strong {
-  color: #152032;
-  font-size: 1.45rem;
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  font-size: 1.85rem;
+  line-height: 1;
 }
 
 .school-layout {
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 410px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
 }
 
 .today-panel,
 .scope-panel {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px;
 }
 
 .section-title {
   align-items: center;
+  border-bottom: 1px solid var(--line-soft);
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: space-between;
+  padding-bottom: 12px;
 }
 
 .section-title.vertical {
   align-items: start;
-  display: grid;
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
-.section-title h2 {
-  color: #152032;
-  font-family: var(--font-body);
-  margin: 0;
-}
-
-.section-title > span {
-  background: #f4faf8;
-  border: 1px solid #cae2dc;
+.section-title span {
+  background: #fff6df;
+  border: 1px solid rgba(246, 185, 79, 0.36);
   border-radius: 999px;
-  color: #0d766d;
+  color: #8a650c;
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: 900;
   padding: 7px 10px;
 }
 
@@ -263,110 +301,84 @@ function hasModule(key: GestionEscolarModuleKey) {
   gap: 8px;
 }
 
-.work-row {
+.work-row,
+.scope-list article {
   align-items: center;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 18px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  padding: 12px;
+  gap: 11px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 74px;
+  padding: 10px;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
-.work-row:hover,
 .work-row:hover {
-  border-color: #cae2dc;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border-color: rgba(8, 135, 125, 0.22);
+  transform: translateY(-1px);
 }
 
-.row-icon,
 .row-icon {
   align-items: center;
-  background: #eef7f5;
-  border: 1px solid #cae2dc;
-  border-radius: 12px;
-  color: #0d766d;
+  background: linear-gradient(135deg, #eefaf7, #fff6df);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 15px;
+  color: var(--accent-dark);
   display: inline-flex;
-  height: 42px;
+  height: 44px;
   justify-content: center;
-  width: 42px;
+  width: 44px;
 }
 
 .work-row strong,
-.work-row small,
-.scope-list strong,
-.scope-list small,
-.work-row strong,
-.work-row small,
-.scope-list strong,
-.scope-list small {
+.scope-list strong {
+  color: var(--ink);
   display: block;
 }
 
+.work-row small,
+.scope-list small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+}
+
 .work-row b {
-  background: #e7f8ef;
-  border: 1px solid #bfead0;
+  background: #effaf7;
+  border: 1px solid rgba(8, 135, 125, 0.16);
   border-radius: 999px;
-  color: #15803d;
-  font-size: 0.74rem;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
   padding: 7px 10px;
 }
 
 .scope-list article {
-  background: #f8fafc;
-  border: 1px solid #e1e8ed;
-  border-radius: 13px;
-  padding: 12px;
+  grid-template-columns: 1fr;
+  min-height: auto;
 }
 
 .state-panel {
-  color: #667789;
+  color: var(--muted);
   display: grid;
   gap: 9px;
-  min-height: 250px;
+  min-height: 260px;
   place-items: center;
   padding: 24px;
   text-align: center;
 }
 
-.state-panel h2 {
-  color: #152032;
-  font-family: var(--font-body);
-  margin: 0;
-}
-
-.access-empty {
-  min-height: 360px;
-}
-
-@media (max-width: 1120px) {
+@media (max-width: 980px) {
+  .school-head,
   .school-layout,
   .scope-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .school-head,
-  .head-actions,
-  .section-title {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .head-actions {
-    display: grid;
-    justify-content: stretch;
-  }
-
-  .school-layout,
-  .scope-strip,
-  .work-row {
     grid-template-columns: 1fr;
   }
 
-  .work-row b {
-    justify-self: start;
+  .head-actions {
+    justify-content: start;
   }
 }
 </style>

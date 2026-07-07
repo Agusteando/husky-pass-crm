@@ -97,31 +97,48 @@
                   <strong>{{ person.name }}</strong>
                   <small>{{ person.relationship || 'Parentesco pendiente' }}</small>
                 </span>
-                <span class="photo-signal" :data-ready="person.hasPhoto ? 'ready' : 'missing'" :title="person.hasPhoto ? 'Con foto' : 'Sin foto'">
+                <span class="photo-signal" :data-ready="person.hasPhoto ? 'ready' : 'missing'" :title="person.hasPhoto ? 'Foto capturada' : 'Foto pendiente'" :aria-label="person.hasPhoto ? 'Foto capturada' : 'Foto pendiente'">
                   <FamilyPersonasIcon :name="person.hasPhoto ? 'camera' : 'alert'" />
-                  <span>{{ person.hasPhoto ? 'Con foto' : 'Sin foto' }}</span>
                 </span>
               </p>
               <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
             </article>
-            <article>
-              <p class="eyebrow">Contenido visible</p>
-              <p>
-                <strong>{{ detail.visibleContent.encuesta?.title || 'Sin encuesta activa' }}</strong>
-                <small>Encuesta · {{ detail.visibleContent.encuesta?.scopeLabel || 'Sin audiencia' }}</small>
-              </p>
-              <p>
-                <strong>{{ detail.visibleContent.convenio?.title || 'Sin convenio activo' }}</strong>
-                <small>Convenio · {{ detail.visibleContent.convenio?.scopeLabel || 'Sin audiencia' }}</small>
-              </p>
+            <article class="content-card">
+              <p class="eyebrow">Disponible</p>
+              <div class="content-state" :data-state="detail.visibleContent.encuesta ? 'ready' : 'empty'">
+                <FamilyPersonasIcon name="survey" />
+                <span>
+                  <strong>{{ detail.visibleContent.encuesta?.title || 'Sin encuesta' }}</strong>
+                  <small>{{ detail.visibleContent.encuesta?.scopeLabel || 'No publicada para esta familia' }}</small>
+                </span>
+              </div>
+              <div class="content-state" :data-state="detail.visibleContent.convenio ? 'ready' : 'empty'">
+                <FamilyPersonasIcon name="handshake" />
+                <span>
+                  <strong>{{ detail.visibleContent.convenio?.title || 'Sin convenio' }}</strong>
+                  <small>{{ detail.visibleContent.convenio?.scopeLabel || 'No publicado para esta familia' }}</small>
+                </span>
+              </div>
             </article>
           </section>
 
           <section class="signals-panel">
-            <p class="eyebrow">Cuenta</p>
-            <div>
-              <span v-for="item in detail.supportPreview" :key="item.label"><strong>{{ item.label }}</strong>{{ item.value }}</span>
-              <span v-for="signal in detail.family.contactSignals" :key="signal">{{ signal }}</span>
+            <div class="signals-head">
+              <p class="eyebrow">Acceso familiar</p>
+              <strong>{{ detail.family.features.length }} módulos</strong>
+            </div>
+            <div class="access-lines">
+              <span v-for="item in detail.supportPreview" :key="item.label" class="access-line">
+                <FamilyPersonasIcon :name="supportSignalIcon(item.label)" />
+                <span>
+                  <small>{{ supportSignalTitle(item.label) }}</small>
+                  <strong>{{ item.value }}</strong>
+                </span>
+              </span>
+              <span v-for="signal in detail.family.contactSignals" :key="signal" class="access-line compact">
+                <FamilyPersonasIcon :name="contactSignalIcon(signal)" />
+                <strong>{{ contactSignalLabel(signal) }}</strong>
+              </span>
             </div>
           </section>
 
@@ -198,6 +215,35 @@ function statusLabel(status: GestionEscolarFamilyRow['parentStatus']) {
   if (status === 'active') return 'Activa'
   if (status === 'limited') return 'Limitada'
   return 'Incompleta'
+}
+
+function supportSignalTitle(label: string) {
+  const normalized = label.toLowerCase()
+  if (normalized.includes('cuenta')) return 'Estado'
+  if (normalized.includes('plantel')) return 'Ubicación'
+  if (normalized.includes('acceso')) return 'Módulos'
+  return label
+}
+
+function supportSignalIcon(label: string) {
+  const normalized = label.toLowerCase()
+  if (normalized.includes('plantel')) return 'school'
+  if (normalized.includes('acceso')) return 'security'
+  return 'person'
+}
+
+function contactSignalLabel(signal: string) {
+  const normalized = signal.toLowerCase()
+  if (normalized.includes('foto')) return normalized.includes('sin') ? 'Foto pendiente' : 'Foto capturada'
+  if (normalized.includes('correo')) return normalized.includes('sin') ? 'Correo pendiente' : 'Correo vinculado'
+  return signal
+}
+
+function contactSignalIcon(signal: string) {
+  const normalized = signal.toLowerCase()
+  if (normalized.includes('foto')) return normalized.includes('sin') ? 'alert' : 'camera'
+  if (normalized.includes('correo')) return 'announcement'
+  return 'security'
 }
 
 async function refreshFamilies() {
@@ -588,15 +634,11 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 .photo-signal {
   align-items: center;
-  background: #ffffff;
   border-radius: 999px;
-  color: #64748b;
   display: inline-flex;
-  font-size: 0.72rem;
-  font-weight: 900;
-  gap: 5px;
-  padding: 6px 9px;
-  white-space: nowrap;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
 }
 
 .photo-signal[data-ready='ready'] {
@@ -609,27 +651,85 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   color: #8a650c;
 }
 
-.signals-panel div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.content-card {
+  align-content: start;
 }
 
-.signals-panel span {
+.content-state {
   align-items: center;
   background: #ffffff;
   border: 1px solid rgba(18, 95, 89, 0.10);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  padding: 10px;
+}
+
+.content-state > svg,
+.content-state > :deep(svg) {
+  color: var(--accent-dark);
+}
+
+.content-state[data-state='empty'] {
+  background: #fbfcfc;
+  color: #64748b;
+}
+
+.signals-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.signals-head strong {
+  background: #fff6df;
+  border: 1px solid rgba(246, 185, 79, 0.36);
   border-radius: 999px;
-  color: #526173;
-  display: inline-flex;
+  color: #8a650c;
   font-size: 0.76rem;
-  font-weight: 850;
-  gap: 6px;
   padding: 7px 10px;
 }
 
-.signals-panel strong {
-  color: #243244;
+.access-lines {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.access-line {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(18, 95, 89, 0.10);
+  border-radius: 16px;
+  color: #46586e;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 58px;
+  padding: 9px 10px;
+}
+
+.access-line.compact {
+  grid-template-columns: 28px minmax(0, 1fr);
+  min-height: 46px;
+}
+
+.access-line small,
+.access-line strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.access-line small {
+  color: #748195;
+  font-size: 0.7rem;
+}
+
+.access-line strong {
+  color: var(--ink);
 }
 
 .surface-message {
@@ -702,6 +802,12 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   gap: 10px;
   justify-content: flex-end;
   margin-top: 8px;
+}
+
+@media (max-width: 1180px) {
+  .access-lines {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1120px) {

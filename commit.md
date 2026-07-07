@@ -1,1 +1,1 @@
-Refina la experiencia visual de administración y elimina lenguaje interno
+Pulir experiencia visual de administración escolar y guardería

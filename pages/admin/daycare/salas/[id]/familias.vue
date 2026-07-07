@@ -69,12 +69,24 @@
               <h2>{{ selected.nombre_nino || accountLabel(selected.username) }}</h2>
             </div>
           </div>
-          <dl>
-            <div><dt>Usuario</dt><dd>{{ accountLabel(selected.username) || 'Sin usuario' }}</dd></div>
-            <div><dt>Correo</dt><dd>{{ selected.email || 'Sin correo' }}</dd></div>
-            <div><dt>Acceso</dt><dd>{{ accountStatusLabel(selected) }}</dd></div>
-            <div><dt>Visible en</dt><dd>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</dd></div>
-          </dl>
+          <section class="family-profile-lines" aria-label="Resumen familiar">
+            <article>
+              <FamilyPersonasIcon name="person" />
+              <span><small>Usuario</small><strong>{{ accountLabel(selected.username) || 'Pendiente' }}</strong></span>
+            </article>
+            <article>
+              <FamilyPersonasIcon name="announcement" />
+              <span><small>Correo</small><strong>{{ selected.email || 'Pendiente' }}</strong></span>
+            </article>
+            <article>
+              <FamilyPersonasIcon name="security" />
+              <span><small>Acceso</small><strong>{{ accountStatusLabel(selected) }}</strong></span>
+            </article>
+            <article>
+              <FamilyPersonasIcon name="daycare" />
+              <span><small>Sala</small><strong>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</strong></span>
+            </article>
+          </section>
           <div class="preview-actions">
             <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
             <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
@@ -280,24 +292,75 @@ function initials(value?: string | null) {
 
 <style scoped>
 .family-module {
-  gap: 12px;
+  --ink: #102235;
+  --muted: #607086;
+  --line: rgba(18, 95, 89, 0.16);
+  --line-soft: rgba(18, 95, 89, 0.10);
+  --accent: #07877d;
+  --accent-dark: #075f58;
+  --sun: #f6b94f;
+  gap: 16px;
+}
+
+.family-hero,
+.family-list-card,
+.family-preview-card,
+.loading-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
 }
 
 .family-hero {
-  align-items: end;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-soft);
+  align-items: center;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(8, 135, 125, 0.13), transparent 34%),
+    radial-gradient(circle at 86% 0%, rgba(246, 185, 79, 0.20), transparent 30%),
+    linear-gradient(135deg, #ffffff, #fbfdf6);
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.64fr);
-  padding: clamp(12px, 1.8vw, 18px);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
+  overflow: hidden;
+  padding: clamp(18px, 2.4vw, 28px);
+  position: relative;
+}
+
+.family-hero::after {
+  background: linear-gradient(180deg, var(--accent), #8bbf48);
+  border-radius: 999px;
+  content: '';
+  height: 82px;
+  opacity: 0.14;
+  position: absolute;
+  right: 28px;
+  top: -40px;
+  transform: rotate(34deg);
+  width: 14px;
+}
+
+.family-hero h1,
+.section-head h2,
+.family-preview-card h2 {
+  color: var(--ink);
+  font-family: var(--font-title, var(--font-body));
+  margin: 0;
 }
 
 .family-hero h1 {
-  font-size: clamp(1.4rem, 2.2vw, 2rem);
-  margin-bottom: 6px;
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.eyebrow,
+.search-field span {
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
 }
 
 .family-actions {
@@ -305,38 +368,60 @@ function initials(value?: string | null) {
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
+  position: relative;
+  z-index: 1;
 }
 
 .search-field {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 17px;
+  box-shadow: 0 14px 30px rgba(14, 40, 55, 0.06);
   display: grid;
-  gap: 5px;
+  gap: 4px;
+  padding: 8px 12px;
 }
 
-.search-field span {
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.search-field .input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.family-actions .btn-primary,
+.preview-actions .btn-primary {
+  background: #21324a;
+  border-radius: 15px;
+  box-shadow: 0 16px 30px rgba(33, 50, 74, 0.18);
 }
 
 .family-desk {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+}
+
+.family-list-card,
+.family-preview-card {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  padding: 14px;
 }
 
 .section-head {
   align-items: center;
+  border-bottom: 1px solid var(--line-soft);
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  padding-bottom: 12px;
 }
 
 .section-head h2 {
-  font-size: 1.2rem;
-  margin-bottom: 0;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
 }
 
 .family-list {
@@ -346,35 +431,41 @@ function initials(value?: string | null) {
 
 .family-row {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 18px;
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  padding: 10px 12px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 10px;
   text-align: left;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .family-row:hover,
 .family-row.active {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-300);
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border-color: rgba(8, 135, 125, 0.22);
+  transform: translateY(-1px);
+}
+
+.family-row.active {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .family-avatar {
   align-items: center;
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
+  background: linear-gradient(135deg, #eefaf7, #fff6df);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 15px;
+  color: var(--accent-dark);
   display: inline-flex;
-  font-size: 0.78rem;
-  font-weight: 600;
-  height: 42px;
+  font-size: 0.82rem;
+  font-weight: 950;
+  height: 44px;
   justify-content: center;
-  width: 42px;
+  width: 44px;
 }
 
 .family-copy {
@@ -390,56 +481,71 @@ function initials(value?: string | null) {
   white-space: nowrap;
 }
 
+.family-copy strong {
+  color: var(--ink);
+}
+
 .family-copy small {
-  color: var(--color-muted);
+  color: var(--muted);
   font-size: 0.82rem;
 }
 
 .role-pill {
-  background: var(--color-brand-100);
+  background: #e5f8ee;
+  border: 1px solid rgba(8, 135, 125, 0.12);
   border-radius: 999px;
-  color: var(--color-brand-800);
+  color: #148044;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 900;
   padding: 6px 9px;
 }
 
 .family-preview-card {
   align-self: start;
-  display: grid;
-  gap: 12px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(8, 135, 125, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(249, 253, 250, 0.93));
   position: sticky;
   top: calc(var(--topbar-height) + 14px);
 }
 
 .family-preview-card h2 {
-  font-size: 1.25rem;
-  margin-bottom: 0;
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  line-height: 1;
 }
 
-dl {
+.family-profile-lines {
   display: grid;
   gap: 8px;
-  margin: 0;
 }
 
-dl div {
-  border-top: 1px solid var(--color-border);
+.family-profile-lines article {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
   display: grid;
-  gap: 2px;
-  padding-top: 8px;
+  gap: 9px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 56px;
+  padding: 9px 10px;
 }
 
-dt {
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.family-profile-lines small,
+.family-profile-lines strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-dd {
-  margin: 0;
+.family-profile-lines small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.family-profile-lines strong {
+  color: var(--ink);
 }
 
 .preview-actions {
@@ -449,17 +555,18 @@ dd {
 }
 
 .notice {
-  background: #f0f8e7;
-  border: 1px solid var(--color-brand-200);
+  background: #edfdf7;
+  border: 1px solid #b7ead6;
   border-radius: 14px;
-  color: var(--color-brand-900);
-  font-weight: 600;
+  color: #047857;
+  font-weight: 700;
   margin: 0;
   padding: 10px 12px;
 }
 
 .loading-card {
-  color: var(--color-muted);
+  color: var(--muted);
+  padding: 20px;
 }
 
 @media (max-width: 1080px) {

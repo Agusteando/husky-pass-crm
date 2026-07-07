@@ -28,7 +28,7 @@
       <div class="page-shell">
         <span>
           <strong>Vista familiar</strong>
-          <small>Soporte activo</small>
+          <small>Vista familiar</small>
         </span>
         <button type="button" data-diagnostic-action="terminar-impersonacion" @click="exitImpersonation">
           <FamilyPersonasIcon name="arrow" />
