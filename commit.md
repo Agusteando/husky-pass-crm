@@ -1,1 +1,1 @@
-Evitar DDL en runtime para enlaces de registro de guardería
+Corregir tipado de diagnosticos de lista externa de guarderia

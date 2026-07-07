@@ -55,7 +55,7 @@ export interface DaycareRosterEntry {
   targetSalaName?: string | null
 }
 
-export interface DaycareRosterDiagnostics {
+export interface DaycareRosterDiagnostics extends Record<string, unknown> {
   sourceUrl?: string | null
   configuredByEnv?: boolean
   fetchedAt?: string | null
