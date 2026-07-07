@@ -19,6 +19,7 @@ import { normalizeMatricula } from '~/utils/matricula'
 import { normalizeSchoolPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { hashLegacyPassword } from '~/server/data/mysqlAuth'
+import { attachRosterToFamilyAccounts } from '~/server/data/daycareRoster'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
@@ -736,12 +737,17 @@ export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {
      ORDER BY id ASC`,
     [sala.unidad, DAYCARE_FAMILY_ROLE, salaId]
   )
-  return { sala, rows: await familyAccountRowsWithPolicy(rows) }
+  const rowsWithPolicy = await familyAccountRowsWithPolicy(rows)
+  const withRoster = await attachRosterToFamilyAccounts(sala.unidad, sala, rowsWithPolicy)
+  return { sala, rows: withRoster.rows, roster: withRoster.roster }
 }
 
 export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload & { passwordCanChange?: boolean | null }) {
   const sala = await getSalaById(user, Number(payload.sala))
   const role = DAYCARE_FAMILY_ROLE
+  const email = normalizedEmail(payload.email)
+  const username = normalizedEmail(payload.username) || email
+  if (!email) throw publicError(400, 'Escribe un correo familiar válido.')
   const passwordColumns = await passwordUpdateColumns(payload.plaintext)
   const passwordCanChange = payload.passwordCanChange !== undefined && payload.passwordCanChange !== null ? Boolean(payload.passwordCanChange) : true
 
@@ -762,10 +768,10 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
       `UPDATE users
        SET nombre_nino = ?, username = ?, email = ?, role = ?, unidad = ?, sala = ?${passwordColumns.sql}
        WHERE id = ?`,
-      [payload.nombre_nino || null, payload.username, payload.email, role, sala.unidad, String(sala.id), ...passwordColumns.params, payload.id]
+      [payload.nombre_nino || null, username, email, role, sala.unidad, String(sala.id), ...passwordColumns.params, payload.id]
     )
     await setDaycarePasswordPolicy([payload.id], passwordCanChange, adminPolicyActor(user))
-    return { ...payload, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange }
+    return { ...payload, username, email, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange }
   }
 
   const columnSet = await getUsersColumnSet()
@@ -777,10 +783,10 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
   if (passwordFields.includes('password')) passwordParams.push(payload.plaintext ? await hashLegacyPassword(payload.plaintext) : null)
   const result = await legacyWrite(
     `INSERT INTO users (${insertColumns.join(', ')}) VALUES (${placeholders})`,
-    [payload.nombre_nino || null, payload.username, payload.email, ...passwordParams, role, sala.unidad, String(sala.id)]
+    [payload.nombre_nino || null, username, email, ...passwordParams, role, sala.unidad, String(sala.id)]
   )
   await setDaycarePasswordPolicy([result.insertId], passwordCanChange, adminPolicyActor(user))
-  return { ...payload, id: result.insertId, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange }
+  return { ...payload, id: result.insertId, username, email, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange }
 }
 
 

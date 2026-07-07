@@ -96,6 +96,9 @@ import { setCachedRouteSession } from '~/utils/routeSession'
 import { hasDaycareAdminScope } from '~/utils/sessionScopes'
 import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
+import AdminModuleTabs from '~/components/admin/AdminModuleTabs.vue'
+import EmptyState from '~/components/EmptyState.vue'
+import HuskyPassLoader from '~/components/HuskyPassLoader.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 

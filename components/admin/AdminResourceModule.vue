@@ -47,6 +47,29 @@
       />
     </AdminModal>
 
+
+
+    <AdminModal
+      v-if="deleteDialog"
+      title="Eliminar publicación"
+      eyebrow="Guardería"
+      :description="deleteDialog.title || title"
+      :close-disabled="deleting"
+      @close="closeDeleteDialog"
+    >
+      <section class="delete-confirm-modal">
+        <span class="delete-confirm-icon">!</span>
+        <div>
+          <strong>Esta publicación dejará de aparecer para la sala.</strong>
+          <small>La acción elimina el registro seleccionado.</small>
+        </div>
+        <footer class="modal-actions">
+          <button class="btn btn-secondary" type="button" :disabled="deleting" @click="closeDeleteDialog">Cancelar</button>
+          <button class="btn btn-danger" type="button" :disabled="deleting" @click="confirmDelete">{{ deleting ? 'Eliminando…' : 'Eliminar' }}</button>
+        </footer>
+      </section>
+    </AdminModal>
+
     <p v-if="error" class="alert">No fue posible cargar esta sección.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
@@ -107,7 +130,7 @@
             <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener" data-diagnostic-link="abrir-recurso">Abrir recurso</a>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" @click="editing = { ...selected }">Editar</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
-            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="remove(selected.id)">Eliminar</button>
+            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="openDeleteDialog(selected)">Eliminar</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una publicación" />
@@ -120,6 +143,10 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import ResourceEditor from '~/components/admin/ResourceEditor.vue'
+import AdminModuleTabs from '~/components/admin/AdminModuleTabs.vue'
+import AdminModal from '~/components/admin/AdminModal.vue'
+import EmptyState from '~/components/EmptyState.vue'
+import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 import type { DaycareResource, Sala } from '~/types/daycare'
 import { daycareResourceSection, formatDate, isHiddenResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
@@ -136,6 +163,8 @@ const salaId = Number(route.params.id)
 const editing = ref<Partial<DaycareResource> | null>(null)
 const selected = ref<DaycareResource | null>(null)
 const saving = ref(false)
+const deleting = ref(false)
+const deleteDialog = ref<DaycareResource | null>(null)
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
 const visibilityFilter = ref<'published' | 'hidden' | 'all'>(normalizeVisibilityFilter(route.query.estado))
 const resourceFilter = ref<'all' | 'with' | 'without'>(normalizeResourceFilter(route.query.recurso))
@@ -295,18 +324,35 @@ async function togglePublished(item: DaycareResource) {
   }
 }
 
-async function remove(id?: number) {
-  if (!id || !confirm('¿Eliminar definitivamente esta publicación?')) return
+function openDeleteDialog(item: DaycareResource | null) {
+  if (!item?.id) return
+  actionError.value = ''
+  actionNotice.value = ''
+  deleteDialog.value = item
+}
+
+function closeDeleteDialog() {
+  if (deleting.value) return
+  deleteDialog.value = null
+}
+
+async function confirmDelete() {
+  const id = deleteDialog.value?.id
+  if (!id) return
+  deleting.value = true
   actionError.value = ''
   actionNotice.value = ''
   try {
     await $fetch(`/api/daycare/admin/resources/${id}`, { method: 'DELETE' })
     if (selected.value?.id === id) selected.value = null
+    deleteDialog.value = null
     syncSelectedQuery(undefined)
     await refresh()
     actionNotice.value = 'Publicación eliminada.'
   } catch (err: any) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible eliminar la publicación.'
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -732,4 +778,35 @@ function isCreateQuery(value: unknown) {
     flex-direction: column;
   }
 }
+.delete-confirm-modal {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.delete-confirm-icon {
+  align-items: center;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 999px;
+  color: #be123c;
+  display: inline-flex;
+  font-weight: 950;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.delete-confirm-modal strong,
+.delete-confirm-modal small { display: block; }
+.delete-confirm-modal strong { color: var(--ink); }
+.delete-confirm-modal small { color: var(--muted); margin-top: 3px; }
+.delete-confirm-modal .modal-actions {
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
 </style>

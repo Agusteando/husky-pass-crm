@@ -22,8 +22,8 @@
         <NuxtLink class="btn btn-secondary" to="/login">Ya tengo cuenta</NuxtLink>
       </header>
 
-      <p v-if="optionsError" class="alert">No fue posible cargar las salas disponibles.</p>
-      <div v-else-if="optionsPending" class="loading-box">Cargando salas...</div>
+      <p v-if="optionsError && !linkSala" class="alert">No fue posible cargar las salas disponibles.</p>
+      <div v-else-if="optionsPending && !linkSala" class="loading-box">Cargando salas...</div>
 
       <form v-else class="registration-form" @submit.prevent="submit">
         <label class="label">
@@ -36,18 +36,39 @@
           <input v-model="form.childName" class="input" required maxlength="120" />
         </label>
 
-        <label class="label">
-          Correo familiar
-          <input v-model="form.email" class="input" type="email" autocomplete="email" required maxlength="160" />
-        </label>
+        <div class="grid grid-2">
+          <label class="label">
+            Correo familiar
+            <input v-model="form.email" class="input" type="email" autocomplete="email" required maxlength="160" />
+          </label>
+
+          <label class="label">
+            Confirma el correo
+            <input v-model="form.emailConfirm" class="input" type="email" autocomplete="email" required maxlength="160" />
+          </label>
+        </div>
+
+        <section v-if="rosterCardVisible" class="roster-card" :data-state="rosterMatch?.match ? 'ready' : 'review'">
+          <span class="roster-icon">{{ rosterMatch?.match ? '✓' : '!' }}</span>
+          <div>
+            <strong>{{ rosterMatch?.match?.childName || 'Revisa el correo con guardería' }}</strong>
+            <small>{{ rosterMatch?.match ? rosterSuggestionMeta : 'No aparece en la lista de esta sala.' }}</small>
+          </div>
+          <button v-if="rosterMatch?.match" class="btn btn-secondary" type="button" @click="useRosterSuggestion">Usar datos</button>
+        </section>
 
         <label class="label">
           Contraseña
           <input v-model="form.password" class="input" type="password" autocomplete="new-password" required minlength="8" />
-          <small>Al menos 8 caracteres, con letras y números.</small>
+          <small>Al menos 8 caracteres, con letras y números. También la enviaremos a tu correo.</small>
         </label>
 
-        <div class="grid grid-2">
+        <section v-if="linkSala" class="linked-sala">
+          <span>Registro para</span>
+          <strong>{{ linkSala.unidad }} · {{ linkSala.sala }}</strong>
+        </section>
+
+        <div v-else class="grid grid-2">
           <label class="label">
             Unidad
             <select v-model="form.unidad" class="select" required @change="form.sala = ''">
@@ -99,8 +120,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { navigateTo, useFetch } from 'nuxt/app'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { navigateTo, useFetch, useRoute } from 'nuxt/app'
 import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienceIdentity'
 
 definePageMeta({ middleware: 'guest' })
@@ -118,6 +139,7 @@ interface CaptchaChallenge {
   minSeconds: number
 }
 
+const route = useRoute()
 const startedAt = Date.now()
 const identity = visualIdentityForContext({ experience: 'guarderia', institution: null, nivel: 'guarderia', plantel: 'CM', grupo: null })
 const identityVars = experienceThemeVars(identity)
@@ -125,6 +147,7 @@ const form = reactive({
   parentName: '',
   childName: '',
   email: '',
+  emailConfirm: '',
   password: '',
   unidad: '',
   sala: '',
@@ -135,11 +158,16 @@ const selectedFile = ref<File | null>(null)
 const selectedFileName = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const captcha = ref<CaptchaChallenge | null>(null)
+const linkSala = ref<RegistrationSala | null>(null)
+const registrationToken = ref(typeof route.query.codigo === 'string' ? route.query.codigo : '')
 const captchaPending = ref(false)
 const captchaError = ref('')
 const submitting = ref(false)
 const error = ref('')
 const notice = ref('')
+const rosterPending = ref(false)
+const rosterMatch = ref<{ available: boolean; match: null | { childName?: string | null; tutorName?: string | null; targetSalaId?: number | null; targetSalaName?: string | null; salaName?: string | null; movement?: string | null } } | null>(null)
+let rosterTimer: ReturnType<typeof setTimeout> | null = null
 
 const { data: options, pending: optionsPending, error: optionsError } = useFetch<{ unidades: string[]; salas: RegistrationSala[] }>('/api/daycare/registration/options', {
   timeout: 15000
@@ -148,15 +176,34 @@ const { data: options, pending: optionsPending, error: optionsError } = useFetch
 const unidades = computed(() => options.value?.unidades || [])
 const salasForUnidad = computed(() => (options.value?.salas || []).filter((sala) => sala.unidad === form.unidad))
 const pageState = computed(() => {
-  if (optionsError.value || error.value || captchaError.value) return 'error'
+  if ((optionsError.value && !linkSala.value) || error.value || captchaError.value) return 'error'
   if (optionsPending.value || captchaPending.value || submitting.value) return 'loading'
   if (notice.value) return 'success'
   return 'ready'
 })
-
-onMounted(() => {
-  void loadCaptcha()
+const rosterCardVisible = computed(() => Boolean(rosterMatch.value?.match || (rosterMatch.value?.available && form.emailConfirm && form.email && form.email.trim().toLowerCase() === form.emailConfirm.trim().toLowerCase())))
+const rosterSuggestionMeta = computed(() => {
+  const match = rosterMatch.value?.match
+  if (!match) return ''
+  return [match.targetSalaName || match.salaName, match.tutorName].filter(Boolean).join(' · ')
 })
+
+onMounted(async () => {
+  await Promise.all([loadCaptcha(), loadRegistrationLink()])
+})
+
+async function loadRegistrationLink() {
+  if (!registrationToken.value) return
+  try {
+    const response = await $fetch<{ sala: RegistrationSala }>('/api/daycare/registration/link', { query: { codigo: registrationToken.value } })
+    linkSala.value = response.sala
+    form.unidad = response.sala.unidad
+    form.sala = String(response.sala.id)
+  } catch (err: unknown) {
+    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
+    error.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'El enlace de registro no está disponible.'
+  }
+}
 
 async function loadCaptcha() {
   captchaPending.value = true
@@ -170,6 +217,40 @@ async function loadCaptcha() {
   } finally {
     captchaPending.value = false
   }
+}
+
+watch(() => [form.email, form.emailConfirm, form.sala, form.unidad, registrationToken.value], () => {
+  rosterMatch.value = null
+  if (rosterTimer) clearTimeout(rosterTimer)
+  rosterTimer = setTimeout(loadRosterMatch, 550)
+})
+
+async function loadRosterMatch() {
+  const email = form.email.trim().toLowerCase()
+  const emailConfirm = form.emailConfirm.trim().toLowerCase()
+  if (!email || email !== emailConfirm || (!registrationToken.value && (!form.sala || !form.unidad))) return
+  rosterPending.value = true
+  try {
+    rosterMatch.value = await $fetch<{ available: boolean; match: null | { childName?: string | null; tutorName?: string | null; targetSalaId?: number | null; targetSalaName?: string | null; salaName?: string | null; movement?: string | null } }>('/api/daycare/registration/roster-match', {
+      query: {
+        email,
+        codigo: registrationToken.value || undefined,
+        sala: registrationToken.value ? undefined : form.sala,
+        unidad: registrationToken.value ? undefined : form.unidad
+      }
+    })
+  } catch {
+    rosterMatch.value = null
+  } finally {
+    rosterPending.value = false
+  }
+}
+
+function useRosterSuggestion() {
+  const match = rosterMatch.value?.match
+  if (!match) return
+  if (match.childName) form.childName = match.childName
+  if (!registrationToken.value && match.targetSalaId) form.sala = String(match.targetSalaId)
 }
 
 function selectFile(event: Event) {
@@ -197,6 +278,7 @@ async function submit() {
     body.append('parentName', form.parentName)
     body.append('childName', form.childName)
     body.append('email', form.email)
+    body.append('emailConfirm', form.emailConfirm)
     body.append('password', form.password)
     body.append('unidad', form.unidad)
     body.append('sala', form.sala)
@@ -204,9 +286,10 @@ async function submit() {
     body.append('captchaAnswer', form.captchaAnswer)
     body.append('startedAt', String(startedAt))
     body.append('website', form.website)
+    if (registrationToken.value) body.append('registrationToken', registrationToken.value)
     if (selectedFile.value) body.append('picture', selectedFile.value)
 
-    const response = await $fetch<{ message: string }>('/api/daycare/registration', { method: 'POST', body })
+    const response = await $fetch<{ message: string; emailSent?: boolean }>('/api/daycare/registration', { method: 'POST', body })
     notice.value = response.message
     await navigateTo('/login?registro=guarderia')
   } catch (err: unknown) {
@@ -327,6 +410,29 @@ async function submit() {
   font-size: 1.4rem;
 }
 
+.linked-sala {
+  background: linear-gradient(135deg, rgba(8, 135, 125, 0.10), rgba(246, 185, 79, 0.16));
+  border: 1px solid var(--color-brand-200);
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.linked-sala span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.linked-sala strong {
+  color: var(--color-brand-900);
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+}
+
 .notice {
   background: #f0f8e7;
   border: 1px solid var(--color-brand-200);
@@ -370,4 +476,46 @@ async function submit() {
     grid-template-columns: 1fr;
   }
 }
+
+.roster-card {
+  align-items: center;
+  background: color-mix(in srgb, var(--brand-soft, #f0faf7) 72%, white);
+  border: 1px solid color-mix(in srgb, var(--brand-primary, #07877d) 18%, transparent);
+  border-radius: 22px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr auto;
+  padding: 14px;
+}
+
+.roster-card[data-state='review'] {
+  background: #fff8e9;
+  border-color: rgba(221, 145, 34, 0.28);
+}
+
+.roster-icon {
+  align-items: center;
+  background: var(--brand-primary, #07877d);
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.roster-card[data-state='review'] .roster-icon {
+  background: #d78a1d;
+}
+
+.roster-card strong,
+.roster-card small {
+  display: block;
+}
+
+.roster-card small {
+  color: #5f7182;
+}
+
 </style>

@@ -20,6 +20,53 @@ export interface DaycareResource {
   type: 'hw' | 'news' | 'cal'
 }
 
+
+export type DaycareRosterMovement = 'same' | 'forward' | 'backward' | 'different'
+
+export interface DaycareRosterSuggestion {
+  state: 'matched' | 'not-found' | 'room-changed'
+  childName?: string | null
+  tutorName?: string | null
+  tutorEmail?: string | null
+  salaName?: string | null
+  targetSalaId?: number | null
+  targetSalaName?: string | null
+  movement?: DaycareRosterMovement
+  childDifferent?: boolean
+  lastUpdatedAt?: string | null
+  sourceSheet?: string | null
+}
+
+export interface DaycareRosterEntry {
+  sourceSheet: string
+  tutorBusinessName?: string | null
+  tutorName?: string | null
+  tutorEmail: string
+  tutorPhone?: string | null
+  tutorAddress?: string | null
+  childName?: string | null
+  salaName?: string | null
+  normalizedEmail: string
+  normalizedChildName?: string | null
+  normalizedSala?: string | null
+  authorizedPeople?: string | null
+  lastUpdatedAt?: string | null
+  targetSalaId?: number | null
+  targetSalaName?: string | null
+}
+
+export interface DaycareRosterOverlay {
+  available: boolean
+  summary: {
+    inSala: number
+    linked: number
+    pending: number
+    moved: number
+  }
+  sourceOnly: DaycareRosterEntry[]
+  sourceUpdatedAt?: string | null
+}
+
 export interface FamilyAccount {
   id?: number
   nombre_nino?: string | null
@@ -27,6 +74,7 @@ export interface FamilyAccount {
   email: string
   plaintext?: string | null
   passwordCanChange?: boolean | null
+  roster?: DaycareRosterSuggestion | null
   role?: string | null
   unidad: string
   sala: string | number

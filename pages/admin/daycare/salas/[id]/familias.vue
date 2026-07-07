@@ -12,10 +12,33 @@
           <span>Buscar</span>
           <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
         </label>
+        <button class="btn btn-secondary" type="button" data-diagnostic-action="registro-sala" @click="openRegistrationLink">Link de registro</button>
         <button class="btn btn-secondary" type="button" data-diagnostic-action="password-sala" @click="openSalaPassword">Contraseña de sala</button>
         <button class="btn btn-primary" type="button" data-diagnostic-action="crear-familia" @click="startCreate">Nueva familia</button>
       </div>
     </header>
+
+    <section v-if="rosterAvailable" class="roster-strip" aria-label="Lista de sala">
+      <article>
+        <span class="roster-dot good">✓</span>
+        <strong>{{ rosterSummary.linked }}</strong>
+        <small>con ficha</small>
+      </article>
+      <article>
+        <span class="roster-dot warm">+</span>
+        <strong>{{ rosterSummary.pending }}</strong>
+        <small>por activar</small>
+      </article>
+      <article>
+        <span class="roster-dot move">↗</span>
+        <strong>{{ rosterSummary.moved }}</strong>
+        <small>cambio de sala</small>
+      </article>
+      <article>
+        <span class="roster-dot neutral">{{ rosterSummary.inSala }}</span>
+        <small>lista de sala</small>
+      </article>
+    </section>
 
     <AdminModal
       v-if="editing"
@@ -68,6 +91,61 @@
       </form>
     </AdminModal>
 
+    <AdminModal
+      v-if="rosterDialog"
+      :title="rosterDialog.applySala ? 'Mover familia' : 'Actualizar nombre'"
+      eyebrow="Lista de sala"
+      :description="rosterDialog.account.email || rosterDialog.account.username"
+      :close-disabled="rosterSaving"
+      @close="rosterDialog = null"
+    >
+      <section class="roster-confirm-modal">
+        <div class="roster-confirm-icon">{{ rosterDialog.applySala ? '↗' : '✓' }}</div>
+        <div>
+          <strong>{{ rosterDialog.applySala ? selectedRosterTitle : rosterDialog.account.roster?.childName }}</strong>
+          <small>{{ rosterDialog.applySala ? selectedRosterDetail : 'Se guardará como nombre del niño o niña.' }}</small>
+        </div>
+        <footer class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="rosterDialog = null">Cancelar</button>
+          <button class="btn btn-primary" type="button" :disabled="rosterSaving" @click="confirmRosterDialog">{{ rosterSaving ? 'Guardando…' : 'Aplicar' }}</button>
+        </footer>
+      </section>
+    </AdminModal>
+
+    <AdminModal
+      v-if="registrationDialog"
+      title="Registro familiar"
+      eyebrow="Link de sala"
+      :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
+      :close-disabled="registrationLoading"
+      @close="registrationDialog = false"
+    >
+      <section class="registration-link-modal">
+        <div class="registration-qr-card">
+          <img v-if="registrationLink?.qrUrl" :src="registrationLink.qrUrl" alt="QR de registro" />
+          <span v-else>QR</span>
+        </div>
+        <div class="registration-link-copy">
+          <p>Comparte este acceso con familias de la sala para que creen su cuenta.</p>
+          <div class="link-box">
+            <span>{{ registrationLink?.url || 'Generando enlace…' }}</span>
+            <button class="btn btn-secondary" type="button" :disabled="!registrationLink?.url" @click="copyRegistrationLink">Copiar</button>
+          </div>
+          <label class="label">
+            Enviar link a correo
+            <div class="password-input-row">
+              <input v-model="registrationEmail" class="input" type="email" placeholder="correo@familia.com" />
+              <button class="btn btn-secondary" type="button" :disabled="registrationLoading || !registrationEmail" @click="sendRegistrationLink">Enviar</button>
+            </div>
+          </label>
+          <footer class="modal-actions">
+            <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="regenerateRegistrationLink">Regenerar link</button>
+            <button class="btn btn-primary" type="button" @click="registrationDialog = false">Listo</button>
+          </footer>
+        </div>
+      </section>
+    </AdminModal>
+
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
     <p v-if="actionNotice" class="notice">{{ actionNotice }}</p>
@@ -83,7 +161,7 @@
           <button v-if="canPreviewSala" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" :disabled="previewing" :data-unavailable-reason="previewing ? 'Abriendo vista familiar' : undefined" @click="previewSala">{{ previewing ? 'Abriendo…' : 'Vista familiar de sala' }}</button>
         </div>
 
-        <div v-if="filteredAccounts.length" class="family-list">
+        <div v-if="filteredAccounts.length || rosterSourceOnly.length" class="family-list">
           <button
             v-for="account in filteredAccounts"
             :key="account.id"
@@ -96,11 +174,22 @@
           >
             <span class="family-avatar">{{ initials(account.nombre_nino || accountLabel(account.username)) }}</span>
             <span class="family-copy">
-              <strong>{{ account.nombre_nino || 'Sin nombre de niño/a' }}</strong>
+              <strong>{{ account.nombre_nino || account.roster?.childName || 'Sin nombre de niño/a' }}</strong>
               <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
             </span>
-            <span class="role-pill">{{ accountStatusLabel(account) }}</span>
+            <span class="source-pill" :data-state="accountRosterState(account)">{{ accountRosterMark(account) }}</span>
           </button>
+          <div v-if="rosterSourceOnly.length" class="source-only-list">
+            <p>Por activar</p>
+            <button v-for="entry in rosterSourceOnly" :key="[entry.sourceSheet, entry.normalizedEmail, entry.childName].join('-')" class="source-only-row" type="button" @click="startCreateFromRoster(entry)">
+              <span class="family-avatar soft">{{ initials(entry.childName || entry.tutorEmail) }}</span>
+              <span>
+                <strong>{{ entry.childName || 'Familia sin nombre' }}</strong>
+                <small>{{ [entry.tutorEmail, entry.targetSalaName || entry.salaName].filter(Boolean).join(' · ') }}</small>
+              </span>
+              <span class="btn-mini">Crear</span>
+            </button>
+          </div>
         </div>
         <EmptyState v-else title="Sin familias" />
       </div>
@@ -131,6 +220,17 @@
               <span><small>Sala</small><strong>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</strong></span>
             </article>
           </section>
+          <section v-if="selectedRosterVisible" class="roster-sync-card" :data-state="selected?.roster?.state || 'not-found'">
+            <span class="roster-sync-icon">{{ selectedRosterIcon }}</span>
+            <div>
+              <strong>{{ selectedRosterTitle }}</strong>
+              <small>{{ selectedRosterDetail }}</small>
+            </div>
+            <div class="roster-sync-actions">
+              <button v-if="selected?.roster?.childDifferent" class="btn btn-secondary" type="button" :disabled="rosterSaving" @click="openRosterDialog(selected, { applyChildName: true })">Aplicar nombre</button>
+              <button v-if="selected?.roster?.state === 'room-changed' && selected?.roster?.targetSalaId" class="btn btn-primary" type="button" :disabled="rosterSaving" @click="openRosterDialog(selected, { applySala: true, applyChildName: true })">{{ selectedRosterMoveCta }}</button>
+            </div>
+          </section>
           <section class="access-panel" aria-label="Acceso familiar">
             <div>
               <small>Contraseña</small>
@@ -141,7 +241,7 @@
           <div class="preview-actions">
             <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
             <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar familia</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="openFamilyEditor(selected)">Editar familia</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="password-familia" @click="openFamilyPassword(selected)">Contraseña</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="email-acceso" :disabled="emailingId === selected.id || !selected.plaintext || !selected.email" @click="sendAccessEmail(selected)">{{ emailingId === selected.id ? 'Enviando…' : 'Enviar acceso' }}</button>
           </div>
@@ -156,11 +256,16 @@
 import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
 import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
-import type { FamilyAccount, Sala } from '~/types/daycare'
+import type { DaycareRosterEntry, DaycareRosterOverlay, FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { DAYCARE_FAMILY_ROLE, defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate } from '~/utils/matricula'
+import AdminModuleTabs from '~/components/admin/AdminModuleTabs.vue'
+import AdminModal from '~/components/admin/AdminModal.vue'
+import EmptyState from '~/components/EmptyState.vue'
+import FamilyAccountEditor from '~/components/admin/FamilyAccountEditor.vue'
+import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 
@@ -180,14 +285,23 @@ const emailingId = ref<number | null>(null)
 const passwordSaving = ref(false)
 const passwordDialog = ref<{ mode: 'family' | 'sala'; account?: FamilyAccount | null } | null>(null)
 const passwordForm = ref({ password: '', passwordCanChange: true, sendEmail: false })
+const registrationDialog = ref(false)
+const registrationLoading = ref(false)
+const registrationEmail = ref('')
+const registrationLink = ref<{ token: string; url: string; qrUrl: string; sala: string; unidad: string } | null>(null)
+const rosterSaving = ref(false)
+const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean; applySala?: boolean } | null>(null)
 const { data: session } = useAppSession()
 const canPreviewSala = computed(() => hasDaycareAdminScope(session.value?.user))
 const canImpersonateAccounts = computed(() => hasDaycareAdminScope(session.value?.user))
-const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[] }>('/api/daycare/admin/family-accounts', {
+const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId },
   timeout: 15000
 })
 
+const rosterAvailable = computed(() => Boolean(data.value?.roster?.available))
+const rosterSummary = computed(() => data.value?.roster?.summary || { inSala: 0, linked: 0, pending: 0, moved: 0 })
+const rosterSourceOnly = computed(() => data.value?.roster?.sourceOnly || [])
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
 const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
 
@@ -214,6 +328,23 @@ function accountStatusLabel(account: Pick<FamilyAccount, 'username' | 'email' | 
   if (!account.role) return 'Pendiente'
   return 'Activa'
 }
+
+const selectedRosterVisible = computed(() => Boolean(selected.value?.roster && selected.value.roster.state !== 'not-found'))
+const selectedRosterIcon = computed(() => selected.value?.roster?.state === 'room-changed' ? '↗' : '✓')
+const selectedRosterTitle = computed(() => {
+  const roster = selected.value?.roster
+  if (!roster) return ''
+  if (roster.state === 'room-changed') return roster.movement === 'forward' ? 'Subió de sala' : 'Cambió de sala'
+  if (roster.childDifferent) return 'Nombre sugerido'
+  return 'En lista de sala'
+})
+const selectedRosterDetail = computed(() => {
+  const roster = selected.value?.roster
+  if (!roster) return ''
+  if (roster.state === 'room-changed') return [roster.targetSalaName, roster.childName].filter(Boolean).join(' · ')
+  return [roster.childName, roster.targetSalaName || roster.salaName].filter(Boolean).join(' · ')
+})
+const selectedRosterMoveCta = computed(() => selected.value?.roster?.movement === 'forward' ? 'Promover a sala' : 'Mover a sala')
 
 const filteredAccounts = computed(() => {
   const rows = data.value?.rows || []
@@ -242,6 +373,66 @@ function startCreate() {
   actionError.value = ''
   actionNotice.value = ''
   editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: DAYCARE_FAMILY_ROLE, username: '', email: '' }
+}
+
+function startCreateFromRoster(entry: DaycareRosterEntry) {
+  actionError.value = ''
+  actionNotice.value = ''
+  editing.value = {
+    sala: String(entry.targetSalaId || salaId),
+    unidad: data.value?.sala.unidad,
+    role: DAYCARE_FAMILY_ROLE,
+    username: entry.tutorEmail || '',
+    email: entry.tutorEmail || '',
+    nombre_nino: entry.childName || ''
+  }
+}
+
+function accountRosterState(account: FamilyAccount) {
+  if (account.roster?.state === 'room-changed') return 'move'
+  if (account.roster?.state === 'matched') return 'ok'
+  return 'review'
+}
+
+function accountRosterMark(account: FamilyAccount) {
+  if (account.roster?.state === 'room-changed') return '↗'
+  if (account.roster?.state === 'matched') return '✓'
+  return '!'
+}
+
+function openRosterDialog(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
+  if (!account) return
+  rosterDialog.value = { account, ...options }
+}
+
+async function confirmRosterDialog() {
+  if (!rosterDialog.value) return
+  const ok = await applyRoster(rosterDialog.value.account, { applyChildName: rosterDialog.value.applyChildName, applySala: rosterDialog.value.applySala })
+  if (ok) rosterDialog.value = null
+}
+
+async function applyRoster(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
+  if (!account?.id) return
+  rosterSaving.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    await $fetch('/api/daycare/admin/roster-apply', { method: 'POST', body: { sala: salaId, userId: account.id, ...options } })
+    await refresh()
+    if (options.applySala) {
+      selected.value = (data.value?.rows || [])[0] || null
+      actionNotice.value = 'Familia movida a su sala.'
+    } else {
+      selected.value = (data.value?.rows || []).find((row) => row.id === account.id) || selected.value
+      actionNotice.value = 'Datos familiares actualizados.'
+    }
+    return true
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible aplicar la sugerencia.'
+    return false
+  } finally {
+    rosterSaving.value = false
+  }
 }
 
 function selectAccount(account: FamilyAccount) {
@@ -289,6 +480,79 @@ async function save(payload: Partial<FamilyAccount>) {
   }
 }
 
+
+async function openRegistrationLink() {
+  registrationDialog.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  if (!registrationLink.value) await loadRegistrationLink(false)
+}
+
+async function loadRegistrationLink(regenerate = false) {
+  registrationLoading.value = true
+  actionError.value = ''
+  try {
+    const endpoint = '/api/daycare/admin/registration-link'
+    const response = regenerate
+      ? await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { method: 'POST', body: { sala: salaId, regenerate: true } })
+      : await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { query: { sala: salaId } })
+    registrationLink.value = response.link
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible preparar el link de registro.'
+  } finally {
+    registrationLoading.value = false
+  }
+}
+
+async function copyRegistrationLink() {
+  if (!registrationLink.value?.url) return
+  try {
+    await navigator.clipboard?.writeText(registrationLink.value.url)
+    actionNotice.value = 'Link de registro copiado.'
+  } catch {
+    actionError.value = 'No fue posible copiar el link automáticamente.'
+  }
+}
+
+async function regenerateRegistrationLink() {
+  await loadRegistrationLink(true)
+  if (registrationLink.value) actionNotice.value = 'Link de registro regenerado.'
+}
+
+async function sendRegistrationLink() {
+  if (!registrationEmail.value) return
+  registrationLoading.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const response = await $fetch<{ emailed: number; link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>('/api/daycare/admin/registration-link-email', {
+      method: 'POST',
+      body: { sala: salaId, to: registrationEmail.value }
+    })
+    registrationLink.value = response.link
+    actionNotice.value = response.emailed ? 'Link de registro enviado.' : 'No se envió ningún correo.'
+    registrationEmail.value = ''
+  } catch (err: any) {
+    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible enviar el link.'
+  } finally {
+    registrationLoading.value = false
+  }
+}
+
+
+function openFamilyEditor(account: FamilyAccount | null) {
+  if (!account) return
+  actionError.value = ''
+  actionNotice.value = ''
+  editing.value = {
+    ...account,
+    sala: String(salaId),
+    unidad: data.value?.sala?.unidad || account.unidad,
+    role: account.role || DAYCARE_FAMILY_ROLE,
+    username: account.username || '',
+    email: account.email || ''
+  }
+}
 
 function openSalaPassword() {
   actionError.value = ''
@@ -506,7 +770,7 @@ function initials(value?: string | null) {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   position: relative;
   z-index: 1;
 }
@@ -857,4 +1121,281 @@ function initials(value?: string | null) {
     display: grid;
   }
 }
+.registration-link-modal {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 180px minmax(0, 1fr);
+}
+
+.registration-qr-card {
+  align-items: center;
+  background: linear-gradient(135deg, #f0fbf7, #fff6df);
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 24px;
+  display: grid;
+  justify-items: center;
+  min-height: 180px;
+  padding: 14px;
+}
+
+.registration-qr-card img {
+  background: #fff;
+  border-radius: 18px;
+  display: block;
+  height: 150px;
+  width: 150px;
+}
+
+.registration-qr-card span {
+  color: var(--accent-dark);
+  font-weight: 950;
+  letter-spacing: .12em;
+}
+
+.registration-link-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.registration-link-copy p {
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0;
+}
+
+.link-box {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.link-box span {
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .registration-link-modal {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.roster-strip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.roster-strip article {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line-soft);
+  border-radius: 22px;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.roster-strip strong {
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+
+.roster-strip small {
+  color: var(--muted);
+}
+
+.roster-dot,
+.roster-sync-icon {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.roster-dot {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 7px;
+}
+
+.roster-dot.good,
+.source-pill[data-state='ok'],
+.roster-sync-card[data-state='matched'] .roster-sync-icon {
+  background: #0f8b7d;
+  color: white;
+}
+
+.roster-dot.warm,
+.source-pill[data-state='review'] {
+  background: #fff0cc;
+  color: #9a5e05;
+}
+
+.roster-dot.move,
+.source-pill[data-state='move'],
+.roster-sync-card[data-state='room-changed'] .roster-sync-icon {
+  background: #f4b64a;
+  color: #372505;
+}
+
+.roster-dot.neutral {
+  background: #eef7f4;
+  color: var(--accent-dark);
+}
+
+.source-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  min-width: 30px;
+}
+
+.source-only-list {
+  border-top: 1px solid var(--line-soft);
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.source-only-list p {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.source-only-row {
+  align-items: center;
+  background: #fffdf7;
+  border: 1px solid rgba(244, 182, 74, 0.24);
+  border-radius: 20px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr auto;
+  padding: 10px;
+  text-align: left;
+}
+
+.family-avatar.soft {
+  background: #fff0cc;
+  color: #79520a;
+}
+
+.btn-mini {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.roster-sync-card {
+  align-items: center;
+  background: #f5fbf9;
+  border: 1px solid rgba(7, 135, 125, 0.14);
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr auto;
+  padding: 14px;
+}
+
+.roster-sync-card[data-state='room-changed'] {
+  background: #fff8e9;
+  border-color: rgba(244, 182, 74, 0.34);
+}
+
+.roster-sync-icon {
+  height: 34px;
+  width: 34px;
+}
+
+.roster-sync-card strong,
+.roster-sync-card small {
+  display: block;
+}
+
+.roster-sync-card small {
+  color: var(--muted);
+}
+
+.roster-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .roster-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .roster-sync-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .roster-sync-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+}
+
+
+.roster-confirm-modal {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr;
+}
+
+.roster-confirm-icon {
+  align-items: center;
+  background: #0f8b7d;
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-size: 1.1rem;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.roster-confirm-modal strong,
+.roster-confirm-modal small {
+  display: block;
+}
+
+.roster-confirm-modal small {
+  color: var(--muted);
+}
+
+.roster-confirm-modal .modal-actions {
+  grid-column: 1 / -1;
+}
+
 </style>

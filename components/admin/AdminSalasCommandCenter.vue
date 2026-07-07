@@ -126,6 +126,8 @@ import type { SalaSummary } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { hasDaycareAdminScope } from '~/utils/sessionScopes'
+import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
+import HuskyPassLoader from '~/components/HuskyPassLoader.vue'
 
 type DaycareSalaSection = 'familias' | 'tareas' | 'avisos' | 'calendario'
 
