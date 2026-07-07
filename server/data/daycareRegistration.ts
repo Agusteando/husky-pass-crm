@@ -200,19 +200,8 @@ export function daycareRegistrationQrUrl(event: H3Event, token: string) {
   return `${base}/api/daycare/registration/qr?codigo=${encodeURIComponent(token)}`
 }
 
-async function ensureRegistrationLinkTable() {
-  await legacyWrite(`CREATE TABLE IF NOT EXISTS ${REGISTRATION_LINK_TABLE} (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    token VARCHAR(80) NOT NULL UNIQUE,
-    sala_id INT NOT NULL,
-    unidad VARCHAR(190) NOT NULL,
-    sala_name VARCHAR(190) NOT NULL,
-    active TINYINT(1) NOT NULL DEFAULT 1,
-    created_by VARCHAR(190) NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    regenerated_at TIMESTAMP NULL DEFAULT NULL,
-    KEY hp_daycare_registration_sala_active (sala_id, active)
-  )`)
+async function assertRegistrationLinkStoreAvailable() {
+  await legacyQuery<RowDataPacket[]>(`SELECT 1 FROM ${REGISTRATION_LINK_TABLE} LIMIT 0`)
 }
 
 function mapLink(row: RegistrationLinkRow, event?: H3Event): DaycareRegistrationLink {
@@ -294,7 +283,7 @@ export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, e
   const sala = await resolveAdminSala(user, salaId)
 
   try {
-    await ensureRegistrationLinkTable()
+    await assertRegistrationLinkStoreAvailable()
 
     if (regenerate) {
       await legacyWrite(`UPDATE ${REGISTRATION_LINK_TABLE} SET active = 0 WHERE sala_id = ? AND active = 1`, [sala.id])
@@ -359,7 +348,7 @@ export async function resolveDaycareRegistrationLink(token: string, event?: H3Ev
   }
 
   try {
-    await ensureRegistrationLinkTable()
+    await assertRegistrationLinkStoreAvailable()
     const row = await legacyOne<RegistrationLinkRow>(
       `SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? AND active = 1 LIMIT 1`,
       [code]

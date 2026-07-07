@@ -1,1 +1,1 @@
-Normaliza enlaces de registro y diagnostico de lista externa de guarderia
+Evitar DDL en runtime para enlaces de registro de guardería
