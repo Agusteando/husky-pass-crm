@@ -2,11 +2,11 @@
   <AdminResourceModule
     type="news"
     title="Avisos"
-    description="Comunicados y circulares visibles para las familias de la sala."
+    description="Mensajes de sala."
     action-label="Nuevo aviso"
   />
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 </script>

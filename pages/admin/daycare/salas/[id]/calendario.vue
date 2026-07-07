@@ -2,11 +2,11 @@
   <AdminResourceModule
     type="cal"
     title="Calendario"
-    description="Eventos próximos que las familias consultan desde el calendario."
+    description="Fechas de sala."
     action-label="Nuevo evento"
   />
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 </script>

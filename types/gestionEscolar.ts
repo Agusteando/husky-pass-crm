@@ -1,5 +1,4 @@
 import type { AuthorizedChild } from './daycare'
-import type { CommunicationAdminScopeInput } from './communications'
 
 export type GestionEscolarCapability =
   | 'comunicados.create'
@@ -13,8 +12,6 @@ export type GestionEscolarCapability =
 export type GestionEscolarModuleKey = 'familias' | 'comunicados' | 'encuestas' | 'convenios'
 export type GestionEscolarContentKind = 'encuesta' | 'convenio'
 export type GestionEscolarContentStatus = 'draft' | 'active' | 'inactive' | 'scheduled'
-export type GestionEscolarAssignmentState = 'none' | 'incomplete' | 'active'
-export type GestionEscolarAccessProfileKey = 'support' | 'operator' | 'publisher' | 'content' | 'full' | 'custom'
 
 export interface GestionEscolarScope {
   isGlobal?: boolean
@@ -24,14 +21,11 @@ export interface GestionEscolarScope {
   grupo?: string | null
 }
 
-export interface GestionEscolarPermissionInput extends GestionEscolarScope {
-  capability: GestionEscolarCapability
-  enabled?: boolean
-}
-
-export interface GestionEscolarPermission extends Required<Omit<GestionEscolarPermissionInput, 'plantel' | 'nivel' | 'grado' | 'grupo'>> {
+export interface GestionEscolarPermission extends Required<Omit<GestionEscolarScope, 'plantel' | 'nivel' | 'grado' | 'grupo'>> {
   id?: number
   userId: number
+  capability: GestionEscolarCapability
+  enabled: boolean
   plantel: string | null
   nivel: string | null
   grado: string | null
@@ -63,22 +57,10 @@ export interface GestionEscolarScopeTree {
   planteles: GestionEscolarScopeTreeNode[]
 }
 
-export interface GestionEscolarPermissionSummary {
-  enabled: boolean
-  state: GestionEscolarAssignmentState
-  profile: GestionEscolarAccessProfileKey
-  capabilities: GestionEscolarCapability[]
-  permissions: GestionEscolarPermission[]
-  reach: GestionEscolarReachPreview
-  legacyCommunications: CommunicationAdminScopeInput[]
-  updatedAt?: string | null
-}
-
 export interface GestionEscolarModuleSummary {
   key: GestionEscolarModuleKey
   title: string
   description: string
-  capabilities: GestionEscolarCapability[]
   enabled: boolean
   reach: GestionEscolarReachPreview
   metrics: Array<{ label: string; value: string | number }>
@@ -86,8 +68,6 @@ export interface GestionEscolarModuleSummary {
 
 export interface GestionEscolarOverviewResponse {
   modules: GestionEscolarModuleSummary[]
-  capabilities: GestionEscolarCapability[]
-  permissions: GestionEscolarPermission[]
   reach: GestionEscolarReachPreview
   options: {
     planteles: string[]
@@ -121,7 +101,7 @@ export interface GestionEscolarScopedContentItem extends GestionEscolarScope {
 export interface GestionEscolarScopedContentResponse {
   items: GestionEscolarScopedContentItem[]
   options: GestionEscolarOverviewResponse['options']
-  permissions: {
+  actions: {
     canManage: boolean
     canPublish: boolean
   }

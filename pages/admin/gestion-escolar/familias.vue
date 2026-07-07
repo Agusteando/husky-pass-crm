@@ -4,7 +4,6 @@
       <div>
         <p class="eyebrow">Familias</p>
         <h1>Familias</h1>
-        
       </div>
       <form class="support-search" @submit.prevent="refreshFamilies">
         <FamilyPersonasIcon name="search" />
@@ -19,7 +18,6 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No pudimos cargar familias</h2>
-      <p>Tu alcance puede estar incompleto o la consulta falló temporalmente.</p>
     </section>
 
     <section v-else class="support-layout">
@@ -58,7 +56,6 @@
         <div v-else class="state-panel compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Sin familias visibles</h2>
-          <p>Ajusta la búsqueda o solicita revisar tu alcance escolar.</p>
         </div>
       </aside>
 
@@ -82,15 +79,11 @@
             </div>
           </header>
 
-          <section class="why-panel">
-            <div>
-              <p class="eyebrow">Por qué la ves</p>
-              <h3>{{ detail.family.plantel }} · {{ detail.family.nivel || 'Nivel' }} · {{ detail.family.grado || 'Grado' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</h3>
-            </div>
-            <p>La familia coincide con tu plantel, grado o grupo asignado. Las acciones se limitan a consulta y soporte controlado.</p>
-          </section>
-
           <section class="facts-grid">
+            <article>
+              <span>Plantel</span>
+              <strong>{{ detail.family.plantel }}{{ detail.family.grado ? ` / ${detail.family.grado}` : '' }}</strong>
+            </article>
             <article>
               <span>Estado</span>
               <strong>{{ statusLabel(detail.family.parentStatus) }}</strong>
@@ -104,7 +97,7 @@
               <strong>{{ detail.authorizedPeople.length }}</strong>
             </article>
             <article>
-              <span>Acción sensible</span>
+              <span>Vista familiar</span>
               <strong>{{ detail.family.canImpersonate ? 'Permitida' : 'Solo lectura' }}</strong>
             </article>
           </section>
@@ -139,7 +132,7 @@
           </section>
 
           <section class="signals-panel">
-            <p class="eyebrow">Señales de soporte</p>
+            <p class="eyebrow">Cuenta</p>
             <div>
               <span v-for="item in detail.supportPreview" :key="item.label">{{ item.label }}: {{ item.value }}</span>
               <span v-for="signal in detail.family.contactSignals" :key="signal">{{ signal }}</span>
@@ -158,7 +151,6 @@
         <div v-else class="state-panel compact" data-state="empty">
           <FamilyPersonasIcon name="people" />
           <h2>Selecciona una familia</h2>
-          <p>Verás por qué es visible, su red autorizada y las acciones permitidas.</p>
         </div>
       </section>
     </section>
@@ -285,7 +277,6 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 .support-head h1,
 .pane-title h2,
 .detail-head h2,
-.why-panel h3,
 .state-panel h2 {
   color: #152032;
   font-family: var(--font-body);
@@ -298,7 +289,6 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 
 .support-head p:not(.eyebrow),
 .detail-head p,
-.why-panel p,
 .detail-grid small,
 .family-row small {
   color: #667789;
@@ -371,7 +361,6 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 .metrics-row article,
 .facts-grid article,
 .detail-grid article,
-.why-panel,
 .signals-panel {
   background: #f8fafc;
   border: 1px solid #e1e8ed;
@@ -487,7 +476,7 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 }
 
 .facts-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .detail-grid {

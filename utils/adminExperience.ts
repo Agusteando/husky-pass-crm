@@ -25,8 +25,8 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
   if (!admin) {
     return {
       key: 'limitedAdmin',
-      title: 'Administracion',
-      subtitle: 'Sesion no disponible',
+      title: 'Administración',
+      subtitle: 'Sesión no disponible',
       context: '',
       homeTo
     }
@@ -55,7 +55,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
   if (hasDaycareAdminScope(admin)) {
     return {
       key: 'daycareAdmin',
-      title: 'Guarderia',
+      title: 'Guardería',
       subtitle: 'Salas y familias',
       context: admin.unidades.length ? admin.unidades.join(' / ') : '',
       homeTo
@@ -64,7 +64,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
 
   return {
     key: 'limitedAdmin',
-    title: 'Administracion',
+    title: 'Administración',
     subtitle: 'Acceso pendiente',
     context: '',
     homeTo
@@ -79,7 +79,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
     return [
       { key: 'usuarios', label: 'Usuarios', to: '/admin/superadmin', icon: 'people' },
       { key: 'escolar', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
-      { key: 'guarderia', label: 'Guarderia', to: daycareRouteForUser(admin), icon: 'daycare' }
+      { key: 'guarderia', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' }
     ]
   }
 
@@ -94,7 +94,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
   }
 
   if (hasDaycareAdminScope(admin)) {
-    return [{ key: 'guarderia', label: 'Guarderia', to: daycareRouteForUser(admin), icon: 'daycare' }]
+    return [{ key: 'guarderia', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' }]
   }
 
   return []
@@ -103,10 +103,10 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
 export function adminScopeSummary(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return []
-  if (admin.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guarderia']
+  if (admin.isSuperAdmin) return ['Super Admin', 'Escolar', 'Guardería']
   const scopes: string[] = []
   if (hasSchoolAdminScope(admin)) scopes.push('Escolar')
-  if (hasDaycareAdminScope(admin)) scopes.push('Guarderia')
+  if (hasDaycareAdminScope(admin)) scopes.push('Guardería')
   return scopes
 }
 

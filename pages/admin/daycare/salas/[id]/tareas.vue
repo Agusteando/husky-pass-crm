@@ -2,11 +2,11 @@
   <AdminResourceModule
     type="hw"
     title="Tareas"
-    description="Publicaciones de tarea que aparecerán en la experiencia familiar de guardería."
+    description="Tareas para casa."
     action-label="Nueva tarea"
   />
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 </script>

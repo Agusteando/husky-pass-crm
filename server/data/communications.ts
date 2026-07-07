@@ -80,7 +80,8 @@ interface CommunicationAccess {
   scopes: CommunicationAdminScope[]
 }
 
-const DEFAULT_PLANTELES = ['PREEM', 'PM', 'PT', 'SM', 'ST']
+const DEFAULT_PLANTELES = ['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST']
+const SCHOOL_COMMUNICATION_PLANTELES = new Set(DEFAULT_PLANTELES)
 const DEFAULT_NIVELES = ['Preescolar', 'Primaria', 'Secundaria']
 const DEFAULT_GRADOS = ['1°', '2°', '3°']
 const DEFAULT_GRUPOS = ['A', 'B', 'C', 'G']
@@ -272,8 +273,7 @@ function derivedPlantelSql(alias = 'm') {
     WHEN UPPER(${alias}.matricula) LIKE 'PT%' THEN 'PT'
     WHEN UPPER(${alias}.matricula) LIKE 'SM%' THEN 'SM'
     WHEN UPPER(${alias}.matricula) LIKE 'ST%' THEN 'ST'
-    WHEN UPPER(${alias}.matricula) LIKE 'DM%' THEN 'CM'
-    ELSE UPPER(LEFT(${alias}.matricula, 2))
+    ELSE NULL
   END`
 }
 
@@ -370,6 +370,7 @@ function childMatchesScope(scope: CommunicationAdminScope, child: AuthorizedChil
 }
 
 function optionAllowed(access: CommunicationAccess, row: CommunicationOptionsRow) {
+  if (!SCHOOL_COMMUNICATION_PLANTELES.has(upper(row.plantel))) return false
   if (access.isGlobal) return true
   const child = { plantel: row.plantel, campus: row.plantel, nivelEdu: row.nivel, grado: row.grado, grupo: row.grupo } as AuthorizedChild
   return access.scopes.some((scope) => childMatchesScope(scope, child))
@@ -588,7 +589,7 @@ export async function listAdminCommunications(user: AppSessionUser): Promise<Adm
       total: rows.length
     },
     options,
-    permissions: {
+    actions: {
       canCreate: access.canCreate,
       canPublish: access.canPublish,
       isGlobal: access.isGlobal
@@ -676,4 +677,3 @@ export async function saveCommunication(user: AppSessionUser, input: SaveCommuni
   await insertAttachments(comunicadoId, message.attachments)
   return message
 }
-

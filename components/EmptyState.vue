@@ -6,7 +6,7 @@
     <div class="empty-copy">
       <div class="badge">Sin registros</div>
       <h3>{{ title }}</h3>
-      <p>{{ description }}</p>
+      <p v-if="description">{{ description }}</p>
     </div>
   </section>
 </template>
@@ -14,7 +14,7 @@
 <script setup lang="ts">
 defineProps<{
   title: string
-  description: string
+  description?: string
 }>()
 </script>
 

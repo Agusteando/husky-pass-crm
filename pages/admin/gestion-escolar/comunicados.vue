@@ -4,7 +4,6 @@
       <div>
         <p class="eyebrow">Comunicados</p>
         <h1>Publicar a familias</h1>
-        
       </div>
       <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
     </header>
@@ -15,7 +14,6 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No disponible</h2>
-      <p>No pudimos cargar comunicados.</p>
     </section>
 
     <section v-else class="publisher-layout">
@@ -83,7 +81,7 @@
         <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
-          <button class="btn btn-primary" type="submit" :disabled="saving || !data?.permissions.canCreate || !scope.plantel">
+          <button class="btn btn-primary" type="submit" :disabled="saving || !data?.actions.canCreate || !scope.plantel">
             {{ saving ? 'Guardando...' : form.status === 'sent' ? 'Publicar' : form.status === 'scheduled' ? 'Programar' : 'Guardar borrador' }}
           </button>
         </div>
@@ -117,7 +115,6 @@
           <div v-if="!data?.rows.length" class="state-panel compact" data-state="empty">
             <FamilyPersonasIcon name="announcement" />
             <h3>Sin comunicados</h3>
-            <p>Cuando guardes un borrador aparecerá aquí.</p>
           </div>
         </section>
       </aside>
@@ -126,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AdminCommunicationsResponse, CommunicationAudience, CommunicationPriority, CommunicationStatus, SchoolCommunication } from '~/types/communications'
 import type { GestionEscolarScope } from '~/types/gestionEscolar'
@@ -138,6 +135,7 @@ const { data, pending, error: loadError, refresh } = useFetch<AdminCommunication
 const saving = ref(false)
 const actionNotice = ref('')
 const actionError = ref('')
+const hydrated = ref(false)
 const scope = ref<GestionEscolarScope>({ isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null })
 const audienceReady = computed(() => Boolean(scope.value.plantel))
 const publishReadinessLabel = computed(() => {
@@ -155,8 +153,21 @@ const form = reactive({
   attachments: []
 })
 
+function defaultSchoolScope(value = data.value): GestionEscolarScope {
+  return { isGlobal: false, plantel: value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+}
+
+function ensureDefaultScope(value = data.value) {
+  if (!scope.value.plantel && value?.options.planteles[0]) scope.value = defaultSchoolScope(value)
+}
+
+onMounted(() => {
+  hydrated.value = true
+  ensureDefaultScope()
+})
+
 watch(data, (value) => {
-  if (!scope.value.plantel) scope.value = { isGlobal: false, plantel: value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+  if (hydrated.value) ensureDefaultScope(value)
 })
 
 function buildAudience(): CommunicationAudience {
@@ -203,7 +214,7 @@ function edit(item: SchoolCommunication) {
 
 function resetForm() {
   Object.assign(form, { id: '', title: '', summary: '', body: '', status: 'draft' as CommunicationStatus, priority: 'normal' as CommunicationPriority, scheduledFor: '', attachments: [] })
-  scope.value = { isGlobal: false, plantel: data.value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+  scope.value = defaultSchoolScope()
   actionError.value = ''
   actionNotice.value = ''
 }
@@ -269,7 +280,7 @@ async function save() {
 }
 
 .publishing-head h1 {
-  font-size: clamp(2rem, 3vw, 3.1rem);
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
 }
 
 .publishing-head p:not(.eyebrow),

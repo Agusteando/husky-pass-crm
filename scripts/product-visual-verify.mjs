@@ -477,23 +477,14 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
   const result = await withExistingPage(page, async () => {
     const shots = []
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-dashboard', '/admin/superadmin', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
-    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-assignment', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="gestion-escolar-permissions"]'], timeout: 60000 }))
-    const activeGestionUserId = await page.evaluate(async () => {
-      const response = await fetch('/api/admin/superadmin/gestion-escolar/users?limit=160')
-      if (!response.ok) return null
-      const data = await response.json()
-      const user = Array.isArray(data?.users) ? data.users.find((item) => item?.gestionEscolar?.state === 'active') : null
-      return user?.id || null
-    }).catch(() => null)
-    if (activeGestionUserId) {
-      shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-assignment-active', `/admin/superadmin/gestion-escolar?usuario=${encodeURIComponent(activeGestionUserId)}`, { selectors: ['[data-product-screen="gestion-escolar-permissions"]'], timeout: 60000, settleMs: 900 }))
-    }
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-legacy-redirect', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-workbench', '/admin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-families', '/admin/gestion-escolar/familias', { selectors: ['[data-product-screen="familias"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-comunicados', '/admin/gestion-escolar/comunicados', { selectors: ['[data-product-screen="comunicados"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-encuestas', '/admin/gestion-escolar/encuestas', { selectors: ['[data-kind="encuesta"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-convenios', '/admin/gestion-escolar/convenios', { selectors: ['[data-kind="convenio"]'], timeout: 60000 }))
-    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-daycare-salas', '/admin/daycare/salas', { selectors: ['[data-product-screen="salas"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-daycare-salas', '/admin/daycare/salas', { selectors: ['[data-product-screen="rooms-console"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-daycare-salas-fixture-unit', '/admin/daycare/salas?unidad=U-0837', { selectors: ['[data-product-screen="rooms-console"]'], timeout: 60000 }))
 
     await page.setViewportSize({ width: 390, height: 844 })
     shots.push(await capturePage(page, baseUrl, dirs, 'mobile', 'admin-mobile-superadmin', '/admin/superadmin', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
@@ -507,7 +498,7 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
       shots.push(await captureCurrentPage(page, dirs, 'admin', 'admin-search-codex', { selectors: ['[data-product-screen="directory"]'] }))
     }
 
-    const detailButton = page.locator('[data-diagnostic-action="detalle-usuario"]').first()
+    const detailButton = page.locator('[data-diagnostic-action="seleccionar-usuario"]').nth(1)
     if (await detailButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await detailButton.click()
       await page.waitForTimeout(500)

@@ -79,7 +79,7 @@ export interface AdminCommunicationsResponse {
     grupos: string[]
     scopeTree?: GestionEscolarScopeTree
   }
-  permissions: {
+  actions: {
     canCreate: boolean
     canPublish: boolean
     isGlobal: boolean

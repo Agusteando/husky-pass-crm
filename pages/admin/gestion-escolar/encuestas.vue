@@ -3,7 +3,7 @@
     kind="encuesta"
     eyebrow="Encuestas"
     title="Encuestas por audiencia"
-    description="Mantén formularios visibles para el plantel, grado o grupo correcto."
+    description="Formularios activos."
     icon="survey"
   />
 </template>

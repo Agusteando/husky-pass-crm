@@ -62,7 +62,7 @@
               <small>{{ formatDate(item.date || item.timestamp, 'Sin fecha') }}</small>
             </article>
           </div>
-          <EmptyState v-else title="Sin publicaciones" description="La sala aún no tiene tareas, avisos o fechas visibles." />
+          <EmptyState v-else title="Sin publicaciones" />
         </aside>
       </section>
 
@@ -80,7 +80,7 @@
             <small>{{ family.email || 'Sin correo' }}</small>
           </article>
         </div>
-        <EmptyState v-else title="Sin familias" description="Agrega cuentas familiares para esta sala." />
+        <EmptyState v-else title="Sin familias" />
       </section>
     </template>
   </section>
@@ -97,7 +97,7 @@ import { hasDaycareAdminScope } from '~/utils/sessionScopes'
 import type { PublicSession } from '~/types/session'
 import { formatDate } from '~/utils/daycare'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 
 const route = useRoute()
 const salaId = Number(route.params.id)
@@ -108,10 +108,10 @@ const { data: overview, pending, error } = useFetch<SalaOverview>(`/api/daycare/
 const canPreviewAsFamily = computed(() => hasDaycareAdminScope(session.value?.user))
 
 const sections = computed(() => [
-  { abbr: 'FA', title: 'Familias', description: 'Cuentas, acceso y soporte.', to: `/admin/daycare/salas/${salaId}/familias` },
-  { abbr: 'TA', title: 'Tareas', description: 'Publicaciones para casa.', to: `/admin/daycare/salas/${salaId}/tareas` },
-  { abbr: 'AV', title: 'Avisos', description: 'Mensajes para familias.', to: `/admin/daycare/salas/${salaId}/avisos` },
-  { abbr: 'FE', title: 'Calendario', description: 'Fechas visibles.', to: `/admin/daycare/salas/${salaId}/calendario` }
+  { abbr: 'FA', title: 'Familias', description: 'Cuentas', to: `/admin/daycare/salas/${salaId}/familias` },
+  { abbr: 'TA', title: 'Tareas', description: 'Casa', to: `/admin/daycare/salas/${salaId}/tareas` },
+  { abbr: 'AV', title: 'Avisos', description: 'Mensajes', to: `/admin/daycare/salas/${salaId}/avisos` },
+  { abbr: 'FE', title: 'Calendario', description: 'Fechas', to: `/admin/daycare/salas/${salaId}/calendario` }
 ])
 
 async function previewSala() {

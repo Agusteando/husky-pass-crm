@@ -6,7 +6,6 @@
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
       </div>
       <div class="module-actions">
         <label class="search-field">
@@ -83,7 +82,7 @@
             </span>
           </button>
         </div>
-        <EmptyState v-else title="Sin publicaciones" description="No hay publicaciones para esta búsqueda o estado." />
+        <EmptyState v-else title="Sin publicaciones" />
       </div>
 
       <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
@@ -110,7 +109,7 @@
             <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="remove(selected.id)">Eliminar</button>
           </div>
         </template>
-        <EmptyState v-else title="Selecciona una publicación" description="Verás estado, archivo y acciones seguras." />
+        <EmptyState v-else title="Selecciona una publicación" />
       </aside>
     </section>
   </section>
@@ -372,11 +371,9 @@ function isCreateQuery(value: unknown) {
 
 .module-hero {
   align-items: end;
-  background:
-    radial-gradient(circle at top right, rgba(255, 181, 69, 0.13), transparent 44%),
-    linear-gradient(135deg, #fff, #f6faef);
+  background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: 10px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 10px;
@@ -456,7 +453,7 @@ function isCreateQuery(value: unknown) {
   align-items: center;
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   display: grid;
   gap: 10px;
@@ -479,7 +476,7 @@ function isCreateQuery(value: unknown) {
 .row-date {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--color-muted);
   font-size: 0.78rem;
   font-weight: 600;

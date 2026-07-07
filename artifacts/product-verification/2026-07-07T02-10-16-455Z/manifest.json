@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-07T02:11:32.792Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "suite": "routes",
+  "productionMode": false,
+  "outputRoot": "C:\\Users\\hp\\husky-pass-crm\\artifacts\\product-verification\\2026-07-07T02-10-16-455Z",
+  "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "evidence": [
+    {
+      "name": "route-audit",
+      "routeAudit": "C:\\Users\\hp\\husky-pass-crm\\artifacts\\product-verification\\2026-07-07T02-10-16-455Z\\routes\\route-audit.json",
+      "markdown": "C:\\Users\\hp\\husky-pass-crm\\artifacts\\product-verification\\2026-07-07T02-10-16-455Z\\routes\\route-audit.md",
+      "failedRoutes": []
+    }
+  ]
+}

@@ -90,7 +90,7 @@ export function familyNavItems(user: AppSessionUser | null | undefined, activeSc
 
   if (showDaycare && hasFamilyScope(user, 'daycare')) {
     items.push(
-      { label: 'Guarderia', to: '/familia/daycare', icon: 'daycare' },
+      { label: 'Guardería', to: '/familia/daycare', icon: 'daycare' },
       { label: 'Tareas', to: '/familia/daycare/tareas', icon: 'edit' },
       { label: 'Avisos', to: '/familia/daycare/avisos', icon: 'survey' },
       { label: 'Calendario', to: '/familia/daycare/calendario', icon: 'calendar' }

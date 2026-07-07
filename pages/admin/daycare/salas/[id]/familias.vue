@@ -6,7 +6,6 @@
       <div>
         <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>Familias</h1>
-        
       </div>
       <div class="family-actions">
         <label class="search-field">
@@ -59,7 +58,7 @@
             <span class="role-pill">{{ accountStatusLabel(account) }}</span>
           </button>
         </div>
-        <EmptyState v-else title="Sin familias" description="No hay cuentas familiares para esta búsqueda o sala." />
+        <EmptyState v-else title="Sin familias" />
       </div>
 
       <aside class="card family-preview-card" data-product-panel="familia-preview" :data-state="selected ? 'content' : 'empty'">
@@ -82,7 +81,7 @@
             <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar</button>
           </div>
         </template>
-        <EmptyState v-else title="Selecciona una familia" description="El detalle y las acciones aparecerán aquí." />
+        <EmptyState v-else title="Selecciona una familia" />
       </aside>
     </section>
   </section>
@@ -95,10 +94,10 @@ import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
 import type { FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
-import { defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { DAYCARE_FAMILY_ROLE, defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
 
 const route = useRoute()
 const router = useRouter()
@@ -172,7 +171,7 @@ watch(filteredAccounts, (rows) => {
 function startCreate() {
   actionError.value = ''
   actionNotice.value = ''
-  editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: 'ROLE_HUSKY_USER', username: '', email: '' }
+  editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: DAYCARE_FAMILY_ROLE, username: '', email: '' }
 }
 
 function selectAccount(account: FamilyAccount) {
@@ -286,11 +285,9 @@ function initials(value?: string | null) {
 
 .family-hero {
   align-items: end;
-  background:
-    radial-gradient(circle at top right, rgba(255, 181, 69, 0.13), transparent 44%),
-    linear-gradient(135deg, #fff, #f6faef);
+  background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: 10px;
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: 10px;
@@ -351,7 +348,7 @@ function initials(value?: string | null) {
   align-items: center;
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   display: grid;
   gap: 10px;

@@ -4,7 +4,6 @@
       <div>
         <p class="eyebrow">Escolar</p>
         <h1>{{ scopeLabel }}</h1>
-        
       </div>
       <div class="head-actions">
         <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Ver familias</NuxtLink>
@@ -18,14 +17,12 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No pudimos cargar Escolar</h2>
-      <p>Reintenta en un momento o solicita revisar tu acceso.</p>
     </section>
 
     <template v-else>
       <section v-if="!modules.length" class="state-panel access-empty" data-state="empty">
         <FamilyPersonasIcon name="school" />
-        <h2>Acceso incompleto</h2>
-        <p>Super Admin debe asignarte un plantel, grado o grupo antes de operar familias y publicaciones.</p>
+        <h2>Sin plantel asignado</h2>
       </section>
 
       <template v-else>
@@ -74,10 +71,9 @@
             <div class="section-title vertical">
               <div>
                 <p class="eyebrow">Planteles</p>
-                <h2>{{ scopeLabel }}</h2>
-              </div>
-              <p></p>
+              <h2>{{ scopeLabel }}</h2>
             </div>
+          </div>
 
             <div class="scope-list">
               <article v-for="plantel in overview?.options.scopeTree.planteles || []" :key="plantel.value">
@@ -86,21 +82,10 @@
               </article>
               <article v-if="!(overview?.options.scopeTree.planteles || []).length">
                 <strong>Sin plantel</strong>
-                <small>Solicita completar tu acceso escolar.</small>
+                <small>Acceso escolar pendiente.</small>
               </article>
             </div>
           </aside>
-        </section>
-
-        <section class="publishing-row" aria-label="Publicaciones escolares">
-          <NuxtLink v-for="module in workflowModules" :key="module.key" class="publish-card" :class="{ primary: module.key === 'familias' }" :to="`/admin/gestion-escolar/${module.key}`">
-            <span><FamilyPersonasIcon :name="module.icon" /></span>
-            <div>
-              <strong>{{ module.title }}</strong>
-              <small>{{ module.description }}</small>
-            </div>
-            <b>{{ module.cta }}</b>
-          </NuxtLink>
         </section>
       </template>
     </template>
@@ -151,37 +136,8 @@ const todayTasks = computed(() => {
   return tasks
 })
 
-const workflowModules = computed(() => modules.value.map((module) => ({
-  key: module.key,
-  icon: moduleIcon(module.key),
-  title: workflowTitle(module.key),
-  description: workflowDescription(module.key),
-  cta: 'Abrir'
-})))
-
 function hasModule(key: GestionEscolarModuleKey) {
   return modules.value.some((module) => module.key === key)
-}
-
-function moduleIcon(key: GestionEscolarModuleKey) {
-  if (key === 'comunicados') return 'announcement'
-  if (key === 'encuestas') return 'survey'
-  if (key === 'convenios') return 'handshake'
-  return 'people'
-}
-
-function workflowTitle(key: GestionEscolarModuleKey) {
-  if (key === 'familias') return 'Familias'
-  if (key === 'comunicados') return 'Comunicados'
-  if (key === 'encuestas') return 'Encuestas'
-  return 'Convenios'
-}
-
-function workflowDescription(key: GestionEscolarModuleKey) {
-  if (key === 'familias') return 'Soporte, contexto y vista familiar controlada.'
-  if (key === 'comunicados') return 'Redacta, segmenta, programa y publica.'
-  if (key === 'encuestas') return 'Activa formularios para una audiencia clara.'
-  return 'Publica documentos visibles para familias.'
 }
 
 </script>
@@ -195,7 +151,6 @@ function workflowDescription(key: GestionEscolarModuleKey) {
 .school-head,
 .today-panel,
 .scope-panel,
-.publish-card,
 .state-panel {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid #dce5eb;
@@ -214,14 +169,13 @@ function workflowDescription(key: GestionEscolarModuleKey) {
 .school-head h1 {
   color: #152032;
   font-family: var(--font-body);
-  font-size: clamp(2rem, 3vw, 3.1rem);
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
   margin: 0;
 }
 
 .school-head p:not(.eyebrow),
 .scope-panel p,
 .work-row small,
-.publish-card small,
 .scope-list small {
   color: #667789;
   margin: 0;
@@ -320,13 +274,13 @@ function workflowDescription(key: GestionEscolarModuleKey) {
 }
 
 .work-row:hover,
-.publish-card:hover {
+.work-row:hover {
   border-color: #cae2dc;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .row-icon,
-.publish-card > span {
+.row-icon {
   align-items: center;
   background: #eef7f5;
   border: 1px solid #cae2dc;
@@ -342,13 +296,14 @@ function workflowDescription(key: GestionEscolarModuleKey) {
 .work-row small,
 .scope-list strong,
 .scope-list small,
-.publish-card strong,
-.publish-card small {
+.work-row strong,
+.work-row small,
+.scope-list strong,
+.scope-list small {
   display: block;
 }
 
-.work-row b,
-.publish-card b {
+.work-row b {
   background: #e7f8ef;
   border: 1px solid #bfead0;
   border-radius: 999px;
@@ -362,29 +317,6 @@ function workflowDescription(key: GestionEscolarModuleKey) {
   border: 1px solid #e1e8ed;
   border-radius: 13px;
   padding: 12px;
-}
-
-.publishing-row {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.publish-card {
-  align-content: start;
-  display: grid;
-  gap: 12px;
-  min-height: 190px;
-  padding: 14px;
-}
-
-.publish-card.primary {
-  border-color: #cae2dc;
-}
-
-.publish-card b {
-  justify-self: start;
-  margin-top: auto;
 }
 
 .state-panel {
@@ -409,7 +341,6 @@ function workflowDescription(key: GestionEscolarModuleKey) {
 
 @media (max-width: 1120px) {
   .school-layout,
-  .publishing-row,
   .scope-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -429,7 +360,6 @@ function workflowDescription(key: GestionEscolarModuleKey) {
   }
 
   .school-layout,
-  .publishing-row,
   .scope-strip,
   .work-row {
     grid-template-columns: 1fr;

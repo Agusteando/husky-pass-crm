@@ -3,7 +3,7 @@
     kind="convenio"
     eyebrow="Convenios"
     title="Convenios visibles"
-    description="Publica documentos para una audiencia clara y deja inactivo lo que ya no aplica."
+    description="Documentos activos."
     icon="handshake"
   />
 </template>

@@ -3,8 +3,6 @@ import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
 import type {
   FamilyScopedContentResponse,
-  GestionEscolarAccessProfileKey,
-  GestionEscolarAssignmentState,
   GestionEscolarAuditRecord,
   GestionEscolarCapability,
   GestionEscolarContentKind,
@@ -16,8 +14,6 @@ import type {
   GestionEscolarModuleSummary,
   GestionEscolarOverviewResponse,
   GestionEscolarPermission,
-  GestionEscolarPermissionInput,
-  GestionEscolarPermissionSummary,
   GestionEscolarReachPreview,
   GestionEscolarScope,
   GestionEscolarScopeTree,
@@ -27,15 +23,13 @@ import type {
 } from '~/types/gestionEscolar'
 import type { CommunicationAdminScopeInput } from '~/types/communications'
 import type { AuthorizedChild } from '~/types/daycare'
-import { findLegacyUserById, listSuperAdminDirectory } from '~/server/data/mysqlAuth'
+import { findLegacyUserById } from '~/server/data/mysqlAuth'
 import { getFamilyChildren } from '~/server/data/mysqlDaycare'
-import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
+import { csvToList, legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
 import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/personasConfig'
 import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken, hasSchoolAdminScope } from '~/utils/sessionScopes'
-import { normalizeEmail } from '~/utils/superAdmin'
 import { displayMatriculaCandidate, normalizeMatricula } from '~/utils/matricula'
-import { shortHash } from '~/server/utils/logger'
 
 interface GestionPermissionRow extends RowDataPacket {
   id: number
@@ -106,17 +100,6 @@ interface GestionFamilyDbRow extends RowDataPacket {
   credentialFoto: string | null
 }
 
-interface LegacyCommunicationScopeRow extends RowDataPacket {
-  user_id: number
-  is_global: number | boolean | null
-  plantel: string | null
-  nivel: string | null
-  grado: string | null
-  grupo: string | null
-  can_create: number | boolean | null
-  can_publish: number | boolean | null
-}
-
 interface AuthorizedPersonRow extends RowDataPacket {
   id: number
   paternoP: string | null
@@ -144,25 +127,10 @@ const MODULE_CAPABILITIES: Record<GestionEscolarModuleKey, GestionEscolarCapabil
   convenios: ['convenios.manage', 'convenios.publish']
 }
 
-const PROFILE_CAPABILITIES: Record<Exclude<GestionEscolarAccessProfileKey, 'custom'>, GestionEscolarCapability[]> = {
-  support: ['familias.view', 'familias.impersonate'],
-  operator: ['familias.view', 'comunicados.create', 'encuestas.manage', 'convenios.manage'],
-  publisher: ['familias.view', 'comunicados.create', 'comunicados.publish', 'encuestas.manage', 'convenios.manage', 'convenios.publish'],
-  content: ['familias.view', 'encuestas.manage', 'convenios.manage', 'convenios.publish'],
-  full: [...GESTION_ESCOLAR_CAPABILITIES]
-}
-
-const EMPTY_REACH: GestionEscolarReachPreview = {
-  families: 0,
-  students: 0,
-  planteles: [],
-  niveles: [],
-  grados: [],
-  grupos: []
-}
-
-const DAYCARE_GESTION_PLANTELES = new Set(['PREEM', 'PREET'])
-const GESTION_ESCOLAR_FALLBACK_PLANTELES = ['CM', 'METEPEC', 'TOLUCA', 'PREEM', 'PM', 'PT', 'SM', 'ST']
+const SCHOOL_GESTION_OVERVIEW_LIMIT = 1200
+const SCHOOL_GESTION_OPTIONS_LIMIT = 1200
+const SCHOOL_GESTION_LIST_LIMIT = 1600
+const DAYCARE_GESTION_PLANTELES = new Set(['CM'])
 const DAYCARE_GESTION_TEXT = /guarder[ií]a|lactantes|maternal/i
 
 function clean(value: unknown) {
@@ -338,26 +306,6 @@ export async function getGestionPermissionsForUser(userId: number) {
   return rows.map(permissionFromRow).filter((item): item is GestionEscolarPermission => Boolean(item))
 }
 
-async function getPermissionsForUsers(userIds: number[]) {
-  const ids = Array.from(new Set(userIds.filter((id) => Number.isFinite(id))))
-  if (!ids.length) return new Map<number, GestionEscolarPermission[]>()
-  const placeholders = ids.map(() => '?').join(',')
-  const rows = await gestionQuery<GestionPermissionRow[]>(
-    `SELECT id, user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at
-     FROM gestion_escolar_permissions
-     WHERE user_id IN (${placeholders}) AND enabled = 1 AND is_global = 0
-     ORDER BY capability ASC, is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
-    ids
-  )
-  const map = new Map<number, GestionEscolarPermission[]>()
-  for (const row of rows) {
-    const permission = permissionFromRow(row)
-    if (!permission) continue
-    map.set(permission.userId, [...(map.get(permission.userId) || []), permission])
-  }
-  return map
-}
-
 export async function auditGestionAction(record: Omit<GestionEscolarAuditRecord, 'eventId'> & { eventId?: string }) {
   const eventId = record.eventId || `ge-${randomUUID()}`
   try {
@@ -515,33 +463,6 @@ export async function getGestionCommunicationScopes(user: AppSessionUser): Promi
     map.set(key, existing)
   }
   return Array.from(map.values())
-}
-
-async function loadLegacyCommunicationScopes(userIds: number[]) {
-  const ids = Array.from(new Set(userIds.filter((id) => Number.isFinite(id))))
-  if (!ids.length) return new Map<number, CommunicationAdminScopeInput[]>()
-  const placeholders = ids.map(() => '?').join(',')
-  const rows = await legacyQuery<LegacyCommunicationScopeRow[]>(
-      `SELECT user_id, is_global, plantel, nivel, grado, grupo, can_create, can_publish
-       FROM comunicados_admin_scopes
-       WHERE user_id IN (${placeholders})
-       ORDER BY is_global DESC, plantel ASC, nivel ASC, grado ASC, grupo ASC`,
-      ids
-    ).catch(() => [])
-  const map = new Map<number, CommunicationAdminScopeInput[]>()
-  for (const row of rows) {
-    const key = Number(row.user_id)
-    map.set(key, [...(map.get(key) || []), {
-      isGlobal: Boolean(row.is_global),
-      plantel: upper(row.plantel) || null,
-      nivel: clean(row.nivel) || null,
-      grado: clean(row.grado) || null,
-      grupo: upper(row.grupo) || null,
-      canCreate: Boolean(row.can_create),
-      canPublish: Boolean(row.can_publish)
-    }])
-  }
-  return map
 }
 
 async function loadSchoolFamilies(limit = 1200) {
@@ -763,254 +684,10 @@ function optionsFromFamilies(families: GestionEscolarFamilyRow[]): GestionEscola
   }
 }
 
-function reachFromPermissions(permissions: GestionEscolarPermission[]): GestionEscolarReachPreview {
-  return {
-    ...EMPTY_REACH,
-    planteles: uniqueSorted(permissions.map((permission) => permission.plantel)),
-    niveles: uniqueSorted(permissions.map((permission) => permission.nivel)),
-    grados: uniqueSorted(permissions.map((permission) => permission.grado)),
-    grupos: uniqueSorted(permissions.map((permission) => permission.grupo))
-  }
-}
-
-function optionsFromPermissionScopes(permissions: GestionEscolarPermission[], fallbackPlanteles: string[] = []): GestionEscolarOverviewResponse['options'] {
-  const planteles = uniqueSorted([
-    ...permissions.map((permission) => permission.plantel),
-    ...fallbackPlanteles,
-    ...GESTION_ESCOLAR_FALLBACK_PLANTELES
-  ])
-  return {
-    planteles,
-    niveles: uniqueSorted(permissions.map((permission) => permission.nivel)),
-    grados: uniqueSorted(permissions.map((permission) => permission.grado)),
-    grupos: uniqueSorted(permissions.map((permission) => permission.grupo)),
-    scopeTree: {
-      planteles: planteles.map((plantel) => ({ value: plantel, label: plantel, families: 0, students: 0 }))
-    }
-  }
-}
-
-function profileFromCapabilities(capabilities: GestionEscolarCapability[]): GestionEscolarAccessProfileKey {
-  const normalized = new Set(expandDependentGestionPermissions(capabilities.map((capability) => ({
-    userId: 0,
-    capability,
-    enabled: true,
-    isGlobal: false,
-    plantel: 'PROFILE',
-    nivel: null,
-    grado: null,
-    grupo: null
-  }))).map((permission) => permission.capability))
-  for (const [key, profileCapabilities] of Object.entries(PROFILE_CAPABILITIES) as Array<[Exclude<GestionEscolarAccessProfileKey, 'custom'>, GestionEscolarCapability[]]>) {
-    const profileSet = new Set(expandDependentGestionPermissions(profileCapabilities.map((capability) => ({
-      userId: 0,
-      capability,
-      enabled: true,
-      isGlobal: false,
-      plantel: 'PROFILE',
-      nivel: null,
-      grado: null,
-      grupo: null
-    }))).map((permission) => permission.capability))
-    if (normalized.size === profileSet.size && Array.from(normalized).every((capability) => profileSet.has(capability))) return key
-  }
-  return 'custom'
-}
-
-function assignmentState(hasLegacyRole: boolean, permissions: GestionEscolarPermission[]): GestionEscolarAssignmentState {
-  if (permissions.length) return 'active'
-  return hasLegacyRole ? 'incomplete' : 'none'
-}
-
-function latestPermissionUpdate(permissions: GestionEscolarPermission[]) {
-  return permissions.map((permission) => permission.updatedAt || permission.createdAt || '').filter(Boolean).sort().at(-1) || null
-}
-
-async function getReachForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
-  if (!permissions.length) return EMPTY_REACH
-  const families = await loadSchoolFamilies(8000)
-  return reachFromFamilies(familiesForPermissions(families, permissions, capability))
-}
-
 async function getOptionsForPermissions(permissions: GestionEscolarPermission[], capability?: GestionEscolarCapability) {
-  const families = await loadSchoolFamilies(8000)
+  const families = await loadSchoolFamilies(SCHOOL_GESTION_OPTIONS_LIMIT)
   const visible = permissions.length ? familiesForPermissions(families, permissions, capability) : families
   return optionsFromFamilies(visible)
-}
-
-export async function summarizeGestionPermissions(userId: number): Promise<GestionEscolarPermissionSummary> {
-  const [permissions, legacyMap, target] = await Promise.all([
-    getGestionPermissionsForUser(userId),
-    loadLegacyCommunicationScopes([userId]),
-    legacyOne<RowDataPacket & { role: string | null }>('SELECT role FROM users WHERE id = ? LIMIT 1', [userId])
-  ])
-  const capabilities = Array.from(new Set(permissions.map((permission) => permission.capability)))
-  const roles = csvToList(String(target?.role || '')).map((role) => role.toUpperCase())
-  return {
-    enabled: permissions.length > 0,
-    state: assignmentState(hasRoleToken(roles, SCHOOL_ADMIN_ROLE), permissions),
-    profile: profileFromCapabilities(capabilities),
-    capabilities,
-    permissions,
-    reach: await getReachForPermissions(permissions),
-    legacyCommunications: legacyMap.get(userId) || [],
-    updatedAt: latestPermissionUpdate(permissions)
-  }
-}
-
-export async function listGestionPermissionUsers(filters: { search?: string; plantel?: string; limit?: number } = {}) {
-  const directory = await listSuperAdminDirectory({
-    scope: 'internal',
-    search: filters.search,
-    plantel: filters.plantel,
-    limit: filters.limit || 120
-  })
-  const userIds = directory.users.map((user) => user.id)
-  const [permissionMap, legacyMap] = await Promise.all([
-    getPermissionsForUsers(userIds),
-    loadLegacyCommunicationScopes(userIds)
-  ])
-  const allPermissions = Array.from(permissionMap.values()).flat()
-  const options = optionsFromPermissionScopes(allPermissions, directory.planteles)
-  const users = directory.users.map((user) => {
-    const permissions = permissionMap.get(user.id) || []
-    const capabilities = Array.from(new Set(permissions.map((permission) => permission.capability)))
-    const reach = reachFromPermissions(permissions)
-    return {
-      ...user,
-      gestionEscolar: {
-        enabled: permissions.length > 0,
-        state: assignmentState(user.adminScopes.includes('gestionEscolar'), permissions),
-        profile: profileFromCapabilities(capabilities),
-        capabilities,
-        permissions,
-        reach,
-        legacyCommunications: legacyMap.get(user.id) || [],
-        updatedAt: latestPermissionUpdate(permissions)
-      }
-    }
-  })
-  return {
-    users,
-    planteles: options.planteles,
-    options,
-    metrics: {
-      total: users.length,
-      enabled: users.filter((user) => user.gestionEscolar.enabled).length,
-      scoped: users.filter((user) => user.gestionEscolar.permissions.length).length,
-      global: 0,
-      legacyCommunications: users.filter((user) => user.gestionEscolar.legacyCommunications.length).length
-    },
-    filters: directory.filters
-  }
-}
-
-function normalizePermissionInput(userId: number, input: GestionEscolarPermissionInput): GestionEscolarPermission | null {
-  const capability = normalizeCapability(input.capability)
-  if (!capability || input.enabled === false) return null
-  const scope = normalizeGestionScope(input)
-  if (scope.isGlobal) {
-    throw publicError(400, 'Gestion Escolar requiere un alcance explicito por plantel.')
-  }
-  if (!scope.plantel) {
-    throw publicError(400, 'Selecciona un plantel para cada rol escolar.')
-  }
-  return {
-    userId,
-    capability,
-    enabled: true,
-    isGlobal: false,
-    plantel: scope.plantel,
-    nivel: scope.nivel,
-    grado: scope.grado,
-    grupo: scope.grupo
-  }
-}
-
-function expandDependentGestionPermissions(permissions: GestionEscolarPermission[]) {
-  const expanded: GestionEscolarPermission[] = []
-  const permissionKey = (permission: GestionEscolarPermission, capability = permission.capability) => [
-    capability,
-    permission.plantel || '',
-    permission.nivel || '',
-    permission.grado || '',
-    permission.grupo || ''
-  ].join('|')
-  const byKey = new Map<string, GestionEscolarPermission>()
-
-  const addPermission = (permission: GestionEscolarPermission, capability = permission.capability) => {
-    const key = permissionKey(permission, capability)
-    if (byKey.has(key)) return
-    byKey.set(key, { ...permission, capability })
-  }
-
-  for (const permission of permissions) {
-    addPermission(permission)
-    if (permission.capability === 'familias.impersonate') addPermission(permission, 'familias.view')
-    if (permission.capability === 'comunicados.publish') addPermission(permission, 'comunicados.create')
-    if (permission.capability === 'convenios.publish') addPermission(permission, 'convenios.manage')
-  }
-
-  for (const capability of GESTION_ESCOLAR_CAPABILITIES) {
-    for (const permission of byKey.values()) {
-      if (permission.capability === capability) expanded.push(permission)
-    }
-  }
-  return expanded
-}
-
-export async function setGestionPermissionsForUser(actor: AppSessionUser, userId: number, enabled: boolean, inputs: GestionEscolarPermissionInput[], reason: string) {
-  const permissions = enabled
-    ? expandDependentGestionPermissions(inputs.map((input) => normalizePermissionInput(userId, input)).filter((item): item is GestionEscolarPermission => Boolean(item)))
-    : []
-
-  if (enabled && !permissions.length) {
-    throw publicError(400, 'Selecciona al menos un plantel escolar.')
-  }
-
-  try {
-    await legacyTransaction(async (tx) => {
-      const target = await tx.one<RowDataPacket & { id: number; role: string | null }>('SELECT id, role FROM users WHERE id = ? LIMIT 1 FOR UPDATE', [userId])
-      if (!target) throw publicError(404, 'Usuario interno no encontrado.')
-
-      await tx.write('DELETE FROM gestion_escolar_permissions WHERE user_id = ?', [userId])
-      for (const permission of permissions) {
-        await tx.write(
-          `INSERT INTO gestion_escolar_permissions (user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at)
-           VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-          [userId, permission.capability, permission.isGlobal ? 1 : 0, permission.plantel, permission.nivel, permission.grado, permission.grupo, actor.id, actor.id]
-        )
-      }
-
-      const roles = new Set(csvToList(String(target.role || '')).map((role) => role.toUpperCase()))
-      if (permissions.length) roles.add(SCHOOL_ADMIN_ROLE)
-      else roles.delete(SCHOOL_ADMIN_ROLE)
-      await tx.write('UPDATE users SET role = ? WHERE id = ?', [Array.from(roles).join(','), userId])
-    })
-  } catch (error) {
-    if (isGestionSchemaMissing(error)) {
-      throw publicError(503, 'Escolar requiere aplicar la migracion SQL antes de guardar cambios.')
-    }
-    throw error
-  }
-
-  await auditGestionAction({
-    actorUserId: actor.id,
-    targetUserId: userId,
-    action: permissions.length ? 'school.roles.updated' : 'school.roles.disabled',
-    module: 'superadmin',
-    metadata: {
-      capabilities: Array.from(new Set(permissions.map((permission) => permission.capability))),
-      reasonHash: shortHash(reason),
-      reasonLength: reason.length,
-      permissions: permissions.map((permission) => ({
-        capability: permission.capability,
-        scope: normalizeGestionScope(permission)
-      }))
-    }
-  })
-
-  return summarizeGestionPermissions(userId)
 }
 
 function moduleSummary(key: GestionEscolarModuleKey, permissions: GestionEscolarPermission[], reach: GestionEscolarReachPreview): GestionEscolarModuleSummary {
@@ -1026,7 +703,6 @@ function moduleSummary(key: GestionEscolarModuleKey, permissions: GestionEscolar
     key,
     title: labels[key].title,
     description: labels[key].description,
-    capabilities,
     enabled,
     reach,
     metrics: [
@@ -1038,14 +714,12 @@ function moduleSummary(key: GestionEscolarModuleKey, permissions: GestionEscolar
 
 export async function getGestionOverview(user: AppSessionUser): Promise<GestionEscolarOverviewResponse> {
   const permissions = await effectiveGestionPermissionsForUser(user)
-  const families = permissions.length ? await loadSchoolFamilies(8000) : []
+  const families = permissions.length ? await loadSchoolFamilies(SCHOOL_GESTION_OVERVIEW_LIMIT) : []
   const visibleFamilies = permissions.length ? familiesForPermissions(families, permissions) : []
   const reach = reachFromFamilies(visibleFamilies)
   const options = optionsFromFamilies(visibleFamilies)
   return {
     modules: (Object.keys(MODULE_CAPABILITIES) as GestionEscolarModuleKey[]).map((key) => moduleSummary(key, permissions, reach)).filter((module) => user.isSuperAdmin || module.enabled),
-    capabilities: Array.from(new Set(permissions.map((permission) => permission.capability))),
-    permissions,
     reach,
     options
   }
@@ -1143,7 +817,7 @@ export async function listGestionScopedContent(user: AppSessionUser, kind: Gesti
   return {
     items,
     options,
-    permissions: { canManage, canPublish }
+    actions: { canManage, canPublish }
   }
 }
 
@@ -1349,7 +1023,7 @@ async function resolveScopedContentForFamilyRow(family: GestionEscolarFamilyRow,
 export async function listGestionFamilies(user: AppSessionUser, filters: { search?: string; limit?: number } = {}): Promise<GestionEscolarFamiliesResponse> {
   const permissions = await effectiveGestionPermissionsForUser(user)
   if (!user.isSuperAdmin && !canUseCapability(permissions, 'familias.view')) throw publicError(403, 'No tienes visibilidad de familias.')
-  const allFamilies = await loadSchoolFamilies(8000)
+  const allFamilies = await loadSchoolFamilies(SCHOOL_GESTION_LIST_LIMIT)
   const visible = user.isSuperAdmin ? allFamilies : familiesForPermissions(allFamilies, permissions, 'familias.view')
   const search = clean(filters.search).toLowerCase()
   const searched = search

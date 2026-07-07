@@ -23,7 +23,6 @@
       <section v-if="noUnidadAvailable" class="state-panel" data-product-panel="daycare-unidades" data-state="unavailable">
         <FamilyPersonasIcon name="daycare" />
         <h2>Unidad pendiente</h2>
-        <p>Super Admin debe asignar una unidad.</p>
       </section>
 
       <p v-if="error" class="surface-message error">No fue posible cargar salas.</p>
@@ -64,7 +63,6 @@
           <div v-else class="state-panel compact" data-diagnostic="sala-unavailable" data-state="empty">
             <FamilyPersonasIcon name="daycare" />
             <h2>Sin salas</h2>
-            <p>Cambia unidad o búsqueda.</p>
           </div>
         </aside>
 
@@ -98,7 +96,7 @@
               <strong>Familias</strong><small>Cuentas y soporte.</small>
             </button>
             <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas', true)">
-              <strong>Nueva tarea</strong><small>Trabajo en casa.</small>
+              <strong>Tareas</strong><small>Trabajo en casa.</small>
             </button>
             <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
               <strong>Avisos</strong><small>Mensajes de sala.</small>

@@ -101,6 +101,7 @@ const baseUserSql = `
 `
 
 const RETIRED_HUSKY_ADMIN_ROLE_PATTERN = /^ROLE_HUSKY_.+/i
+const SCHOOL_DIRECTORY_PLANTELES = new Set(['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST'])
 
 function normalizeAdminRoleTokens(roles: string[]) {
   const normalized = new Set<string>()
@@ -335,9 +336,9 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   if (plantel) {
     where.push(`(
-      FIND_IN_SET(?, A.unidad) OR A.unidad = ? OR A.campus = ? OR A.empresa = ?
+      FIND_IN_SET(?, A.unidad) OR A.unidad = ? OR A.campus = ? OR A.empresa = ? OR A.username LIKE ?
     )`)
-    params.push(plantel, plantel, plantel, plantel)
+    params.push(plantel, plantel, plantel, plantel, `${plantel}%`)
   }
 
   if (search) {
@@ -382,12 +383,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   const users = await summarizeDirectoryRows(rows)
   const visibleUsers = filterDirectoryUsersByScope(users, scope).slice(0, limit)
-  const planteles = Array.from(new Set(plantelRows.flatMap((row) => [
-    ...csvToList(row.plantel),
-    ...csvToList(row.unidad),
-    normalizeLegacyScope(row.campus),
-    ...schoolOptions.planteles
-  ]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es'))
+  const planteles = schoolOptions.planteles
   const unidades = Array.from(new Set(plantelRows.flatMap((row) => csvToList(row.unidad)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 
   return {

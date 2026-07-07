@@ -18,12 +18,12 @@ export function isSuperAdmin(user: AppSessionUser | null | undefined) {
 }
 
 export function assertSuperAdmin(user: AppSessionUser) {
-  if (!isSuperAdmin(user)) throw publicError(403, 'Solo Super Admin puede realizar esta accion.')
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo Super Admin puede realizar esta acción.')
 }
 
 export function assertDaycareFamily(user: AppSessionUser) {
   if (!hasFamilyProductScope(user, 'daycare')) {
-    throw publicError(403, 'Acceso de guarderia no autorizado')
+    throw publicError(403, 'Acceso de guardería no autorizado')
   }
 }
 
@@ -41,7 +41,7 @@ export function assertDaycareAdmin(user: AppSessionUser) {
   if (isSuperAdmin(user)) return
 
   if (!hasDaycareAdminScope(user) || !hasRoleToken(user.roles, DAYCARE_ADMIN_ROLE)) {
-    throw publicError(403, 'La cuenta no tiene unidad de guarderia asignada')
+    throw publicError(403, 'La cuenta no tiene unidad de guardería asignada')
   }
 }
 

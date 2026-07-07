@@ -23,7 +23,7 @@
       <aside class="list-panel" data-product-panel="superadmin-directory" :data-state="visibleUsers.length ? 'content' : 'empty'">
         <form class="search-box" role="search" @submit.prevent="refreshDirectory">
           <FamilyPersonasIcon name="search" />
-          <input v-model="search" type="search" placeholder="Buscar usuario" aria-label="Buscar usuario" />
+          <input v-model="search" type="search" placeholder="Buscar usuario" aria-label="Buscar usuario" data-diagnostic-filter="buscar-usuario" />
           <button type="submit" :disabled="pending">Buscar</button>
         </form>
 
@@ -48,6 +48,7 @@
             class="user-row"
             :class="{ selected: selectedUser?.id === user.id }"
             type="button"
+            data-diagnostic-action="seleccionar-usuario"
             @click="selectUser(user)"
           >
             <span class="avatar">{{ initials(user) }}</span>
@@ -78,22 +79,22 @@
           </section>
 
           <section class="role-list">
-            <article class="role-row" :data-state="selectedUser.roleAssignments.schoolAdmin ? 'active' : 'none'">
+            <article class="role-row" :data-state="schoolRoleState(selectedUser)">
               <span><FamilyPersonasIcon name="school" /></span>
               <div>
                 <strong>Admin escolar</strong>
                 <small>{{ schoolScopeLabel(selectedUser.schoolScopes) }}</small>
               </div>
-              <button v-if="selectedUser.canManageAdminRoles" type="button" @click="focusEditor('school')">{{ selectedUser.roleAssignments.schoolAdmin ? 'Editar' : 'Asignar' }}</button>
+              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-escolar" @click="focusEditor('school')">{{ selectedUser.roleAssignments.schoolAdmin ? 'Editar' : 'Asignar' }}</button>
             </article>
 
             <article class="role-row" :data-state="selectedUser.roleAssignments.daycareAdmin ? 'active' : 'none'">
               <span><FamilyPersonasIcon name="daycare" /></span>
               <div>
-                <strong>Admin guarderia</strong>
+                <strong>Admin guardería</strong>
                 <small>{{ selectedUser.unidad.length ? selectedUser.unidad.join(' / ') : 'Sin unidad' }}</small>
               </div>
-              <button v-if="selectedUser.canManageAdminRoles" type="button" @click="focusEditor('daycare')">{{ selectedUser.roleAssignments.daycareAdmin ? 'Editar' : 'Asignar' }}</button>
+              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-guarderia" @click="focusEditor('daycare')">{{ selectedUser.roleAssignments.daycareAdmin ? 'Editar' : 'Asignar' }}</button>
             </article>
 
             <article v-if="selectedUser.productScopes.length" class="role-row family" data-state="family">
@@ -102,7 +103,7 @@
                 <strong>Cuenta familiar</strong>
                 <small>{{ familyScopeLabel(selectedUser) }}</small>
               </div>
-              <button type="button" :disabled="impersonatingId === selectedUser.id" @click="requestImpersonation(selectedUser)">
+              <button type="button" :disabled="impersonatingId === selectedUser.id" data-diagnostic-action="impersonar-usuario" @click="requestImpersonation(selectedUser)">
                 {{ impersonationButtonLabel(selectedUser) }}
               </button>
             </article>
@@ -140,7 +141,7 @@
               <span class="switch" aria-hidden="true" />
               <span>
                 <strong>Admin escolar</strong>
-                <small>ROLE_CTRL</small>
+                <small>Plantel y grado opcional</small>
               </span>
             </label>
 
@@ -173,8 +174,8 @@
               <input v-model="roleDraft.daycareAdmin" type="checkbox" />
               <span class="switch" aria-hidden="true" />
               <span>
-                <strong>Admin guarderia</strong>
-                <small>ROLE_HUSKY</small>
+                <strong>Admin guardería</strong>
+                <small>Unidad asignada</small>
               </span>
             </label>
 
@@ -226,7 +227,7 @@ const scopeOptions: Array<{ value: SuperAdminDirectoryScope; label: string }> = 
   { value: 'all', label: 'Todos' },
   { value: 'internal', label: 'Internos' },
   { value: 'schoolFamilies', label: 'Familias escolar' },
-  { value: 'daycare', label: 'Familias guarderia' },
+  { value: 'daycare', label: 'Familias guardería' },
   { value: 'impersonable', label: 'Soporte' }
 ]
 
@@ -240,6 +241,7 @@ const actionNotice = ref('')
 const saving = ref(false)
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
+const hydrated = ref(false)
 const roleDraft = ref<SuperAdminRoleAssignments>({ schoolAdmin: false, daycareAdmin: false })
 const schoolScopesDraft = ref<SuperAdminSchoolScope[]>([])
 const daycareUnitsDraft = ref<string[]>([])
@@ -269,12 +271,12 @@ const unitOptions = computed(() => {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 })
 
-const editorTitle = computed(() => editorMode.value === 'school' ? 'Admin escolar' : 'Admin guarderia')
+const editorTitle = computed(() => editorMode.value === 'school' ? 'Admin escolar' : 'Admin guardería')
 const hasChanges = computed(() => Boolean(selectedUser.value && draftSignature() !== userSignature(selectedUser.value)))
 const saveBlocker = computed(() => {
   if (!selectedUser.value || !hasChanges.value) return ''
   if (roleDraft.value.schoolAdmin && !validSchoolScopes.value.length) return 'Falta plantel escolar.'
-  if (roleDraft.value.daycareAdmin && !daycareUnitsDraft.value.length) return 'Falta unidad de guarderia.'
+  if (roleDraft.value.daycareAdmin && !daycareUnitsDraft.value.length) return 'Falta unidad de guardería.'
   return ''
 })
 const validSchoolScopes = computed(() => normalizeSchoolScopes(schoolScopesDraft.value))
@@ -286,19 +288,14 @@ const changeLines = computed(() => {
     lines.push(roleDraft.value.schoolAdmin ? `Admin escolar: ${schoolScopeLabel(validSchoolScopes.value)}` : 'Quitar Admin escolar')
   }
   if (roleDraft.value.daycareAdmin !== current.roleAssignments.daycareAdmin || daycareUnitsDraft.value.join('|') !== current.unidad.join('|')) {
-    lines.push(roleDraft.value.daycareAdmin ? `Admin guarderia: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guarderia')
+    lines.push(roleDraft.value.daycareAdmin ? `Admin guardería: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guardería')
   }
   return lines
 })
 
 watch(directory, (value) => {
-  if (!value?.users.length) {
-    selectedUser.value = null
-    return
-  }
-  const requestedId = Number(route.query.usuario || 0)
-  const next = value.users.find((user) => user.id === requestedId) || selectedUser.value && value.users.find((user) => user.id === selectedUser.value?.id) || value.users[0]
-  if (next) selectUser(next, false)
+  if (!hydrated.value) return
+  selectInitialUser(value)
 }, { immediate: true })
 
 watch([selectedScope, selectedPlantel], () => {
@@ -307,8 +304,20 @@ watch([selectedScope, selectedPlantel], () => {
 })
 
 onMounted(() => {
+  hydrated.value = true
+  selectInitialUser(directory.value)
   syncQuery()
 })
+
+function selectInitialUser(value: SuperAdminDirectoryResponse | null | undefined) {
+  if (!value?.users.length) {
+    selectedUser.value = null
+    return
+  }
+  const requestedId = Number(route.query.usuario || 0)
+  const next = value.users.find((user) => user.id === requestedId) || selectedUser.value && value.users.find((user) => user.id === selectedUser.value?.id) || value.users[0]
+  if (next) selectUser(next, false)
+}
 
 function queryValue(value: unknown) {
   if (Array.isArray(value)) return String(value[0] || '').trim()
@@ -334,9 +343,9 @@ function accountLine(user: SuperAdminUserSummary) {
 
 function accountType(user: SuperAdminUserSummary) {
   if (user.audience === 'internal') return 'Cuenta interna'
-  if (user.audience === 'daycareFamily') return 'Familia guarderia'
+  if (user.audience === 'daycareFamily') return 'Familia guardería'
   if (user.audience === 'schoolFamily') return 'Familia escolar'
-  if (user.audience === 'multiProductFamily') return 'Familia escolar y guarderia'
+  if (user.audience === 'multiProductFamily') return 'Familia escolar y guardería'
   return 'Usuario'
 }
 
@@ -348,8 +357,8 @@ function rowState(user: SuperAdminUserSummary) {
 
 function roleSummary(user: SuperAdminUserSummary) {
   const roles: string[] = []
-  if (user.roleAssignments.schoolAdmin) roles.push('Escolar')
-  if (user.roleAssignments.daycareAdmin) roles.push('Guarderia')
+  if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Escolar pendiente')
+  if (user.roleAssignments.daycareAdmin) roles.push('Guardería')
   if (roles.length) return roles.join(' + ')
   if (user.productScopes.length) return 'Familia'
   return 'Sin rol'
@@ -358,13 +367,18 @@ function roleSummary(user: SuperAdminUserSummary) {
 function familyScopeLabel(user: SuperAdminUserSummary) {
   const labels: string[] = []
   if (user.productScopes.includes('personasAutorizadas')) labels.push('Escolar')
-  if (user.productScopes.includes('daycare')) labels.push(user.unidad[0] || 'Guarderia')
+  if (user.productScopes.includes('daycare')) labels.push(user.unidad[0] || 'Guardería')
   return labels.join(' / ')
 }
 
 function schoolScopeLabel(scopes: SuperAdminSchoolScope[]) {
-  if (!scopes.length) return 'Sin plantel'
+  if (!scopes.length) return 'Plantel pendiente'
   return scopes.map((scope) => [scope.plantel, scope.grado || 'todos'].filter(Boolean).join(' / ')).join(' + ')
+}
+
+function schoolRoleState(user: SuperAdminUserSummary) {
+  if (!user.roleAssignments.schoolAdmin) return 'none'
+  return user.schoolScopes.length ? 'active' : 'incomplete'
 }
 
 function normalizeSchoolScopes(scopes: SuperAdminSchoolScope[]) {
@@ -763,6 +777,12 @@ function errorMessage(error: unknown, fallback: string) {
   color: var(--muted);
 }
 
+.role-row[data-state='incomplete'] {
+  background: #fff9e8;
+  border-color: #f2d58d;
+  color: #7c5d12;
+}
+
 .identity-strip {
   align-items: center;
   background: var(--muted-surface);
@@ -804,6 +824,13 @@ function errorMessage(error: unknown, fallback: string) {
   height: 42px;
   justify-content: center;
   width: 42px;
+}
+
+.role-row > div,
+.toggle-row > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .pending-panel,

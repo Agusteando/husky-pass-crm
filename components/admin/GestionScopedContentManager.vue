@@ -4,7 +4,6 @@
       <div>
         <p class="eyebrow">{{ eyebrow }}</p>
         <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
       </div>
       <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
     </header>
@@ -15,7 +14,6 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No disponible</h2>
-      <p>No pudimos cargar este flujo de publicación.</p>
     </section>
 
     <section v-else class="publisher-layout">
@@ -80,7 +78,7 @@
         <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
           <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
-          <button class="btn btn-primary" type="submit" :disabled="saving || !response?.permissions.canManage || !form.scope.plantel">
+          <button class="btn btn-primary" type="submit" :disabled="saving || !response?.actions.canManage || !form.scope.plantel">
             {{ saving ? 'Guardando...' : primaryActionLabel }}
           </button>
         </div>
@@ -125,7 +123,6 @@
           <div v-if="!response?.items.length" class="state-panel compact" data-state="empty">
             <FamilyPersonasIcon :name="icon" />
             <h3>Sin publicaciones</h3>
-            <p>Cuando guardes un borrador aparecerá aquí.</p>
           </div>
         </section>
       </aside>
@@ -134,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { GestionEscolarContentKind, GestionEscolarContentStatus, GestionEscolarScope, GestionEscolarScopedContentItem, GestionEscolarScopedContentResponse } from '~/types/gestionEscolar'
 import { formatGestionScope } from '~/utils/gestionEscolar'
@@ -155,6 +152,7 @@ const { data: response, pending, error: loadError, refresh } = useFetch<GestionE
 const saving = ref(false)
 const actionNotice = ref('')
 const actionError = ref('')
+const hydrated = ref(false)
 const form = reactive({
   id: '',
   title: '',
@@ -171,15 +169,34 @@ const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.
 const linkLabel = computed(() => props.kind === 'encuesta' ? 'Formulario' : 'Documento')
 const previewFallback = computed(() => props.kind === 'encuesta' ? 'Las familias verán esta encuesta cuando esté publicada.' : 'Las familias verán este documento cuando esté publicado.')
 const audienceReady = computed(() => Boolean(form.scope.plantel))
-const canActivate = computed(() => audienceReady.value && (response.value?.permissions.canPublish || props.kind === 'encuesta'))
+const canActivate = computed(() => audienceReady.value && (response.value?.actions.canPublish || props.kind === 'encuesta'))
 const publishReadinessLabel = computed(() => {
-  if (!audienceReady.value) return 'Falta audiencia'
-  return canActivate.value ? 'Puede publicar' : 'Solo borrador'
+  if (!audienceReady.value) return 'Elige audiencia'
+  return canActivate.value ? 'Listo' : 'Borrador'
 })
 const primaryActionLabel = computed(() => {
   if (form.status === 'active') return 'Publicar'
   if (form.status === 'scheduled') return 'Programar'
   return 'Guardar borrador'
+})
+
+function defaultSchoolScope(value = response.value): GestionEscolarScope {
+  return { isGlobal: false, plantel: value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+}
+
+function ensureDefaultScope(value = response.value) {
+  if (!form.scope.plantel && value?.options.planteles[0]) {
+    form.scope = defaultSchoolScope(value)
+  }
+}
+
+onMounted(() => {
+  hydrated.value = true
+  ensureDefaultScope()
+})
+
+watch(response, (value) => {
+  if (hydrated.value) ensureDefaultScope(value)
 })
 
 function resetForm() {
@@ -191,7 +208,7 @@ function resetForm() {
     status: 'draft' as GestionEscolarContentStatus,
     activeFrom: '',
     activeUntil: '',
-    scope: { isGlobal: false, plantel: response.value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
+    scope: defaultSchoolScope()
   })
   actionNotice.value = ''
   actionError.value = ''
@@ -284,7 +301,7 @@ async function save() {
 }
 
 .publishing-head h1 {
-  font-size: clamp(2rem, 3vw, 3.1rem);
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
 }
 
 .publishing-head p:not(.eyebrow),
