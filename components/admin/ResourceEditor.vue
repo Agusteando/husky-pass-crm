@@ -1,5 +1,5 @@
 <template>
-  <form class="card editor-form" data-product-panel="resource-editor" @submit.prevent="submit">
+  <form class="editor-form" data-product-panel="resource-editor" @submit.prevent="submit">
     <div class="editor-head">
       <div>
         <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>

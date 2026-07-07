@@ -1,33 +1,39 @@
 <template>
-  <form class="card editor-form" @submit.prevent="submit">
-    <div class="editor-head">
-      <div>
-        <p class="eyebrow">{{ model.id ? 'Editar cuenta familiar' : 'Nueva cuenta familiar' }}</p>
-        <h2>Acceso de familia</h2>
-      </div>
-      <div class="actions top-actions">
-        <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-        <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
-      </div>
-    </div>
-    <div class="grid grid-2">
+  <form class="family-editor" @submit.prevent="submit">
+    <section class="editor-grid">
       <label class="label">
         Nombre del niño o niña
-        <input v-model="model.nombre_nino" class="input" />
+        <input v-model="model.nombre_nino" class="input" placeholder="Nombre visible de la familia" />
       </label>
       <label class="label">
-        Usuario / correo
-        <input v-model="model.username" class="input" required @blur="normalizeUsername" />
+        Usuario
+        <input v-model="model.username" class="input" required placeholder="usuario o matrícula" @blur="normalizeUsername" />
       </label>
-      <label class="label">
-        Correo
-        <input v-model="model.email" class="input" type="email" required />
+      <label class="label wide">
+        Correo familiar
+        <input v-model="model.email" class="input" type="email" required placeholder="familia@correo.com" />
       </label>
-      <label class="label">
-        Contraseña temporal
-        <input v-model="model.plaintext" class="input" autocomplete="new-password" />
+    </section>
+
+    <section class="password-card">
+      <div>
+        <p class="eyebrow">Contraseña visible</p>
+        <h3>Acceso familiar</h3>
+      </div>
+      <div class="password-row">
+        <input v-model="model.plaintext" class="input mono" autocomplete="new-password" placeholder="Contraseña asignada por guardería" />
+        <button class="btn btn-secondary" type="button" @click="generatePassword">Generar</button>
+      </div>
+      <label class="toggle-line">
+        <input v-model="model.passwordCanChange" type="checkbox" />
+        <span>La familia puede cambiar esta contraseña</span>
       </label>
-    </div>
+    </section>
+
+    <footer class="modal-actions">
+      <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancelar</button>
+      <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar familia' }}</button>
+    </footer>
   </form>
 </template>
 
@@ -54,6 +60,13 @@ function normalizeUsername() {
   model.username = displayMatriculaCandidate(model.username)
 }
 
+function generatePassword() {
+  const words = ['Husky', 'Familia', 'Sala', 'IEDIS', 'Casa']
+  const word = words[Math.floor(Math.random() * words.length)]
+  const code = Math.floor(1000 + Math.random() * 9000)
+  model.plaintext = `${word}${code}`
+}
+
 function submit() {
   normalizeUsername()
   emit('save', { ...model })
@@ -65,46 +78,85 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
     nombre_nino: account.nombre_nino || '',
     username: account.username || '',
     email: account.email || '',
-    plaintext: account.plaintext || ''
+    plaintext: account.plaintext || '',
+    passwordCanChange: account.passwordCanChange !== false
   }
 }
 </script>
 
 <style scoped>
-.editor-form {
+.family-editor,
+.editor-grid,
+.password-card {
   display: grid;
-  gap: 12px;
-}
-
-.editor-head {
-  align-items: end;
-  display: flex;
   gap: 14px;
-  justify-content: space-between;
 }
 
-.editor-head h2 {
-  margin-bottom: 0;
+.editor-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.actions {
+.wide {
+  grid-column: 1 / -1;
+}
+
+.password-card {
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border: 1px solid rgba(8, 135, 125, 0.16);
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.password-card h3,
+.password-card p {
+  margin: 0;
+}
+
+.password-card h3 {
+  color: #102235;
+  font-size: 1.15rem;
+}
+
+.password-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.toggle-line {
+  align-items: center;
+  color: #385069;
   display: flex;
-  flex-wrap: wrap;
+  font-weight: 800;
   gap: 10px;
 }
 
+.toggle-line input {
+  accent-color: #07877d;
+  height: 18px;
+  width: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 720px) {
-  .editor-head {
-    align-items: start;
-    flex-direction: column;
+  .editor-grid,
+  .password-row {
+    grid-template-columns: 1fr;
   }
 
-  .top-actions {
-    width: 100%;
-  }
-
-  .top-actions .btn {
-    flex: 1 1 140px;
+  .modal-actions {
+    display: grid;
   }
 }
 </style>

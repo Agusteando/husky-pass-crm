@@ -321,10 +321,6 @@ function normalizeLegacyScope(value?: string | null) {
   return normalized || null
 }
 
-function isReadableSchoolPlantelOption(value?: string | null) {
-  const normalized = normalizeLegacyScope(value)?.toUpperCase() || ''
-  return /^[A-Z][A-Z0-9 .-]{1,23}$/.test(normalized)
-}
 
 export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; scope?: SuperAdminDirectoryScope; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
   const plantel = normalizeLegacyScope(filters.plantel)

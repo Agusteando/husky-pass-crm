@@ -1,1 +1,1 @@
-Normaliza planteles y grados escolares desde matrícula
+Mejora control de contraseñas familiares de guardería

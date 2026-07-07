@@ -10,6 +10,7 @@ type FamilyAccountBody = {
   username: string
   email: string
   plaintext?: string | null
+  passwordCanChange?: boolean | null
   role?: string | null
   unidad?: string
   sala: string | number
@@ -21,6 +22,7 @@ const schema: z.ZodType<FamilyAccountBody> = z.object({
   username: z.string().min(1),
   email: z.string().email(),
   plaintext: z.string().optional().nullable(),
+  passwordCanChange: z.boolean().optional().nullable(),
   role: z.string().optional().nullable(),
   unidad: z.string().optional(),
   sala: z.union([z.string(), z.number()])

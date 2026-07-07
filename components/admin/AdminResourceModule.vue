@@ -1,6 +1,6 @@
 <template>
   <section class="resource-module stack" data-product-area="daycare" :data-product-screen="type">
-    <AdminModuleTabs :sala-id="salaId" />
+    <AdminModuleTabs :sala-id="salaId" :unidad="data?.sala?.unidad" :sala-name="data?.sala?.sala" />
 
     <header class="module-hero">
       <div>
@@ -26,18 +26,26 @@
       </div>
     </header>
 
-    <ResourceEditor
+    <AdminModal
       v-if="editing"
-      :resource="editing"
-      :label="title"
-      :type="type"
-      :sala-id="salaId"
-      :sala-name="data?.sala?.sala"
-      :unidad="data?.sala?.unidad"
-      :saving="saving"
-      @save="save"
-      @cancel="closeEditor"
-    />
+      :title="editing.id ? `Editar ${title.toLowerCase()}` : actionLabel"
+      eyebrow="Guardería"
+      :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
+      :close-disabled="saving"
+      @close="closeEditor"
+    >
+      <ResourceEditor
+        :resource="editing"
+        :label="title"
+        :type="type"
+        :sala-id="salaId"
+        :sala-name="data?.sala?.sala"
+        :unidad="data?.sala?.unidad"
+        :saving="saving"
+        @save="save"
+        @cancel="closeEditor"
+      />
+    </AdminModal>
 
     <p v-if="error" class="alert">No fue posible cargar esta sección.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>

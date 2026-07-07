@@ -1,6 +1,6 @@
 <template>
   <section class="family-module stack" data-product-area="daycare" data-product-screen="familias">
-    <AdminModuleTabs :sala-id="salaId" />
+    <AdminModuleTabs :sala-id="salaId" :unidad="data?.sala?.unidad" :sala-name="data?.sala?.sala" />
 
     <header class="family-hero">
       <div>
@@ -12,17 +12,61 @@
           <span>Buscar</span>
           <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
         </label>
+        <button class="btn btn-secondary" type="button" data-diagnostic-action="password-sala" @click="openSalaPassword">Contraseña de sala</button>
         <button class="btn btn-primary" type="button" data-diagnostic-action="crear-familia" @click="startCreate">Nueva familia</button>
       </div>
     </header>
 
-    <FamilyAccountEditor
+    <AdminModal
       v-if="editing"
-      :account="editing"
-      :saving="saving"
-      @save="save"
-      @cancel="editing = null"
-    />
+      :title="editing.id ? 'Editar familia' : 'Nueva familia'"
+      eyebrow="Guardería"
+      :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
+      :close-disabled="saving"
+      @close="editing = null"
+    >
+      <FamilyAccountEditor
+        :account="editing"
+        :saving="saving"
+        @save="save"
+        @cancel="editing = null"
+      />
+    </AdminModal>
+
+    <AdminModal
+      v-if="passwordDialog"
+      :title="passwordDialog.mode === 'sala' ? 'Contraseña de sala' : 'Contraseña familiar'"
+      eyebrow="Acceso"
+      :description="passwordDialog.mode === 'sala' ? 'Asignar la misma contraseña a todas las familias de esta sala.' : selectedPasswordDescription"
+      :close-disabled="passwordSaving"
+      @close="closePasswordDialog"
+    >
+      <form class="password-modal" @submit.prevent="savePasswordDialog">
+        <div class="password-preview">
+          <span>{{ passwordDialog.mode === 'sala' ? filteredAccounts.length : 1 }}</span>
+          <strong>{{ passwordDialog.mode === 'sala' ? 'familias reciben esta contraseña' : 'contraseña visible para guardería' }}</strong>
+        </div>
+        <label class="label">
+          Contraseña
+          <div class="password-input-row">
+            <input v-model="passwordForm.password" class="input mono-input" required autocomplete="new-password" />
+            <button class="btn btn-secondary" type="button" @click="generatePassword">Generar</button>
+          </div>
+        </label>
+        <label class="toggle-line">
+          <input v-model="passwordForm.passwordCanChange" type="checkbox" />
+          <span>La familia puede cambiar la contraseña</span>
+        </label>
+        <label class="toggle-line">
+          <input v-model="passwordForm.sendEmail" type="checkbox" />
+          <span>Enviar acceso por correo al guardar</span>
+        </label>
+        <footer class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="closePasswordDialog">Cancelar</button>
+          <button class="btn btn-primary" type="submit" :disabled="passwordSaving">{{ passwordSaving ? 'Guardando…' : 'Guardar contraseña' }}</button>
+        </footer>
+      </form>
+    </AdminModal>
 
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
     <p v-if="actionError" class="alert">{{ actionError }}</p>
@@ -87,10 +131,19 @@
               <span><small>Sala</small><strong>{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</strong></span>
             </article>
           </section>
+          <section class="access-panel" aria-label="Acceso familiar">
+            <div>
+              <small>Contraseña</small>
+              <strong>{{ selected.plaintext || 'Sin contraseña visible' }}</strong>
+            </div>
+            <span :class="selected.passwordCanChange === false ? 'lock-pill locked' : 'lock-pill'">{{ selected.passwordCanChange === false ? 'Fijada por guardería' : 'Puede cambiarla' }}</span>
+          </section>
           <div class="preview-actions">
             <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
             <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="editing = { ...selected }">Editar familia</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="password-familia" @click="openFamilyPassword(selected)">Contraseña</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="email-acceso" :disabled="emailingId === selected.id || !selected.plaintext || !selected.email" @click="sendAccessEmail(selected)">{{ emailingId === selected.id ? 'Enviando…' : 'Enviar acceso' }}</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una familia" />
@@ -123,6 +176,10 @@ const actionNotice = ref('')
 const previewing = ref(false)
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
+const emailingId = ref<number | null>(null)
+const passwordSaving = ref(false)
+const passwordDialog = ref<{ mode: 'family' | 'sala'; account?: FamilyAccount | null } | null>(null)
+const passwordForm = ref({ password: '', passwordCanChange: true, sendEmail: false })
 const { data: session } = useAppSession()
 const canPreviewSala = computed(() => hasDaycareAdminScope(session.value?.user))
 const canImpersonateAccounts = computed(() => hasDaycareAdminScope(session.value?.user))
@@ -132,6 +189,7 @@ const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAcc
 })
 
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
+const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
 
 watch(search, () => syncQuery())
 
@@ -196,6 +254,8 @@ function selectAccount(account: FamilyAccount) {
 
 function syncQuery(selectedId = selected.value?.id) {
   const query: Record<string, string> = {}
+  const unidadQuery = typeof route.query.unidad === 'string' ? route.query.unidad : data.value?.sala?.unidad
+  if (unidadQuery) query.unidad = unidadQuery
   if (search.value.trim()) query.buscar = search.value.trim()
   if (selectedId) query.familia = String(selectedId)
   replaceQueryIfChanged(query)
@@ -226,6 +286,85 @@ async function save(payload: Partial<FamilyAccount>) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la cuenta familiar.'
   } finally {
     saving.value = false
+  }
+}
+
+
+function openSalaPassword() {
+  actionError.value = ''
+  actionNotice.value = ''
+  passwordDialog.value = { mode: 'sala' }
+  passwordForm.value = { password: '', passwordCanChange: true, sendEmail: false }
+  generatePassword()
+}
+
+function openFamilyPassword(account: FamilyAccount) {
+  actionError.value = ''
+  actionNotice.value = ''
+  passwordDialog.value = { mode: 'family', account }
+  passwordForm.value = {
+    password: account.plaintext || '',
+    passwordCanChange: account.passwordCanChange !== false,
+    sendEmail: false
+  }
+  if (!passwordForm.value.password) generatePassword()
+}
+
+function closePasswordDialog() {
+  if (passwordSaving.value) return
+  passwordDialog.value = null
+}
+
+function generatePassword() {
+  const words = ['Husky', 'Sala', 'Familia', 'IEDIS', 'Casa']
+  const word = words[Math.floor(Math.random() * words.length)]
+  passwordForm.value.password = `${word}${Math.floor(1000 + Math.random() * 9000)}`
+}
+
+async function savePasswordDialog() {
+  if (!passwordDialog.value) return
+  passwordSaving.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const body: Record<string, unknown> = {
+      sala: salaId,
+      password: passwordForm.value.password,
+      passwordCanChange: passwordForm.value.passwordCanChange,
+      sendEmail: passwordForm.value.sendEmail
+    }
+    if (passwordDialog.value.mode === 'family' && passwordDialog.value.account?.id) body.userId = passwordDialog.value.account.id
+    const result = await $fetch<{ updated: number; emailed: number; skipped: number; rows?: FamilyAccount[] }>('/api/daycare/admin/family-passwords', { method: 'POST', body })
+    await refresh()
+    if (passwordDialog.value.mode === 'family' && passwordDialog.value.account?.id) {
+      selected.value = (data.value?.rows || []).find((account) => account.id === passwordDialog.value?.account?.id) || selected.value
+    }
+    actionNotice.value = passwordDialog.value.mode === 'sala'
+      ? `Contraseña actualizada para ${result.updated} familias${result.emailed ? ` · ${result.emailed} correos enviados` : ''}.`
+      : `Contraseña familiar actualizada${result.emailed ? ' y enviada.' : '.'}`
+    passwordDialog.value = null
+  } catch (err: any) {
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible guardar la contraseña.'
+  } finally {
+    passwordSaving.value = false
+  }
+}
+
+async function sendAccessEmail(account: FamilyAccount) {
+  if (!account.id) return
+  emailingId.value = Number(account.id)
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const result = await $fetch<{ emailed: number }>('/api/daycare/admin/family-access-email', {
+      method: 'POST',
+      body: { sala: salaId, userIds: [account.id] }
+    })
+    actionNotice.value = result.emailed ? 'Acceso enviado por correo.' : 'No se envió ningún correo.'
+  } catch (err: any) {
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible enviar el acceso.'
+  } finally {
+    emailingId.value = null
   }
 }
 
@@ -367,7 +506,7 @@ function initials(value?: string | null) {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   position: relative;
   z-index: 1;
 }
@@ -567,6 +706,120 @@ function initials(value?: string | null) {
 .loading-card {
   color: var(--muted);
   padding: 20px;
+}
+
+.access-panel {
+  align-items: center;
+  background: linear-gradient(135deg, #fffaf0, #f0fbf7);
+  border: 1px solid rgba(8, 135, 125, 0.16);
+  border-radius: 18px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.access-panel small,
+.access-panel strong {
+  display: block;
+}
+
+.access-panel small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.access-panel strong {
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.lock-pill {
+  background: #e8f8ef;
+  border: 1px solid rgba(8, 135, 125, 0.12);
+  border-radius: 999px;
+  color: #138048;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.lock-pill.locked {
+  background: #fff6df;
+  border-color: rgba(246, 185, 79, 0.32);
+  color: #8a650c;
+}
+
+.password-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.password-preview {
+  align-items: center;
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border: 1px solid rgba(8, 135, 125, 0.16);
+  border-radius: 20px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  padding: 14px;
+}
+
+.password-preview span {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(8, 135, 125, 0.18);
+  border-radius: 16px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  font-size: 1.2rem;
+  font-weight: 950;
+  height: 54px;
+  justify-content: center;
+  width: 54px;
+}
+
+.password-preview strong {
+  color: var(--ink);
+}
+
+.password-input-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.mono-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.toggle-line {
+  align-items: center;
+  color: #385069;
+  display: flex;
+  font-weight: 800;
+  gap: 10px;
+}
+
+.toggle-line input {
+  accent-color: var(--accent);
+  height: 18px;
+  width: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 @media (max-width: 1080px) {

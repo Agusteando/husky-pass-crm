@@ -1,5 +1,10 @@
 <template>
   <nav class="admin-module-tabs" aria-label="Secciones de sala">
+    <div v-if="unidad || salaName" class="scope-chip">
+      <FamilyPersonasIcon name="daycare" />
+      <span>{{ unidad || 'Guardería' }}<b v-if="salaName"> · {{ salaName }}</b></span>
+    </div>
+    <NuxtLink :to="unitRoute" class="change-unit" data-diagnostic-link="cambiar-unidad">Cambiar unidad</NuxtLink>
     <NuxtLink :to="`/admin/daycare/salas/${salaId}`" exact-active-class="active" data-diagnostic-link="tab-resumen">Resumen</NuxtLink>
     <NuxtLink :to="`/admin/daycare/salas/${salaId}/familias`" active-class="active" data-diagnostic-link="tab-familias">Familias</NuxtLink>
     <NuxtLink :to="`/admin/daycare/salas/${salaId}/tareas`" active-class="active" data-diagnostic-link="tab-tareas">Tareas</NuxtLink>
@@ -9,7 +14,10 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ salaId: number | string }>()
+import { computed } from 'vue'
+
+const props = defineProps<{ salaId: number | string; unidad?: string | null; salaName?: string | null }>()
+const unitRoute = computed(() => ({ path: '/admin/daycare/salas', query: props.unidad ? { unidad: props.unidad } : {} }))
 </script>
 
 <style scoped>
@@ -25,14 +33,18 @@ defineProps<{ salaId: number | string }>()
   padding: 6px;
 }
 
-.admin-module-tabs a {
+.admin-module-tabs a,
+.scope-chip {
   border-radius: 13px;
-  color: var(--color-muted);
   flex: 0 0 auto;
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 800;
   padding: 9px 12px;
   white-space: nowrap;
+}
+
+.admin-module-tabs a {
+  color: var(--color-muted);
 }
 
 .admin-module-tabs a:hover,
@@ -41,12 +53,31 @@ defineProps<{ salaId: number | string }>()
   color: var(--color-brand-900);
 }
 
+.scope-chip {
+  align-items: center;
+  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
+  border: 1px solid rgba(8, 135, 125, 0.16);
+  color: #075f58;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.scope-chip b {
+  color: #607086;
+  font-weight: 900;
+}
+
+.change-unit {
+  border: 1px solid rgba(8, 135, 125, 0.16);
+}
+
 @media (max-width: 640px) {
   .admin-module-tabs {
     margin-inline: -4px;
   }
 
-  .admin-module-tabs a {
+  .admin-module-tabs a,
+  .scope-chip {
     padding: 8px 10px;
   }
 }

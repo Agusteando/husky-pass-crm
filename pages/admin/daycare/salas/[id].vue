@@ -1,7 +1,7 @@
 <template>
   <NuxtPage v-if="!isSalaSummary" />
   <section v-else class="room-summary" data-product-area="daycare" data-product-screen="sala-resumen">
-    <AdminModuleTabs :sala-id="salaId" />
+    <AdminModuleTabs :sala-id="salaId" :unidad="overview?.sala?.unidad" :sala-name="overview?.sala?.sala" />
 
     <p v-if="error" class="surface-message error">No fue posible cargar la sala.</p>
     <p v-if="actionError" class="surface-message error">{{ actionError }}</p>

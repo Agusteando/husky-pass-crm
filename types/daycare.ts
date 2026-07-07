@@ -26,6 +26,7 @@ export interface FamilyAccount {
   username: string
   email: string
   plaintext?: string | null
+  passwordCanChange?: boolean | null
   role?: string | null
   unidad: string
   sala: string | number

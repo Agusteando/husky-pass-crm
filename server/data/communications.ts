@@ -303,7 +303,7 @@ function audienceTargets(audience: CommunicationAudience) {
   const niveles = audience.kind === 'plantel' ? [''] : (audience.niveles?.length ? audience.niveles : [''])
   const grados = audience.kind === 'plantel' ? [''] : (audience.grados?.length ? audience.grados : [''])
   const grupos = audience.kind === 'grupo' ? (audience.grupos?.length ? audience.grupos : ['']) : ['']
-  return planteles.flatMap((plantel) => niveles.flatMap((nivel) => grados.flatMap((grado) => grupos.map((grupo) => ({
+  return planteles.flatMap((plantel) => niveles.flatMap((_nivel) => grados.flatMap((grado) => grupos.map((grupo) => ({
     plantel: normalizeSchoolPlantel(plantel) || '',
     nivel: '',
     grado: normalizeSchoolGrade(grado, plantel) || '',
