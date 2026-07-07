@@ -87,22 +87,25 @@
         <aside v-if="selectedSala" class="action-panel">
           <header class="pane-title">
             <div>
-              <p class="eyebrow">Abrir</p>
+              <p class="eyebrow">Operar sala</p>
               <h2>{{ selectedSala.sala }}</h2>
+              <small>{{ selectedSala.unidad }}</small>
             </div>
           </header>
           <div class="action-list">
-            <button type="button" data-diagnostic-action="abrir-familias" @click="goToSalaSection('familias')">
-              <strong>Familias</strong><small>Cuentas y soporte.</small>
-            </button>
-            <button type="button" data-diagnostic-action="abrir-tareas" @click="goToSalaSection('tareas', true)">
-              <strong>Tareas</strong><small>Trabajo en casa.</small>
-            </button>
-            <button type="button" data-diagnostic-action="abrir-avisos" @click="goToSalaSection('avisos')">
-              <strong>Avisos</strong><small>Mensajes de sala.</small>
-            </button>
-            <button type="button" data-diagnostic-action="abrir-calendario" @click="goToSalaSection('calendario')">
-              <strong>Calendario</strong><small>Fechas visibles.</small>
+            <button
+              v-for="item in actionItems"
+              :key="item.section"
+              type="button"
+              :data-diagnostic-action="item.diagnostic"
+              @click="goToSalaSection(item.section, item.create)"
+            >
+              <span class="action-icon"><FamilyPersonasIcon :name="item.icon" /></span>
+              <span class="action-copy">
+                <strong>{{ item.label }}</strong>
+                <small>{{ item.description }}</small>
+              </span>
+              <b>{{ item.count }}</b>
             </button>
           </div>
         </aside>
@@ -123,6 +126,8 @@ import type { SalaSummary } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { hasDaycareAdminScope } from '~/utils/sessionScopes'
+
+type DaycareSalaSection = 'familias' | 'tareas' | 'avisos' | 'calendario'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,6 +197,16 @@ const filteredSalas = computed(() => {
 })
 
 const selectedSala = computed(() => filteredSalas.value.find((sala) => sala.id === selectedSalaId.value) || filteredSalas.value[0] || null)
+const actionItems = computed<Array<{ section: DaycareSalaSection; diagnostic: string; icon: string; label: string; description: string; count: number; create?: boolean }>>(() => {
+  const sala = selectedSala.value
+  if (!sala) return []
+  return [
+    { section: 'familias', diagnostic: 'abrir-familias', icon: 'people', label: 'Familias', description: 'Cuentas y soporte', count: sala.metrics.familias },
+    { section: 'tareas', diagnostic: 'abrir-tareas', icon: 'edit', label: 'Preparar tarea', description: 'Trabajo en casa', count: sala.metrics.tareas, create: true },
+    { section: 'avisos', diagnostic: 'abrir-avisos', icon: 'announcement', label: 'Avisos', description: 'Mensajes de sala', count: sala.metrics.avisos },
+    { section: 'calendario', diagnostic: 'abrir-calendario', icon: 'calendar', label: 'Calendario', description: 'Fechas visibles', count: sala.metrics.calendario }
+  ]
+})
 
 watch(filteredSalas, (rows) => {
   if (!rows.length) {
@@ -234,7 +249,7 @@ function syncQuery() {
   replaceQueryIfChanged(query)
 }
 
-function goToSalaSection(section: 'familias' | 'tareas' | 'avisos' | 'calendario', create = false) {
+function goToSalaSection(section: DaycareSalaSection, create = false) {
   actionError.value = ''
   if (!selectedSala.value?.id) return
   const query: Record<string, string> = {}
@@ -400,6 +415,13 @@ h2 {
   font-size: 1.08rem;
 }
 
+.pane-title small {
+  color: var(--muted);
+  display: block;
+  font-size: .76rem;
+  margin-top: 3px;
+}
+
 .room-list,
 .action-list {
   display: grid;
@@ -495,9 +517,48 @@ h2 {
 }
 
 .action-list button {
+  align-items: center;
   display: grid;
-  gap: 3px;
-  padding: 13px 14px;
+  gap: 10px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  min-height: 66px;
+  padding: 10px;
+}
+
+.action-icon {
+  align-items: center;
+  background: #eef7f5;
+  border: 1px solid #cae2dc;
+  border-radius: 12px;
+  color: var(--accent);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.action-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.action-copy strong,
+.action-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-list b {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: .78rem;
+  min-width: 30px;
+  padding: 4px 8px;
+  text-align: center;
 }
 
 .surface-message {

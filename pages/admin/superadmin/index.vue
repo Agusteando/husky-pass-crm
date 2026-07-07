@@ -3,11 +3,13 @@
     <header class="page-head">
       <div>
         <p class="eyebrow">Super Admin</p>
-        <h1>Usuarios</h1>
+        <h1>Centro de usuarios</h1>
       </div>
-      <button v-if="hasChanges" class="btn btn-primary" type="button" :disabled="saving || Boolean(saveBlocker)" @click="saveRoles">
-        {{ saving ? 'Guardando...' : 'Guardar cambios' }}
-      </button>
+      <div v-if="directory" class="head-metrics" aria-label="Resumen de usuarios">
+        <span><strong>{{ directory.metrics.total }}</strong><small>usuarios</small></span>
+        <span><strong>{{ directory.metrics.internalUsers }}</strong><small>internos</small></span>
+        <span><strong>{{ directory.metrics.impersonable }}</strong><small>soporte</small></span>
+      </div>
     </header>
 
     <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
@@ -85,7 +87,7 @@
                 <strong>Admin escolar</strong>
                 <small>{{ schoolScopeLabel(selectedUser.schoolScopes) }}</small>
               </div>
-              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-escolar" @click="focusEditor('school')">{{ selectedUser.roleAssignments.schoolAdmin ? 'Editar' : 'Asignar' }}</button>
+              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-escolar" @click="openRoleEditor('school')">{{ selectedUser.roleAssignments.schoolAdmin ? 'Editar acceso escolar' : 'Asignar acceso escolar' }}</button>
             </article>
 
             <article class="role-row" :data-state="selectedUser.roleAssignments.daycareAdmin ? 'active' : 'none'">
@@ -94,7 +96,7 @@
                 <strong>Admin guardería</strong>
                 <small>{{ selectedUser.unidad.length ? selectedUser.unidad.join(' / ') : 'Sin unidad' }}</small>
               </div>
-              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-guarderia" @click="focusEditor('daycare')">{{ selectedUser.roleAssignments.daycareAdmin ? 'Editar' : 'Asignar' }}</button>
+              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-guarderia" @click="openRoleEditor('daycare')">{{ selectedUser.roleAssignments.daycareAdmin ? 'Editar acceso guardería' : 'Asignar acceso guardería' }}</button>
             </article>
 
             <article v-if="selectedUser.productScopes.length" class="role-row family" data-state="family">
@@ -103,18 +105,15 @@
                 <strong>Cuenta familiar</strong>
                 <small>{{ familyScopeLabel(selectedUser) }}</small>
               </div>
-              <button type="button" :disabled="impersonatingId === selectedUser.id" data-diagnostic-action="impersonar-usuario" @click="requestImpersonation(selectedUser)">
-                {{ impersonationButtonLabel(selectedUser) }}
-              </button>
+              <div class="row-actions">
+                <button type="button" :disabled="impersonatingId === selectedUser.id" data-diagnostic-action="impersonar-usuario" @click="requestImpersonation(selectedUser)">
+                  {{ impersonationButtonLabel(selectedUser) }}
+                </button>
+                <button v-if="confirmingImpersonationId === selectedUser.id" class="ghost-action" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">
+                  Cancelar
+                </button>
+              </div>
             </article>
-          </section>
-
-          <section v-if="hasChanges" class="pending-panel">
-            <strong>Cambios pendientes</strong>
-            <ul>
-              <li v-for="line in changeLines" :key="line">{{ line }}</li>
-            </ul>
-            <span v-if="saveBlocker">{{ saveBlocker }}</span>
           </section>
         </template>
 
@@ -124,86 +123,100 @@
         </div>
       </main>
 
-      <aside class="edit-panel">
-        <template v-if="selectedUser">
-          <header>
+    </section>
+
+    <Teleport to="body">
+      <section v-if="roleEditorOpen && selectedUser" class="modal-backdrop" data-product-panel="access-editor" @click.self="cancelRoleEditor">
+        <article class="access-drawer" role="dialog" aria-modal="true" aria-labelledby="access-editor-title">
+          <header class="drawer-head">
             <div>
-              <p class="eyebrow">Roles</p>
-              <h2>{{ editorTitle }}</h2>
+              <p class="eyebrow">Acceso</p>
+              <h2 id="access-editor-title">{{ editorTitle }}</h2>
+              <small>{{ displayName(selectedUser) }}</small>
             </div>
-            <button v-if="hasChanges" class="text-button" type="button" @click="resetDraft">Deshacer</button>
           </header>
 
           <template v-if="selectedUser.canManageAdminRoles">
-          <section class="editor-card" :class="{ active: editorMode === 'school' }">
-            <label class="toggle-row">
-              <input v-model="roleDraft.schoolAdmin" type="checkbox" @change="ensureSchoolScope" />
-              <span class="switch" aria-hidden="true" />
-              <span>
-                <strong>Admin escolar</strong>
-                <small>Plantel y grado opcional</small>
-              </span>
-            </label>
+            <section v-if="editorMode === 'school'" class="editor-card active">
+              <label class="toggle-row">
+                <input v-model="roleDraft.schoolAdmin" type="checkbox" @change="ensureSchoolScope" />
+                <span class="switch" aria-hidden="true" />
+                <span>
+                  <strong>Admin escolar</strong>
+                  <small>Plantel con grado cuando aplique</small>
+                </span>
+              </label>
 
-            <div v-if="roleDraft.schoolAdmin" class="scope-editor">
-              <div v-for="(scope, index) in schoolScopesDraft" :key="index" class="scope-row">
-                <label>
-                  <span>Plantel</span>
-                  <select v-model="scope.plantel">
-                    <option value="">Seleccionar</option>
-                    <option v-for="plantel in schoolPlantelOptions" :key="plantel" :value="plantel">{{ plantel }}</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Grado</span>
-                  <select v-model="scope.grado">
-                    <option value="">Todos</option>
-                    <option v-for="grado in gradeOptions" :key="grado" :value="grado">{{ grado }}</option>
-                  </select>
-                </label>
-                <button class="icon-button" type="button" aria-label="Quitar plantel" @click="removeSchoolScope(index)">
-                  <FamilyPersonasIcon name="trash" />
+              <div v-if="roleDraft.schoolAdmin" class="scope-editor">
+                <div v-for="(scope, index) in schoolScopesDraft" :key="index" class="scope-row">
+                  <label>
+                    <span>Plantel</span>
+                    <select v-model="scope.plantel">
+                      <option value="">Seleccionar</option>
+                      <option v-for="plantel in schoolPlantelOptions" :key="plantel" :value="plantel">{{ plantel }}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Grado</span>
+                    <select v-model="scope.grado">
+                      <option value="">Todos</option>
+                      <option v-for="grado in gradeOptions" :key="grado" :value="grado">{{ grado }}</option>
+                    </select>
+                  </label>
+                  <button class="icon-button" type="button" aria-label="Quitar plantel" @click="removeSchoolScope(index)">
+                    <FamilyPersonasIcon name="trash" />
+                  </button>
+                </div>
+                <button class="add-row" type="button" @click="addSchoolScope">Agregar plantel</button>
+              </div>
+            </section>
+
+            <section v-else class="editor-card active">
+              <label class="toggle-row">
+                <input v-model="roleDraft.daycareAdmin" type="checkbox" />
+                <span class="switch" aria-hidden="true" />
+                <span>
+                  <strong>Admin guardería</strong>
+                  <small>Unidades donde puede operar</small>
+                </span>
+              </label>
+
+              <div v-if="roleDraft.daycareAdmin" class="unit-grid">
+                <button
+                  v-for="unidad in unitOptions"
+                  :key="unidad"
+                  type="button"
+                  :class="{ active: daycareUnitsDraft.includes(unidad) }"
+                  @click="toggleUnidad(unidad)"
+                >
+                  {{ unidad }}
                 </button>
               </div>
-              <button class="add-row" type="button" @click="addSchoolScope">Agregar plantel</button>
-            </div>
-          </section>
+            </section>
 
-          <section class="editor-card" :class="{ active: editorMode === 'daycare' }">
-            <label class="toggle-row">
-              <input v-model="roleDraft.daycareAdmin" type="checkbox" />
-              <span class="switch" aria-hidden="true" />
-              <span>
-                <strong>Admin guardería</strong>
-                <small>Unidad asignada</small>
-              </span>
-            </label>
-
-            <div v-if="roleDraft.daycareAdmin" class="unit-grid">
-              <button
-                v-for="unidad in unitOptions"
-                :key="unidad"
-                type="button"
-                :class="{ active: daycareUnitsDraft.includes(unidad) }"
-                @click="toggleUnidad(unidad)"
-              >
-                {{ unidad }}
-              </button>
-            </div>
-          </section>
+            <section v-if="hasChanges || saveBlocker" class="pending-panel">
+              <strong>Cambios pendientes</strong>
+              <ul v-if="changeLines.length">
+                <li v-for="line in changeLines" :key="line">{{ line }}</li>
+              </ul>
+              <span v-if="saveBlocker">{{ saveBlocker }}</span>
+            </section>
           </template>
 
           <section v-else class="editor-card">
             <strong>Cuenta familiar</strong>
             <small>El acceso viene de alumnos, familia o sala.</small>
           </section>
-        </template>
 
-        <div v-else class="state-panel compact" data-state="empty">
-          <h2>Roles</h2>
-        </div>
-      </aside>
-    </section>
+          <footer class="drawer-actions">
+            <button class="btn btn-secondary" type="button" @click="cancelRoleEditor">Cancelar</button>
+            <button class="btn btn-primary" type="button" :disabled="!hasChanges || saving || Boolean(saveBlocker)" @click="saveRoles">
+              {{ saving ? 'Guardando...' : 'Guardar acceso' }}
+            </button>
+          </footer>
+        </article>
+      </section>
+    </Teleport>
   </section>
 </template>
 
@@ -236,6 +249,7 @@ const selectedScope = ref<SuperAdminDirectoryScope>(normalizeScope(route.query.s
 const search = ref(queryValue(route.query.buscar))
 const selectedUser = ref<SuperAdminUserSummary | null>(null)
 const editorMode = ref<EditorMode>('school')
+const roleEditorOpen = ref(false)
 const actionError = ref('')
 const actionNotice = ref('')
 const saving = ref(false)
@@ -300,6 +314,7 @@ watch(directory, (value) => {
 
 watch([selectedScope, selectedPlantel], () => {
   selectedUser.value = null
+  roleEditorOpen.value = false
   syncQuery()
 })
 
@@ -357,7 +372,7 @@ function rowState(user: SuperAdminUserSummary) {
 
 function roleSummary(user: SuperAdminUserSummary) {
   const roles: string[] = []
-  if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Escolar pendiente')
+  if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Falta plantel')
   if (user.roleAssignments.daycareAdmin) roles.push('Guardería')
   if (roles.length) return roles.join(' + ')
   if (user.productScopes.length) return 'Familia'
@@ -372,7 +387,7 @@ function familyScopeLabel(user: SuperAdminUserSummary) {
 }
 
 function schoolScopeLabel(scopes: SuperAdminSchoolScope[]) {
-  if (!scopes.length) return 'Plantel pendiente'
+  if (!scopes.length) return 'Sin plantel asignado'
   return scopes.map((scope) => [scope.plantel, scope.grado || 'todos'].filter(Boolean).join(' / ')).join(' + ')
 }
 
@@ -411,14 +426,24 @@ function draftSignature() {
 
 function selectUser(user: SuperAdminUserSummary, updateRoute = true) {
   selectedUser.value = user
-  roleDraft.value = { ...user.roleAssignments }
-  schoolScopesDraft.value = user.schoolScopes.length ? user.schoolScopes.map((scope) => ({ ...scope })) : []
-  daycareUnitsDraft.value = [...user.unidad]
+  hydrateDraft(user)
   editorMode.value = user.roleAssignments.daycareAdmin && !user.roleAssignments.schoolAdmin ? 'daycare' : 'school'
+  roleEditorOpen.value = false
   actionError.value = ''
   actionNotice.value = ''
   confirmingImpersonationId.value = null
   if (updateRoute) syncQuery(user.id)
+}
+
+function hydrateDraft(user: SuperAdminUserSummary) {
+  roleDraft.value = { ...user.roleAssignments }
+  schoolScopesDraft.value = user.schoolScopes.length ? user.schoolScopes.map((scope) => ({ ...scope })) : []
+  daycareUnitsDraft.value = [...user.unidad]
+}
+
+function openRoleEditor(mode: EditorMode) {
+  focusEditor(mode)
+  roleEditorOpen.value = true
 }
 
 function focusEditor(mode: EditorMode) {
@@ -454,7 +479,18 @@ function toggleUnidad(unidad: string) {
 }
 
 function resetDraft() {
-  if (selectedUser.value) selectUser(selectedUser.value, false)
+  if (selectedUser.value) hydrateDraft(selectedUser.value)
+}
+
+function cancelRoleEditor() {
+  resetDraft()
+  roleEditorOpen.value = false
+  actionError.value = ''
+}
+
+function cancelImpersonation() {
+  confirmingImpersonationId.value = null
+  actionNotice.value = ''
 }
 
 async function refreshDirectory() {
@@ -479,6 +515,7 @@ async function saveRoles() {
       directory.value.users = directory.value.users.map((user) => user.id === updated.id ? updated : user)
     }
     selectUser(updated, false)
+    roleEditorOpen.value = false
     actionNotice.value = 'Roles guardados.'
   } catch (error: unknown) {
     actionError.value = errorMessage(error, 'No se pudieron guardar los roles.')
@@ -553,7 +590,6 @@ function errorMessage(error: unknown, fallback: string) {
 .page-head,
 .list-panel,
 .detail-panel,
-.edit-panel,
 .state-panel {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -571,7 +607,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 .page-head h1,
 .identity-strip h2,
-.edit-panel h2,
+.access-drawer h2,
 .state-panel h2 {
   color: var(--ink);
   font-family: var(--font-body);
@@ -581,6 +617,36 @@ function errorMessage(error: unknown, fallback: string) {
 .page-head h1 {
   font-size: 2rem;
   line-height: 1;
+}
+
+.head-metrics {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.head-metrics span {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  display: grid;
+  gap: 1px;
+  min-width: 82px;
+  padding: 8px 10px;
+}
+
+.head-metrics strong {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.head-metrics small {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .eyebrow,
@@ -598,19 +664,17 @@ function errorMessage(error: unknown, fallback: string) {
   align-items: start;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(310px, 380px);
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
 }
 
 .list-panel,
-.detail-panel,
-.edit-panel {
+.detail-panel {
   display: grid;
   gap: 12px;
   padding: 12px;
 }
 
-.list-panel,
-.edit-panel {
+.list-panel {
   position: sticky;
   top: calc(var(--topbar-height) + 14px);
 }
@@ -641,6 +705,7 @@ function errorMessage(error: unknown, fallback: string) {
 .search-box button,
 .role-row button,
 .add-row,
+.ghost-action,
 .text-button {
   background: #ffffff;
   border: 1px solid #cfe0e7;
@@ -651,6 +716,18 @@ function errorMessage(error: unknown, fallback: string) {
   font-weight: 850;
   min-height: 34px;
   padding: 0 11px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.ghost-action {
+  border-color: transparent;
+  color: var(--muted);
 }
 
 .filters {
@@ -850,12 +927,66 @@ function errorMessage(error: unknown, fallback: string) {
   padding-left: 18px;
 }
 
-.edit-panel header,
+.drawer-head,
 .toggle-row {
   align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.modal-backdrop {
+  --surface: #ffffff;
+  --muted-surface: #f7fafb;
+  --line: #dce5eb;
+  --line-soft: #e8eef2;
+  --ink: #142033;
+  --muted: #64748b;
+  --accent: #0d766d;
+  align-items: stretch;
+  background: rgba(15, 23, 42, .28);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  padding: 14px;
+  position: fixed;
+  z-index: 80;
+}
+
+.access-drawer {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid rgba(220, 229, 235, .95);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: max-content;
+  max-width: 520px;
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  padding: 16px;
+  width: min(100%, 520px);
+}
+
+.drawer-head {
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 12px;
+}
+
+.drawer-head small {
+  color: var(--muted);
+  display: block;
+  font-size: .8rem;
+  margin-top: 4px;
+}
+
+.drawer-actions {
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 12px;
 }
 
 .text-button {
@@ -865,6 +996,10 @@ function errorMessage(error: unknown, fallback: string) {
 
 .editor-card.active {
   border-color: #9ed8cb;
+}
+
+.access-drawer .editor-card {
+  align-content: start;
 }
 
 .toggle-row {
@@ -999,10 +1134,6 @@ function errorMessage(error: unknown, fallback: string) {
   .users-layout {
     grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   }
-  .edit-panel {
-    grid-column: 2;
-    position: static;
-  }
 }
 
 @media (max-width: 860px) {
@@ -1013,13 +1144,23 @@ function errorMessage(error: unknown, fallback: string) {
     grid-template-columns: 1fr;
   }
   .list-panel {
+    order: 2;
     position: static;
   }
-  .edit-panel {
-    grid-column: auto;
+  .detail-panel {
+    order: 1;
   }
   .user-list {
     max-height: none;
+  }
+  .head-metrics,
+  .drawer-actions,
+  .page-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .modal-backdrop {
+    padding: 8px;
   }
 }
 </style>

@@ -101,7 +101,6 @@ const baseUserSql = `
 `
 
 const RETIRED_HUSKY_ADMIN_ROLE_PATTERN = /^ROLE_HUSKY_.+/i
-const SCHOOL_DIRECTORY_PLANTELES = new Set(['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST'])
 
 function normalizeAdminRoleTokens(roles: string[]) {
   const normalized = new Set<string>()
@@ -321,6 +320,10 @@ function normalizeLegacyScope(value?: string | null) {
   return normalized || null
 }
 
+function isReadableSchoolPlantelOption(value?: string | null) {
+  const normalized = normalizeLegacyScope(value)?.toUpperCase() || ''
+  return /^[A-Z][A-Z0-9 .-]{1,23}$/.test(normalized)
+}
 
 export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; scope?: SuperAdminDirectoryScope; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
   const plantel = normalizeLegacyScope(filters.plantel)
@@ -450,26 +453,38 @@ export async function getSuperAdminUserSummaryById(userId: number) {
 
 async function loadSchoolDirectoryOptions() {
   const rows = await legacyQuery<DirectorySchoolOptionRow[]>(
-    `SELECT DISTINCT
-       CASE
-         WHEN UPPER(matricula) LIKE 'PREEM%' THEN 'PREEM'
-         WHEN UPPER(matricula) LIKE 'PREET%' THEN 'PREET'
-         WHEN UPPER(matricula) LIKE 'PM%' THEN 'PM'
-         WHEN UPPER(matricula) LIKE 'PT%' THEN 'PT'
-         WHEN UPPER(matricula) LIKE 'SM%' THEN 'SM'
-         WHEN UPPER(matricula) LIKE 'ST%' THEN 'ST'
-         WHEN UPPER(matricula) LIKE 'DM%' THEN 'CM'
-         ELSE UPPER(LEFT(matricula, 2))
-       END AS plantel,
-       grado
-     FROM matricula
-     WHERE matricula IS NOT NULL AND TRIM(CAST(matricula AS CHAR)) <> ''
+    `SELECT DISTINCT plantel, grado
+     FROM (
+       SELECT
+         CASE
+           WHEN UPPER(matricula) LIKE 'PREEM%' THEN 'PREEM'
+           WHEN UPPER(matricula) LIKE 'PREET%' THEN 'PREET'
+           WHEN UPPER(matricula) LIKE 'PM%' THEN 'PM'
+           WHEN UPPER(matricula) LIKE 'PT%' THEN 'PT'
+           WHEN UPPER(matricula) LIKE 'SM%' THEN 'SM'
+           WHEN UPPER(matricula) LIKE 'ST%' THEN 'ST'
+           WHEN UPPER(matricula) LIKE 'CM%' OR UPPER(matricula) LIKE 'DM%' THEN 'CM'
+           ELSE NULL
+         END AS plantel,
+         grado
+       FROM matricula
+       WHERE matricula IS NOT NULL AND TRIM(CAST(matricula AS CHAR)) <> ''
+       UNION ALL
+       SELECT UPPER(TRIM(CAST(campus AS CHAR))) AS plantel, NULL AS grado
+       FROM users
+       WHERE campus IS NOT NULL AND TRIM(CAST(campus AS CHAR)) <> ''
+       UNION ALL
+       SELECT UPPER(TRIM(CAST(empresa AS CHAR))) AS plantel, NULL AS grado
+       FROM users
+       WHERE empresa IS NOT NULL AND TRIM(CAST(empresa AS CHAR)) <> ''
+     ) AS school_options
+     WHERE plantel IS NOT NULL AND TRIM(CAST(plantel AS CHAR)) <> ''
      ORDER BY plantel ASC, grado ASC
      LIMIT 5000`
   ).catch(() => [] as DirectorySchoolOptionRow[])
 
   return {
-    planteles: Array.from(new Set(rows.map((row) => normalizeLegacyScope(row.plantel)).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es')),
+    planteles: Array.from(new Set(rows.map((row) => normalizeLegacyScope(row.plantel)).filter((value): value is string => Boolean(value && isReadableSchoolPlantelOption(value))))).sort((a, b) => a.localeCompare(b, 'es')),
     grados: Array.from(new Set(rows.map((row) => normalizeLegacyScope(row.grado)).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
   }
 }

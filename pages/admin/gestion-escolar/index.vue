@@ -6,8 +6,8 @@
         <h1>{{ scopeLabel }}</h1>
       </div>
       <div class="head-actions">
-        <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Ver familias</NuxtLink>
-        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Comunicados</NuxtLink>
+        <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Familias y pases</NuxtLink>
+        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Preparar comunicado</NuxtLink>
       </div>
     </header>
 
@@ -50,7 +50,7 @@
             <div class="section-title">
               <div>
                 <p class="eyebrow">Hoy</p>
-                <h2>Abrir</h2>
+                <h2>Operación escolar</h2>
               </div>
               <span>{{ scopeLabel }}</span>
             </div>
@@ -113,7 +113,7 @@ const todayTasks = computed(() => {
     tasks.push({
       title: 'Familias y personas autorizadas',
       detail: `${overview.value?.reach.families || 0} familias en tu plantel.`,
-      action: 'Revisar',
+      action: 'Gestionar',
       icon: 'people',
       to: '/admin/gestion-escolar/familias'
     })
@@ -122,16 +122,16 @@ const todayTasks = computed(() => {
     tasks.push({
       title: 'Comunicados',
       detail: 'Mensajes para familias del plantel.',
-      action: 'Abrir',
+      action: 'Preparar',
       icon: 'announcement',
       to: '/admin/gestion-escolar/comunicados'
     })
   }
   if (hasModule('encuestas')) {
-    tasks.push({ title: 'Encuestas', detail: 'Formularios activos para familias.', action: 'Abrir', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
+    tasks.push({ title: 'Encuestas', detail: 'Formularios activos para familias.', action: 'Revisar', icon: 'survey', to: '/admin/gestion-escolar/encuestas' })
   }
   if (hasModule('convenios')) {
-    tasks.push({ title: 'Convenios', detail: 'Documentos visibles para familias.', action: 'Abrir', icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
+    tasks.push({ title: 'Convenios', detail: 'Documentos visibles para familias.', action: 'Revisar', icon: 'handshake', to: '/admin/gestion-escolar/convenios' })
   }
   return tasks
 })

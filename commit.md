@@ -1,1 +1,1 @@
-Rediseña acceso escolar de Super Admin
+Rediseña experiencia administrativa de Husky Pass

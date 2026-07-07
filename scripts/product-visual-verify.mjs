@@ -477,6 +477,20 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
   const result = await withExistingPage(page, async () => {
     const shots = []
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-dashboard', '/admin/superadmin', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
+    const schoolAccessButton = page.locator('[data-diagnostic-action="editar-admin-escolar"]').first()
+    if (await schoolAccessButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await schoolAccessButton.click()
+      await page.locator('[data-product-panel="access-editor"]').waitFor({ state: 'visible', timeout: 5000 })
+      shots.push(await captureCurrentPage(page, dirs, 'admin', 'admin-access-editor-school', { selectors: ['[data-product-panel="access-editor"]'] }))
+      await page.locator('[data-product-panel="access-editor"] button').filter({ hasText: 'Cancelar' }).first().click()
+    }
+    const daycareAccessButton = page.locator('[data-diagnostic-action="editar-admin-guarderia"]').first()
+    if (await daycareAccessButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await daycareAccessButton.click()
+      await page.locator('[data-product-panel="access-editor"]').waitFor({ state: 'visible', timeout: 5000 })
+      shots.push(await captureCurrentPage(page, dirs, 'admin', 'admin-access-editor-daycare', { selectors: ['[data-product-panel="access-editor"]'] }))
+      await page.locator('[data-product-panel="access-editor"] button').filter({ hasText: 'Cancelar' }).first().click()
+    }
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-legacy-redirect', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-workbench', '/admin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-families', '/admin/gestion-escolar/familias', { selectors: ['[data-product-screen="familias"]'], timeout: 60000 }))

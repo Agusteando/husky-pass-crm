@@ -26,8 +26,14 @@
 
     <div v-if="session?.user?.impersonation" class="impersonation-strip">
       <div class="page-shell">
-        <strong>Vista administrativa activa</strong>
-        <span>Estas operando como familia.</span>
+        <span>
+          <strong>Vista familiar</strong>
+          <small>Soporte activo</small>
+        </span>
+        <button type="button" data-diagnostic-action="terminar-impersonacion" @click="exitImpersonation">
+          <FamilyPersonasIcon name="arrow" />
+          {{ adminReturnLabel }}
+        </button>
       </div>
     </div>
   </header>
@@ -35,11 +41,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'nuxt/app'
+import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import type { ExperienceVisualIdentity } from '~/types/identity'
 import { displayMatriculaCandidate } from '~/utils/matricula'
-import { hasFamilyScope } from '~/utils/sessionScopes'
+import { defaultAdminRoute, hasFamilyScope } from '~/utils/sessionScopes'
+import { setCachedRouteSession } from '~/utils/routeSession'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -68,6 +75,7 @@ const activeStudent = computed(() => {
   return matricula ? { label: 'Matricula', value: matricula } : null
 })
 const securityTo = computed(() => `/familia/cuenta/seguridad?experiencia=${isGuarderia.value ? 'guarderia' : 'escolar'}`)
+const adminReturnLabel = computed(() => props.session?.user?.impersonation?.admin?.isSuperAdmin ? 'Volver a Super Admin' : 'Volver a admin')
 const navItems = computed(() => {
   const user = props.session?.user
   const items: Array<{ key: string; label: string; to: string; icon: string }> = []
@@ -89,6 +97,14 @@ const navItems = computed(() => {
 function isActive(to: string) {
   const target = to.split('?')[0] || to
   return route.path === target || (target !== '/familia/daycare' && route.path.startsWith(`${target}/`))
+}
+
+async function exitImpersonation() {
+  const impersonation = props.session?.user?.impersonation
+  const target = impersonation?.admin ? defaultAdminRoute(impersonation.admin) : '/admin/daycare/salas'
+  await $fetch('/api/auth/impersonation/exit', { method: 'POST' })
+  setCachedRouteSession(null)
+  await navigateTo(target)
 }
 </script>
 
@@ -221,7 +237,35 @@ function isActive(to: string) {
   align-items: center;
   display: flex;
   gap: 8px;
+  justify-content: space-between;
   min-height: 28px;
+}
+
+.impersonation-strip span {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.impersonation-strip small {
+  color: rgba(255, 255, 255, .76);
+  font-size: .76rem;
+}
+
+.impersonation-strip button {
+  align-items: center;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .26);
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 800;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
 }
 
 @media (max-width: 1060px) {
