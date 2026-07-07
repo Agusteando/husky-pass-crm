@@ -8,6 +8,7 @@ import {
   visualIdentityForContext
 } from '~/utils/experienceIdentity'
 import { normalizeMatricula } from './matricula'
+import { deriveSchoolPlantelFromMatricula } from './schoolCatalog'
 
 export type PersonasMascotVariant = 'header' | 'hero' | 'empty' | 'help' | 'preview' | 'transition'
 
@@ -87,11 +88,12 @@ export function normalizeNivel(value?: string | null) {
 }
 
 export function personasThemeKeyFromMatricula(value?: string | number | null): PersonasThemeKey {
+  const plantel = deriveSchoolPlantelFromMatricula(value)
+  if (plantel === 'PREEM' || plantel === 'GM' || plantel === 'CT') return 'preescolar'
+  if (plantel === 'PM' || plantel === 'PT') return 'primaria'
+  if (plantel === 'SM' || plantel === 'ST') return 'secundaria'
   const matricula = normalizeMatricula(value)
   if (matricula.startsWith('CM')) return 'daycare'
-  if (matricula.startsWith('PREEM') || matricula.startsWith('PREET')) return 'preescolar'
-  if (matricula.startsWith('PM') || matricula.startsWith('PT')) return 'primaria'
-  if (matricula.startsWith('SM') || matricula.startsWith('ST')) return 'secundaria'
   return 'escolar'
 }
 

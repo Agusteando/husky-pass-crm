@@ -2,7 +2,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
 import type { MarbeteTemplateMeta, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
-import { allPersonasThemes, normalizeNivel, normalizePlantel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
+import { allPersonasThemes, normalizeNivel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
+import { normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { displayMatricula } from '~/utils/matricula'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -47,6 +48,16 @@ function filenameFor(id: string) {
   return `${id || `template-${Date.now()}`}.svg`
 }
 
+function normalizeTemplatePlanteles(values?: unknown[] | null): string[] {
+  if (!Array.isArray(values)) return []
+  const planteles: string[] = []
+  for (const item of values) {
+    const plantel = normalizeSchoolPlantel(String(item || ''))
+    if (plantel) planteles.push(plantel)
+  }
+  return planteles
+}
+
 function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMeta | null {
   if (!row.id || !row.filename) return null
   if (!VALID_THEME_KEYS.has(row.themeKey as PersonasThemeKey)) return null
@@ -58,7 +69,7 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMe
     filename: String(row.filename),
     themeKey,
     nivel: String(row.nivel || ''),
-    planteles: Array.isArray(row.planteles) ? row.planteles.map((item) => normalizePlantel(item)).filter(Boolean) : [],
+    planteles: normalizeTemplatePlanteles(row.planteles),
     color: String(row.color || theme.primary),
     isDefault: Boolean(row.isDefault),
     createdAt: row.createdAt || new Date().toISOString(),
@@ -126,7 +137,7 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
 
 export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; themeKey?: string | null }) {
   const theme = resolvePersonasTheme(input)
-  const plantel = normalizePlantel(input.plantel)
+  const plantel = normalizeSchoolPlantel(input.matricula) || normalizeSchoolPlantel(input.plantel) || ''
   const nivel = normalizeNivel(input.nivelEdu)
 
   const byPlantel = templates.find((template) => template.planteles.includes(plantel))
@@ -180,7 +191,7 @@ export async function saveMarbeteTemplate(input: {
     filename,
     themeKey: input.themeKey,
     nivel: input.nivel.trim(),
-    planteles: input.planteles.map((item) => normalizePlantel(item)).filter(Boolean),
+    planteles: normalizeTemplatePlanteles(input.planteles),
     color: theme.primary,
     isDefault: existing?.isDefault || false,
     createdAt: existing?.createdAt || now,

@@ -1,1 +1,1 @@
-Pulir experiencia visual de administración escolar y guardería
+Normaliza planteles y grados escolares desde matrícula

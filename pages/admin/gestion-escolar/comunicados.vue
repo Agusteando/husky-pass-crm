@@ -172,13 +172,13 @@ watch(data, (value) => {
 
 function buildAudience(): CommunicationAudience {
   const current = scope.value
-  const kind: CommunicationAudience['kind'] = current.grupo ? 'grupo' : current.grado || current.nivel ? 'grado' : 'plantel'
+  const kind: CommunicationAudience['kind'] = current.grado ? 'grado' : 'plantel'
   return {
     kind,
     planteles: current.plantel ? [current.plantel] : [],
-    niveles: current.nivel ? [current.nivel] : [],
+    niveles: [],
     grados: current.grado ? [current.grado] : [],
-    grupos: current.grupo ? [current.grupo] : [],
+    grupos: [],
     label: formatGestionScope(current)
   }
 }

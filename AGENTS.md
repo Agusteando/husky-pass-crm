@@ -79,7 +79,7 @@ Este archivo existe exclusivamente para ayudar a futuros agentes a desarrollar, 
   - `experience`: `escolar`, `guarderia`, `admin`.
   - `institution`: `iecs`, `iedis` o vacio.
   - `nivel`: `guarderia`, `preescolar`, `primaria`, `secundaria` o valor local.
-  - `plantel`: `CM`, `PREEM`, `PT`, `PM`, `ST`, `SM` u otro valor real.
+  - `plantel`: `PM`, `PT`, `SM`, `ST`, `PREEM`, `GM`, `CT`.
   - `grupo`: etiqueta real usada por iconos de grupo.
   - `state`: `ready`, `loading`, `empty`, `error`.
   - `modal`: `1` para abrir modal compartido.

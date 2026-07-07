@@ -7,6 +7,7 @@ import { searchSuperAdminPassCandidates } from '~/server/data/mysqlPersonasAdmin
 import { DEV_HUSKY_PASS_VARIANTS, buildDevPrintableAuthorizedPerson, selectDevHuskyPassTemplate } from '~/server/utils/devHuskyPassFixtures'
 import { listMarbeteTemplates, readMarbeteTemplateSvg, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
+import { SCHOOL_PLANTELES, normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 
 const schema = z.object({
   search: z.string().optional().default(''),
@@ -66,11 +67,11 @@ export default defineEventHandler(async (event) => {
     }))
     return {
       rows,
-      planteles: Array.from(new Set(rows.map((row) => row.plantel))).sort(),
+      planteles: [...SCHOOL_PLANTELES],
       niveles: Array.from(new Set(rows.map((row) => row.nivel))).sort(),
       filters: {
         search: query.search,
-        plantel: query.plantel,
+        plantel: normalizeSchoolPlantel(query.plantel) || '',
         nivel: query.nivel,
         limit: query.limit
       }

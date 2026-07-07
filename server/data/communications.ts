@@ -18,6 +18,7 @@ import { getFamilyChildren } from '~/server/data/mysqlDaycare'
 import { getGestionCommunicationScopes } from '~/server/data/gestionEscolar'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
+import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolGradeForPlanteles, normalizeSchoolPlantel, schoolGradesForPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 
 interface CommunicationRow extends RowDataPacket {
   id: number
@@ -80,10 +81,10 @@ interface CommunicationAccess {
   scopes: CommunicationAdminScope[]
 }
 
-const DEFAULT_PLANTELES = ['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST']
+const DEFAULT_PLANTELES = [...SCHOOL_PLANTELES]
 const SCHOOL_COMMUNICATION_PLANTELES = new Set(DEFAULT_PLANTELES)
-const DEFAULT_NIVELES = ['Preescolar', 'Primaria', 'Secundaria']
-const DEFAULT_GRADOS = ['1°', '2°', '3°']
+const DEFAULT_NIVELES: string[] = []
+const DEFAULT_GRADOS = Array.from(new Set(SCHOOL_PLANTELES.flatMap((plantel) => schoolGradesForPlantel(plantel))))
 const DEFAULT_GRUPOS = ['A', 'B', 'C', 'G']
 
 function clean(value: unknown) {
@@ -124,9 +125,9 @@ function normalizeAudience(input: Partial<CommunicationAudience> | null | undefi
   const kind = ['plantel', 'grado', 'grupo', 'custom'].includes(clean(input?.kind)) ? clean(input?.kind) as CommunicationAudience['kind'] : 'plantel'
   return {
     kind,
-    planteles: normalizeList(input?.planteles).map((item) => item.toUpperCase()),
-    niveles: normalizeList(input?.niveles),
-    grados: normalizeList(input?.grados),
+    planteles: Array.from(new Set(normalizeList(input?.planteles).map((item) => normalizeSchoolPlantel(item)).filter(Boolean) as string[])),
+    niveles: [],
+    grados: Array.from(new Set(normalizeList(input?.grados).map((item) => normalizeSchoolGradeForPlanteles(item, normalizeList(input?.planteles))).filter(Boolean) as string[])),
     grupos: normalizeList(input?.grupos).map((item) => item.toUpperCase()),
     label: clean(input?.label) || null
   }
@@ -201,10 +202,10 @@ function normalizeScopeInput(scope: CommunicationAdminScopeInput): Communication
   const isGlobal = Boolean(scope.isGlobal)
   return {
     isGlobal,
-    plantel: isGlobal ? null : upper(scope.plantel),
-    nivel: isGlobal ? null : clean(scope.nivel) || null,
-    grado: isGlobal ? null : clean(scope.grado) || null,
-    grupo: isGlobal ? null : upper(scope.grupo) || null,
+    plantel: isGlobal ? null : normalizeSchoolPlantel(scope.plantel),
+    nivel: null,
+    grado: isGlobal ? null : normalizeSchoolGrade(scope.grado, scope.plantel),
+    grupo: null,
     canCreate: scope.canCreate !== false,
     canPublish: Boolean(scope.canPublish)
   }
@@ -224,38 +225,22 @@ function valueMatches(candidates: string[] | undefined, value: string | null | u
   return Boolean(normalized && candidates.map(upper).includes(normalized))
 }
 
-function normalizedGradeValues(value: string | null | undefined) {
-  const raw = clean(value)
-  const normalized = raw.toLowerCase()
-  const map: Record<string, string[]> = {
-    '1': ['1', '1°', 'primero'],
-    '1°': ['1', '1°', 'primero'],
-    primero: ['1', '1°', 'primero'],
-    '2': ['2', '2°', 'segundo'],
-    '2°': ['2', '2°', 'segundo'],
-    segundo: ['2', '2°', 'segundo'],
-    '3': ['3', '3°', 'tercero'],
-    '3°': ['3', '3°', 'tercero'],
-    tercero: ['3', '3°', 'tercero']
-  }
-  return new Set([raw, normalized, ...(map[normalized] || [])].map((item) => item.toLowerCase()))
+function gradeMatches(candidates: string[] | undefined, value: string | null | undefined, plantel?: string | null) {
+  if (!candidates?.length) return true
+  const normalizedValue = normalizeSchoolGrade(value, plantel)
+  return Boolean(normalizedValue && candidates.some((candidate) => normalizeSchoolGrade(candidate, plantel) === normalizedValue))
 }
 
-function gradeMatches(candidates: string[] | undefined, value: string | null | undefined) {
-  if (!candidates?.length) return true
-  const values = normalizedGradeValues(value)
-  return candidates.some((candidate) => values.has(clean(candidate).toLowerCase()))
-}
 
 function communicationMatchesChild(message: SchoolCommunication, child: AuthorizedChild) {
   const audience = message.audience
-  const plantelMatches = valueMatches(audience.planteles, child.plantel || child.campus)
+  const childPlantel = normalizeSchoolPlantel(child.matricula) || normalizeSchoolPlantel(child.plantel || child.campus)
+  const plantelMatches = audience.planteles.length ? Boolean(childPlantel && audience.planteles.includes(childPlantel)) : true
   if (!plantelMatches) return false
   if (audience.kind === 'plantel') return true
-  const nivelMatches = valueMatches(audience.niveles, child.nivelEdu)
-  const gradoMatchesAudience = gradeMatches(audience.grados, child.grado)
-  if (audience.kind === 'grado') return nivelMatches && gradoMatchesAudience
-  if (audience.kind === 'grupo') return nivelMatches && gradoMatchesAudience && valueMatches(audience.grupos, child.grupo)
+  const gradoMatchesAudience = gradeMatches(audience.grados, child.grado, childPlantel)
+  if (audience.kind === 'grado') return gradoMatchesAudience
+  if (audience.kind === 'grupo') return gradoMatchesAudience && valueMatches(audience.grupos, child.grupo)
   return true
 }
 
@@ -266,16 +251,9 @@ function sortForParent(a: SchoolCommunication, b: SchoolCommunication) {
 }
 
 function derivedPlantelSql(alias = 'm') {
-  return `CASE
-    WHEN UPPER(${alias}.matricula) LIKE 'PREEM%' THEN 'PREEM'
-    WHEN UPPER(${alias}.matricula) LIKE 'PREET%' THEN 'PREET'
-    WHEN UPPER(${alias}.matricula) LIKE 'PM%' THEN 'PM'
-    WHEN UPPER(${alias}.matricula) LIKE 'PT%' THEN 'PT'
-    WHEN UPPER(${alias}.matricula) LIKE 'SM%' THEN 'SM'
-    WHEN UPPER(${alias}.matricula) LIKE 'ST%' THEN 'ST'
-    ELSE NULL
-  END`
+  return schoolPlantelSqlFromMatricula(`${alias}.matricula`)
 }
+
 
 
 
@@ -326,18 +304,18 @@ function audienceTargets(audience: CommunicationAudience) {
   const grados = audience.kind === 'plantel' ? [''] : (audience.grados?.length ? audience.grados : [''])
   const grupos = audience.kind === 'grupo' ? (audience.grupos?.length ? audience.grupos : ['']) : ['']
   return planteles.flatMap((plantel) => niveles.flatMap((nivel) => grados.flatMap((grado) => grupos.map((grupo) => ({
-    plantel: upper(plantel),
-    nivel: clean(nivel),
-    grado: clean(grado),
+    plantel: normalizeSchoolPlantel(plantel) || '',
+    nivel: '',
+    grado: normalizeSchoolGrade(grado, plantel) || '',
     grupo: upper(grupo)
   })))))
 }
 
 function scopeCoversTarget(scope: CommunicationAdminScope, target: { plantel: string; nivel: string; grado: string; grupo: string }) {
   if (scope.isGlobal) return true
-  if (upper(scope.plantel) !== target.plantel) return false
+  if (normalizeSchoolPlantel(scope.plantel) !== normalizeSchoolPlantel(target.plantel)) return false
   if (scope.nivel && upper(scope.nivel) !== upper(target.nivel)) return false
-  if (scope.grado && !gradeMatches([scope.grado], target.grado)) return false
+  if (scope.grado && !gradeMatches([scope.grado], target.grado, scope.plantel)) return false
   if (scope.grupo && upper(scope.grupo) !== target.grupo) return false
   return true
 }
@@ -361,16 +339,17 @@ function communicationVisibleForAccess(access: CommunicationAccess, message: Sch
 function childMatchesScope(scope: CommunicationAdminScope, child: AuthorizedChild) {
   if (scope.isGlobal) return true
   const target = {
-    plantel: upper(child.plantel || child.campus),
-    nivel: clean(child.nivelEdu),
-    grado: clean(child.grado),
+    plantel: normalizeSchoolPlantel(child.matricula) || normalizeSchoolPlantel(child.plantel || child.campus) || '',
+    nivel: '',
+    grado: normalizeSchoolGrade(child.grado, child.plantel || child.campus) || '',
     grupo: upper(child.grupo)
   }
   return scopeCoversTarget(scope, target)
 }
 
 function optionAllowed(access: CommunicationAccess, row: CommunicationOptionsRow) {
-  if (!SCHOOL_COMMUNICATION_PLANTELES.has(upper(row.plantel))) return false
+  const plantel = normalizeSchoolPlantel(row.plantel)
+  if (!plantel || !SCHOOL_COMMUNICATION_PLANTELES.has(plantel)) return false
   if (access.isGlobal) return true
   const child = { plantel: row.plantel, campus: row.plantel, nivelEdu: row.nivel, grado: row.grado, grupo: row.grupo } as AuthorizedChild
   return access.scopes.some((scope) => childMatchesScope(scope, child))
@@ -458,8 +437,8 @@ function optionValues(values: Array<string | null | undefined>) {
 
 function optionsScopeTree(rows: CommunicationOptionsRow[]): NonNullable<AdminCommunicationsResponse['options']['scopeTree']> {
   return {
-    planteles: optionValues(rows.map((row) => upper(row.plantel))).map((plantel) => {
-      const plantelRows = rows.filter((row) => upper(row.plantel) === plantel)
+    planteles: optionValues(rows.map((row) => normalizeSchoolPlantel(row.plantel))).map((plantel) => {
+      const plantelRows = rows.filter((row) => normalizeSchoolPlantel(row.plantel) === plantel)
       return {
         value: plantel,
         label: plantel,
@@ -472,8 +451,8 @@ function optionsScopeTree(rows: CommunicationOptionsRow[]): NonNullable<AdminCom
             label: nivel,
             families: 0,
             students: nivelRows.length,
-            children: optionValues(nivelRows.map((row) => row.grado)).map((grado) => {
-              const gradoRows = nivelRows.filter((row) => clean(row.grado) === grado)
+            children: optionValues(nivelRows.map((row) => normalizeSchoolGrade(row.grado, plantel))).map((grado) => {
+              const gradoRows = nivelRows.filter((row) => normalizeSchoolGrade(row.grado, plantel) === grado)
               return {
                 value: grado,
                 label: grado,
@@ -503,13 +482,13 @@ async function getAudienceOptions(access: CommunicationAccess): Promise<AdminCom
      LIMIT 5000`
   )
   const allowedRows = rows.filter((row) => optionAllowed(access, row))
-  const planteles = optionValues(allowedRows.map((row) => upper(row.plantel)))
+  const planteles = optionValues(allowedRows.map((row) => normalizeSchoolPlantel(row.plantel)))
   const niveles = optionValues(allowedRows.map((row) => row.nivel))
-  const grados = optionValues(allowedRows.map((row) => row.grado))
+  const grados = optionValues(allowedRows.map((row) => normalizeSchoolGrade(row.grado, row.plantel)))
   const grupos = optionValues(allowedRows.map((row) => upper(row.grupo)))
 
   return {
-    planteles: planteles.length ? planteles : access.isGlobal ? DEFAULT_PLANTELES : Array.from(new Set(access.scopes.map((scope) => upper(scope.plantel)).filter(Boolean))).sort(),
+    planteles: planteles.length ? planteles : access.isGlobal ? DEFAULT_PLANTELES : Array.from(new Set(access.scopes.map((scope) => normalizeSchoolPlantel(scope.plantel)).filter(Boolean) as string[])).sort(),
     niveles: niveles.length ? niveles : DEFAULT_NIVELES,
     grados: grados.length ? grados : DEFAULT_GRADOS,
     grupos: grupos.length ? grupos : DEFAULT_GRUPOS,

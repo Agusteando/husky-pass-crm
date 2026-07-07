@@ -18,7 +18,7 @@ import { getAttendanceChildrenForFamily, resolveAttendanceChild } from '~/server
 import { legacyQuery } from '~/server/utils/mysql'
 import { dateOnly, formatAttendanceTime } from '~/utils/attendance'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { normalizePlantel } from '~/utils/personasTheme'
+import { SCHOOL_PLANTELES, normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { normalizeMatricula } from '~/utils/matricula'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { deriveSipaePlantelFromStudent } from '~/server/utils/sipaePlantel'
@@ -440,15 +440,15 @@ export async function getAdminAccessHistory(input: {
 } = {}): Promise<AdminAccessHistoryResponse> {
   const range = resolveAccessHistoryRange(input)
   const filters = {
-    plantel: normalizePlantel(input.plantel),
+    plantel: normalizeSchoolPlantel(input.plantel) || '',
     search: clean(input.search),
     limit: Math.min(Math.max(Number(input.limit || 500), 25), MAX_ADMIN_LIMIT)
   }
   const rows = await queryAccessRows({ range, search: filters.search, limit: filters.limit })
   const grouped = groupRows(rows)
-  const planteles = Array.from(new Set(grouped.days.map((day) => normalizePlantel(day.student.plantel)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+  const planteles = [...SCHOOL_PLANTELES].filter((plantel) => grouped.days.some((day) => normalizeSchoolPlantel(day.student.plantel) === plantel))
   const days = filters.plantel
-    ? grouped.days.filter((day) => normalizePlantel(day.student.plantel) === filters.plantel)
+    ? grouped.days.filter((day) => normalizeSchoolPlantel(day.student.plantel) === filters.plantel)
     : grouped.days
   const visiblePeople = new Map<number, AccessHistoryPerson>()
   for (const day of days) for (const action of day.actions) visiblePeople.set(action.person.id, action.person)

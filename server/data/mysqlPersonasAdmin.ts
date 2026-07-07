@@ -4,8 +4,9 @@ import type { SuperAdminPassSearchResponse } from '~/types/superadmin'
 import { legacyOne, legacyQuery } from '~/server/utils/mysql'
 import { listMarbeteTemplates, readMarbeteTemplateSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
 import { readLastAccessActions } from '~/server/utils/personasConfig'
-import { normalizePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
+import { resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeMatricula } from '~/utils/matricula'
+import { SCHOOL_PLANTELES, normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 
 interface ReadinessDbRow extends RowDataPacket {
   userId: number
@@ -96,18 +97,9 @@ function compactName(...parts: Array<string | null | undefined>) {
 }
 
 function derivedPlantel(row: Pick<ReadinessDbRow, 'plantel' | 'username' | 'campus' | 'empresa' | 'unidad'>) {
-  const explicit = clean(row.plantel)
-  if (explicit) return normalizePlantel(explicit)
-  const username = normalizeMatricula(row.username)
-  if (username.startsWith('PREEM')) return 'PREEM'
-  if (username.startsWith('PREET')) return 'PREET'
-  if (username.startsWith('PM')) return 'PM'
-  if (username.startsWith('PT')) return 'PT'
-  if (username.startsWith('SM')) return 'SM'
-  if (username.startsWith('ST')) return 'ST'
-  if (username.startsWith('DM')) return 'CM'
-  return normalizePlantel(username.slice(0, 2) || row.campus || row.empresa || row.unidad)
+  return normalizeSchoolPlantel(row.username) || normalizeSchoolPlantel(row.plantel) || ''
 }
+
 
 function issue(key: PersonasReadinessIssue['key'], label: string): PersonasReadinessIssue {
   return { key, label }
@@ -243,7 +235,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     return rowOut
   })
 
-  const plantelFilter = clean(filters.plantel).toUpperCase()
+  const plantelFilter = normalizeSchoolPlantel(filters.plantel) || ''
   const nivelFilter = clean(filters.nivel).toLowerCase()
   const statusFilter = clean(filters.status)
   const search = clean(filters.search).toLowerCase()
@@ -258,7 +250,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     return true
   })
 
-  const planteles = Array.from(new Set(mapped.map((row) => row.plantel).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+  const planteles = [...SCHOOL_PLANTELES]
   const niveles = Array.from(new Set(mapped.map((row) => row.nivel).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 
   return {
@@ -466,14 +458,14 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
     }
   }))
 
-  const plantelFilter = clean(filters.plantel).toUpperCase()
+  const plantelFilter = normalizeSchoolPlantel(filters.plantel) || ''
   const nivelFilter = clean(filters.nivel).toLowerCase()
   const filtered = mapped.filter((row) => {
     if (plantelFilter && row.plantel !== plantelFilter) return false
     if (nivelFilter && !row.nivel.toLowerCase().includes(nivelFilter)) return false
     return true
   })
-  const planteles = Array.from(new Set(mapped.map((row) => row.plantel).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
+  const planteles = [...SCHOOL_PLANTELES]
   const niveles = Array.from(new Set(mapped.map((row) => row.nivel).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 
   return {

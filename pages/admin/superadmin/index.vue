@@ -162,7 +162,7 @@
                     <span>Grado</span>
                     <select v-model="scope.grado">
                       <option value="">Todos</option>
-                      <option v-for="grado in gradeOptions" :key="grado" :value="grado">{{ grado }}</option>
+                      <option v-for="grado in gradeOptionsForPlantel(scope.plantel)" :key="grado" :value="grado">{{ grado }}</option>
                     </select>
                   </label>
                   <button class="icon-button" type="button" aria-label="Quitar plantel" @click="removeSchoolScope(index)">
@@ -230,6 +230,7 @@ import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminR
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { displayMatricula } from '~/utils/matricula'
+import { normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel } from '~/utils/schoolCatalog'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
@@ -277,8 +278,10 @@ const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAd
 })
 
 const visibleUsers = computed(() => directory.value?.users || [])
-const schoolPlantelOptions = computed(() => directory.value?.planteles.filter((item) => item && !unitOptions.value.includes(item)) || [])
-const gradeOptions = computed(() => directory.value?.grados || [])
+const schoolPlantelOptions = computed(() => directory.value?.planteles || [])
+function gradeOptionsForPlantel(plantel: string) {
+  return schoolGradesForPlantel(plantel)
+}
 const unitOptions = computed(() => {
   const values = [
     ...(directory.value?.unidades || []),
@@ -401,14 +404,14 @@ function schoolRoleState(user: SuperAdminUserSummary) {
 function normalizeSchoolScopes(scopes: SuperAdminSchoolScope[]) {
   const byKey = new Map<string, SuperAdminSchoolScope>()
   for (const scope of scopes) {
-    const plantel = String(scope.plantel || '').trim().toUpperCase()
+    const plantel = normalizeSchoolPlantel(scope.plantel)
     if (!plantel) continue
-    const grado = String(scope.grado || '').trim()
-    const nivel = String(scope.nivel || '').trim()
-    byKey.set([plantel, nivel, grado].join('|'), { plantel, nivel: nivel || null, grado: grado || null })
+    const grado = normalizeSchoolGrade(scope.grado, plantel)
+    byKey.set([plantel, grado || ''].join('|'), { plantel, nivel: null, grado })
   }
   return Array.from(byKey.values())
 }
+
 
 function userSignature(user: SuperAdminUserSummary) {
   return JSON.stringify({

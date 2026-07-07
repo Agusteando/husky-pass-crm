@@ -4,6 +4,7 @@ import type { AdminProductScope, AppSessionUser, FamilyProductScope, FamilyProdu
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminSchoolScope, SuperAdminUserSummary } from '~/types/superadmin'
 import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
+import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { publicError } from '~/server/utils/httpError'
@@ -337,11 +338,10 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   const scopePredicate = directoryScopePredicate(scope)
   if (scopePredicate) where.push(scopePredicate)
 
-  if (plantel) {
-    where.push(`(
-      FIND_IN_SET(?, A.unidad) OR A.unidad = ? OR A.campus = ? OR A.empresa = ? OR A.username LIKE ?
-    )`)
-    params.push(plantel, plantel, plantel, plantel, `${plantel}%`)
+  const normalizedPlantel = normalizeSchoolPlantel(plantel)
+  if (normalizedPlantel) {
+    where.push(`${schoolPlantelSqlFromMatricula('A.username')} = ?`)
+    params.push(normalizedPlantel)
   }
 
   if (search) {
@@ -453,39 +453,32 @@ export async function getSuperAdminUserSummaryById(userId: number) {
 
 async function loadSchoolDirectoryOptions() {
   const rows = await legacyQuery<DirectorySchoolOptionRow[]>(
-    `SELECT DISTINCT plantel, grado
-     FROM (
-       SELECT
-         CASE
-           WHEN UPPER(matricula) LIKE 'PREEM%' THEN 'PREEM'
-           WHEN UPPER(matricula) LIKE 'PREET%' THEN 'PREET'
-           WHEN UPPER(matricula) LIKE 'PM%' THEN 'PM'
-           WHEN UPPER(matricula) LIKE 'PT%' THEN 'PT'
-           WHEN UPPER(matricula) LIKE 'SM%' THEN 'SM'
-           WHEN UPPER(matricula) LIKE 'ST%' THEN 'ST'
-           WHEN UPPER(matricula) LIKE 'CM%' OR UPPER(matricula) LIKE 'DM%' THEN 'CM'
-           ELSE NULL
-         END AS plantel,
-         grado
-       FROM matricula
-       WHERE matricula IS NOT NULL AND TRIM(CAST(matricula AS CHAR)) <> ''
-       UNION ALL
-       SELECT UPPER(TRIM(CAST(campus AS CHAR))) AS plantel, NULL AS grado
-       FROM users
-       WHERE campus IS NOT NULL AND TRIM(CAST(campus AS CHAR)) <> ''
-       UNION ALL
-       SELECT UPPER(TRIM(CAST(empresa AS CHAR))) AS plantel, NULL AS grado
-       FROM users
-       WHERE empresa IS NOT NULL AND TRIM(CAST(empresa AS CHAR)) <> ''
-     ) AS school_options
-     WHERE plantel IS NOT NULL AND TRIM(CAST(plantel AS CHAR)) <> ''
+    `SELECT DISTINCT ${schoolPlantelSqlFromMatricula('matricula')} AS plantel, grado
+     FROM matricula
+     WHERE matricula IS NOT NULL AND TRIM(CAST(matricula AS CHAR)) <> ''
      ORDER BY plantel ASC, grado ASC
      LIMIT 5000`
   ).catch(() => [] as DirectorySchoolOptionRow[])
 
+  const gradesByPlantel = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const plantel = normalizeSchoolPlantel(row.plantel)
+    if (!plantel) continue
+    const grade = normalizeSchoolGrade(row.grado, plantel)
+    if (!grade) continue
+    const set = gradesByPlantel.get(plantel) || new Set<string>()
+    set.add(grade)
+    gradesByPlantel.set(plantel, set)
+  }
+
+  const grados = Array.from(new Set(SCHOOL_PLANTELES.flatMap((plantel) => {
+    const observed = Array.from(gradesByPlantel.get(plantel) || [])
+    return observed.length ? observed : schoolGradesForPlantel(plantel)
+  }))).sort((a, b) => schoolGradesForPlantel('PM').indexOf(a as any) - schoolGradesForPlantel('PM').indexOf(b as any))
+
   return {
-    planteles: Array.from(new Set(rows.map((row) => normalizeLegacyScope(row.plantel)).filter((value): value is string => Boolean(value && isReadableSchoolPlantelOption(value))))).sort((a, b) => a.localeCompare(b, 'es')),
-    grados: Array.from(new Set(rows.map((row) => normalizeLegacyScope(row.grado)).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+    planteles: [...SCHOOL_PLANTELES],
+    grados
   }
 }
 
@@ -495,18 +488,17 @@ function normalizeSchoolScopes(values: unknown): SuperAdminSchoolScope[] {
   for (const value of raw) {
     if (!value || typeof value !== 'object') continue
     const item = value as { plantel?: unknown; nivel?: unknown; grado?: unknown }
-    const plantel = normalizeLegacyScope(String(item.plantel || '').toUpperCase())
+    const plantel = normalizeSchoolPlantel(String(item.plantel || ''))
     if (!plantel) continue
-    const nivel = normalizeLegacyScope(String(item.nivel || ''))
-    const grado = normalizeLegacyScope(String(item.grado || ''))
-    const key = [plantel, nivel || '', grado || ''].join('|')
-    byKey.set(key, { plantel, nivel, grado })
+    const grado = normalizeSchoolGrade(String(item.grado || ''), plantel)
+    const key = [plantel, grado || ''].join('|')
+    byKey.set(key, { plantel, nivel: null, grado })
   }
   return Array.from(byKey.values()).slice(0, 30)
 }
 
 function roleCtrlScopeKey(scope: SuperAdminSchoolScope) {
-  return [scope.plantel, scope.nivel || '', scope.grado || ''].join('|')
+  return [scope.plantel, scope.grado || ''].join('|')
 }
 
 async function loadSchoolScopeMap(userIds: number[]) {

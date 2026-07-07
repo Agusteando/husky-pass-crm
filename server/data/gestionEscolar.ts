@@ -30,6 +30,8 @@ import { publicError } from '~/server/utils/httpError'
 import { readPersonasConfig, resolveSurveyForStudent } from '~/server/utils/personasConfig'
 import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken, hasSchoolAdminScope } from '~/utils/sessionScopes'
 import { displayMatriculaCandidate, normalizeMatricula } from '~/utils/matricula'
+import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel } from '~/utils/schoolCatalog'
+import { normalizeEmail } from '~/utils/superAdmin'
 
 interface GestionPermissionRow extends RowDataPacket {
   id: number
@@ -130,7 +132,6 @@ const MODULE_CAPABILITIES: Record<GestionEscolarModuleKey, GestionEscolarCapabil
 const SCHOOL_GESTION_OVERVIEW_LIMIT = 1200
 const SCHOOL_GESTION_OPTIONS_LIMIT = 1200
 const SCHOOL_GESTION_LIST_LIMIT = 1600
-const DAYCARE_GESTION_PLANTELES = new Set(['CM'])
 const DAYCARE_GESTION_TEXT = /guarder[ií]a|lactantes|maternal/i
 
 function clean(value: unknown) {
@@ -189,12 +190,13 @@ function normalizeCapability(value: unknown): GestionEscolarCapability | null {
 
 export function normalizeGestionScope(input: GestionEscolarScope = {}): Required<GestionEscolarScope> {
   const isGlobal = Boolean(input.isGlobal)
+  const plantel = isGlobal ? null : normalizeSchoolPlantel(input.plantel)
   return {
     isGlobal,
-    plantel: isGlobal ? null : upper(input.plantel) || null,
-    nivel: isGlobal ? null : clean(input.nivel) || null,
-    grado: isGlobal ? null : clean(input.grado) || null,
-    grupo: isGlobal ? null : upper(input.grupo) || null
+    plantel,
+    nivel: null,
+    grado: isGlobal ? null : normalizeSchoolGrade(input.grado, plantel) || null,
+    grupo: null
   }
 }
 
@@ -214,23 +216,10 @@ export function formatGestionScopeLabel(scope: GestionEscolarScope) {
   ].filter(Boolean).join(' · ') || 'Plantel por definir'
 }
 
-function gradeMatches(scopeGrade?: string | null, value?: string | null) {
-  const a = clean(scopeGrade).toLowerCase()
-  const b = clean(value).toLowerCase()
-  if (!a) return true
-  if (!b) return false
-  const aliases: Record<string, string[]> = {
-    '1': ['1', '1°', 'primero'],
-    '1°': ['1', '1°', 'primero'],
-    primero: ['1', '1°', 'primero'],
-    '2': ['2', '2°', 'segundo'],
-    '2°': ['2', '2°', 'segundo'],
-    segundo: ['2', '2°', 'segundo'],
-    '3': ['3', '3°', 'tercero'],
-    '3°': ['3', '3°', 'tercero'],
-    tercero: ['3', '3°', 'tercero']
-  }
-  return (aliases[a] || [a]).includes(b) || (aliases[b] || [b]).includes(a)
+function gradeMatches(scopeGrade?: string | null, value?: string | null, plantel?: string | null) {
+  const normalized = normalizeSchoolGrade(scopeGrade, plantel)
+  if (!normalized) return true
+  return normalized === normalizeSchoolGrade(value, plantel)
 }
 
 export function gestionScopeCoversTarget(scope: GestionEscolarScope, target: GestionEscolarScope) {
@@ -239,7 +228,7 @@ export function gestionScopeCoversTarget(scope: GestionEscolarScope, target: Ges
   const targetScope = normalizeGestionScope(target)
   if (!normalized.plantel || normalized.plantel !== targetScope.plantel) return false
   if (normalized.nivel && upper(normalized.nivel) !== upper(targetScope.nivel)) return false
-  if (normalized.grado && !gradeMatches(normalized.grado, targetScope.grado)) return false
+  if (normalized.grado && !gradeMatches(normalized.grado, targetScope.grado, normalized.plantel)) return false
   if (normalized.grupo && normalized.grupo !== targetScope.grupo) return false
   return true
 }
@@ -251,24 +240,19 @@ function scopeSpecificity(scope: GestionEscolarScope) {
 }
 
 function targetFromChild(child: Partial<AuthorizedChild> | null | undefined): GestionEscolarScope {
+  const plantel = deriveSchoolPlantelFromFamilyData({ matricula: child?.matricula, plantel: child?.plantel, campus: child?.campus })
   return normalizeGestionScope({
-    plantel: child?.plantel || child?.campus || null,
-    nivel: child?.nivelEdu || null,
-    grado: child?.grado || null,
-    grupo: child?.grupo || null
+    plantel,
+    grado: child?.grado || null
   })
 }
 
+function deriveSchoolPlantelFromFamilyData(input: { matricula?: string | null; plantel?: string | null; campus?: string | null }) {
+  return normalizeSchoolPlantel(input.matricula) || normalizeSchoolPlantel(input.plantel) || normalizeSchoolPlantel(input.campus) || null
+}
+
 function derivedPlantel(input: { username?: string | null; campus?: string | null; empresa?: string | null; unidad?: string | null; childCampus?: string | null }) {
-  const matricula = normalizeMatricula(input.username)
-  if (matricula.startsWith('PREEM')) return 'PREEM'
-  if (matricula.startsWith('PREET')) return 'PREET'
-  if (matricula.startsWith('PM')) return 'PM'
-  if (matricula.startsWith('PT')) return 'PT'
-  if (matricula.startsWith('SM')) return 'SM'
-  if (matricula.startsWith('ST')) return 'ST'
-  if (matricula.startsWith('CM') || matricula.startsWith('DM')) return 'CM'
-  return upper(input.childCampus || input.campus || input.empresa || input.unidad || matricula.slice(0, 2)) || 'SIN PLANTEL'
+  return normalizeSchoolPlantel(input.username) || 'SIN PLANTEL'
 }
 
 function compactName(...parts: Array<string | null | undefined>) {
@@ -278,16 +262,17 @@ function compactName(...parts: Array<string | null | undefined>) {
 function permissionFromRow(row: GestionPermissionRow): GestionEscolarPermission | null {
   const capability = normalizeCapability(row.capability)
   if (!capability) return null
+  const scope = normalizeGestionScope({ isGlobal: Boolean(row.is_global), plantel: row.plantel, grado: row.grado })
   return {
     id: Number(row.id),
     userId: Number(row.user_id),
     capability,
     enabled: Boolean(row.enabled),
-    isGlobal: Boolean(row.is_global),
-    plantel: upper(row.plantel) || null,
-    nivel: clean(row.nivel) || null,
-    grado: clean(row.grado) || null,
-    grupo: upper(row.grupo) || null,
+    isGlobal: scope.isGlobal,
+    plantel: scope.plantel,
+    nivel: scope.nivel,
+    grado: scope.grado,
+    grupo: scope.grupo,
     assignedBy: row.assigned_by ? Number(row.assigned_by) : null,
     updatedBy: row.updated_by ? Number(row.updated_by) : null,
     createdAt: toIso(row.created_at),
@@ -571,7 +556,7 @@ function familyFromDbRow(row: GestionFamilyDbRow): GestionEscolarFamilyRow {
   const matricula = normalizeMatricula(row.username) || null
   const plantel = derivedPlantel(row)
   const nivel = clean(row.matriculaNivel || row.nivelEdu) || null
-  const grado = clean(row.matriculaGrado || row.grado) || null
+  const grado = normalizeSchoolGrade(row.matriculaGrado || row.grado, plantel)
   const grupo = upper(row.matriculaGrupo || row.grupo) || null
   const studentName = compactName(row.matriculaNombre || row.nombreA, row.matriculaPaterno || row.paternoA, row.matriculaMaterno || row.maternoA) || clean(row.nombre_nino) || displayMatriculaCandidate(matricula) || `Familia ${row.userId}`
   const authorizedPeople = Number(row.authorizedCount || 0)
@@ -611,14 +596,14 @@ function familyScope(family: GestionEscolarFamilyRow): GestionEscolarScope {
 }
 
 function isSchoolGestionFamily(family: GestionEscolarFamilyRow, row?: Pick<GestionFamilyDbRow, 'role' | 'empresa' | 'unidad' | 'campus' | 'childCampus'>) {
-  const plantel = upper(family.plantel)
-  if (!plantel || DAYCARE_GESTION_PLANTELES.has(plantel)) return false
+  const plantel = normalizeSchoolPlantel(family.plantel)
+  if (!plantel) return false
 
   const roleTokens = csvToList(String(row?.role || ''))
-  if (hasRoleToken(roleTokens, DAYCARE_FAMILY_ROLE) && DAYCARE_GESTION_PLANTELES.has(plantel)) return false
+  if (hasRoleToken(roleTokens, DAYCARE_FAMILY_ROLE)) return false
 
   const text = [family.nivel, family.grado, family.grupo, row?.empresa, row?.unidad, row?.campus, row?.childCampus].map(clean).join(' ')
-  if (DAYCARE_GESTION_TEXT.test(text)) return false
+  if (DAYCARE_GESTION_TEXT.test(text) && !family.matricula) return false
 
   return true
 }
@@ -632,9 +617,9 @@ function reachFromFamilies(families: GestionEscolarFamilyRow[]): GestionEscolarR
   return {
     families: new Set(families.map((family) => family.userId)).size,
     students: families.length,
-    planteles: Array.from(new Set(families.map((family) => family.plantel).filter(Boolean))).sort(),
+    planteles: [...SCHOOL_PLANTELES].filter((plantel) => families.some((family) => family.plantel === plantel)),
     niveles: Array.from(new Set(families.map((family) => family.nivel).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es')),
-    grados: Array.from(new Set(families.map((family) => family.grado).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'es')),
+    grados: Array.from(new Set(families.map((family) => normalizeSchoolGrade(family.grado, family.plantel)).filter(Boolean) as string[])).sort((a, b) => schoolGradesForPlantel('PM').indexOf(a as any) - schoolGradesForPlantel('PM').indexOf(b as any)),
     grupos: Array.from(new Set(families.map((family) => family.grupo).filter(Boolean) as string[])).sort()
   }
 }
@@ -676,9 +661,9 @@ function buildScopeTree(families: GestionEscolarFamilyRow[]): GestionEscolarScop
 function optionsFromFamilies(families: GestionEscolarFamilyRow[]): GestionEscolarOverviewResponse['options'] {
   const reach = reachFromFamilies(families)
   return {
-    planteles: reach.planteles,
-    niveles: reach.niveles,
-    grados: reach.grados,
+    planteles: [...SCHOOL_PLANTELES],
+    niveles: [],
+    grados: Array.from(new Set(SCHOOL_PLANTELES.flatMap((plantel) => schoolGradesForPlantel(plantel)))),
     grupos: reach.grupos,
     scopeTree: buildScopeTree(families)
   }

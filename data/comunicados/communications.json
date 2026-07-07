@@ -8,7 +8,7 @@
     "priority": "important",
     "audience": {
       "kind": "plantel",
-      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "PREET"],
+      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "CT"],
       "niveles": [],
       "grados": [],
       "grupos": [],
@@ -65,7 +65,7 @@
     "priority": "normal",
     "audience": {
       "kind": "plantel",
-      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "PREET"],
+      "planteles": ["SM", "ST", "PM", "PT", "PREEM", "CT"],
       "niveles": [],
       "grados": [],
       "grupos": [],

@@ -1,12 +1,13 @@
 import type { GestionEscolarScope, GestionEscolarScopeTree } from '~/types/gestionEscolar'
+import { normalizeSchoolGrade, normalizeSchoolPlantel } from './schoolCatalog'
 
 export function formatGestionScope(scope: GestionEscolarScope) {
   if (scope.isGlobal) return 'Todo el colegio'
+  const plantel = normalizeSchoolPlantel(scope.plantel)
+  const grado = normalizeSchoolGrade(scope.grado, plantel)
   return [
-    scope.plantel && `Plantel ${scope.plantel}`,
-    scope.nivel,
-    scope.grado && `${scope.grado}`,
-    scope.grupo && `Grupo ${scope.grupo}`
+    plantel && `Plantel ${plantel}`,
+    grado && `Grado ${grado}`
   ].filter(Boolean).join(' / ') || 'Plantel pendiente'
 }
 

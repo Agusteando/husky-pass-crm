@@ -16,6 +16,7 @@ import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
 import { logPersonasWarning, logPersonasDebug } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
 import { normalizeMatricula } from '~/utils/matricula'
+import { normalizeSchoolPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
@@ -131,17 +132,9 @@ function assertFamilyMatricula(user: AppSessionUser) {
 }
 
 function derivePlantelFromMatricula(matricula?: string | null, _nivel?: string | null, fallback?: string | null) {
-  const username = normalizeMatricula(matricula)
-  if (username.startsWith('PREEM')) return 'PREEM'
-  if (username.startsWith('PREET')) return 'PREET'
-  if (username.startsWith('PM')) return 'PM'
-  if (username.startsWith('PT')) return 'PT'
-  if (username.startsWith('SM')) return 'SM'
-  if (username.startsWith('ST')) return 'ST'
-  if (username.startsWith('DM')) return 'CM'
-  const prefix = username.slice(0, 2)
-  return prefix || normalizeString(fallback) || null
+  return normalizeSchoolPlantel(matricula) || normalizeSchoolPlantel(fallback)
 }
+
 
 
 const REQUIRED_PARENT_NAME_FIELDS = [
@@ -793,12 +786,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
        A.user_id,
        IFNULL(MAX(IFNULL(m.nivel, B.nivelEdu)), 'preescolar') AS nivelEdu,
        UPPER(MAX(u.username)) AS matricula,
-       MAX(CASE
-         WHEN LEFT(UPPER(u.username), 5) = 'PREEM' THEN 'PREEM'
-         WHEN LEFT(UPPER(u.username), 5) = 'PREET' THEN 'PREET'
-         WHEN LEFT(UPPER(u.username), 2) = 'DM' THEN 'CM'
-         ELSE LEFT(UPPER(u.username), 2)
-       END) AS plantel,
+       MAX(${schoolPlantelSqlFromMatricula('u.username')}) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
        MAX(${lightweightPhotoSelect('IFNULL(c.foto, IFNULL(m.foto, B.foto))')}) AS fotoA,
        MAX(IFNULL(m.grado, B.grado)) AS gradoA,
@@ -845,12 +833,7 @@ export async function getScanAuthorizedPersona(id: number) {
        IFNULL(m.grupo, a.grupo) AS grupoA,
        p.parenP AS parentesco,
        UPPER(u.username) AS matricula,
-       CASE
-         WHEN LEFT(UPPER(u.username), 5) = 'PREEM' THEN 'PREEM'
-         WHEN LEFT(UPPER(u.username), 5) = 'PREET' THEN 'PREET'
-         WHEN LEFT(UPPER(u.username), 2) = 'DM' THEN 'CM'
-         ELSE LEFT(UPPER(u.username), 2)
-       END AS plantel,
+       ${schoolPlantelSqlFromMatricula('u.username')} AS plantel,
        SUBSTRING_INDEX(LOWER(a.nivelEdu), ' ', 1) AS nivelEduA
      FROM personas_autorizadas p
      LEFT JOIN users u ON u.id = p.user_id

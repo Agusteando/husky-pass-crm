@@ -9,6 +9,7 @@ import type {
   InstitutionName
 } from '~/types/identity'
 import { normalizeMatricula } from './matricula'
+import { deriveSchoolPlantelFromMatricula, normalizeSchoolPlantel } from './schoolCatalog'
 import { defaultAdminRoute, effectiveAdminUser, hasFamilyScope } from './sessionScopes'
 
 const HUSKY_LOGO = '/brand/husky-pass-logo.png'
@@ -118,7 +119,7 @@ export function normalizeNivelIdentity(value?: string | null) {
 }
 
 export function normalizePlantelIdentity(value?: string | null) {
-  return cleanUpper(value)
+  return normalizeSchoolPlantel(value) || cleanUpper(value)
 }
 
 function requestedFromRoute(routePath?: string | null): ExperienceName | null {
@@ -132,13 +133,13 @@ function requestedFromRoute(routePath?: string | null): ExperienceName | null {
 
 function experienceFromStudent(input: ExperienceContextInput): ExperienceName | null {
   const matricula = normalizeMatricula(input.matricula)
-  const plantel = normalizePlantelIdentity(input.plantel || input.campus)
+  const plantel = deriveSchoolPlantelFromMatricula(matricula) || normalizeSchoolPlantel(input.plantel || input.campus)
 
-  if (matricula.startsWith('CM') || plantel === 'CM') return 'guarderia'
-  if (matricula.startsWith('PREEM') || matricula.startsWith('PREET') || matricula.startsWith('PM') || matricula.startsWith('PT') || matricula.startsWith('SM') || matricula.startsWith('ST')) return 'escolar'
-  if (plantel && ['PREEM', 'PREET', 'PM', 'PT', 'SM', 'ST', 'IECS', 'IEDIS'].includes(plantel)) return 'escolar'
+  if (matricula.startsWith('CM')) return 'guarderia'
+  if (plantel) return 'escolar'
   return null
 }
+
 
 export function institutionFromContextData(input: ExperienceContextInput): InstitutionName {
   const explicit = normalizeInstitutionName(input.institution)
@@ -148,9 +149,9 @@ export function institutionFromContextData(input: ExperienceContextInput): Insti
   const plantel = normalizePlantelIdentity(input.plantel || input.campus)
   const nivel = normalizeNivelIdentity(input.nivel || input.nivelEdu)
 
-  if (plantel === 'IECS' || plantel === 'PREEM' || plantel === 'PREET' || matricula.startsWith('PREEM') || matricula.startsWith('PREET')) return 'iecs'
-  if (plantel === 'IEDIS' || plantel === 'PM' || plantel === 'PT' || plantel === 'SM' || plantel === 'ST') return 'iedis'
-  if (matricula.startsWith('PM') || matricula.startsWith('PT') || matricula.startsWith('SM') || matricula.startsWith('ST')) return 'iedis'
+  const schoolPlantel = deriveSchoolPlantelFromMatricula(matricula) || normalizeSchoolPlantel(plantel)
+  if (plantel === 'IECS' || schoolPlantel === 'PREEM' || schoolPlantel === 'GM' || schoolPlantel === 'CT') return 'iecs'
+  if (plantel === 'IEDIS' || schoolPlantel === 'PM' || schoolPlantel === 'PT' || schoolPlantel === 'SM' || schoolPlantel === 'ST') return 'iedis'
   if (nivel === 'preescolar') return 'iecs'
   if (nivel === 'primaria' || nivel === 'secundaria') return 'iedis'
   return null
