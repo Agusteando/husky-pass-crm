@@ -59,7 +59,7 @@ export interface DaycareRegistrationLink {
 }
 
 const REGISTRATION_LINK_TABLE = 'hp_daycare_registration_links'
-const SIGNED_LINK_PREFIX = 's:'
+const SIGNED_LINK_PREFIX = 'g-'
 
 function clean(value: unknown) {
   return String(value || '').trim()
@@ -90,12 +90,44 @@ function assertStrongEnoughPassword(password: string) {
   }
 }
 
-function makeToken() {
-  return randomBytes(18).toString('base64url')
+function slugPart(value: unknown) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
-function base64url(input: string | Buffer) {
-  return Buffer.from(input).toString('base64url')
+function unidadCode(value: unknown) {
+  const raw = String(value || '')
+  const digits = raw.match(/\d+/g)?.join('') || ''
+  if (digits) return `u${digits.replace(/^0+/, '') || digits}`
+  return slugPart(raw) || 'unidad'
+}
+
+function salaCode(value: unknown) {
+  return slugPart(value) || 'sala'
+}
+
+function friendlyRegistrationToken(sala: Pick<SalaRegistrationRow, 'unidad' | 'sala'>, suffix?: number | string | null) {
+  const base = `${unidadCode(sala.unidad)}-${salaCode(sala.sala)}`.slice(0, 58).replace(/-+$/g, '')
+  if (!suffix) return base
+  return `${base}-${String(suffix).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)}`.slice(0, 72).replace(/-+$/g, '')
+}
+
+function isFriendlyRegistrationTokenForSala(token: unknown, sala: Pick<SalaRegistrationRow, 'unidad' | 'sala'>) {
+  const code = clean(token).toLowerCase()
+  const base = friendlyRegistrationToken(sala)
+  return Boolean(code && (code === base || code.startsWith(`${base}-`)))
+}
+
+function shortFallbackSignature(salaId: number) {
+  return signLinkPayload(`sala:${salaId}`).slice(0, 8).toLowerCase()
+}
+
+function randomShortCode() {
+  return randomBytes(3).toString('base64url').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 4) || String(Date.now()).slice(-4)
 }
 
 function registrationLinkSecret() {
@@ -114,26 +146,19 @@ function verifyLinkSignature(payload: string, signature: string) {
 }
 
 function makeSignedRegistrationToken(salaId: number) {
-  const payload = base64url(JSON.stringify({ sala: salaId, issuedAt: Date.now(), nonce: randomBytes(8).toString('hex') }))
-  return `${SIGNED_LINK_PREFIX}${payload}.${signLinkPayload(payload)}`
+  return `${SIGNED_LINK_PREFIX}${salaId}-${shortFallbackSignature(salaId)}`
 }
 
 function parseSignedRegistrationToken(token: string) {
-  const raw = clean(token)
+  const raw = clean(token).toLowerCase()
   if (!raw.startsWith(SIGNED_LINK_PREFIX)) return null
   const body = raw.slice(SIGNED_LINK_PREFIX.length)
-  const [payload, signature] = body.split('.')
-  if (!payload || !signature || !verifyLinkSignature(payload, signature)) {
+  const [salaIdRaw, signature] = body.split('-')
+  const salaId = Number(salaIdRaw)
+  if (!Number.isInteger(salaId) || salaId <= 0 || !signature || signature !== shortFallbackSignature(salaId)) {
     throw publicError(404, 'El enlace de registro no es válido.')
   }
-  try {
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { sala?: unknown }
-    const salaId = Number(decoded.sala)
-    if (!Number.isInteger(salaId) || salaId <= 0) throw new Error('bad sala')
-    return salaId
-  } catch {
-    throw publicError(404, 'El enlace de registro no es válido.')
-  }
+  return salaId
 }
 
 async function signedRegistrationLinkFor(event: H3Event, salaId: number) {
@@ -161,6 +186,11 @@ function publicBaseUrl(event: H3Event) {
 }
 
 export function daycareRegistrationUrl(event: H3Event, token: string) {
+  const base = publicBaseUrl(event)
+  return `${base}/r/${encodeURIComponent(token)}`
+}
+
+export function daycareRegistrationFormUrl(event: H3Event, token: string) {
   const base = publicBaseUrl(event)
   return `${base}/registro-guarderia?codigo=${encodeURIComponent(token)}`
 }
@@ -273,10 +303,18 @@ export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, e
     const existing = !regenerate
       ? await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE sala_id = ? AND active = 1 LIMIT 1`, [sala.id])
       : null
-    if (existing?.token) return mapLink(existing, event)
+    if (existing?.token && isFriendlyRegistrationTokenForSala(existing.token, sala)) return mapLink(existing, event)
+    if (existing?.token) {
+      await legacyWrite(`UPDATE ${REGISTRATION_LINK_TABLE} SET active = 0 WHERE id = ?`, [existing.id])
+    }
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const token = makeToken()
+    const baseToken = friendlyRegistrationToken(sala)
+    const tokenAttempts = regenerate
+      ? [friendlyRegistrationToken(sala, randomShortCode()), friendlyRegistrationToken(sala, randomShortCode()), friendlyRegistrationToken(sala, Date.now().toString(36).slice(-4))]
+      : [baseToken, friendlyRegistrationToken(sala, 2), friendlyRegistrationToken(sala, 3), friendlyRegistrationToken(sala, randomShortCode())]
+
+    for (let attempt = 0; attempt < tokenAttempts.length; attempt += 1) {
+      const token = tokenAttempts[attempt]
       try {
         await legacyWrite(
           `INSERT INTO ${REGISTRATION_LINK_TABLE} (token, sala_id, unidad, sala_name, created_by, regenerated_at)
@@ -286,7 +324,7 @@ export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, e
         const row = await legacyOne<RegistrationLinkRow>(`SELECT * FROM ${REGISTRATION_LINK_TABLE} WHERE token = ? LIMIT 1`, [token])
         if (row) return mapLink(row, event)
       } catch (error) {
-        if (attempt === 3) throw error
+        if (attempt === tokenAttempts.length - 1) throw error
       }
     }
   } catch (error) {
@@ -303,7 +341,7 @@ export async function getOrCreateDaycareRegistrationLink(user: AppSessionUser, e
 
 export async function resolveDaycareRegistrationLink(token: string, event?: H3Event) {
   const code = clean(token)
-  if (!code || code.length < 12) throw publicError(404, 'El enlace de registro no es válido.')
+  if (!code || code.length < 4) throw publicError(404, 'El enlace de registro no es válido.')
 
   const signedSalaId = parseSignedRegistrationToken(code)
   if (signedSalaId) {

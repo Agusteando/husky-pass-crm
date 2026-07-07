@@ -2,7 +2,7 @@ import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
 import { resolveDaycareRegistrationLink } from '~/server/data/daycareRegistration'
 
-const schema = z.object({ codigo: z.string().trim().min(12) })
+const schema = z.object({ codigo: z.string().trim().min(4) })
 
 export default defineEventHandler(async (event) => {
   const query = schema.parse(getQuery(event))

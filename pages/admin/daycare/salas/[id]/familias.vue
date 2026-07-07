@@ -38,6 +38,7 @@
         <span class="roster-dot neutral">{{ rosterSummary.inSala }}</span>
         <small>lista de sala</small>
       </article>
+      <button class="roster-diagnostics-trigger" type="button" @click="rosterDiagnosticsDialog = true">Diagnóstico</button>
     </section>
     <section v-else-if="data?.roster" class="roster-strip muted-roster" aria-label="Lista de sala no disponible">
       <article>
@@ -45,7 +46,59 @@
         <strong>Lista externa sin conexión</strong>
         <small>{{ data.roster.sourceMessage || 'Las familias guardadas siguen disponibles.' }}</small>
       </article>
+      <button class="roster-diagnostics-trigger" type="button" @click="rosterDiagnosticsDialog = true">Diagnóstico</button>
     </section>
+
+    <AdminModal
+      v-if="rosterDiagnosticsDialog"
+      title="Diagnóstico de lista"
+      eyebrow="Guardería"
+      :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
+      @close="rosterDiagnosticsDialog = false"
+    >
+      <section class="roster-diagnostics-modal">
+        <div class="diagnostics-grid">
+          <article>
+            <span>Fuente</span>
+            <strong>{{ rosterDiagnostics?.sourceUrl || 'Sin fuente' }}</strong>
+          </article>
+          <article>
+            <span>Hojas</span>
+            <strong>{{ rosterDiagnostics?.sheetCount ?? 0 }}</strong>
+          </article>
+          <article>
+            <span>Filas externas</span>
+            <strong>{{ rosterDiagnostics?.totalRows ?? 0 }}</strong>
+          </article>
+          <article>
+            <span>Empates por correo</span>
+            <strong>{{ rosterDiagnostics?.accounts?.matchedByEmail ?? 0 }}</strong>
+          </article>
+        </div>
+        <div class="diagnostics-block">
+          <span>Hojas usadas para esta unidad</span>
+          <strong>{{ rosterDiagnostics?.unidad?.matchedSheets?.join(', ') || 'Ninguna' }}</strong>
+        </div>
+        <div class="diagnostics-block">
+          <span>Salas externas sin empate local</span>
+          <strong>{{ rosterDiagnostics?.sala?.unmatchedSourceSalas?.join(', ') || 'Ninguna' }}</strong>
+        </div>
+        <div class="diagnostics-block" v-if="rosterDiagnostics?.missingColumnsBySheet?.length">
+          <span>Columnas faltantes</span>
+          <strong>{{ rosterDiagnostics.missingColumnsBySheet.map((item) => `${item.sheet}: ${item.missing.join(', ')}`).join(' · ') }}</strong>
+        </div>
+        <div class="diagnostics-block">
+          <span>Supuestos validados</span>
+          <ul>
+            <li v-for="item in rosterDiagnostics?.assumptions || []" :key="item">{{ item }}</li>
+          </ul>
+        </div>
+        <footer class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="copyRosterDiagnostics">Copiar diagnóstico</button>
+          <button class="btn btn-primary" type="button" @click="rosterDiagnosticsDialog = false">Listo</button>
+        </footer>
+      </section>
+    </AdminModal>
 
     <AdminModal
       v-if="editing"
@@ -135,8 +188,12 @@
         <div class="registration-link-copy">
           <p>Comparte este acceso con familias de la sala para que creen su cuenta.</p>
           <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
+          <div class="friendly-code">
+            <span>Código</span>
+            <strong>{{ registrationLink?.token || 'preparando' }}</strong>
+          </div>
           <div class="link-box">
-            <span>{{ registrationLink?.url || 'Generando enlace…' }}</span>
+            <span>{{ registrationShortPath || registrationLink?.url || 'Generando enlace…' }}</span>
             <button class="btn btn-secondary" type="button" :disabled="!registrationLink?.url" @click="copyRegistrationLink">Copiar</button>
           </div>
           <label class="label">
@@ -297,6 +354,7 @@ const registrationDialog = ref(false)
 const registrationLoading = ref(false)
 const registrationEmail = ref('')
 const registrationLink = ref<{ token: string; url: string; qrUrl: string; sala: string; unidad: string } | null>(null)
+const rosterDiagnosticsDialog = ref(false)
 const rosterSaving = ref(false)
 const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean; applySala?: boolean } | null>(null)
 const { data: session } = useAppSession()
@@ -310,6 +368,8 @@ const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAcc
 const rosterAvailable = computed(() => Boolean(data.value?.roster?.available))
 const rosterSummary = computed(() => data.value?.roster?.summary || { inSala: 0, linked: 0, pending: 0, moved: 0 })
 const rosterSourceOnly = computed(() => data.value?.roster?.sourceOnly || [])
+const rosterDiagnostics = computed(() => data.value?.roster?.diagnostics || null)
+const registrationShortPath = computed(() => registrationLink.value?.token ? `/r/${registrationLink.value.token}` : '')
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
 const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
 
@@ -485,6 +545,17 @@ async function save(payload: Partial<FamilyAccount>) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la cuenta familiar.'
   } finally {
     saving.value = false
+  }
+}
+
+
+async function copyRosterDiagnostics() {
+  if (!rosterDiagnostics.value) return
+  try {
+    await navigator.clipboard?.writeText(JSON.stringify(rosterDiagnostics.value, null, 2))
+    actionNotice.value = 'Diagnóstico copiado.'
+  } catch {
+    actionError.value = 'No fue posible copiar el diagnóstico automáticamente.'
   }
 }
 
@@ -1208,7 +1279,7 @@ function initials(value?: string | null) {
 .roster-strip {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
 }
 
 .muted-roster {
@@ -1423,6 +1494,96 @@ function initials(value?: string | null) {
 
 .roster-confirm-modal .modal-actions {
   grid-column: 1 / -1;
+}
+
+.friendly-code {
+  background: linear-gradient(135deg, #fff8e8, #effbf7);
+  border: 1px solid rgba(244, 182, 74, 0.3);
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.friendly-code span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.friendly-code strong {
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.28rem;
+  letter-spacing: 0.02em;
+}
+
+.roster-diagnostics-trigger {
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px dashed rgba(8, 135, 125, 0.32);
+  border-radius: 18px;
+  color: var(--accent-dark);
+  cursor: pointer;
+  font-weight: 900;
+  padding: 10px 14px;
+}
+
+.roster-diagnostics-trigger:hover {
+  background: #fff;
+}
+
+.roster-diagnostics-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.diagnostics-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diagnostics-grid article,
+.diagnostics-block {
+  background: #fbf8ef;
+  border: 1px solid rgba(8, 135, 125, 0.12);
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.diagnostics-grid span,
+.diagnostics-block span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diagnostics-grid strong,
+.diagnostics-block strong,
+.diagnostics-block li {
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.diagnostics-block ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 720px) {
+  .diagnostics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 </style>

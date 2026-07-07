@@ -3,7 +3,7 @@ import { z } from 'zod'
 import QRCode from 'qrcode'
 import { daycareRegistrationUrl, resolveDaycareRegistrationLink } from '~/server/data/daycareRegistration'
 
-const schema = z.object({ codigo: z.string().trim().min(12) })
+const schema = z.object({ codigo: z.string().trim().min(4) })
 
 export default defineEventHandler(async (event) => {
   const query = schema.parse(getQuery(event))

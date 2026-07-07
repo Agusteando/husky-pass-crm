@@ -55,6 +55,39 @@ export interface DaycareRosterEntry {
   targetSalaName?: string | null
 }
 
+export interface DaycareRosterDiagnostics {
+  sourceUrl?: string | null
+  configuredByEnv?: boolean
+  fetchedAt?: string | null
+  durationMs?: number | null
+  sheetCount?: number
+  totalRows?: number
+  mappedEntries?: number
+  requiredColumns?: string[]
+  missingColumnsBySheet?: Array<{ sheet: string; missing: string[] }>
+  unidad?: {
+    value: string
+    key: string
+    matchedSheets: string[]
+    unmatchedSheets: string[]
+  }
+  sala?: {
+    current: string
+    platformSalas: string[]
+    sourceSalas: string[]
+    matchedSourceSalas: string[]
+    unmatchedSourceSalas: string[]
+  }
+  accounts?: {
+    localRows: number
+    matchedByEmail: number
+    sourceOnly: number
+    roomChanges: number
+  }
+  assumptions?: string[]
+  lastError?: string | null
+}
+
 export interface DaycareRosterOverlay {
   available: boolean
   sourceState?: 'connected' | 'unavailable'
@@ -67,6 +100,7 @@ export interface DaycareRosterOverlay {
   }
   sourceOnly: DaycareRosterEntry[]
   sourceUpdatedAt?: string | null
+  diagnostics?: DaycareRosterDiagnostics | null
 }
 
 export interface FamilyAccount {
