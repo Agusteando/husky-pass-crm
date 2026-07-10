@@ -1,1 +1,1 @@
-Rediseña la tarjeta de ayuda de Personas Autorizadas
+Corrige de raíz el encabezado de asistencia con un componente adaptable

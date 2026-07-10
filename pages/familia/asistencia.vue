@@ -1,53 +1,25 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Asistencia y accesos">
     <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-bitacora">
-      <FamilyPersonasPageHeader
-        class="attendance-hero"
-        eyebrow="Asistencia y accesos"
-        :title="data?.selectedChild.name || 'Asistencia y accesos'"
-        :description="selectedChildLine || displayMatricula(data?.selectedChild.matricula || '')"
-        :show-ambassador="false"
-      >
-        <template #visual>
-          <div class="student-avatar" :data-has-photo="Boolean(selectedChildPhoto)">
-            <FamilyPersonasProcessedPhoto
-              v-if="selectedChildPhoto"
-              :src="selectedChildPhoto"
-              namespace="attendance-student-photo"
-              :alt="data?.selectedChild.name || 'Alumno'"
-              loading="eager"
-            />
-            <span v-else>{{ data ? initials(data.selectedChild.name) : 'A' }}</span>
-          </div>
-        </template>
+      <FamilyAttendanceHeader
+        v-if="data"
+        :student-name="data.selectedChild.name"
+        :student-details="selectedChildLine || displayMatricula(data.selectedChild.matricula)"
+        :student-photo="selectedChildPhoto"
+        :student-initials="initials(data.selectedChild.name)"
+        :school-year="selectedSchoolYearLabel"
+        :children="children"
+        :selected-matricula="selectedMatricula"
+        @open-cycles="cycleDrawerOpen = true"
+        @select-student="selectStudent"
+      />
 
-        <template v-if="data" #actions>
-          <div class="hero-controls" aria-label="Contexto de asistencia">
-            <button class="cycle-pill" type="button" data-testid="attendance-open-cycles" @click="cycleDrawerOpen = true">
-              <FamilyPersonasIcon name="calendar" />
-              <span>
-                <small>Este ciclo escolar</small>
-                <strong>{{ selectedSchoolYearLabel }}</strong>
-              </span>
-              <FamilyPersonasIcon name="chevron" />
-            </button>
-
-            <button class="btn btn-secondary history-button" type="button" @click="cycleDrawerOpen = true">
-              Ciclos anteriores
-              <FamilyPersonasIcon name="arrow" />
-            </button>
-
-            <label v-if="children.length > 1" class="compact-select">
-              <span>Alumno</span>
-              <select v-model="selectedMatricula" class="select" data-testid="attendance-child-select" @change="syncRoute">
-                <option v-for="child in children" :key="child.matricula" :value="child.matricula">
-                  {{ child.name }}
-                </option>
-              </select>
-            </label>
-          </div>
-        </template>
-      </FamilyPersonasPageHeader>
+      <FamilyAttendanceHeader
+        v-else
+        student-name="Asistencia y accesos"
+        student-details="Preparando el expediente del alumno"
+        school-year="Ciclo actual"
+      />
 
       <p v-if="loadError" class="alert" data-state="error">No fue posible abrir la bitácora de asistencia.</p>
 
@@ -679,6 +651,11 @@ function queryValue(value: unknown) {
   return String(value || '').trim()
 }
 
+function selectStudent(matricula: string) {
+  selectedMatricula.value = normalizeMatricula(matricula)
+  syncRoute()
+}
+
 function syncRoute() {
   notice.value = ''
   motivoError.value = ''
@@ -795,8 +772,6 @@ async function saveMotivo() {
 
 <style scoped>
 .attendance-page {
-  container-name: attendance-page;
-  container-type: inline-size;
   display: grid;
   gap: 13px;
   margin: 0 auto;
@@ -818,110 +793,19 @@ async function saveMotivo() {
 }
 
 
-.student-avatar,
 .person-thumb,
 .access-detail-photo {
   overflow: hidden;
   position: relative;
 }
 
-.student-avatar {
-  align-items: center;
-  aspect-ratio: 1;
-  background: #eef6ff;
-  border: 1px solid #d4e2f0;
-  border-radius: 999px;
-  box-shadow: 0 12px 26px rgba(23, 42, 74, 0.12);
-  color: var(--pa-primary);
-  display: grid;
-  font-family: var(--font-title);
-  font-size: 1.15rem;
-  font-weight: 900;
-  height: 68px;
-  justify-items: center;
-  width: 68px;
-}
-
-.student-avatar :deep(.processed-photo),
-.student-avatar :deep(img),
-.person-thumb :deep(.processed-photo),
-.person-thumb :deep(img) {
-  display: block;
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-
-
-.hero-controls {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-  max-width: 100%;
-}
-
-.cycle-pill {
-  align-items: center;
-  background: linear-gradient(180deg, #fff, #f8fffb);
-  border: 1px solid #bdd8ce;
-  border-radius: 14px;
-  color: #0f6b52;
-  cursor: pointer;
-  display: grid;
-  gap: 11px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 56px;
-  min-width: 230px;
-  padding: 9px 12px;
-  text-align: left;
-}
-
-.cycle-pill > .pa-icon:first-child {
-  height: 1.45rem;
-  width: 1.45rem;
-}
-
-.cycle-pill span {
-  display: grid;
-  gap: 1px;
-}
-
-.cycle-pill small,
 .eyebrow,
-.compact-select span,
 .control-label span {
   color: #6f7b8f;
   font-size: 0.76rem;
   font-weight: 900;
   letter-spacing: 0.045em;
   text-transform: uppercase;
-}
-
-.cycle-pill strong {
-  color: #0f7a5b;
-  font-family: var(--font-title);
-  font-size: 1.18rem;
-  line-height: 1;
-}
-
-.history-button {
-  min-height: 44px;
-  white-space: nowrap;
-}
-
-.compact-select {
-  display: grid;
-  gap: 5px;
-  max-width: 100%;
-  min-width: 200px;
-}
-
-.compact-select .select {
-  max-width: 100%;
-  min-width: 0;
-  width: 100%;
 }
 
 .loading-layout {
@@ -1744,41 +1628,11 @@ async function saveMotivo() {
   font-weight: 750;
 }
 
-@container attendance-page (min-width: 761px) and (max-width: 1080px) {
-  .attendance-hero {
-    align-items: center;
-    grid-template-columns: minmax(0, 1fr) 96px;
-  }
-
-  .attendance-hero :deep(.pa-page-header-copy) {
-    min-width: 240px;
-  }
-
-  .attendance-hero :deep(.pa-page-header-ambassador) {
-    align-self: center;
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-  }
-
-  .attendance-hero :deep(.pa-page-header-actions) {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-items: stretch;
-    width: 100%;
-  }
-}
-
 @media (max-width: 1180px) {
 
   .priority-grid,
   .record-filters {
     grid-template-columns: 1fr;
-  }
-
-  .hero-controls {
-    justify-content: flex-start;
-    width: 100%;
   }
 
   .bitacora-header {
@@ -1801,13 +1655,6 @@ async function saveMotivo() {
 @media (max-width: 760px) {
   .attendance-page {
     gap: 12px;
-  }
-
-  .hero-controls,
-  .cycle-pill,
-  .history-button,
-  .compact-select {
-    width: 100%;
   }
 
   .attention-card,
