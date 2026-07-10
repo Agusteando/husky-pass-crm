@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div ref="backdropRef" class="admin-modal-backdrop" role="presentation" @click.self="close">
+    <div ref="backdropRef" class="admin-modal-backdrop" role="presentation" @click.self="requestClose">
       <section ref="modalRef" class="admin-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
         <header class="admin-modal-head">
           <span class="modal-mark"><slot name="icon"><FamilyPersonasIcon name="daycare" /></slot></span>
@@ -8,42 +8,93 @@
             <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
             <h2 :id="titleId">{{ title }}</h2>
             <p v-if="description">{{ description }}</p>
+            <span v-if="dirty" class="draft-chip"><span aria-hidden="true" />Borrador modificado</span>
           </div>
-          <button class="modal-close" type="button" aria-label="Cerrar" :disabled="closeDisabled" @click="close">×</button>
+          <button class="modal-close" type="button" aria-label="Cerrar" :disabled="closeDisabled" @click="requestClose">×</button>
         </header>
         <div class="admin-modal-body">
-          <slot />
+          <slot :request-close="requestClose" />
         </div>
+
+        <Transition name="draft-guard">
+          <div v-if="discardPromptOpen" class="draft-guard" role="presentation" @click.self="continueEditing">
+            <section ref="discardPromptRef" class="draft-guard-card" role="alertdialog" aria-modal="true" :aria-labelledby="discardTitleId" :aria-describedby="discardDescriptionId" tabindex="-1">
+              <span class="draft-guard-icon" aria-hidden="true">!</span>
+              <div>
+                <p class="eyebrow">Cambios sin guardar</p>
+                <h3 :id="discardTitleId">{{ dirtyTitle }}</h3>
+                <p :id="discardDescriptionId">{{ dirtyMessage }}</p>
+              </div>
+              <footer>
+                <button ref="continueButtonRef" class="btn btn-primary" type="button" @click="continueEditing">Seguir editando</button>
+                <button class="btn btn-secondary" type="button" @click="discardChanges">Descartar cambios</button>
+              </footer>
+            </section>
+          </div>
+        </Transition>
       </section>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
   title: string
   eyebrow?: string
   description?: string
   closeDisabled?: boolean
+  dirty?: boolean
+  dirtyTitle?: string
+  dirtyMessage?: string
 }>(), {
-  closeDisabled: false
+  closeDisabled: false,
+  dirty: false,
+  dirtyTitle: 'Tus cambios todavía no se han guardado',
+  dirtyMessage: 'Puedes seguir editando o descartar el borrador para cerrar esta ventana.'
 })
 
 const emit = defineEmits<{ close: [] }>()
 const modalRef = ref<HTMLElement | null>(null)
 const backdropRef = ref<HTMLElement | null>(null)
+const discardPromptRef = ref<HTMLElement | null>(null)
+const continueButtonRef = ref<HTMLButtonElement | null>(null)
 const previousActive = ref<HTMLElement | null>(null)
+const discardPromptOpen = ref(false)
 const titleId = `admin-modal-title-${useId()}`
+const discardTitleId = `admin-modal-discard-title-${useId()}`
+const discardDescriptionId = `admin-modal-discard-description-${useId()}`
 
-function close() {
-  if (props.closeDisabled) return
+function emitClose() {
+  discardPromptOpen.value = false
   emit('close')
 }
 
+async function requestClose() {
+  if (props.closeDisabled) return
+  if (!props.dirty) {
+    emitClose()
+    return
+  }
+  discardPromptOpen.value = true
+  await nextTick()
+  continueButtonRef.value?.focus()
+}
+
+function discardChanges() {
+  emitClose()
+}
+
+async function continueEditing() {
+  discardPromptOpen.value = false
+  await nextTick()
+  modalRef.value?.focus()
+}
+
 function focusableElements() {
-  return Array.from(modalRef.value?.querySelectorAll<HTMLElement>([
+  const scope = discardPromptOpen.value ? discardPromptRef.value : modalRef.value
+  return Array.from(scope?.querySelectorAll<HTMLElement>([
     'a[href]',
     'button:not([disabled])',
     'input:not([disabled])',
@@ -55,7 +106,8 @@ function focusableElements() {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
-    close()
+    if (discardPromptOpen.value) continueEditing()
+    else requestClose()
     return
   }
   if (event.key !== 'Tab') return
@@ -72,9 +124,20 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+function onBeforeUnload(event: BeforeUnloadEvent) {
+  if (!props.dirty) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+watch(() => props.dirty, (dirty) => {
+  if (!dirty) discardPromptOpen.value = false
+})
+
 onMounted(async () => {
   previousActive.value = document.activeElement instanceof HTMLElement ? document.activeElement : null
   document.addEventListener('keydown', onKeydown)
+  window.addEventListener('beforeunload', onBeforeUnload)
   document.body.classList.add('admin-modal-open')
   await nextTick()
   const firstFocusable = focusableElements()[0]
@@ -84,9 +147,12 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('beforeunload', onBeforeUnload)
   document.body.classList.remove('admin-modal-open')
   previousActive.value?.focus?.()
 })
+
+defineExpose({ requestClose })
 </script>
 
 <style scoped>
@@ -111,12 +177,11 @@ onBeforeUnmount(() => {
   max-height: min(90dvh, 860px);
   max-width: min(780px, calc(100vw - 28px));
   overflow: hidden;
+  position: relative;
   width: 100%;
 }
 
-.admin-modal:focus {
-  outline: none;
-}
+.admin-modal:focus { outline: none; }
 
 .admin-modal-head {
   align-items: start;
@@ -144,9 +209,7 @@ onBeforeUnmount(() => {
 }
 
 .admin-modal-head h2,
-.admin-modal-head p {
-  margin: 0;
-}
+.admin-modal-head p { margin: 0; }
 
 .admin-modal-head h2 {
   color: #102235;
@@ -170,6 +233,27 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
 }
 
+.draft-chip {
+  align-items: center;
+  background: #fff7df;
+  border: 1px solid rgba(246, 185, 79, 0.38);
+  border-radius: 999px;
+  color: #805d08;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 900;
+  gap: 7px;
+  margin-top: 9px;
+  padding: 6px 9px;
+}
+
+.draft-chip > span {
+  background: #e5a72f;
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+
 .modal-close {
   align-items: center;
   background: rgba(255, 255, 255, 0.82);
@@ -186,6 +270,8 @@ onBeforeUnmount(() => {
   width: 44px;
 }
 
+.modal-close:disabled { cursor: not-allowed; opacity: 0.55; }
+
 .admin-modal-body {
   background: linear-gradient(180deg, #ffffff, rgba(240, 251, 247, 0.56));
   max-height: calc(90dvh - 102px);
@@ -193,9 +279,73 @@ onBeforeUnmount(() => {
   padding: 18px;
 }
 
-:global(body.admin-modal-open) {
-  overflow: hidden;
+.draft-guard {
+  align-items: center;
+  background: rgba(11, 24, 39, 0.48);
+  backdrop-filter: blur(7px);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 18px;
+  position: absolute;
+  z-index: 4;
 }
+
+.draft-guard-card {
+  background: #fff;
+  border: 1px solid rgba(229, 167, 47, 0.42);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(13, 30, 45, 0.3);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  max-width: 520px;
+  padding: 20px;
+  width: 100%;
+}
+
+.draft-guard-card:focus { outline: none; }
+
+.draft-guard-icon {
+  align-items: center;
+  background: #fff7df;
+  border: 1px solid rgba(229, 167, 47, 0.35);
+  border-radius: 999px;
+  color: #8a650c;
+  display: inline-flex;
+  font-weight: 950;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.draft-guard-card h3 {
+  color: #102235;
+  font-size: 1.22rem;
+  margin: 4px 0 5px;
+}
+
+.draft-guard-card p:not(.eyebrow) {
+  color: #607086;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.draft-guard-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.draft-guard-enter-active,
+.draft-guard-leave-active { transition: opacity 150ms ease; }
+.draft-guard-enter-from,
+.draft-guard-leave-to { opacity: 0; }
+
+:global(body.admin-modal-open) { overflow: hidden; }
 
 @media (max-width: 720px) {
   .admin-modal-backdrop {
@@ -209,13 +359,10 @@ onBeforeUnmount(() => {
     max-width: 100vw;
   }
 
-  .admin-modal-head {
-    grid-template-columns: 46px minmax(0, 1fr) auto;
-  }
-
-  .modal-mark {
-    height: 46px;
-    width: 46px;
-  }
+  .admin-modal-head { grid-template-columns: 46px minmax(0, 1fr) auto; }
+  .modal-mark { height: 46px; width: 46px; }
+  .draft-guard-card { grid-template-columns: 1fr; }
+  .draft-guard-card footer { display: grid; grid-column: 1; }
+  .draft-guard-icon { display: none; }
 }
 </style>

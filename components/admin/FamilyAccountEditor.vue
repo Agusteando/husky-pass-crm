@@ -38,23 +38,36 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, nextTick, reactive, watch } from 'vue'
+import { useDraftState } from '~/composables/useDraftState'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import type { FamilyAccount } from '~/types/daycare'
 
 const props = defineProps<{
   account: Partial<FamilyAccount>
+  baselineAccount?: Partial<FamilyAccount>
   saving?: boolean
 }>()
 
 const emit = defineEmits<{
   save: [payload: Partial<FamilyAccount>]
   cancel: []
+  'dirty-change': [dirty: boolean]
 }>()
 
 const model = reactive<Partial<FamilyAccount>>(normalizeAccount(props.account))
+const draftSnapshot = computed(() => normalizeAccount(model))
+const { isDirty, resetDraft } = useDraftState(draftSnapshot)
 
-watch(() => props.account, (account) => Object.assign(model, normalizeAccount(account)), { deep: true })
+resetDraft(normalizeAccount(props.baselineAccount || props.account))
+watch(isDirty, (dirty) => emit('dirty-change', dirty), { immediate: true })
+
+watch([() => props.account, () => props.baselineAccount], async ([account, baseline]) => {
+  for (const key of Object.keys(model)) delete (model as Record<string, unknown>)[key]
+  Object.assign(model, normalizeAccount(account))
+  await nextTick()
+  resetDraft(normalizeAccount(baseline || account))
+}, { deep: true })
 
 function normalizeUsername() {
   model.username = displayMatriculaCandidate(model.username)

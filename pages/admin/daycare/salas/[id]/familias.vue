@@ -1,6 +1,7 @@
 <template>
   <section class="family-module stack" data-product-area="daycare" data-product-screen="familias">
     <AdminModuleTabs :sala-id="salaId" :unidad="data?.sala?.unidad" :sala-name="data?.sala?.sala" />
+    <AdminProcessingTray :items="syncEntries" />
 
     <header class="family-hero">
       <div>
@@ -13,8 +14,8 @@
           <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
         </label>
         <button class="btn btn-secondary" type="button" data-diagnostic-action="registro-sala" @click="openRegistrationLink">Link de registro</button>
-        <button class="btn btn-secondary" type="button" data-diagnostic-action="password-sala" @click="openSalaPassword">Contraseña de sala</button>
-        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-familia" @click="startCreate">Nueva familia</button>
+        <button class="btn btn-secondary" type="button" data-diagnostic-action="password-sala" :disabled="passwordSaving" @click="openSalaPassword">Contraseña de sala</button>
+        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-familia" :disabled="saving" @click="startCreate">Nueva familia</button>
       </div>
     </header>
 
@@ -106,14 +107,20 @@
       eyebrow="Guardería"
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="saving"
-      @close="editing = null"
+      :dirty="familyDraftDirty"
+      @close="closeFamilyEditor"
     >
-      <FamilyAccountEditor
-        :account="editing"
-        :saving="saving"
-        @save="save"
-        @cancel="editing = null"
-      />
+      <template #default="{ requestClose }">
+        <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
+        <FamilyAccountEditor
+          :account="editing"
+          :baseline-account="editingBaseline || undefined"
+          :saving="saving"
+          @save="save"
+          @cancel="requestClose"
+          @dirty-change="familyDraftDirty = $event"
+        />
+      </template>
     </AdminModal>
 
     <AdminModal
@@ -122,8 +129,10 @@
       eyebrow="Acceso"
       :description="passwordDialog.mode === 'sala' ? 'Asignar la misma contraseña a todas las familias de esta sala.' : selectedPasswordDescription"
       :close-disabled="passwordSaving"
+      :dirty="passwordDraftDirty || passwordSaveFailed"
       @close="closePasswordDialog"
     >
+      <template #default="{ requestClose }">
       <form class="password-modal" @submit.prevent="savePasswordDialog">
         <div class="password-preview">
           <span>{{ passwordDialog.mode === 'sala' ? filteredAccounts.length : 1 }}</span>
@@ -145,10 +154,11 @@
           <span>Enviar acceso por correo al guardar</span>
         </label>
         <footer class="modal-actions">
-          <button class="btn btn-secondary" type="button" @click="closePasswordDialog">Cancelar</button>
+          <button class="btn btn-secondary" type="button" @click="requestClose">Cancelar</button>
           <button class="btn btn-primary" type="submit" :disabled="passwordSaving">{{ passwordSaving ? 'Guardando…' : 'Guardar contraseña' }}</button>
         </footer>
       </form>
+      </template>
     </AdminModal>
 
     <AdminModal
@@ -178,8 +188,10 @@
       eyebrow="Link de sala"
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="registrationLoading"
-      @close="registrationDialog = false"
+      :dirty="registrationDraftDirty"
+      @close="closeRegistrationDialog"
     >
+      <template #default="{ requestClose }">
       <section class="registration-link-modal">
         <div class="registration-qr-card">
           <img v-if="registrationLink?.qrUrl" :src="registrationLink.qrUrl" alt="QR de registro" />
@@ -205,10 +217,11 @@
           </label>
           <footer class="modal-actions">
             <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="regenerateRegistrationLink">Regenerar link</button>
-            <button class="btn btn-primary" type="button" @click="registrationDialog = false">Listo</button>
+            <button class="btn btn-primary" type="button" @click="requestClose">Listo</button>
           </footer>
         </div>
       </section>
+      </template>
     </AdminModal>
 
     <p v-if="error" class="alert">No fue posible cargar las cuentas familiares.</p>
@@ -231,7 +244,7 @@
             v-for="account in filteredAccounts"
             :key="account.id"
             class="family-row"
-            :class="{ active: selected?.id === account.id }"
+            :class="{ active: selected?.id === account.id, syncing: familyStatus(account.id)?.state === 'pending', failed: familyStatus(account.id)?.state === 'error' }"
             type="button"
             data-diagnostic-action="seleccionar-familia"
             :aria-pressed="selected?.id === account.id"
@@ -242,7 +255,10 @@
               <strong>{{ account.nombre_nino || account.roster?.childName || 'Sin nombre de niño/a' }}</strong>
               <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
             </span>
-            <span class="source-pill" :data-state="accountRosterState(account)">{{ accountRosterMark(account) }}</span>
+            <span class="family-row-tail">
+              <AdminSyncCue v-if="familyStatus(account.id)" :status="familyStatus(account.id)" compact />
+              <span class="source-pill" :data-state="accountRosterState(account)">{{ accountRosterMark(account) }}</span>
+            </span>
           </button>
           <div v-if="rosterSourceOnly.length" class="source-only-list">
             <p>Por activar</p>
@@ -266,6 +282,7 @@
               <p class="eyebrow">Detalle</p>
               <h2>{{ selected.nombre_nino || accountLabel(selected.username) }}</h2>
             </div>
+            <AdminSyncCue v-if="familyStatus(selected.id)" :status="familyStatus(selected.id)" />
           </div>
           <section class="family-profile-lines" aria-label="Resumen familiar">
             <article>
@@ -292,8 +309,8 @@
               <small>{{ selectedRosterDetail }}</small>
             </div>
             <div class="roster-sync-actions">
-              <button v-if="selected?.roster?.childDifferent" class="btn btn-secondary" type="button" :disabled="rosterSaving" @click="openRosterDialog(selected, { applyChildName: true })">Aplicar nombre</button>
-              <button v-if="selected?.roster?.state === 'room-changed' && selected?.roster?.targetSalaId" class="btn btn-primary" type="button" :disabled="rosterSaving" @click="openRosterDialog(selected, { applySala: true, applyChildName: true })">{{ selectedRosterMoveCta }}</button>
+              <button v-if="selected?.roster?.childDifferent" class="btn btn-secondary" type="button" :disabled="rosterSaving || isFamilyPending(selected.id)" @click="openRosterDialog(selected, { applyChildName: true })">Aplicar nombre</button>
+              <button v-if="selected?.roster?.state === 'room-changed' && selected?.roster?.targetSalaId" class="btn btn-primary" type="button" :disabled="rosterSaving || isFamilyPending(selected.id)" @click="openRosterDialog(selected, { applySala: true, applyChildName: true })">{{ selectedRosterMoveCta }}</button>
             </div>
           </section>
           <section class="access-panel" aria-label="Acceso familiar">
@@ -306,9 +323,9 @@
           <div class="preview-actions">
             <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
             <button v-if="confirmingImpersonationId === selected.id" class="btn btn-secondary" type="button" data-diagnostic-action="cancelar-impersonacion" @click="cancelImpersonation">Cancelar</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" @click="openFamilyEditor(selected)">Editar familia</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="password-familia" @click="openFamilyPassword(selected)">Contraseña</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="email-acceso" :disabled="emailingId === selected.id || !selected.plaintext || !selected.email" @click="sendAccessEmail(selected)">{{ emailingId === selected.id ? 'Enviando…' : 'Enviar acceso' }}</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-familia" :disabled="isFamilyPending(selected.id)" @click="openFamilyEditor(selected)">Editar familia</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="password-familia" :disabled="passwordSaving || isFamilyPending(selected.id)" @click="openFamilyPassword(selected)">Contraseña</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="email-acceso" :disabled="emailingId === selected.id || isFamilyPending(selected.id) || !selected.plaintext || !selected.email" @click="sendAccessEmail(selected)">{{ emailingId === selected.id ? 'Enviando…' : 'Enviar acceso' }}</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una familia" />
@@ -318,9 +335,11 @@
 </template>
 
 <script setup lang="ts">
-import { useAppSession } from '~/composables/useAppSession'
 import { computed, ref, watch } from 'vue'
-import { navigateTo, useRoute, useRouter, useFetch } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
+import { useAppSession } from '~/composables/useAppSession'
+import { useDraftState } from '~/composables/useDraftState'
+import { useOptimisticStatus } from '~/composables/useOptimisticStatus'
 import type { DaycareRosterEntry, DaycareRosterOverlay, FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
@@ -328,6 +347,8 @@ import { DAYCARE_FAMILY_ROLE, defaultFamilyRoute, hasDaycareAdminScope } from '~
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import AdminModuleTabs from '~/components/admin/AdminModuleTabs.vue'
 import AdminModal from '~/components/admin/AdminModal.vue'
+import AdminProcessingTray from '~/components/admin/AdminProcessingTray.vue'
+import AdminSyncCue from '~/components/admin/AdminSyncCue.vue'
 import EmptyState from '~/components/EmptyState.vue'
 import FamilyAccountEditor from '~/components/admin/FamilyAccountEditor.vue'
 import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
@@ -338,6 +359,8 @@ const route = useRoute()
 const router = useRouter()
 const salaId = Number(route.params.id)
 const editing = ref<Partial<FamilyAccount> | null>(null)
+const editingBaseline = ref<Partial<FamilyAccount> | null>(null)
+const familyDraftDirty = ref(false)
 const selected = ref<FamilyAccount | null>(null)
 const saving = ref(false)
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
@@ -348,6 +371,7 @@ const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
 const emailingId = ref<number | null>(null)
 const passwordSaving = ref(false)
+const passwordSaveFailed = ref(false)
 const passwordDialog = ref<{ mode: 'family' | 'sala'; account?: FamilyAccount | null } | null>(null)
 const passwordForm = ref({ password: '', passwordCanChange: true, sendEmail: false })
 const registrationDialog = ref(false)
@@ -357,10 +381,27 @@ const registrationLink = ref<{ token: string; url: string; qrUrl: string; sala: 
 const rosterDiagnosticsDialog = ref(false)
 const rosterSaving = ref(false)
 const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean; applySala?: boolean } | null>(null)
+const bulkStatusKeyByFamily = ref<Record<number, string>>({})
+let optimisticFamilyId = -1
+let familyRevision = 0
+
+const passwordDraftSource = computed(() => ({ ...passwordForm.value }))
+const registrationDraftSource = computed(() => ({ email: registrationEmail.value.trim() }))
+const { isDirty: passwordDraftDirty, resetDraft: resetPasswordDraft } = useDraftState(passwordDraftSource)
+const { isDirty: registrationDraftDirty, resetDraft: resetRegistrationDraft } = useDraftState(registrationDraftSource)
+const {
+  entries: syncEntries,
+  getStatus,
+  markPending,
+  markDone,
+  markError,
+  moveStatus
+} = useOptimisticStatus()
+
 const { data: session } = useAppSession()
 const canPreviewSala = computed(() => hasDaycareAdminScope(session.value?.user))
 const canImpersonateAccounts = computed(() => hasDaycareAdminScope(session.value?.user))
-const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
+const { data, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId },
   timeout: 15000
 })
@@ -372,31 +413,6 @@ const rosterDiagnostics = computed(() => data.value?.roster?.diagnostics || null
 const registrationShortPath = computed(() => registrationLink.value?.token ? `/r/${registrationLink.value.token}` : '')
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
 const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
-
-watch(search, () => syncQuery())
-
-watch(() => route.query.buscar, (value) => {
-  const next = typeof value === 'string' ? value : ''
-  if (next !== search.value) search.value = next
-})
-
-watch(() => route.query.familia, (value) => {
-  const id = Number(value || 0)
-  if (!id) return
-  const row = filteredAccounts.value.find((account) => account.id === id)
-  if (row) selected.value = row
-})
-
-function accountLabel(value?: string | null) {
-  return displayMatriculaCandidate(value)
-}
-
-function accountStatusLabel(account: Pick<FamilyAccount, 'username' | 'email' | 'role'>) {
-  if (!account.username && !account.email) return 'Incompleta'
-  if (!account.role) return 'Pendiente'
-  return 'Activa'
-}
-
 const selectedRosterVisible = computed(() => Boolean(selected.value?.roster && selected.value.roster.state !== 'not-found'))
 const selectedRosterIcon = computed(() => selected.value?.roster?.state === 'room-changed' ? '↗' : '✓')
 const selectedRosterTitle = computed(() => {
@@ -421,6 +437,20 @@ const filteredAccounts = computed(() => {
   return rows.filter((account) => `${account.nombre_nino || ''} ${account.username || ''} ${accountLabel(account.username) || ''} ${account.email || ''}`.toLowerCase().includes(needle))
 })
 
+watch(search, () => syncQuery())
+
+watch(() => route.query.buscar, (value) => {
+  const next = typeof value === 'string' ? value : ''
+  if (next !== search.value) search.value = next
+})
+
+watch(() => route.query.familia, (value) => {
+  const id = Number(value || 0)
+  if (!id) return
+  const row = filteredAccounts.value.find((account) => account.id === id)
+  if (row) selected.value = row
+})
+
 watch(filteredAccounts, (rows) => {
   if (!rows.length) {
     selected.value = null
@@ -437,16 +467,31 @@ watch(filteredAccounts, (rows) => {
   }
 }, { immediate: true })
 
+function accountLabel(value?: string | null) {
+  return displayMatriculaCandidate(value)
+}
+
+function accountStatusLabel(account: Pick<FamilyAccount, 'username' | 'email' | 'role'>) {
+  if (!account.username && !account.email) return 'Incompleta'
+  if (!account.role) return 'Pendiente'
+  return 'Activa'
+}
+
 function startCreate() {
-  actionError.value = ''
-  actionNotice.value = ''
-  editing.value = { sala: String(salaId), unidad: data.value?.sala.unidad, role: DAYCARE_FAMILY_ROLE, username: '', email: '' }
+  if (saving.value) return
+  const draft: Partial<FamilyAccount> = {
+    sala: String(salaId),
+    unidad: data.value?.sala.unidad,
+    role: DAYCARE_FAMILY_ROLE,
+    username: '',
+    email: ''
+  }
+  openFamilyDraft(draft, draft)
 }
 
 function startCreateFromRoster(entry: DaycareRosterEntry) {
-  actionError.value = ''
-  actionNotice.value = ''
-  editing.value = {
+  if (saving.value) return
+  const draft: Partial<FamilyAccount> = {
     sala: String(entry.targetSalaId || salaId),
     unidad: data.value?.sala.unidad,
     role: DAYCARE_FAMILY_ROLE,
@@ -454,6 +499,41 @@ function startCreateFromRoster(entry: DaycareRosterEntry) {
     email: entry.tutorEmail || '',
     nombre_nino: entry.childName || ''
   }
+  openFamilyDraft(draft, draft)
+}
+
+function openFamilyEditor(account: FamilyAccount | null) {
+  if (!account || isFamilyPending(account.id) || saving.value) return
+  const draft: Partial<FamilyAccount> = {
+    ...account,
+    sala: String(salaId),
+    unidad: data.value?.sala?.unidad || account.unidad,
+    role: account.role || DAYCARE_FAMILY_ROLE,
+    username: account.username || '',
+    email: account.email || ''
+  }
+  openFamilyDraft(draft, draft)
+}
+
+function openFamilyDraft(draft: Partial<FamilyAccount>, baseline: Partial<FamilyAccount>) {
+  actionError.value = ''
+  actionNotice.value = ''
+  editing.value = { ...draft }
+  editingBaseline.value = { ...baseline }
+  familyDraftDirty.value = false
+}
+
+function closeFamilyEditor() {
+  if (saving.value) return
+  editing.value = null
+  editingBaseline.value = null
+  familyDraftDirty.value = false
+  actionError.value = ''
+}
+
+function dismissFamilyEditorForSave() {
+  editing.value = null
+  familyDraftDirty.value = false
 }
 
 function accountRosterState(account: FamilyAccount) {
@@ -469,35 +549,63 @@ function accountRosterMark(account: FamilyAccount) {
 }
 
 function openRosterDialog(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
-  if (!account) return
+  if (!account || isFamilyPending(account.id)) return
   rosterDialog.value = { account, ...options }
 }
 
-async function confirmRosterDialog() {
+function confirmRosterDialog() {
   if (!rosterDialog.value) return
-  const ok = await applyRoster(rosterDialog.value.account, { applyChildName: rosterDialog.value.applyChildName, applySala: rosterDialog.value.applySala })
-  if (ok) rosterDialog.value = null
+  void applyRoster(rosterDialog.value.account, {
+    applyChildName: rosterDialog.value.applyChildName,
+    applySala: rosterDialog.value.applySala
+  })
 }
 
 async function applyRoster(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
-  if (!account?.id) return
+  if (!account?.id || rosterSaving.value || isFamilyPending(account.id)) return
   rosterSaving.value = true
   actionError.value = ''
   actionNotice.value = ''
+  const previousRows = cloneFamilyRows()
+  const originalIndex = previousRows.findIndex((row) => row.id === account.id)
+  const previousSelectedId = selected.value?.id
+  const previousDialog = rosterDialog.value ? { ...rosterDialog.value } : null
+  const key = familyKey(account.id)
+  const label = familyDisplayName(account)
+  familyRevision += 1
+
+  rosterDialog.value = null
+  if (options.applySala) {
+    setFamilyRows((data.value?.rows || []).filter((row) => row.id !== account.id))
+    if (previousSelectedId === account.id) selected.value = filteredAccounts.value[0] || null
+  } else {
+    const optimistic = {
+      ...account,
+      nombre_nino: options.applyChildName ? account.roster?.childName || account.nombre_nino : account.nombre_nino,
+      roster: account.roster ? { ...account.roster, childDifferent: false } : account.roster
+    }
+    replaceLocalFamily(account.id, optimistic)
+    if (previousSelectedId === account.id) selected.value = optimistic
+  }
+  syncQuery(selected.value?.id)
+  markPending(key, label, {
+    detail: options.applySala ? 'Moviendo la familia a la sala sugerida.' : 'Aplicando la información de la lista.'
+  })
+
   try {
     await $fetch('/api/daycare/admin/roster-apply', { method: 'POST', body: { sala: salaId, userId: account.id, ...options } })
-    await refresh()
-    if (options.applySala) {
-      selected.value = (data.value?.rows || [])[0] || null
-      actionNotice.value = 'Familia movida a su sala.'
-    } else {
-      selected.value = (data.value?.rows || []).find((row) => row.id === account.id) || selected.value
-      actionNotice.value = 'Datos familiares actualizados.'
-    }
-    return true
+    markDone(key, label, { detail: options.applySala ? 'La familia quedó movida.' : 'Los datos quedaron actualizados.' })
+    actionNotice.value = options.applySala ? 'Familia movida a su sala.' : 'Datos familiares actualizados.'
+    refreshFamiliesInBackground(options.applySala ? undefined : account.id)
   } catch (err: any) {
+    const previousAccount = previousRows.find((row) => row.id === account.id) || account
+    if (options.applySala) restoreLocalFamily(previousAccount, originalIndex)
+    else replaceLocalFamily(Number(account.id), previousAccount)
+    if (!selected.value || selected.value.id === account.id) selected.value = previousAccount
+    rosterDialog.value = previousDialog
+    syncQuery(selected.value?.id)
+    markError(key, label, { detail: 'No se aplicó el cambio; restauramos la cuenta.' })
     actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible aplicar la sugerencia.'
-    return false
   } finally {
     rosterSaving.value = false
   }
@@ -516,7 +624,7 @@ function syncQuery(selectedId = selected.value?.id) {
   const unidadQuery = typeof route.query.unidad === 'string' ? route.query.unidad : data.value?.sala?.unidad
   if (unidadQuery) query.unidad = unidadQuery
   if (search.value.trim()) query.buscar = search.value.trim()
-  if (selectedId) query.familia = String(selectedId)
+  if (selectedId && selectedId > 0) query.familia = String(selectedId)
   replaceQueryIfChanged(query)
 }
 
@@ -531,23 +639,67 @@ function replaceQueryIfChanged(query: Record<string, string>) {
 }
 
 async function save(payload: Partial<FamilyAccount>) {
+  if (saving.value) return
   saving.value = true
   actionError.value = ''
   actionNotice.value = ''
+  const previousRows = cloneFamilyRows()
+  const previousSelectedId = selected.value?.id
+  const baselineBeforeSave = editingBaseline.value ? { ...editingBaseline.value } : null
+  const isUpdate = Boolean(payload.id && Number(payload.id) > 0)
+  const localId = isUpdate ? Number(payload.id) : optimisticFamilyId--
+  const requestPayload = { ...payload, sala: String(salaId) }
+  const optimistic = buildOptimisticFamily(requestPayload, localId)
+  const key = familyKey(localId)
+  familyRevision += 1
+
+  upsertLocalFamily(optimistic, !isUpdate)
+  selected.value = optimistic
+  dismissFamilyEditorForSave()
+  markPending(key, familyDisplayName(optimistic), {
+    detail: isUpdate ? 'Guardando los cambios de la cuenta.' : 'Creando la cuenta familiar.'
+  })
+
   try {
-    const saved = await $fetch<FamilyAccount>('/api/daycare/admin/family-accounts', { method: 'POST', body: { ...payload, sala: String(salaId) } })
-    editing.value = null
-    await refresh()
-    selected.value = (data.value?.rows || []).find((account) => account.id === saved.id) || selected.value
-    syncQuery(saved.id)
-    actionNotice.value = saved.id === payload.id ? 'Cuenta familiar actualizada.' : 'Cuenta familiar creada.'
+    const saved = await $fetch<FamilyAccount>('/api/daycare/admin/family-accounts', {
+      method: 'POST',
+      body: requestPayload
+    })
+    const savedId = Number(saved.id)
+    if (!Number.isInteger(savedId) || savedId <= 0) throw new Error('El servidor no devolvió el identificador de la cuenta.')
+    const savedKey = familyKey(savedId)
+    const savedAccountStillSelected = selected.value?.id === localId
+    moveStatus(key, savedKey)
+    const existing = previousRows.find((row) => row.id === payload.id)
+    const confirmed = { ...optimistic, ...saved, id: savedId, roster: existing?.roster || optimistic.roster } as FamilyAccount
+    replaceLocalFamily(localId, confirmed)
+    if (savedAccountStillSelected) {
+      selected.value = confirmed
+      syncQuery(savedId)
+    }
+    editingBaseline.value = null
+    markDone(savedKey, familyDisplayName(confirmed), { detail: 'El servidor confirmó la cuenta.' })
+    actionNotice.value = isUpdate ? 'Cuenta familiar actualizada.' : 'Cuenta familiar creada.'
+    refreshFamiliesInBackground(savedId)
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la cuenta familiar.'
+    const previousAccount = previousRows.find((row) => row.id === localId)
+    if (previousAccount) replaceLocalFamily(localId, previousAccount)
+    else removeLocalFamily(localId)
+    if (selected.value?.id === localId) {
+      selected.value = previousSelectedId
+        ? (data.value?.rows || []).find((row) => row.id === previousSelectedId) || previousAccount || null
+        : previousAccount || null
+      syncQuery(selected.value?.id)
+    }
+    editing.value = { ...payload }
+    editingBaseline.value = baselineBeforeSave
+    familyDraftDirty.value = true
+    markError(key, familyDisplayName(optimistic), { detail: 'No se guardó; restauramos la cuenta anterior.' })
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible guardar la cuenta familiar.'
   } finally {
     saving.value = false
   }
 }
-
 
 async function copyRosterDiagnostics() {
   if (!rosterDiagnostics.value) return
@@ -559,12 +711,20 @@ async function copyRosterDiagnostics() {
   }
 }
 
-
 async function openRegistrationLink() {
+  if (registrationLoading.value) return
   registrationDialog.value = true
   actionError.value = ''
   actionNotice.value = ''
+  resetRegistrationDraft()
   if (!registrationLink.value) await loadRegistrationLink(false)
+}
+
+function closeRegistrationDialog() {
+  if (registrationLoading.value) return
+  registrationDialog.value = false
+  registrationEmail.value = ''
+  resetRegistrationDraft()
 }
 
 async function loadRegistrationLink(regenerate = false) {
@@ -576,8 +736,10 @@ async function loadRegistrationLink(regenerate = false) {
       ? await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { method: 'POST', body: { sala: salaId, regenerate: true } })
       : await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { query: { sala: salaId } })
     registrationLink.value = response.link
+    return true
   } catch (err: any) {
     actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible preparar el link de registro.'
+    return false
   } finally {
     registrationLoading.value = false
   }
@@ -594,15 +756,24 @@ async function copyRegistrationLink() {
 }
 
 async function regenerateRegistrationLink() {
-  await loadRegistrationLink(true)
-  if (registrationLink.value) actionNotice.value = 'Link de registro regenerado.'
+  const key = `registration:${salaId}`
+  markPending(key, 'Link de registro', { detail: 'Regenerando el acceso de la sala.' })
+  const ok = await loadRegistrationLink(true)
+  if (ok) {
+    markDone(key, 'Link de registro', { detail: 'El nuevo link quedó listo.' })
+    actionNotice.value = 'Link de registro regenerado.'
+  } else {
+    markError(key, 'Link de registro', { detail: 'No fue posible regenerar el link.' })
+  }
 }
 
 async function sendRegistrationLink() {
-  if (!registrationEmail.value) return
+  if (!registrationEmail.value || registrationLoading.value) return
   registrationLoading.value = true
   actionError.value = ''
   actionNotice.value = ''
+  const key = `registration-email:${salaId}`
+  markPending(key, 'Link de registro', { detail: 'Enviando el acceso por correo.' })
   try {
     const response = await $fetch<{ emailed: number; link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>('/api/daycare/admin/registration-link-email', {
       method: 'POST',
@@ -611,39 +782,32 @@ async function sendRegistrationLink() {
     registrationLink.value = response.link
     actionNotice.value = response.emailed ? 'Link de registro enviado.' : 'No se envió ningún correo.'
     registrationEmail.value = ''
+    resetRegistrationDraft()
+    markDone(key, 'Link de registro', { detail: response.emailed ? 'El correo fue enviado.' : 'El servidor terminó sin enviar correos.' })
   } catch (err: any) {
+    markError(key, 'Link de registro', { detail: 'No se pudo enviar el correo.' })
     actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible enviar el link.'
   } finally {
     registrationLoading.value = false
   }
 }
 
-
-function openFamilyEditor(account: FamilyAccount | null) {
-  if (!account) return
-  actionError.value = ''
-  actionNotice.value = ''
-  editing.value = {
-    ...account,
-    sala: String(salaId),
-    unidad: data.value?.sala?.unidad || account.unidad,
-    role: account.role || DAYCARE_FAMILY_ROLE,
-    username: account.username || '',
-    email: account.email || ''
-  }
-}
-
 function openSalaPassword() {
+  if (passwordSaving.value) return
   actionError.value = ''
   actionNotice.value = ''
+  passwordSaveFailed.value = false
   passwordDialog.value = { mode: 'sala' }
   passwordForm.value = { password: '', passwordCanChange: true, sendEmail: false }
   generatePassword()
+  resetPasswordDraft()
 }
 
 function openFamilyPassword(account: FamilyAccount) {
+  if (passwordSaving.value || isFamilyPending(account.id)) return
   actionError.value = ''
   actionNotice.value = ''
+  passwordSaveFailed.value = false
   passwordDialog.value = { mode: 'family', account }
   passwordForm.value = {
     password: account.plaintext || '',
@@ -651,11 +815,14 @@ function openFamilyPassword(account: FamilyAccount) {
     sendEmail: false
   }
   if (!passwordForm.value.password) generatePassword()
+  resetPasswordDraft()
 }
 
 function closePasswordDialog() {
   if (passwordSaving.value) return
   passwordDialog.value = null
+  passwordSaveFailed.value = false
+  resetPasswordDraft()
 }
 
 function generatePassword() {
@@ -665,28 +832,66 @@ function generatePassword() {
 }
 
 async function savePasswordDialog() {
-  if (!passwordDialog.value) return
+  if (!passwordDialog.value || passwordSaving.value) return
   passwordSaving.value = true
   actionError.value = ''
   actionNotice.value = ''
+  const dialog = { ...passwordDialog.value }
+  const previousRows = cloneFamilyRows()
+  const previousSelectedId = selected.value?.id
+  const targetIds = dialog.mode === 'family' && dialog.account?.id
+    ? [Number(dialog.account.id)]
+    : previousRows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id) && id > 0)
+  const key = dialog.mode === 'family' && dialog.account?.id ? familyKey(dialog.account.id) : `family-passwords:${Date.now()}`
+  const label = dialog.mode === 'family' && dialog.account ? familyDisplayName(dialog.account) : `${targetIds.length} familias`
+  const body: Record<string, unknown> = {
+    sala: salaId,
+    password: passwordForm.value.password,
+    passwordCanChange: passwordForm.value.passwordCanChange,
+    sendEmail: passwordForm.value.sendEmail
+  }
+  if (dialog.mode === 'family' && dialog.account?.id) body.userId = dialog.account.id
+
+  familyRevision += 1
+  if (dialog.mode === 'sala') {
+    bulkStatusKeyByFamily.value = {
+      ...bulkStatusKeyByFamily.value,
+      ...Object.fromEntries(targetIds.map((id) => [id, key]))
+    }
+  }
+  setFamilyRows((data.value?.rows || []).map((row) => targetIds.includes(Number(row.id))
+    ? { ...row, plaintext: passwordForm.value.password, passwordCanChange: passwordForm.value.passwordCanChange }
+    : row))
+  if (selected.value?.id && targetIds.includes(Number(selected.value.id))) {
+    selected.value = (data.value?.rows || []).find((row) => row.id === selected.value?.id) || selected.value
+  }
+  passwordDialog.value = null
+  markPending(key, label, {
+    detail: dialog.mode === 'sala' ? 'Actualizando las contraseñas de la sala.' : 'Actualizando la contraseña familiar.'
+  })
+
   try {
-    const body: Record<string, unknown> = {
-      sala: salaId,
-      password: passwordForm.value.password,
-      passwordCanChange: passwordForm.value.passwordCanChange,
-      sendEmail: passwordForm.value.sendEmail
-    }
-    if (passwordDialog.value.mode === 'family' && passwordDialog.value.account?.id) body.userId = passwordDialog.value.account.id
     const result = await $fetch<{ updated: number; emailed: number; skipped: number; rows?: FamilyAccount[] }>('/api/daycare/admin/family-passwords', { method: 'POST', body })
-    await refresh()
-    if (passwordDialog.value.mode === 'family' && passwordDialog.value.account?.id) {
-      selected.value = (data.value?.rows || []).find((account) => account.id === passwordDialog.value?.account?.id) || selected.value
+    if (result.rows?.length) {
+      const resultById = new Map(result.rows.map((row) => [Number(row.id), row]))
+      setFamilyRows((data.value?.rows || []).map((row) => resultById.has(Number(row.id)) ? { ...row, ...resultById.get(Number(row.id)) } : row))
     }
-    actionNotice.value = passwordDialog.value.mode === 'sala'
+    if (selected.value?.id) selected.value = (data.value?.rows || []).find((row) => row.id === selected.value?.id) || selected.value
+    markDone(key, label, {
+      detail: result.emailed ? `Cambio confirmado y ${result.emailed} correo${result.emailed === 1 ? '' : 's'} enviado${result.emailed === 1 ? '' : 's'}.` : 'El servidor confirmó el cambio.'
+    })
+    actionNotice.value = dialog.mode === 'sala'
       ? `Contraseña actualizada para ${result.updated} familias${result.emailed ? ` · ${result.emailed} correos enviados` : ''}.`
       : `Contraseña familiar actualizada${result.emailed ? ' y enviada.' : '.'}`
-    passwordDialog.value = null
+    passwordSaveFailed.value = false
+    resetPasswordDraft()
+    refreshFamiliesInBackground(previousSelectedId)
   } catch (err: any) {
+    restorePasswordFields(previousRows, targetIds)
+    if (selected.value?.id) selected.value = (data.value?.rows || []).find((row) => row.id === selected.value?.id) || selected.value
+    passwordDialog.value = dialog
+    passwordSaveFailed.value = true
+    markError(key, label, { detail: 'No se actualizó; restauramos las contraseñas anteriores.' })
     actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible guardar la contraseña.'
   } finally {
     passwordSaving.value = false
@@ -694,21 +899,120 @@ async function savePasswordDialog() {
 }
 
 async function sendAccessEmail(account: FamilyAccount) {
-  if (!account.id) return
+  if (!account.id || isFamilyPending(account.id)) return
   emailingId.value = Number(account.id)
   actionError.value = ''
   actionNotice.value = ''
+  const key = familyKey(account.id)
+  const label = familyDisplayName(account)
+  markPending(key, label, { detail: 'Enviando el acceso familiar por correo.' })
   try {
     const result = await $fetch<{ emailed: number }>('/api/daycare/admin/family-access-email', {
       method: 'POST',
       body: { sala: salaId, userIds: [account.id] }
     })
+    markDone(key, label, { detail: result.emailed ? 'El correo de acceso fue enviado.' : 'El servidor terminó sin enviar correos.' })
     actionNotice.value = result.emailed ? 'Acceso enviado por correo.' : 'No se envió ningún correo.'
   } catch (err: any) {
+    markError(key, label, { detail: 'No fue posible enviar el acceso.' })
     actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || err?.statusMessage || 'No fue posible enviar el acceso.'
   } finally {
     emailingId.value = null
   }
+}
+
+function cloneFamilyRows() {
+  return (data.value?.rows || []).map((row) => ({ ...row, roster: row.roster ? { ...row.roster } : row.roster }))
+}
+
+function setFamilyRows(rows: FamilyAccount[]) {
+  if (data.value) data.value.rows = rows
+}
+
+function buildOptimisticFamily(payload: Partial<FamilyAccount>, id: number): FamilyAccount {
+  const existing = (data.value?.rows || []).find((row) => row.id === id)
+  return {
+    ...existing,
+    ...payload,
+    id,
+    nombre_nino: payload.nombre_nino ?? existing?.nombre_nino ?? '',
+    username: String(payload.username || existing?.username || ''),
+    email: String(payload.email || existing?.email || ''),
+    plaintext: payload.plaintext ?? existing?.plaintext ?? null,
+    passwordCanChange: payload.passwordCanChange ?? existing?.passwordCanChange ?? true,
+    role: payload.role || existing?.role || DAYCARE_FAMILY_ROLE,
+    unidad: String(payload.unidad || existing?.unidad || data.value?.sala?.unidad || 'Guardería'),
+    sala: String(salaId),
+    roster: existing?.roster || null
+  }
+}
+
+function upsertLocalFamily(account: FamilyAccount, append = false) {
+  const rows = data.value?.rows || []
+  if (rows.some((row) => row.id === account.id)) {
+    setFamilyRows(rows.map((row) => row.id === account.id ? account : row))
+    return
+  }
+  setFamilyRows(append ? [...rows, account] : [account, ...rows])
+}
+
+function replaceLocalFamily(id: number, account: FamilyAccount) {
+  setFamilyRows((data.value?.rows || []).map((row) => row.id === id ? account : row))
+}
+
+function removeLocalFamily(id: number) {
+  setFamilyRows((data.value?.rows || []).filter((row) => row.id !== id))
+}
+
+function restoreLocalFamily(account: FamilyAccount, index: number) {
+  const rows = (data.value?.rows || []).filter((row) => row.id !== account.id)
+  const targetIndex = Math.max(0, Math.min(index, rows.length))
+  setFamilyRows([...rows.slice(0, targetIndex), account, ...rows.slice(targetIndex)])
+}
+
+function restorePasswordFields(previousRows: FamilyAccount[], targetIds: number[]) {
+  const previousById = new Map(previousRows.map((row) => [Number(row.id), row]))
+  setFamilyRows((data.value?.rows || []).map((row) => {
+    const id = Number(row.id)
+    const previous = previousById.get(id)
+    if (!targetIds.includes(id) || !previous) return row
+    return { ...row, plaintext: previous.plaintext, passwordCanChange: previous.passwordCanChange }
+  }))
+}
+
+function refreshFamiliesInBackground(selectedId?: number) {
+  const revision = familyRevision
+  void $fetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
+    query: { sala: salaId },
+    timeout: 15000
+  }).then((response) => {
+    if (revision !== familyRevision) return
+    const currentSelectedId = selected.value?.id
+    data.value = response
+    const nextSelectedId = currentSelectedId && currentSelectedId > 0 ? currentSelectedId : selectedId
+    selected.value = nextSelectedId
+      ? response.rows.find((row) => row.id === nextSelectedId) || response.rows[0] || null
+      : response.rows[0] || null
+  }).catch(() => undefined)
+}
+
+function familyDisplayName(account: Partial<FamilyAccount>) {
+  return account.nombre_nino || accountLabel(account.username) || account.email || 'Cuenta familiar'
+}
+
+function familyKey(id?: number) {
+  return `family:${id || 'unknown'}`
+}
+
+function familyStatus(id?: number) {
+  if (!id) return undefined
+  const bulkKey = bulkStatusKeyByFamily.value[id]
+  return getStatus(familyKey(id)) || (bulkKey ? getStatus(bulkKey) : undefined)
+}
+
+function isFamilyPending(id?: number) {
+  const status = familyStatus(id)
+  return status?.state === 'pending'
 }
 
 function impersonationButtonLabel(userId?: number) {
@@ -1586,4 +1890,24 @@ function initials(value?: string | null) {
   }
 }
 
+
+
+.compact-alert { margin: 0 0 12px; }
+
+.family-row-tail {
+  align-items: flex-end;
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+}
+
+.family-row.syncing {
+  background: #f5faff;
+  border-color: rgba(23, 93, 135, 0.2);
+}
+
+.family-row.failed {
+  background: #fff7f8;
+  border-color: rgba(167, 25, 53, 0.2);
+}
 </style>

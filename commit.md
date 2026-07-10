@@ -1,1 +1,1 @@
-Corrige la carga y el encabezado de asistencia
+Implementa estados optimistas y protege borradores en modales de guardería

@@ -93,7 +93,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useDraftState } from '~/composables/useDraftState'
 import type { DaycareResource } from '~/types/daycare'
 import { isPdfResource, publishedPdfViewerUrl } from '~/utils/daycare'
 
@@ -101,6 +102,7 @@ type ResourceType = 'hw' | 'news' | 'cal'
 
 const props = defineProps<{
   resource: Partial<DaycareResource>
+  baselineResource?: Partial<DaycareResource>
   label: string
   type: ResourceType
   salaId: number
@@ -112,6 +114,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   save: [payload: Partial<DaycareResource>]
   cancel: []
+  'dirty-change': [dirty: boolean]
 }>()
 
 const model = reactive<Partial<DaycareResource>>({ ...props.resource, type: props.resource.type || props.type })
@@ -142,14 +145,42 @@ const uploadState = computed(() => {
   if (model.resource) return 'ready'
   return selectedFile.value ? 'selected' : 'empty'
 })
+const draftSnapshot = computed(() => resourceDraftSnapshot(model, selectedFile.value))
+const { isDirty, resetDraft } = useDraftState(draftSnapshot)
 
-watch(() => props.resource, (resource) => {
+resetDraft(resourceDraftSnapshot(props.baselineResource || props.resource))
+watch(isDirty, (dirty) => emit('dirty-change', dirty), { immediate: true })
+
+watch([() => props.resource, () => props.baselineResource], async ([resource, baseline]) => {
+  for (const key of Object.keys(model)) delete (model as Record<string, unknown>)[key]
   Object.assign(model, resource, { type: resource.type || props.type })
   selectedFile.value = null
   selectedFileName.value = ''
   uploadedFileName.value = resource.resource ? String(resource.resource).split('/').pop() || '' : ''
   uploadError.value = ''
+  await nextTick()
+  resetDraft(resourceDraftSnapshot(baseline || resource))
 }, { deep: true })
+
+
+function resourceDraftSnapshot(resource: Partial<DaycareResource>, file?: File | null) {
+  return {
+    id: resource.id || null,
+    title: resource.title || '',
+    description: resource.description || '',
+    type: resource.type || props.type,
+    date: resource.date || '',
+    resource: resource.resource || '',
+    starred: Boolean(resource.starred),
+    hidden: isHidden(resource.hidden),
+    selectedFile: file ? {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    } : null
+  }
+}
 
 function selectFile(event: Event) {
   const input = event.target as HTMLInputElement

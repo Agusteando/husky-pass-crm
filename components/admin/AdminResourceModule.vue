@@ -1,6 +1,7 @@
 <template>
   <section class="resource-module stack" data-product-area="daycare" :data-product-screen="type">
     <AdminModuleTabs :sala-id="salaId" :unidad="data?.sala?.unidad" :sala-name="data?.sala?.sala" />
+    <AdminProcessingTray :items="syncEntries" />
 
     <header class="module-hero">
       <div>
@@ -22,7 +23,7 @@
           <option value="with">Con archivo</option>
           <option value="without">Sin archivo</option>
         </select>
-        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" @click="startCreate()">{{ actionLabel }}</button>
+        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" :disabled="saving" @click="startCreate()">{{ actionLabel }}</button>
       </div>
     </header>
 
@@ -32,19 +33,25 @@
       eyebrow="Guardería"
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="saving"
+      :dirty="resourceDraftDirty"
       @close="closeEditor"
     >
-      <ResourceEditor
-        :resource="editing"
-        :label="title"
-        :type="type"
-        :sala-id="salaId"
-        :sala-name="data?.sala?.sala"
-        :unidad="data?.sala?.unidad"
-        :saving="saving"
-        @save="save"
-        @cancel="closeEditor"
-      />
+      <template #default="{ requestClose }">
+        <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
+        <ResourceEditor
+          :resource="editing"
+          :baseline-resource="editingBaseline || undefined"
+          :label="title"
+          :type="type"
+          :sala-id="salaId"
+          :sala-name="data?.sala?.sala"
+          :unidad="data?.sala?.unidad"
+          :saving="saving"
+          @save="save"
+          @cancel="requestClose"
+          @dirty-change="resourceDraftDirty = $event"
+        />
+      </template>
     </AdminModal>
 
 
@@ -90,7 +97,7 @@
             v-for="item in filteredRows"
             :key="item.id"
             class="resource-row"
-            :class="{ active: selected?.id === item.id, hidden: isHiddenResource(item.hidden) }"
+            :class="{ active: selected?.id === item.id, hidden: isHiddenResource(item.hidden), syncing: resourceStatus(item.id)?.state === 'pending', failed: resourceStatus(item.id)?.state === 'error' }"
             type="button"
             data-diagnostic-action="seleccionar-recurso"
             :aria-pressed="selected?.id === item.id"
@@ -102,6 +109,7 @@
               <small>{{ stripHtml(item.description) || 'Sin descripción' }}</small>
             </span>
             <span class="row-status">
+              <AdminSyncCue v-if="resourceStatus(item.id)" :status="resourceStatus(item.id)" compact />
               <strong :class="isHiddenResource(item.hidden) ? 'status-hidden' : 'status-published'">{{ isHiddenResource(item.hidden) ? 'Oculta' : 'Publicada' }}</strong>
               <small>{{ item.resource ? 'Adjunto' : 'Sin adjunto' }}</small>
             </span>
@@ -115,6 +123,7 @@
           <div class="notice-preview">
             <span class="notice-date">{{ compactDate(selected.date || selected.timestamp) }}</span>
             <span class="scope-pill" :class="{ muted: isHiddenResource(selected.hidden) }">{{ isHiddenResource(selected.hidden) ? 'Oculta' : 'Publicada' }}</span>
+            <AdminSyncCue v-if="resourceStatus(selected.id)" :status="resourceStatus(selected.id)" />
             <h2>{{ selected.title || 'Sin título' }}</h2>
             <p>{{ stripHtml(selected.description) || 'Sin descripción.' }}</p>
           </div>
@@ -128,9 +137,9 @@
 
           <div class="preview-actions">
             <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener" data-diagnostic-link="abrir-recurso">Abrir recurso</a>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" @click="editing = { ...selected }">Editar</button>
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
-            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" @click="openDeleteDialog(selected)">Eliminar</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" :disabled="isResourcePending(selected.id)" @click="openEditor(selected)">Editar</button>
+            <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" :disabled="isResourcePending(selected.id)" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
+            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" :disabled="isResourcePending(selected.id)" @click="openDeleteDialog(selected)">Eliminar</button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una publicación" />
@@ -140,13 +149,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
 import ResourceEditor from '~/components/admin/ResourceEditor.vue'
 import AdminModuleTabs from '~/components/admin/AdminModuleTabs.vue'
 import AdminModal from '~/components/admin/AdminModal.vue'
+import AdminProcessingTray from '~/components/admin/AdminProcessingTray.vue'
+import AdminSyncCue from '~/components/admin/AdminSyncCue.vue'
 import EmptyState from '~/components/EmptyState.vue'
 import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
+import { useOptimisticStatus } from '~/composables/useOptimisticStatus'
 import type { DaycareResource, Sala } from '~/types/daycare'
 import { daycareResourceSection, formatDate, isHiddenResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
@@ -161,6 +173,8 @@ const route = useRoute()
 const router = useRouter()
 const salaId = Number(route.params.id)
 const editing = ref<Partial<DaycareResource> | null>(null)
+const editingBaseline = ref<Partial<DaycareResource> | null>(null)
+const resourceDraftDirty = ref(false)
 const selected = ref<DaycareResource | null>(null)
 const saving = ref(false)
 const deleting = ref(false)
@@ -172,8 +186,19 @@ const actionError = ref('')
 const actionNotice = ref('')
 const selectedIdFromRoute = computed(() => Number(route.query.registro || 0))
 const createRequested = ref(isCreateQuery(route.query.create) || (import.meta.client && new URLSearchParams(window.location.search).get('create') === '1'))
+let optimisticId = -1
 
-const { data, refresh, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
+const {
+  entries: syncEntries,
+  getStatus,
+  isPending,
+  markPending,
+  markDone,
+  markError,
+  moveStatus
+} = useOptimisticStatus()
+
+const { data, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: props.type },
   timeout: 15000
 })
@@ -244,10 +269,11 @@ watch(() => route.query.create, (value) => {
 }, { immediate: true })
 
 function startCreate(updateRoute = true) {
+  if (saving.value) return
   createRequested.value = true
   actionError.value = ''
   actionNotice.value = ''
-  editing.value = {
+  const draft: Partial<DaycareResource> = {
     sala: String(salaId),
     unidad: data.value?.sala.unidad,
     type: props.type,
@@ -257,13 +283,34 @@ function startCreate(updateRoute = true) {
     starred: 0,
     hidden: 0
   }
+  editing.value = { ...draft }
+  editingBaseline.value = { ...draft }
+  resourceDraftDirty.value = false
   if (updateRoute) syncSelectedQuery(undefined, { create: '1' })
+}
+
+function openEditor(item: DaycareResource) {
+  if (saving.value || isResourcePending(item.id)) return
+  actionError.value = ''
+  actionNotice.value = ''
+  editing.value = { ...item }
+  editingBaseline.value = { ...item }
+  resourceDraftDirty.value = false
 }
 
 function closeEditor() {
   createRequested.value = false
   editing.value = null
+  editingBaseline.value = null
+  resourceDraftDirty.value = false
   actionError.value = ''
+  if (isCreateQuery(route.query.create)) syncSelectedQuery(selected.value?.id)
+}
+
+function dismissEditorForSave() {
+  createRequested.value = false
+  editing.value = null
+  resourceDraftDirty.value = false
   if (isCreateQuery(route.query.create)) syncSelectedQuery(selected.value?.id)
 }
 
@@ -275,57 +322,119 @@ function selectRow(item: DaycareResource) {
 }
 
 async function save(payload: Partial<DaycareResource>) {
+  if (saving.value) return
   saving.value = true
   actionError.value = ''
   actionNotice.value = ''
+
+  const previousRows = cloneRows()
+  const previousSelectedId = selected.value?.id
+  const baselineBeforeSave = editingBaseline.value ? { ...editingBaseline.value } : null
+  const requestPayload: Partial<DaycareResource> = {
+    ...payload,
+    sala: String(salaId),
+    type: payload.type || props.type
+  }
+  const isUpdate = Boolean(payload.id && Number(payload.id) > 0)
+  const localId = isUpdate ? Number(payload.id) : optimisticId--
+  const optimistic = buildOptimisticResource(requestPayload, localId)
+  const key = resourceKey(localId)
+
+  upsertLocalResource(optimistic, !isUpdate)
+  selected.value = optimistic
+  dismissEditorForSave()
+  markPending(key, optimistic.title || props.title, {
+    detail: isUpdate ? 'Guardando cambios en segundo plano.' : 'Creando la publicación en segundo plano.'
+  })
+
   try {
     const saved = await $fetch<DaycareResource>('/api/daycare/admin/resources', {
       method: 'POST',
-      body: { ...payload, sala: String(salaId), type: payload.type || props.type }
+      body: requestPayload
     })
-    editing.value = null
-    createRequested.value = false
+
+    const savedId = Number(saved.id)
+    if (!Number.isInteger(savedId) || savedId <= 0) throw new Error('El servidor no devolvió el identificador de la publicación.')
+    const savedKey = resourceKey(savedId)
+    const savedItemStillSelected = selected.value?.id === localId
+    moveStatus(key, savedKey)
+
     if (saved.type && saved.type !== props.type) {
+      removeLocalResource(localId)
+      markDone(savedKey, saved.title || optimistic.title, { detail: 'La publicación quedó guardada en su categoría.' })
       const section = daycareResourceSection(saved.type)
-      if (section) {
-        const query = route.query.unidad ? { unidad: String(route.query.unidad), registro: String(saved.id) } : { registro: String(saved.id) }
-        await router.replace({ path: `/admin/daycare/salas/${salaId}/${section}`, query })
-        actionNotice.value = 'Publicación creada en otra categoría.'
-        return
+      if (section && savedItemStillSelected) {
+        const query = route.query.unidad ? { unidad: String(route.query.unidad), registro: String(savedId) } : { registro: String(savedId) }
+        void router.replace({ path: `/admin/daycare/salas/${salaId}/${section}`, query }).catch(() => {
+          actionError.value = 'La publicación se guardó, pero no fue posible abrir su categoría automáticamente.'
+        })
       }
+      editingBaseline.value = null
+      return
     }
-    await refresh()
-    await nextTick()
-    const row = (data.value?.rows || []).find((item) => item.id === saved.id)
-    selected.value = row || selected.value
-    syncSelectedQuery(saved.id)
-    actionNotice.value = saved.id === payload.id ? 'Publicación actualizada.' : 'Publicación creada.'
+
+    const confirmed = { ...optimistic, ...saved, id: savedId } as DaycareResource
+    replaceLocalResource(localId, confirmed)
+    if (savedItemStillSelected) {
+      selected.value = confirmed
+      syncSelectedQuery(savedId)
+    }
+    editingBaseline.value = null
+    markDone(savedKey, confirmed.title || props.title, { detail: 'El servidor confirmó el cambio.' })
+    actionNotice.value = isUpdate ? 'Publicación actualizada.' : 'Publicación creada.'
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible guardar la publicación.'
+    const previousItem = previousRows.find((row) => row.id === localId)
+    if (previousItem) replaceLocalResource(localId, previousItem)
+    else removeLocalResource(localId)
+    if (selected.value?.id === localId) {
+      selected.value = previousSelectedId
+        ? (data.value?.rows || []).find((row) => row.id === previousSelectedId) || previousItem || null
+        : previousItem || null
+      syncSelectedQuery(selected.value?.id)
+    }
+    editing.value = { ...payload }
+    editingBaseline.value = baselineBeforeSave
+    resourceDraftDirty.value = true
+    markError(key, optimistic.title || props.title, { detail: 'No se guardó; restauramos el estado anterior.' })
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible guardar la publicación.'
   } finally {
     saving.value = false
   }
 }
 
 async function togglePublished(item: DaycareResource) {
-  if (!item.id) return
+  if (!item.id || isResourcePending(item.id)) return
   actionError.value = ''
   actionNotice.value = ''
+  const previous = { ...item }
+  const wasSelected = selected.value?.id === item.id
   const willHide = !isHiddenResource(item.hidden)
+  const optimistic = { ...item, hidden: willHide ? 1 : 0 }
+  const key = resourceKey(item.id)
+
+  replaceLocalResource(item.id, optimistic)
+  if (wasSelected) selected.value = optimistic
+  markPending(key, item.title || props.title, {
+    detail: willHide ? 'Ocultando la publicación para familias.' : 'Publicando para las familias.'
+  })
+
   try {
     await $fetch(`/api/daycare/admin/resources/${item.id}`, {
       method: 'PATCH',
       body: { hidden: willHide }
     })
-    await refresh()
+    markDone(key, item.title || props.title, { detail: willHide ? 'La publicación quedó oculta.' : 'La publicación ya está visible.' })
     actionNotice.value = willHide ? 'Publicación oculta para familias.' : 'Publicación visible para familias.'
   } catch (err: any) {
+    replaceLocalResource(item.id, previous)
+    if (selected.value?.id === item.id) selected.value = previous
+    markError(key, item.title || props.title, { detail: 'No se cambió la visibilidad.' })
     actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible cambiar la visibilidad.'
   }
 }
 
 function openDeleteDialog(item: DaycareResource | null) {
-  if (!item?.id) return
+  if (!item?.id || isResourcePending(item.id)) return
   actionError.value = ''
   actionNotice.value = ''
   deleteDialog.value = item
@@ -337,23 +446,100 @@ function closeDeleteDialog() {
 }
 
 async function confirmDelete() {
-  const id = deleteDialog.value?.id
-  if (!id) return
+  const item = deleteDialog.value
+  const id = item?.id
+  if (!item || !id || deleting.value) return
   deleting.value = true
   actionError.value = ''
   actionNotice.value = ''
+  const previousRows = cloneRows()
+  const originalIndex = previousRows.findIndex((row) => row.id === id)
+  const wasSelected = selected.value?.id === id
+  const key = resourceKey(id)
+
+  deleteDialog.value = null
+  removeLocalResource(id)
+  if (wasSelected) selected.value = filteredRows.value[0] || null
+  syncSelectedQuery(selected.value?.id)
+  markPending(key, item.title || props.title, { detail: 'Eliminando la publicación en segundo plano.' })
+
   try {
     await $fetch(`/api/daycare/admin/resources/${id}`, { method: 'DELETE' })
-    if (selected.value?.id === id) selected.value = null
-    deleteDialog.value = null
-    syncSelectedQuery(undefined)
-    await refresh()
+    markDone(key, item.title || props.title, { detail: 'La publicación quedó eliminada.' })
     actionNotice.value = 'Publicación eliminada.'
   } catch (err: any) {
-    actionError.value = err?.data?.statusMessage || err?.statusMessage || 'No fue posible eliminar la publicación.'
+    restoreLocalResource(item, originalIndex)
+    if (!selected.value) selected.value = item
+    syncSelectedQuery(selected.value?.id)
+    markError(key, item.title || props.title, { detail: 'No se eliminó; restauramos la publicación.' })
+    actionError.value = err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible eliminar la publicación.'
   } finally {
     deleting.value = false
   }
+}
+
+function cloneRows() {
+  return (data.value?.rows || []).map((row) => ({ ...row }))
+}
+
+function setResourceRows(rows: DaycareResource[]) {
+  if (data.value) data.value.rows = rows
+}
+
+function buildOptimisticResource(payload: Partial<DaycareResource>, id: number): DaycareResource {
+  const existing = (data.value?.rows || []).find((row) => row.id === id)
+  return {
+    ...existing,
+    ...payload,
+    id,
+    title: String(payload.title || existing?.title || 'Sin título'),
+    description: payload.description ?? existing?.description ?? '',
+    date: payload.date ?? existing?.date ?? null,
+    timestamp: payload.timestamp || existing?.timestamp || new Date().toISOString(),
+    resource: payload.resource ?? existing?.resource ?? null,
+    autor: payload.autor ?? existing?.autor ?? null,
+    unidad: String(payload.unidad || existing?.unidad || data.value?.sala?.unidad || 'Guardería'),
+    sala: String(salaId),
+    type: payload.type || existing?.type || props.type,
+    starred: payload.starred ? 1 : 0,
+    hidden: isHiddenResource(payload.hidden) ? 1 : 0
+  }
+}
+
+function upsertLocalResource(item: DaycareResource, prepend = false) {
+  const rows = data.value?.rows || []
+  const index = rows.findIndex((row) => row.id === item.id)
+  if (index >= 0) {
+    setResourceRows(rows.map((row) => row.id === item.id ? item : row))
+    return
+  }
+  setResourceRows(prepend ? [item, ...rows] : [...rows, item])
+}
+
+function replaceLocalResource(id: number, item: DaycareResource) {
+  setResourceRows((data.value?.rows || []).map((row) => row.id === id ? item : row))
+}
+
+function removeLocalResource(id: number) {
+  setResourceRows((data.value?.rows || []).filter((row) => row.id !== id))
+}
+
+function restoreLocalResource(item: DaycareResource, index: number) {
+  const rows = (data.value?.rows || []).filter((row) => row.id !== item.id)
+  const targetIndex = Math.max(0, Math.min(index, rows.length))
+  setResourceRows([...rows.slice(0, targetIndex), item, ...rows.slice(targetIndex)])
+}
+
+function resourceKey(id?: number) {
+  return `resource:${id || 'unknown'}`
+}
+
+function resourceStatus(id?: number) {
+  return id ? getStatus(resourceKey(id)) : undefined
+}
+
+function isResourcePending(id?: number) {
+  return Boolean(id && isPending(resourceKey(id)))
 }
 
 function resourceHref(resource?: string | null) {
@@ -378,7 +564,7 @@ function syncQuery() {
 function syncSelectedQuery(id?: number, extra: Record<string, string> = {}) {
   const nextQuery = { ...route.query, ...extra }
   if (!Object.prototype.hasOwnProperty.call(extra, 'create')) delete nextQuery.create
-  setQueryValue(nextQuery, 'registro', id ? String(id) : '')
+  setQueryValue(nextQuery, 'registro', id && id > 0 ? String(id) : '')
   replaceQueryIfChanged(nextQuery)
 }
 
@@ -809,4 +995,22 @@ function isCreateQuery(value: unknown) {
   justify-content: flex-end;
 }
 
+
+
+.compact-alert { margin: 0 0 12px; }
+
+.resource-row.syncing {
+  background: #f5faff;
+  border-color: rgba(23, 93, 135, 0.2);
+}
+
+.resource-row.failed {
+  background: #fff7f8;
+  border-color: rgba(167, 25, 53, 0.2);
+}
+
+.row-status :deep(.sync-cue) {
+  justify-self: end;
+  margin-bottom: 2px;
+}
 </style>
