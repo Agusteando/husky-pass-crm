@@ -51,7 +51,7 @@ export default defineNuxtConfig({
       ciclo: process.env.AURORA_CICLO || process.env.HUSKY_PASS_AURORA_CICLO || ''
     },
     externalUpload: {
-      url: process.env.EXPEDIENTE_UPLOAD_URL || 'https://expediente.casitaapps.com'
+      url: process.env.EXPEDIENTE_UPLOAD_URL || 'https://expediente.casitaapps.com/upload.ashx'
     },
     passwordRecovery: {
       baseUrl: process.env.PASSWORD_RECOVERY_BASE_URL || '',

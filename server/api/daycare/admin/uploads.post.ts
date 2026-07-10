@@ -3,7 +3,7 @@ import { publicError } from '~/server/utils/httpError'
 import { requireSession } from '~/server/utils/session'
 import { assertDaycareAdmin } from '~/server/utils/authz'
 import { getSalaById } from '~/server/data/mysqlDaycare'
-import { externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
+import { uploadToExternalService } from '~/server/utils/externalUpload'
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
@@ -23,7 +23,6 @@ export default defineEventHandler(async (event) => {
   return uploadToExternalService(
     { data: filePart.data, filename: filePart.filename, type: filePart.type },
     {
-      folder: externalUploadFolder('daycare-resource', sala.unidad, `sala-${sala.id}`),
       maxBytes: 8 * 1024 * 1024,
       accept: 'imagesAndDocuments',
       filenamePrefix: `recurso-sala-${sala.id}`

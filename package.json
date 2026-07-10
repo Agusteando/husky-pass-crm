@@ -31,6 +31,7 @@
     "verify:husky-pass": "node scripts/husky-pass-visual-verify.mjs",
     "verify:requests": "node scripts/verify-requests.mjs",
     "verify:logs": "node scripts/verify-logs.mjs",
+    "verify:uploads": "node scripts/verify-external-upload.mjs",
     "verify:mysql": "node scripts/mysql-sibling-indexes.mjs verify",
     "mysql:siblings:explain": "node scripts/mysql-sibling-indexes.mjs explain",
     "dev:password-recovery": "node scripts/password-recovery-dev.mjs",

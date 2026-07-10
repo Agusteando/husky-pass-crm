@@ -1,1 +1,1 @@
-Corrige de raíz el encabezado de asistencia con un componente adaptable
+Corrige la carga externa de archivos en toda la plataforma

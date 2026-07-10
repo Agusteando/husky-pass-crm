@@ -3,7 +3,7 @@ import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { assertRegistrationAntibot } from '~/server/utils/antibot'
 import { registerDaycareFamily, resolveDaycareRegistrationLink } from '~/server/data/daycareRegistration'
-import { externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
+import { uploadToExternalService } from '~/server/utils/externalUpload'
 import { sendDaycareAccessEmail } from '~/server/utils/daycareAccessEmail'
 import { logSecurityDiagnostic, securityHash } from '~/server/utils/securityDiagnostics'
 
@@ -62,7 +62,6 @@ export default defineEventHandler(async (event) => {
     const uploaded = await uploadToExternalService(
       { data: filePart.data, filename: filePart.filename, type: filePart.type },
       {
-        folder: externalUploadFolder('daycare-registration', unidad || 'unidad', `sala-${salaId}`),
         maxBytes: 4 * 1024 * 1024,
         accept: 'images',
         filenamePrefix: 'foto-familia'

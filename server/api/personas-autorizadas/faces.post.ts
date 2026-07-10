@@ -2,7 +2,7 @@ import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { requireSession } from '~/server/utils/session'
 import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
-import { dataUrlToUploadFile, externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
+import { dataUrlToUploadFile, uploadToExternalService } from '~/server/utils/externalUpload'
 import { withRequestBoundary } from '~/server/utils/logger'
 
 const schema = z.object({
@@ -17,7 +17,6 @@ export default defineEventHandler(async (event) => {
     const body = schema.parse(await readBody(event))
     const file = dataUrlToUploadFile(body.src, body.personaId ? `persona-${body.personaId}` : 'persona-nueva')
     return uploadToExternalService(file, {
-      folder: externalUploadFolder('personas-face', user.id),
       maxBytes: 2 * 1024 * 1024,
       accept: 'images',
       filenamePrefix: body.personaId ? `persona-${body.personaId}` : 'persona-nueva'

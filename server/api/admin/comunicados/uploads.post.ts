@@ -1,7 +1,7 @@
 import { defineEventHandler, readMultipartFormData } from 'h3'
 import { requireSession } from '~/server/utils/session'
 import { assertSchoolAdmin } from '~/server/utils/authz'
-import { externalUploadFolder, uploadToExternalService } from '~/server/utils/externalUpload'
+import { uploadToExternalService } from '~/server/utils/externalUpload'
 import { normalizeCommunicationAttachment } from '~/server/data/communications'
 import { publicError } from '~/server/utils/httpError'
 
@@ -15,7 +15,6 @@ export default defineEventHandler(async (event) => {
   const uploaded = await uploadToExternalService(
     { data: filePart.data, filename: filePart.filename, type: filePart.type },
     {
-      folder: externalUploadFolder('comunicados', user.plantel?.[0] || user.unidades?.[0] || 'institucional'),
       maxBytes: 12 * 1024 * 1024,
       accept: 'imagesAndDocuments',
       filenamePrefix: 'comunicado'

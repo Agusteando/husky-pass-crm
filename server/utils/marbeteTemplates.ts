@@ -10,6 +10,7 @@ import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { runtimeDataDir } from '~/server/utils/serverlessPaths'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
+import { uploadToExternalService } from '~/server/utils/externalUpload'
 
 const TEMPLATE_DIR = runtimeDataDir('marbete-templates')
 const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
@@ -44,10 +45,6 @@ function escapeXml(value?: string | number | null) {
     .replace(/'/g, '&apos;')
 }
 
-function filenameFor(id: string) {
-  return `${id || `template-${Date.now()}`}.svg`
-}
-
 function normalizeTemplatePlanteles(values?: unknown[] | null): string[] {
   if (!Array.isArray(values)) return []
   const planteles: string[] = []
@@ -67,6 +64,7 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMe
     id: String(row.id),
     name: String(row.name || row.id),
     filename: String(row.filename),
+    url: /^https?:\/\//i.test(String(row.url || '')) ? String(row.url) : undefined,
     themeKey,
     nivel: String(row.nivel || ''),
     planteles: normalizeTemplatePlanteles(row.planteles),
@@ -125,10 +123,20 @@ export function marbeteTemplateThemes() {
 
 export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   let svg: string
-  try {
-    svg = await readFile(join(TEMPLATE_DIR, template.filename), 'utf8')
-  } catch {
-    svg = await readBundledTemplateSvg(template.filename)
+  if (template.url) {
+    try {
+      const response = await fetch(template.url, { signal: AbortSignal.timeout(30000) })
+      if (!response.ok) throw new Error(`Upload service responded ${response.status}`)
+      svg = await response.text()
+    } catch {
+      throw publicError(502, 'No fue posible leer la plantilla SVG del expediente externo.')
+    }
+  } else {
+    try {
+      svg = await readFile(join(TEMPLATE_DIR, template.filename), 'utf8')
+    } catch {
+      svg = await readBundledTemplateSvg(template.filename)
+    }
   }
   if (!svg) throw publicError(404, `No se encontro la plantilla SVG ${template.filename}.`)
   if (!svg.includes('<svg')) throw publicError(422, 'La plantilla SVG no es valida.')
@@ -174,14 +182,23 @@ export async function saveMarbeteTemplate(input: {
     throw publicError(400, 'Agrega un archivo SVG para crear la plantilla.')
   }
 
-  const filename = input.file?.data?.length ? filenameFor(`${safeId(baseId)}-${Date.now()}`) : existing?.filename || filenameFor(safeId(baseId))
+  let filename = existing?.filename || ''
+  let url = existing?.url
   if (input.file?.data?.length) {
     const sourceName = String(input.file.filename || '')
     if (!sourceName.toLowerCase().endsWith('.svg')) throw publicError(415, 'La plantilla debe ser SVG.')
     const text = input.file.data.toString('utf8')
     if (!text.includes('<svg')) throw publicError(422, 'El archivo no parece ser una plantilla SVG valida.')
-    await ensureTemplateDir()
-    await writeFile(join(TEMPLATE_DIR, filename), input.file.data)
+    const uploaded = await uploadToExternalService(
+      { data: input.file.data, filename: sourceName, type: 'image/svg+xml' },
+      {
+        maxBytes: 5 * 1024 * 1024,
+        accept: 'svg',
+        filenamePrefix: `marbete-${safeId(baseId)}`
+      }
+    )
+    filename = uploaded.storedFilename
+    url = uploaded.absoluteUrl
   }
 
   const theme = resolvePersonasTheme({ themeKey: input.themeKey })
@@ -189,6 +206,7 @@ export async function saveMarbeteTemplate(input: {
     id: existing?.id || safeId(baseId),
     name: input.name.trim(),
     filename,
+    url,
     themeKey: input.themeKey,
     nivel: input.nivel.trim(),
     planteles: normalizeTemplatePlanteles(input.planteles),

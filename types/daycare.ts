@@ -221,6 +221,7 @@ export interface MarbeteTemplateMeta {
   id: string
   name: string
   filename: string
+  url?: string
   themeKey: PersonasThemeKey
   nivel: string
   planteles: string[]
