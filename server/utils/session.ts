@@ -1,4 +1,4 @@
-import { setCookie, deleteCookie, getCookie } from 'h3'
+import { setCookie, deleteCookie, getCookie, setHeader } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
@@ -57,6 +57,8 @@ export function getAppSession(event: H3Event): PublicSession {
 
 
 export function requireSession(event: H3Event, kind?: 'family' | 'admin') {
+  setHeader(event, 'cache-control', 'private, no-store, max-age=0, must-revalidate')
+  setHeader(event, 'vary', 'Cookie')
   const session = getAppSession(event)
   if (!session.user) {
     throw publicError(401, 'Sesión no válida')

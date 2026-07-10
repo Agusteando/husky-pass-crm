@@ -1,1 +1,1 @@
-Corregir la resolución de cuentas duplicadas al iniciar sesión
+Aislar los datos de cada cuenta al cambiar de sesión

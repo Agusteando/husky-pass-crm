@@ -1,16 +1,74 @@
-import { useRequestEvent, useRuntimeConfig, useState } from 'nuxt/app'
+import { clearNuxtData, useRequestEvent, useRuntimeConfig, useState } from 'nuxt/app'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 
 export const anonymousSession: PublicSession = { user: null, loggedin: false }
 const sessionCookieName = 'hpc_session'
 const sessionStateKey = 'app-session-cache'
+const accountStateEpochKey = 'account-state-epoch'
+
+const accountScopedStateDefaults = {
+  'pa-family-people:data': () => [],
+  'pa-family-people:loaded': () => false,
+  'pa-family-people:pending': () => false,
+  'pa-family-people:error': () => '',
+  'pa-family-people:owner': () => null
+} as const
 
 export function useRouteSessionCache() {
   return useState<PublicSession | null>(sessionStateKey, () => null)
 }
 
+export function useAccountStateEpoch() {
+  return useState<number>(accountStateEpochKey, () => 0)
+}
+
+export function sessionAccountIdentity(session: PublicSession | null | undefined) {
+  const user = session?.user
+  if (!user) return 'anonymous'
+
+  const daycare = user.scopes.daycare
+  const personas = user.scopes.personasAutorizadas
+  const routes = user.routes
+    .map((permission) => `${permission.route}:${permission.icono || ''}`)
+    .sort()
+    .join(',')
+
+  return [
+    user.kind,
+    user.id,
+    user.username || '',
+    user.isSuperAdmin ? 'superadmin' : '',
+    user.roles.slice().sort().join(','),
+    user.productScopes.slice().sort().join(','),
+    user.unidades.slice().sort().join(','),
+    user.plantel.slice().sort().join(','),
+    routes,
+    daycare?.unidad || '',
+    daycare?.sala || '',
+    personas?.legacyRoute || '',
+    user.impersonation?.mode || '',
+    user.impersonation?.admin.id || ''
+  ].join('|')
+}
+
+function clearAccountScopedClientState() {
+  if (!import.meta.client) return
+
+  useAccountStateEpoch().value += 1
+  useState<unknown[]>('pa-family-people:data', accountScopedStateDefaults['pa-family-people:data']).value = []
+  useState<boolean>('pa-family-people:loaded', accountScopedStateDefaults['pa-family-people:loaded']).value = false
+  useState<boolean>('pa-family-people:pending', accountScopedStateDefaults['pa-family-people:pending']).value = false
+  useState<string>('pa-family-people:error', accountScopedStateDefaults['pa-family-people:error']).value = ''
+  useState<string | null>('pa-family-people:owner', accountScopedStateDefaults['pa-family-people:owner']).value = null
+  clearNuxtData()
+}
+
 export function setCachedRouteSession(session: PublicSession | null) {
-  useRouteSessionCache().value = session
+  const cache = useRouteSessionCache()
+  if (sessionAccountIdentity(cache.value) !== sessionAccountIdentity(session)) {
+    clearAccountScopedClientState()
+  }
+  cache.value = session
 }
 
 function readCookieValue(cookieHeader: string | undefined, name: string) {

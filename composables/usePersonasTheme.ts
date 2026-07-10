@@ -1,9 +1,10 @@
-import { computed, onMounted, toValue, type ComputedRef, type InjectionKey, type MaybeRefOrGetter } from 'vue'
+import { computed, onMounted, toValue, watch, type ComputedRef, type InjectionKey, type MaybeRefOrGetter } from 'vue'
 import { useNuxtApp, useState } from 'nuxt/app'
 import type { AuthorizedChild, AuthorizedPerson, PersonasTheme } from '~/types/daycare'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { personasThemeStyle, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeMatricula } from '~/utils/matricula'
+import { sessionAccountIdentity, useAccountStateEpoch, useRouteSessionCache } from '~/utils/routeSession'
 
 type PersonasThemeSource = Parameters<typeof resolvePersonasTheme>[0]
 type FamilyThemeOptions = {
@@ -13,8 +14,14 @@ type FamilyThemeOptions = {
   immediate?: MaybeRefOrGetter<boolean | null | undefined>
 }
 
+type PersonasFamilyPeopleRequest = {
+  owner: string
+  epoch: number
+  promise: Promise<AuthorizedPerson[]>
+}
+
 type PersonasFamilyPeoplePromiseHolder = {
-  _personasFamilyPeoplePromise?: Promise<AuthorizedPerson[]>
+  _personasFamilyPeopleRequest?: PersonasFamilyPeopleRequest
 }
 
 export type PersonasFamilyThemeContext = {
@@ -37,36 +44,65 @@ export function usePersonasFamilyPeople(options: { immediate?: MaybeRefOrGetter<
   const loaded = useState<boolean>('pa-family-people:loaded', () => false)
   const pendingState = useState<boolean>('pa-family-people:pending', () => false)
   const errorMessage = useState<string>('pa-family-people:error', () => '')
+  const owner = useState<string | null>('pa-family-people:owner', () => null)
+  const sessionCache = useRouteSessionCache()
+  const accountEpoch = useAccountStateEpoch()
+  const activeOwner = computed(() => sessionAccountIdentity(sessionCache.value))
   const shouldLoad = computed(() => toValue(options.immediate) !== false)
   const pending = computed(() => pendingState.value || (shouldLoad.value && !loaded.value && !errorMessage.value))
   const error = computed(() => errorMessage.value || null)
 
+  function resetForOwner(nextOwner: string) {
+    if (owner.value === nextOwner) return
+    data.value = []
+    loaded.value = false
+    pendingState.value = false
+    errorMessage.value = ''
+    owner.value = nextOwner
+  }
+
+  watch(activeOwner, resetForOwner, { immediate: true, flush: 'sync' })
+
   async function load(force = false) {
+    const requestOwner = activeOwner.value
+    resetForOwner(requestOwner)
     if (!force && loaded.value) return data.value
 
     const holder = useNuxtApp() as unknown as PersonasFamilyPeoplePromiseHolder
-    if (holder._personasFamilyPeoplePromise) return holder._personasFamilyPeoplePromise
+    const existing = holder._personasFamilyPeopleRequest
+    if (existing && existing.owner === requestOwner && existing.epoch === accountEpoch.value) {
+      return existing.promise
+    }
 
+    const requestEpoch = accountEpoch.value
     pendingState.value = true
     errorMessage.value = ''
-    holder._personasFamilyPeoplePromise = $fetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', {
-      timeout: 15000
+
+    const promise = $fetch<AuthorizedPerson[]>('/api/personas-autorizadas/family', {
+      timeout: 15000,
+      cache: 'no-store'
     }).then((rows) => {
+      if (accountEpoch.value !== requestEpoch || activeOwner.value !== requestOwner) return data.value
       data.value = Array.isArray(rows) ? rows : []
       loaded.value = true
+      owner.value = requestOwner
       return data.value
     }).catch((error: unknown) => {
+      if (accountEpoch.value !== requestEpoch || activeOwner.value !== requestOwner) return data.value
       errorMessage.value = fetchErrorMessage(error)
       throw error
     }).finally(() => {
+      if (holder._personasFamilyPeopleRequest?.promise !== promise) return
       pendingState.value = false
-      holder._personasFamilyPeoplePromise = undefined
+      holder._personasFamilyPeopleRequest = undefined
     })
 
-    return holder._personasFamilyPeoplePromise
+    holder._personasFamilyPeopleRequest = { owner: requestOwner, epoch: requestEpoch, promise }
+    return promise
   }
 
   function ensure() {
+    resetForOwner(activeOwner.value)
     if (!shouldLoad.value || loaded.value || pendingState.value) return Promise.resolve(data.value)
     return load(false)
   }
