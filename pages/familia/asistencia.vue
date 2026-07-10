@@ -2,6 +2,7 @@
   <FamilyPersonasAutorizadasShell title="Asistencia y accesos">
     <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-bitacora">
       <FamilyPersonasPageHeader
+        class="attendance-hero"
         eyebrow="Asistencia y accesos"
         :title="data?.selectedChild.name || 'Asistencia y accesos'"
         :description="selectedChildLine || displayMatricula(data?.selectedChild.matricula || '')"
@@ -794,6 +795,8 @@ async function saveMotivo() {
 
 <style scoped>
 .attendance-page {
+  container-name: attendance-page;
+  container-type: inline-size;
   display: grid;
   gap: 13px;
   margin: 0 auto;
@@ -856,6 +859,7 @@ async function saveMotivo() {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+  max-width: 100%;
 }
 
 .cycle-pill {
@@ -910,7 +914,14 @@ async function saveMotivo() {
 .compact-select {
   display: grid;
   gap: 5px;
+  max-width: 100%;
   min-width: 200px;
+}
+
+.compact-select .select {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .loading-layout {
@@ -1733,7 +1744,33 @@ async function saveMotivo() {
   font-weight: 750;
 }
 
+@container attendance-page (min-width: 761px) and (max-width: 1080px) {
+  .attendance-hero {
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+
+  .attendance-hero :deep(.pa-page-header-copy) {
+    min-width: 240px;
+  }
+
+  .attendance-hero :deep(.pa-page-header-ambassador) {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .attendance-hero :deep(.pa-page-header-actions) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-items: stretch;
+    width: 100%;
+  }
+}
+
 @media (max-width: 1180px) {
+
   .priority-grid,
   .record-filters {
     grid-template-columns: 1fr;
@@ -1741,6 +1778,7 @@ async function saveMotivo() {
 
   .hero-controls {
     justify-content: flex-start;
+    width: 100%;
   }
 
   .bitacora-header {
@@ -1764,7 +1802,6 @@ async function saveMotivo() {
   .attendance-page {
     gap: 12px;
   }
-
 
   .hero-controls,
   .cycle-pill,

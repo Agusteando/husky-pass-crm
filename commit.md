@@ -1,1 +1,1 @@
-Corrige la generación del marbete usando una fuente TTF compatible con PDFKit
+Corrige la distribución responsiva del encabezado de asistencia familiar
