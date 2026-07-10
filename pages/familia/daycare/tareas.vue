@@ -1,5 +1,5 @@
 <template>
-  <FamilyResourceList type="hw" title="Tareas" description="Tareas publicadas para tu sala de guardería." />
+  <FamilyResourceList type="hw" title="Tareas" />
 </template>
 
 <script setup lang="ts">

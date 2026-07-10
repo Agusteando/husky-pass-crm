@@ -1,95 +1,73 @@
 <template>
-  <section class="resource-page">
-    <header class="resource-hero">
-      <div>
-        <p class="eyebrow">Guardería</p>
-        <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
+  <section class="resource-page" :data-resource-type="type">
+    <header class="resource-masthead">
+      <div class="masthead-copy">
+        <span class="section-mark"><FamilyPersonasIcon :name="sectionIcon" /></span>
+        <div>
+          <p>{{ salaLine }}</p>
+          <h1>{{ title }}</h1>
+        </div>
       </div>
-      <aside class="resource-ambassador" aria-label="Guía digital de publicaciones">
-        <FamilyPersonasAmbassador :theme="daycareTheme" variant="header" compact contained decorative />
-        <span>
-          <strong>{{ resourceGuideTitle }}</strong>
-          <small>{{ resourceGuideMessage }}</small>
-        </span>
-      </aside>
-      <NuxtLink class="btn btn-secondary" to="/familia/daycare">Inicio</NuxtLink>
+
+      <div class="masthead-meta">
+        <span><strong>{{ items?.length || 0 }}</strong>{{ countLabel }}</span>
+        <span v-if="featuredItem"><small>Reciente</small>{{ compactDate(featuredItem.date || featuredItem.timestamp) }}</span>
+      </div>
+
+      <div class="masthead-mascot" aria-hidden="true">
+        <span class="mascot-orbit"></span>
+        <img :src="mascotSrc" alt="" />
+      </div>
     </header>
 
-    <p v-if="error" class="alert">No fue posible cargar esta sección.</p>
-    <div v-else-if="pending" class="card loading-card" data-product-loading>
-      <span class="loading-dot" aria-hidden="true"></span>
-      <span>Cargando publicaciones...</span>
+    <div v-if="pending" class="resource-skeleton" aria-label="Cargando">
+      <span v-for="index in 4" :key="index"></span>
     </div>
 
-    <section v-else-if="items?.length" class="publication-workspace" :class="{ 'calendar-workspace': type === 'cal' }">
-      <aside class="publication-summary">
-        <div class="summary-card card">
-          <p class="eyebrow">{{ summaryEyebrow }}</p>
-          <h2>{{ items.length }} {{ items.length === 1 ? 'publicación' : 'publicaciones' }}</h2>
-          <p>{{ summaryCopy }}</p>
-          <div class="summary-meta">
-            <span>Última actualización</span>
-            <strong>{{ formatDate(featuredItem?.date || featuredItem?.timestamp) }}</strong>
-          </div>
-        </div>
-        <NuxtLink class="return-card" to="/familia/daycare">
-          <span>Volver al inicio</span>
-          <strong>Ver resumen de hoy</strong>
-        </NuxtLink>
-      </aside>
+    <p v-else-if="error" class="alert">No fue posible cargar esta sección.</p>
 
-      <main class="publication-reader">
-        <article class="featured-publication">
-          <div class="featured-copy">
-            <span class="featured-kicker">{{ featuredLabel }}</span>
-            <small>{{ formatDate(featuredItem?.date || featuredItem?.timestamp) }}</small>
-            <h2>{{ featuredItem?.title || titleFallback }}</h2>
-            <p>{{ resourceCopy(featuredItem) }}</p>
-          </div>
-          <a v-if="resourceUrl(featuredItem)" class="btn btn-primary" :href="resourceUrl(featuredItem)" target="_blank" rel="noopener">
-            Abrir recurso
-          </a>
-        </article>
+    <section v-else-if="items?.length" class="resource-collection">
+      <div class="collection-head">
+        <h2>{{ collectionTitle }}</h2>
+        <NuxtLink to="/familia/daycare">Inicio</NuxtLink>
+      </div>
 
-        <section class="feed-section">
-          <header class="feed-head">
-            <div>
-              <p class="eyebrow">{{ remainingItems.length ? 'También publicado' : 'Publicación' }}</p>
-              <h2>{{ remainingItems.length ? 'Historial reciente' : 'No hay más registros' }}</h2>
-            </div>
-          </header>
-
-          <div class="resource-list" :class="{ 'calendar-list': type === 'cal' }">
-            <ResourceCard
-              v-for="item in remainingItems"
-              :key="item.id || `${item.title}-${item.date}`"
-              :resource="item"
-              :variant="type === 'hw' ? 'homework' : 'notice'"
-              density="comfortable"
-            />
-          </div>
-        </section>
-      </main>
+      <div class="resource-grid">
+        <ResourceCard
+          v-for="(item, index) in items"
+          :key="item.id || `${item.title}-${item.date}`"
+          :resource="item"
+          :variant="cardVariant"
+          :density="index === 0 ? 'comfortable' : 'compact'"
+          :featured="index === 0"
+        />
+      </div>
     </section>
 
-    <EmptyState v-else title="Sin publicaciones" description="No hay registros vigentes para esta sección." />
+    <section v-else class="resource-empty">
+      <img :src="emptyMascotSrc" alt="" />
+      <div>
+        <p>{{ salaLine }}</p>
+        <h2>{{ emptyTitle }}</h2>
+      </div>
+    </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { useFetch } from 'nuxt/app'
 import { computed } from 'vue'
+import { useFetch } from 'nuxt/app'
+import { useAppSession } from '~/composables/useAppSession'
 import type { DaycareResource } from '~/types/daycare'
-import { formatDate, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
+import { parseLegacyDate } from '~/utils/daycare'
+import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
   title: string
-  description: string
 }>()
 
+const { data: session } = useAppSession()
 const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycare/family/resources', {
   query: { type: props.type },
   timeout: 15000
@@ -97,297 +75,341 @@ const { data: items, pending, error } = useFetch<DaycareResource[]>('/api/daycar
 
 const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
 const featuredItem = computed(() => items.value?.[0] || null)
-const remainingItems = computed(() => items.value?.slice(1) || [])
-const summaryEyebrow = computed(() => props.type === 'hw' ? 'Tareas activas' : props.type === 'cal' ? 'Agenda' : 'Comunicados')
-const featuredLabel = computed(() => props.type === 'hw' ? 'Tarea principal' : props.type === 'cal' ? 'Próximo evento' : 'Aviso más reciente')
-const titleFallback = computed(() => props.type === 'hw' ? 'Tarea publicada' : props.type === 'cal' ? 'Evento publicado' : 'Aviso publicado')
-const resourceGuideTitle = computed(() => props.type === 'hw' ? 'Prioriza la tarea principal' : props.type === 'cal' ? 'Mira lo próximo primero' : 'Lee el aviso destacado')
-const resourceGuideMessage = computed(() => {
-  if (props.type === 'hw') return 'Dejo arriba lo más reciente para que no revises todo el historial.'
-  if (props.type === 'cal') return 'La agenda mantiene el siguiente evento como referencia principal.'
-  return 'Los comunicados nuevos quedan destacados y el resto se conserva abajo.'
-})
-const summaryCopy = computed(() => {
-  if (!items.value?.length) return 'No hay publicaciones vigentes.'
-  if (props.type === 'hw') return 'Empieza por la tarea principal y consulta el historial para no perder recursos adjuntos.'
-  if (props.type === 'cal') return 'El evento más próximo queda arriba; el resto permanece ordenado para consulta rápida.'
-  return 'El comunicado más reciente queda destacado. Abre cada recurso para revisar el material completo.'
+const sectionIcon = computed(() => props.type === 'hw' ? 'edit' : props.type === 'cal' ? 'calendar' : 'announcement')
+const cardVariant = computed(() => props.type === 'hw' ? 'homework' : props.type === 'cal' ? 'calendar' : 'notice')
+const collectionTitle = computed(() => props.type === 'hw' ? 'Tareas de la sala' : props.type === 'cal' ? 'Próximas fechas' : 'Comunicados')
+const countLabel = computed(() => props.type === 'hw' ? ' tareas' : props.type === 'cal' ? ' fechas' : ' avisos')
+const emptyTitle = computed(() => props.type === 'hw' ? 'Sin tareas por ahora' : props.type === 'cal' ? 'Agenda libre' : 'Sin avisos nuevos')
+const mascotVariant = computed(() => props.type === 'hw' ? 'help' : props.type === 'cal' ? 'hero' : 'preview')
+const mascotSrc = computed(() => personasMascot(daycareTheme, mascotVariant.value))
+const emptyMascotSrc = personasMascot(daycareTheme, 'empty')
+const salaLine = computed(() => {
+  const daycare = session.value?.user?.scopes.daycare
+  return [daycare?.unidad, daycare?.sala ? `Sala ${daycare.sala}` : null].filter(Boolean).join(' · ') || 'Guardería'
 })
 
-function resourceUrl(resource?: DaycareResource | null) {
-  if (!resource?.resource) return ''
-  return isPdfResource(resource.resource) ? publishedPdfViewerUrl(resource.resource) : resource.resource
-}
-
-function resourceCopy(resource?: DaycareResource | null) {
-  return stripHtml(resource?.description || resource?.html) || 'Abre el recurso para consultar el contenido completo.'
+function compactDate(value?: string | null) {
+  const date = parseLegacyDate(value)
+  if (!date) return '—'
+  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(date).replace('.', '')
 }
 </script>
 
 <style scoped>
 .resource-page {
+  --section-accent: #5d8f3c;
+  --section-soft: #eef7e7;
   display: grid;
-  gap: 14px;
+  gap: clamp(18px, 2.5vw, 28px);
 }
 
-.resource-hero {
+.resource-page[data-resource-type='hw'] {
+  --section-accent: #ed912f;
+  --section-soft: #fff1df;
+}
+
+.resource-page[data-resource-type='cal'] {
+  --section-accent: #438fc7;
+  --section-soft: #eaf5fc;
+}
+
+.resource-masthead {
   align-items: center;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(242, 248, 234, .95));
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  box-shadow: var(--shadow-soft);
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 270px) auto;
-  padding: clamp(18px, 2.4vw, 26px);
-}
-
-.resource-hero h1,
-.resource-hero p {
-  margin-bottom: 0;
-}
-
-.resource-hero h1 {
-  font-size: clamp(2rem, 3.2vw, 3rem);
-}
-
-.resource-ambassador {
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--color-brand-200);
-  border-radius: 18px;
-  box-shadow: var(--shadow-line);
-  display: grid;
-  gap: 9px;
-  grid-template-columns: 54px minmax(0, 1fr);
-  padding: 8px 12px 8px 8px;
-}
-
-.resource-ambassador :deep(.pa-ambassador-card),
-.resource-ambassador :deep(.pa-ambassador-visual) {
-  height: 54px;
-  width: 54px;
-}
-
-.resource-ambassador span {
-  display: grid;
-  gap: 2px;
-}
-
-.resource-ambassador strong {
-  color: var(--color-ink);
-  font-size: .82rem;
-}
-
-.resource-ambassador small {
-  color: var(--color-muted);
-  font-size: .72rem;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.publication-workspace {
-  align-items: start;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
-  min-width: 0;
-}
-
-.publication-summary {
-  display: grid;
-  gap: 12px;
-  position: sticky;
-  top: calc(var(--topbar-height) + 12px);
-}
-
-.summary-card {
-  border-radius: 22px;
-  display: grid;
-  gap: 12px;
-}
-
-.summary-card h2 {
-  font-size: clamp(1.7rem, 2.3vw, 2.15rem);
-  line-height: 1;
-  margin-bottom: 0;
-}
-
-.summary-meta {
-  background: var(--color-brand-100);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 16px;
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-}
-
-.summary-meta span {
-  color: var(--color-muted);
-  font-size: .72rem;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.summary-meta strong {
-  color: var(--color-brand-800);
-  font-size: .92rem;
-}
-
-.return-card {
-  background: linear-gradient(135deg, #315f24, #6f971a);
-  border-radius: 20px;
-  box-shadow: var(--shadow-card);
-  color: #fff;
-  display: grid;
-  gap: 4px;
-  padding: 16px;
-}
-
-.return-card span {
-  color: rgba(255, 255, 255, .76);
-  font-size: .78rem;
-}
-
-.publication-reader {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.featured-publication {
-  align-items: end;
-  background:
-    radial-gradient(circle at 92% 10%, rgba(255, 181, 69, .22), transparent 34%),
-    linear-gradient(135deg, #ffffff 0%, #fbfff7 100%);
-  border: 1px solid var(--color-brand-200);
-  border-radius: 26px;
-  box-shadow: var(--shadow-card);
+    radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--section-accent) 20%, transparent), transparent 34%),
+    linear-gradient(135deg, #fff 0%, var(--section-soft) 100%);
+  border: 1px solid color-mix(in srgb, var(--section-accent) 16%, transparent);
+  border-radius: 32px;
+  box-shadow: 0 18px 50px rgba(43, 72, 32, 0.09);
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(150px, 230px);
   min-height: 230px;
-  padding: clamp(18px, 2.8vw, 30px);
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 42px);
+  position: relative;
 }
 
-.featured-copy {
-  display: grid;
-  gap: 10px;
-  max-width: 760px;
+.masthead-copy {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.featured-kicker {
-  color: var(--color-amber);
-  font-size: .76rem;
-  letter-spacing: .12em;
+.section-mark {
+  align-items: center;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--section-accent) 20%, transparent);
+  border-radius: 20px;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--section-accent) 15%, transparent);
+  color: var(--section-accent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 60px;
+  justify-content: center;
+  width: 60px;
+}
+
+.section-mark :deep(.pa-icon) {
+  height: 1.55rem;
+  width: 1.55rem;
+}
+
+.masthead-copy p,
+.resource-empty p {
+  color: var(--section-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  margin: 0 0 5px;
   text-transform: uppercase;
 }
 
-.featured-copy small {
-  background: var(--color-brand-100);
-  border-radius: 999px;
-  color: var(--color-brand-700);
-  justify-self: start;
-  padding: 5px 10px;
+.masthead-copy h1 {
+  color: #243320;
+  font-size: clamp(2.1rem, 5vw, 4.2rem);
+  line-height: 0.92;
+  margin: 0;
 }
 
-.featured-copy h2 {
-  font-size: clamp(1.75rem, 3vw, 2.65rem);
-  line-height: 1;
-  margin-bottom: 0;
-}
-
-.featured-copy p {
-  font-size: 1rem;
-  max-width: 640px;
-}
-
-.featured-publication .btn {
-  justify-self: end;
-}
-
-.feed-section {
+.masthead-meta {
   display: grid;
-  gap: 12px;
+  gap: 9px;
+  min-width: 130px;
+  position: relative;
+  z-index: 1;
 }
 
-.feed-head {
-  align-items: end;
+.masthead-meta span {
+  align-items: baseline;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  color: #64705f;
   display: flex;
+  font-size: 0.72rem;
+  gap: 5px;
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+}
+
+.masthead-meta strong {
+  color: var(--section-accent);
+  font-family: var(--font-title);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.masthead-meta small {
+  color: #879080;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  margin-right: auto;
+  text-transform: uppercase;
+}
+
+.masthead-mascot {
+  align-self: stretch;
+  min-height: 170px;
+  position: relative;
+}
+
+.masthead-mascot img {
+  bottom: -45px;
+  filter: drop-shadow(0 18px 20px rgba(45, 73, 31, 0.15));
+  height: 250px;
+  object-fit: contain;
+  object-position: center bottom;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  z-index: 1;
+}
+
+.mascot-orbit {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  height: 190px;
+  position: absolute;
+  right: 0;
+  top: 8px;
+  width: 190px;
+}
+
+.resource-collection {
+  display: grid;
+  gap: 14px;
+}
+
+.collection-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
   justify-content: space-between;
 }
 
-.feed-head h2 {
-  color: var(--color-brand-800);
-  font-size: 1.35rem;
-  margin-bottom: 0;
+.collection-head h2 {
+  color: #2d4328;
+  font-size: clamp(1.25rem, 2.3vw, 1.7rem);
+  margin: 0;
 }
 
-.resource-list {
+.collection-head a {
+  color: var(--section-accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.resource-grid {
   display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.calendar-list {
+  gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.loading-card {
+.resource-grid :deep(.resource-card:first-child) {
+  grid-column: 1 / -1;
+}
+
+.resource-skeleton {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resource-skeleton span {
+  animation: shimmer 1.3s ease-in-out infinite alternate;
+  background: linear-gradient(110deg, #edf1e9 25%, #f8faf5 45%, #edf1e9 65%);
+  background-size: 220% 100%;
+  border-radius: 24px;
+  min-height: 190px;
+}
+
+.resource-skeleton span:first-child {
+  grid-column: 1 / -1;
+  min-height: 250px;
+}
+
+.resource-empty {
   align-items: center;
-  color: var(--color-muted);
-  display: inline-flex;
-  gap: 9px;
+  background: linear-gradient(135deg, #fff, var(--section-soft));
+  border: 1px solid color-mix(in srgb, var(--section-accent) 16%, transparent);
+  border-radius: 28px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 140px minmax(0, 1fr);
+  min-height: 210px;
+  overflow: hidden;
+  padding: 22px 28px 0;
 }
 
-.loading-dot {
-  animation: pulse 1s ease-in-out infinite;
-  background: var(--color-brand-700);
-  border-radius: 999px;
-  height: 10px;
-  width: 10px;
+.resource-empty img {
+  align-self: end;
+  filter: drop-shadow(0 14px 18px rgba(45, 73, 31, 0.12));
+  max-height: 180px;
+  object-fit: contain;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.82); }
-  50% { opacity: 1; transform: scale(1); }
+.resource-empty h2 {
+  color: #2d4328;
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+  margin: 0;
 }
 
-@media (max-width: 1100px) {
-  .publication-workspace {
+@keyframes shimmer {
+  from { background-position: 90% 0; }
+  to { background-position: -90% 0; }
+}
+
+@media (max-width: 820px) {
+  .resource-masthead {
+    grid-template-columns: minmax(0, 1fr) minmax(115px, 170px);
+    min-height: 210px;
+  }
+
+  .masthead-meta {
+    display: none;
+  }
+
+  .masthead-mascot img {
+    bottom: -36px;
+    height: 220px;
+  }
+}
+
+@media (max-width: 620px) {
+  .resource-page {
+    gap: 16px;
+  }
+
+  .resource-masthead {
+    border-radius: 25px;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 110px;
+    min-height: 170px;
+    padding: 20px;
+  }
+
+  .masthead-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .section-mark {
+    border-radius: 15px;
+    height: 44px;
+    width: 44px;
+  }
+
+  .section-mark :deep(.pa-icon) {
+    height: 1.15rem;
+    width: 1.15rem;
+  }
+
+  .masthead-copy h1 {
+    font-size: clamp(2rem, 12vw, 3.1rem);
+  }
+
+  .masthead-mascot {
+    min-height: 130px;
+  }
+
+  .masthead-mascot img {
+    bottom: -28px;
+    height: 170px;
+    right: -12px;
+    width: 140px;
+  }
+
+  .mascot-orbit {
+    height: 120px;
+    right: -8px;
+    top: 12px;
+    width: 120px;
+  }
+
+  .resource-grid,
+  .resource-skeleton {
     grid-template-columns: 1fr;
   }
 
-  .publication-summary {
-    position: static;
-  }
-}
-
-@media (max-width: 760px) {
-  .resource-hero,
-  .featured-publication {
-    grid-template-columns: 1fr;
+  .resource-grid :deep(.resource-card:first-child),
+  .resource-skeleton span:first-child {
+    grid-column: auto;
   }
 
-  .resource-hero {
-    align-items: stretch;
+  .resource-empty {
+    grid-template-columns: 90px minmax(0, 1fr);
+    min-height: 160px;
+    padding: 18px 20px 0;
   }
 
-  .featured-publication .btn {
-    justify-self: stretch;
-  }
-
-  .publication-reader {
-    order: 1;
-  }
-
-  .publication-summary {
-    order: 2;
-  }
-
-  .calendar-list {
-    grid-template-columns: 1fr;
+  .resource-empty img {
+    max-height: 130px;
   }
 }
 </style>

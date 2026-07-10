@@ -1,5 +1,5 @@
 <template>
-  <FamilyResourceList type="news" title="Avisos" description="Comunicados y circulares de guardería." />
+  <FamilyResourceList type="news" title="Avisos" />
 </template>
 
 <script setup lang="ts">

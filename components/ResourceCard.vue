@@ -1,52 +1,81 @@
 <template>
   <article class="resource-card" :class="variantClass">
-    <div class="resource-meta">
-      <span class="badge-date">{{ formatDate(resource.date || resource.timestamp) }}</span>
-      <span v-if="resource.starred" class="starred">Prioritario</span>
+    <div v-if="resource.type === 'cal'" class="calendar-date" aria-hidden="true">
+      <strong>{{ calendarDay.day }}</strong>
+      <span>{{ calendarDay.month }}</span>
     </div>
-    <h3>{{ resource.title || titleFallback }}</h3>
-    <p>{{ stripHtml(resource.description || resource.html) || 'Sin descripción disponible.' }}</p>
-    <img
-      v-if="canPreviewImage"
-      v-show="imageReady"
-      class="resource-image"
-      :src="resource.resource || ''"
-      alt="Recurso publicado"
-      decoding="async"
-      loading="lazy"
-      @load="imageReady = true"
-      @error="imageFailed = true"
-    />
-    <a v-if="resource.resource" class="btn btn-secondary resource-button" :href="resourceHref" target="_blank" rel="noopener">
-      {{ isPdfResource(resource.resource) ? 'Abrir Documento PDF' : 'Abrir recurso' }}
-    </a>
-    <small v-if="resource.autor" class="muted">Publicado por: {{ resource.autor }}</small>
+
+    <div class="resource-body">
+      <header class="resource-meta">
+        <span class="resource-kind">
+          <FamilyPersonasIcon :name="iconName" />
+          {{ typeLabel }}
+        </span>
+        <time>{{ formatDate(resource.date || resource.timestamp) }}</time>
+      </header>
+
+      <div class="resource-copy">
+        <h3>{{ resource.title || titleFallback }}</h3>
+        <p v-if="bodyCopy">{{ bodyCopy }}</p>
+      </div>
+
+      <img
+        v-if="canPreviewImage"
+        v-show="imageReady"
+        class="resource-image"
+        :src="resource.resource || ''"
+        alt=""
+        decoding="async"
+        loading="lazy"
+        @load="imageReady = true"
+        @error="imageFailed = true"
+      />
+
+      <footer v-if="resource.resource || (resource.autor && density === 'comfortable')" class="resource-footer">
+        <small v-if="resource.autor && density === 'comfortable'">{{ resource.autor }}</small>
+        <a v-if="resource.resource" class="resource-link" :href="resourceHref" target="_blank" rel="noopener">
+          {{ actionLabel }}
+          <FamilyPersonasIcon name="arrow" />
+        </a>
+      </footer>
+    </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
-import { formatDate, isImageResource, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { formatCalendarDay, formatDate, isImageResource, isPdfResource, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 
 const props = defineProps<{
   resource: DaycareResource
-  variant?: 'notice' | 'homework' | 'default'
+  variant?: 'notice' | 'homework' | 'calendar' | 'default'
   density?: 'compact' | 'comfortable'
+  featured?: boolean
 }>()
 
 const imageReady = ref(false)
 const imageFailed = ref(false)
+const density = computed(() => props.density || 'compact')
 const resourceHref = computed(() => {
   return isPdfResource(props.resource.resource) ? publishedPdfViewerUrl(props.resource.resource) : props.resource.resource || ''
 })
-
 const canPreviewImage = computed(() => Boolean(props.resource.resource && isImageResource(props.resource.resource) && !imageFailed.value))
 const variantClass = computed(() => [
   props.variant ? `variant-${props.variant}` : 'variant-default',
-  `density-${props.density || 'compact'}`
+  `density-${density.value}`,
+  `type-${props.resource.type}`,
+  {
+    'is-priority': Boolean(props.resource.starred),
+    'is-featured': Boolean(props.featured)
+  }
 ])
-const titleFallback = computed(() => props.variant === 'homework' ? 'Tarea' : 'Sin título')
+const titleFallback = computed(() => props.resource.type === 'hw' ? 'Tarea' : props.resource.type === 'cal' ? 'Evento' : 'Aviso')
+const bodyCopy = computed(() => stripHtml(props.resource.description || props.resource.html))
+const calendarDay = computed(() => formatCalendarDay(props.resource.date || props.resource.timestamp))
+const iconName = computed(() => props.resource.type === 'hw' ? 'edit' : props.resource.type === 'cal' ? 'calendar' : 'announcement')
+const typeLabel = computed(() => props.resource.type === 'hw' ? 'Tarea' : props.resource.type === 'cal' ? 'Agenda' : props.resource.starred ? 'Importante' : 'Aviso')
+const actionLabel = computed(() => isPdfResource(props.resource.resource) ? 'Ver PDF' : 'Abrir')
 
 watch(() => props.resource.resource, () => {
   imageReady.value = false
@@ -56,42 +85,92 @@ watch(() => props.resource.resource, () => {
 
 <style scoped>
 .resource-card {
+  --resource-accent: #6f971a;
+  --resource-soft: #f1f7e9;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(53, 95, 36, 0.12);
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(43, 72, 32, 0.07);
   display: grid;
-  gap: 10px;
-  max-width: 100%;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   overflow: hidden;
+  padding: 17px;
+  position: relative;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
+.resource-card::before {
+  background: var(--resource-accent);
+  border-radius: 999px;
+  content: '';
+  height: 5px;
+  left: 17px;
+  opacity: 0.9;
+  position: absolute;
+  top: 0;
+  width: 42px;
+}
+
+.resource-card.is-featured {
+  border-radius: 28px;
+  min-height: 250px;
+  padding: clamp(20px, 3vw, 30px);
+}
+
+.resource-card.is-featured::before {
+  left: clamp(20px, 3vw, 30px);
+  width: 58px;
+}
+
+.resource-card.is-featured .resource-copy h3 {
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  max-width: 760px;
+}
+
+.resource-card.is-featured .resource-copy p {
+  font-size: 0.95rem;
+  max-width: 720px;
+  -webkit-line-clamp: 4;
+}
+
+.resource-card:hover {
+  border-color: color-mix(in srgb, var(--resource-accent) 32%, transparent);
+  box-shadow: 0 16px 38px rgba(43, 72, 32, 0.11);
+  transform: translateY(-2px);
+}
+
+.type-hw {
+  --resource-accent: #ff9f43;
+  --resource-soft: #fff4e5;
+}
+
+.type-news {
+  --resource-accent: #5d8f3c;
+  --resource-soft: #eef7e7;
+}
+
+.type-cal {
+  --resource-accent: #4f9ed8;
+  --resource-soft: #edf7fd;
+}
+
+.is-priority {
+  --resource-accent: #f2ae32;
+}
+
+.variant-homework,
+.variant-notice,
+.variant-calendar,
 .variant-default {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  box-shadow: var(--shadow-soft);
-  padding: 12px;
+  padding: 17px;
 }
 
-.variant-notice {
-  border-left: 3px solid #dce4d4;
-  padding-left: 16px;
-  transition: border-color 0.18s ease;
-}
-
-.variant-notice.density-comfortable {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid #dce4d4;
-  border-radius: 18px;
-  box-shadow: var(--shadow-soft);
-  padding: 14px 16px;
-}
-
-.variant-notice:hover {
-  border-left-color: var(--color-brand-700);
-}
-
-.variant-homework {
-  background: transparent;
+.resource-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 
 .resource-meta {
@@ -102,71 +181,160 @@ watch(() => props.resource.resource, () => {
   justify-content: space-between;
 }
 
-.badge-date {
-  background: #eaf2e0;
-  border-radius: 20px;
-  color: var(--color-brand-700);
+.resource-kind {
+  align-items: center;
+  background: var(--resource-soft);
+  border-radius: 999px;
+  color: var(--resource-accent);
   display: inline-flex;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 5px 12px;
-}
-
-.starred {
-  color: #d88b00;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.69rem;
+  font-weight: 800;
+  gap: 6px;
   letter-spacing: 0.04em;
+  padding: 6px 9px;
   text-transform: uppercase;
 }
 
-h3 {
-  color: var(--color-ink);
-  font-size: 1.05rem;
-  margin-bottom: 0;
+.resource-kind :deep(.pa-icon) {
+  height: 0.88rem;
+  width: 0.88rem;
+}
+
+.resource-meta time {
+  color: #808a7a;
+  font-size: 0.71rem;
+  font-weight: 650;
+}
+
+.resource-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.resource-copy h3 {
+  color: #263522;
+  font-size: clamp(1.05rem, 1.5vw, 1.28rem);
+  line-height: 1.08;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
-p {
-  color: var(--color-muted);
-  font-size: 0.95rem;
-  margin-bottom: 0;
+.resource-copy p {
+  color: #687363;
+  display: -webkit-box;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .resource-image {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(246, 250, 241, 0.86));
-  border: 1px solid rgba(223, 232, 215, 0.82);
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: var(--resource-soft);
+  border: 1px solid color-mix(in srgb, var(--resource-accent) 16%, transparent);
+  border-radius: 16px;
   display: block;
-  margin-top: 2px;
-  max-height: 220px;
+  max-height: 260px;
   object-fit: contain;
   width: 100%;
 }
 
 .density-comfortable .resource-image {
-  max-height: min(360px, 42vh);
+  max-height: min(380px, 44vh);
 }
 
-.resource-button {
-  justify-self: start;
-  max-width: 100%;
+.resource-footer {
+  align-items: center;
+  border-top: 1px solid rgba(53, 95, 36, 0.08);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding-top: 11px;
+}
+
+.resource-footer small {
+  color: #8a9385;
+  font-size: 0.68rem;
   min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.muted {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.resource-link {
+  align-items: center;
+  color: var(--resource-accent);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 5px;
+  margin-left: auto;
 }
 
-@media (max-width: 560px) {
-  .resource-button {
-    justify-self: stretch;
+.resource-link :deep(.pa-icon) {
+  height: 0.9rem;
+  transition: transform 0.18s ease;
+  width: 0.9rem;
+}
+
+.resource-link:hover :deep(.pa-icon) {
+  transform: translateX(3px);
+}
+
+.calendar-date {
+  align-items: center;
+  background: var(--resource-soft);
+  border: 1px solid color-mix(in srgb, var(--resource-accent) 18%, transparent);
+  border-radius: 18px;
+  display: grid;
+  justify-items: center;
+  min-height: 86px;
+  padding: 10px;
+  text-transform: capitalize;
+}
+
+.calendar-date strong {
+  color: var(--resource-accent);
+  font-family: var(--font-title);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.calendar-date span {
+  color: #687363;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.type-cal {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+
+@media (max-width: 520px) {
+  .resource-card {
+    border-radius: 19px;
+    padding: 15px;
+  }
+
+  .type-cal {
+    gap: 12px;
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .calendar-date {
+    border-radius: 15px;
+    min-height: 76px;
+    padding: 8px;
+  }
+
+  .calendar-date strong {
+    font-size: 1.65rem;
+  }
+
+  .resource-footer {
+    align-items: flex-end;
   }
 }
 </style>

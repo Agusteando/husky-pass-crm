@@ -1,1 +1,1 @@
-Implementa estados optimistas y protege borradores en modales de guardería
+Rediseña la experiencia familiar de guardería con una interfaz visual y responsiva

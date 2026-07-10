@@ -95,7 +95,8 @@ const iconMap: Record<string, FunctionalComponent> = {
   trash: Trash2,
   document: FileCheck,
   security: ShieldCheck,
-  search: Search
+  search: Search,
+  sparkles: Sparkles
 }
 
 const iconComponent = computed(() => iconMap[props.name] || Sparkles)

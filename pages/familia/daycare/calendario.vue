@@ -1,5 +1,5 @@
 <template>
-  <FamilyResourceList type="cal" title="Calendario" description="Eventos próximos publicados para la comunidad de guardería." />
+  <FamilyResourceList type="cal" title="Agenda" />
 </template>
 
 <script setup lang="ts">

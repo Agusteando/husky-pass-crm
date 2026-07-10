@@ -2,34 +2,44 @@
   <header class="role-topbar family-topbar" :data-experience="identity.context.experience">
     <div class="page-shell role-topbar-inner">
       <NuxtLink class="brand-lockup" :to="homeTo" :aria-label="brandLabel">
-        <img class="brand-logo" :src="brandLogo" :alt="brandLabel" />
+        <span class="brand-logo-wrap">
+          <img class="brand-logo" :src="brandLogo" :alt="brandLabel" />
+        </span>
         <span class="brand-copy">
           <strong>{{ brandTitle }}</strong>
           <small>{{ contextLine }}</small>
         </span>
       </NuxtLink>
 
-      <nav class="role-nav" :class="{ 'mobile-only-nav': isGuarderia }" aria-label="Navegación familiar">
-        <NuxtLink v-for="item in navItems" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
+      <nav class="role-nav" aria-label="Navegación familiar">
+        <NuxtLink
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          :class="{ active: isActive(item.to) }"
+          :data-product-nav="item.key"
+        >
           <FamilyPersonasIcon :name="item.icon" />
           <span>{{ item.label }}</span>
         </NuxtLink>
       </nav>
 
-      <section v-if="activeStudent" class="student-chip" aria-label="Alumno activo">
+      <section v-if="activeStudent && !isGuarderia" class="student-chip" aria-label="Alumno activo">
         <span>{{ activeStudent.label }}</span>
         <strong>{{ activeStudent.value }}</strong>
       </section>
 
-      <TopbarAccountMenu :session="session" :experience="identity.context.experience" :security-to="securityTo" />
+      <TopbarAccountMenu
+        :session="session"
+        :experience="identity.context.experience"
+        :security-to="securityTo"
+        :presentation="isGuarderia ? 'compact' : 'standard'"
+      />
     </div>
 
     <div v-if="session?.user?.impersonation" class="impersonation-strip">
       <div class="page-shell">
-        <span>
-          <strong>Vista familiar</strong>
-          <small>Vista familiar</small>
-        </span>
+        <span><strong>Vista familiar</strong></span>
         <button type="button" data-diagnostic-action="terminar-impersonacion" @click="exitImpersonation">
           <FamilyPersonasIcon name="arrow" />
           {{ adminReturnLabel }}
@@ -56,23 +66,24 @@ const props = defineProps<{
 
 const route = useRoute()
 const isGuarderia = computed(() => props.identity.context.experience === 'guarderia')
-const brandLogo = computed(() => props.identity.assets.wordmark || props.identity.assets.logo || '/brand/husky-pass-logo.png')
+const brandLogo = computed(() => props.identity.assets.logo || props.identity.assets.wordmark || '/brand/husky-pass-logo.png')
 const brandLabel = computed(() => isGuarderia.value ? 'Husky Pass Guardería' : props.identity.label || 'Husky Pass')
-const brandTitle = computed(() => isGuarderia.value ? 'Guardería' : props.identity.shortLabel || 'Escolar')
+const brandTitle = computed(() => isGuarderia.value ? 'Husky Pass' : props.identity.shortLabel || 'Escolar')
 const contextLine = computed(() => {
   const user = props.session?.user
-  if (!user) return props.identity.officialName
-  if (isGuarderia.value) return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
+  if (!user) return isGuarderia.value ? 'Guardería' : props.identity.officialName
+  if (isGuarderia.value) {
+    return ['Guardería', user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null]
+      .filter(Boolean)
+      .join(' · ')
+  }
   return [props.identity.levelLabel, props.identity.context.plantel].filter(Boolean).join(' / ') || props.identity.officialName
 })
 const activeStudent = computed(() => {
   const user = props.session?.user
   if (!user || user.kind !== 'family') return null
-  if (isGuarderia.value) {
-    return { label: 'Sala', value: [user.scopes.daycare?.unidad, user.scopes.daycare?.sala].filter(Boolean).join(' / ') || 'Guardería' }
-  }
   const matricula = displayMatriculaCandidate(user.username)
-  return matricula ? { label: 'Matricula', value: matricula } : null
+  return matricula ? { label: 'Matrícula', value: matricula } : null
 })
 const securityTo = computed(() => `/familia/cuenta/seguridad?experiencia=${isGuarderia.value ? 'guarderia' : 'escolar'}`)
 const adminReturnLabel = computed(() => props.session?.user?.impersonation?.admin?.isSuperAdmin ? 'Volver a Super Admin' : 'Volver a admin')
@@ -83,14 +94,14 @@ const navItems = computed(() => {
     items.push(
       { key: 'daycare-home', label: 'Inicio', to: '/familia/daycare', icon: 'home' },
       { key: 'daycare-tareas', label: 'Tareas', to: '/familia/daycare/tareas', icon: 'edit' },
-      { key: 'daycare-avisos', label: 'Avisos', to: '/familia/daycare/avisos', icon: 'survey' },
-      { key: 'daycare-calendario', label: 'Calendario', to: '/familia/daycare/calendario', icon: 'calendar' }
+      { key: 'daycare-avisos', label: 'Avisos', to: '/familia/daycare/avisos', icon: 'announcement' },
+      { key: 'daycare-calendario', label: 'Agenda', to: '/familia/daycare/calendario', icon: 'calendar' }
     )
   }
   if (!isGuarderia.value && hasFamilyScope(user, 'personasAutorizadas')) {
     items.push({ key: 'personas-autorizadas', label: 'Personas', to: '/familia/personas-autorizadas', icon: 'people' })
+    items.push({ key: 'seguridad', label: 'Seguridad', to: securityTo.value, icon: 'security' })
   }
-  items.push({ key: 'seguridad', label: 'Seguridad', to: securityTo.value, icon: 'security' })
   return items
 })
 
@@ -110,9 +121,9 @@ async function exitImpersonation() {
 
 <style scoped>
 .role-topbar {
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.91);
+  border-bottom: 1px solid rgba(45, 95, 36, 0.1);
+  backdrop-filter: blur(20px);
   position: sticky;
   top: 0;
   z-index: 24;
@@ -121,9 +132,9 @@ async function exitImpersonation() {
 .role-topbar-inner {
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto auto;
-  min-height: var(--topbar-height);
+  gap: 16px;
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto auto;
+  min-height: 68px;
 }
 
 .brand-lockup {
@@ -134,11 +145,24 @@ async function exitImpersonation() {
   min-width: 0;
 }
 
+.brand-logo-wrap {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(53, 95, 36, 0.12);
+  border-radius: 15px;
+  box-shadow: 0 7px 18px rgba(45, 73, 31, 0.08);
+  display: inline-flex;
+  height: 46px;
+  justify-content: center;
+  overflow: hidden;
+  width: 46px;
+}
+
 .brand-logo {
   display: block;
-  max-height: 38px;
-  max-width: 112px;
+  height: 38px;
   object-fit: contain;
+  width: 38px;
 }
 
 .brand-copy {
@@ -156,56 +180,53 @@ async function exitImpersonation() {
 
 .brand-copy strong {
   color: var(--color-ink);
-  font-size: 0.9rem;
+  font-family: var(--font-title);
+  font-size: 1rem;
 }
 
 .brand-copy small,
 .student-chip span {
   color: var(--color-muted);
-  font-size: 0.72rem;
+  font-size: 0.69rem;
 }
 
 .role-nav {
   align-items: center;
   display: flex;
-  gap: 5px;
-  inline-size: 100%;
-  justify-self: stretch;
-  max-inline-size: 100%;
+  gap: 4px;
+  justify-self: center;
   min-width: 0;
-  overflow-x: auto;
-  padding: 4px 0;
-  scrollbar-width: none;
-}
-
-.role-nav::-webkit-scrollbar {
-  display: none;
-}
-
-@media (min-width: 981px) {
-  .role-nav.mobile-only-nav {
-    display: none;
-  }
+  padding: 4px;
 }
 
 .role-nav a {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 12px;
-  color: var(--color-muted);
+  border-radius: 14px;
+  color: #6f7a69;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   gap: 7px;
-  min-height: 36px;
-  padding: 0 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.role-nav a:hover,
-.role-nav a.active {
-  background: var(--color-brand-100);
-  border-color: var(--color-brand-200);
+.role-nav a:hover {
   color: var(--color-brand-800);
+  transform: translateY(-1px);
+}
+
+.role-nav a.active {
+  background: #eff7e7;
+  border-color: #d9eac9;
+  color: var(--color-brand-800);
+}
+
+.role-nav a :deep(.pa-icon) {
+  height: 1rem;
+  width: 1rem;
 }
 
 .student-chip {
@@ -227,10 +248,15 @@ async function exitImpersonation() {
   white-space: nowrap;
 }
 
+.family-topbar[data-experience='guarderia'] .role-topbar-inner {
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
+  max-width: 1240px;
+}
+
 .impersonation-strip {
   background: var(--color-brand-800);
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .impersonation-strip .page-shell {
@@ -238,25 +264,13 @@ async function exitImpersonation() {
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  min-height: 28px;
-}
-
-.impersonation-strip span {
-  align-items: center;
-  display: inline-flex;
-  gap: 8px;
-  min-width: 0;
-}
-
-.impersonation-strip small {
-  color: rgba(255, 255, 255, .76);
-  font-size: .76rem;
+  min-height: 30px;
 }
 
 .impersonation-strip button {
   align-items: center;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .26);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 999px;
   color: #fff;
   cursor: pointer;
@@ -264,45 +278,67 @@ async function exitImpersonation() {
   font: inherit;
   font-weight: 800;
   gap: 6px;
-  min-height: 26px;
+  min-height: 25px;
   padding: 0 10px;
 }
 
-@media (max-width: 1060px) {
-  .role-topbar-inner {
-    grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
+@media (max-width: 980px) {
+  .role-topbar-inner,
+  .family-topbar[data-experience='guarderia'] .role-topbar-inner {
+    grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
   }
 
-  .student-chip {
+  .role-nav {
+    justify-self: end;
+  }
+
+  .role-nav a span {
     display: none;
+  }
+
+  .role-nav a {
+    justify-content: center;
+    padding: 0;
+    width: 40px;
   }
 }
 
 @media (max-width: 760px) {
-  .role-topbar-inner {
-    gap: 7px;
+  .role-topbar-inner,
+  .family-topbar[data-experience='guarderia'] .role-topbar-inner {
+    gap: 8px;
     grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 62px;
     padding-block: 6px;
   }
 
-  .brand-logo {
-    max-height: 32px;
-    max-width: 88px;
-  }
-
-  .brand-copy small {
+  .role-nav {
     display: none;
   }
 
-  .role-nav {
-    grid-column: 1 / -1;
-    order: 3;
-    width: 100%;
+  .brand-logo-wrap {
+    border-radius: 13px;
+    height: 42px;
+    width: 42px;
   }
 
-  .role-nav a {
-    min-height: 34px;
-    padding-inline: 9px;
+  .brand-logo {
+    height: 34px;
+    width: 34px;
+  }
+
+  .brand-copy strong {
+    font-size: 0.92rem;
+  }
+
+  .brand-copy small {
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-copy small {
+    display: none;
   }
 }
 </style>
