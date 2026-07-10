@@ -167,16 +167,10 @@
           </NuxtLink>
         </nav>
 
-        <section class="pa-help-card" aria-label="Centro de ayuda">
-          <div class="pa-help-ambassador" aria-hidden="true">
-            <FamilyPersonasAmbassador :theme="theme" variant="help" compact contained decorative />
-          </div>
-          <div class="pa-help-copy">
-            <strong>¿Necesitas ayuda?</strong>
-            <span>Consulta la guía o contacta a tu colegio.</span>
-          </div>
-          <NuxtLink to="/familia/personas-autorizadas#ayuda">Centro de ayuda</NuxtLink>
-        </section>
+        <FamilyHelpCard
+          :theme="theme"
+          to="/familia/personas-autorizadas#ayuda"
+        />
       </aside>
 
       <section class="pa-route-content">
@@ -1484,68 +1478,6 @@ function isActive(item: { to: string }) {
   white-space: nowrap;
 }
 
-.pa-help-card {
-  align-items: center;
-  background:
-    radial-gradient(circle at 10% 15%, rgba(var(--pa-primary-rgb), 0.1), transparent 5rem),
-    linear-gradient(145deg, #fbfdfd, #f3f8f8);
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.15);
-  border-radius: 18px;
-  display: grid;
-  gap: 7px 9px;
-  grid-template-columns: 52px minmax(0, 1fr);
-  margin-top: auto;
-  overflow: hidden;
-  padding: 10px;
-}
-
-.pa-help-ambassador {
-  align-self: end;
-  display: grid;
-  height: 56px;
-  overflow: hidden;
-  place-items: end center;
-  width: clamp(42px, 3.3vw, 52px);
-}
-
-.pa-help-ambassador :deep(.pa-ambassador-card),
-.pa-help-ambassador :deep(.pa-ambassador-visual) {
-  height: 56px;
-  width: clamp(42px, 3.3vw, 52px);
-}
-
-.pa-help-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pa-help-copy strong {
-  color: var(--pa-gray);
-  font-size: 0.74rem;
-}
-
-.pa-help-copy span {
-  color: var(--pa-muted);
-  font-size: 0.64rem;
-  line-height: 1.4;
-}
-
-.pa-help-card a {
-  align-items: center;
-  background: #fff;
-  border: 1px solid rgba(var(--pa-primary-rgb), 0.28);
-  border-radius: 10px;
-  color: var(--pa-primary);
-  display: inline-flex;
-  font-size: 0.7rem;
-  font-weight: 850;
-  grid-column: 1 / -1;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 10px;
-}
-
 .pa-route-content {
   align-content: start;
   display: grid;
@@ -1592,16 +1524,6 @@ function isActive(item: { to: string }) {
     --pa-sidebar-width: 248px;
   }
 
-  .pa-help-card {
-    grid-template-columns: 44px minmax(0, 1fr);
-  }
-
-  .pa-help-ambassador,
-  .pa-help-ambassador :deep(.pa-ambassador-card),
-  .pa-help-ambassador :deep(.pa-ambassador-visual) {
-    height: 48px;
-    width: 44px;
-  }
 }
 
 @media (max-width: 1180px) {
@@ -1806,18 +1728,6 @@ function isActive(item: { to: string }) {
     min-height: 39px;
   }
 
-  .pa-help-card {
-    gap: 5px 8px;
-    padding: 8px;
-  }
-
-  .pa-help-copy span {
-    line-height: 1.25;
-  }
-
-  .pa-help-card a {
-    min-height: 29px;
-  }
 
   .pa-route-content {
     padding-top: 16px;

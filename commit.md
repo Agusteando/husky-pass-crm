@@ -1,1 +1,1 @@
-Corrige la distribución responsiva del encabezado de asistencia familiar
+Rediseña la tarjeta de ayuda de Personas Autorizadas
