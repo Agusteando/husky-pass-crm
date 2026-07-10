@@ -59,7 +59,7 @@ import { computed } from 'vue'
 import { useFetch } from 'nuxt/app'
 import { useAppSession } from '~/composables/useAppSession'
 import type { DaycareResource } from '~/types/daycare'
-import { parseLegacyDate } from '~/utils/daycare'
+import { daycareScopeLabel, parseLegacyDate } from '~/utils/daycare'
 import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{
@@ -85,7 +85,7 @@ const mascotSrc = computed(() => personasMascot(daycareTheme, mascotVariant.valu
 const emptyMascotSrc = personasMascot(daycareTheme, 'empty')
 const salaLine = computed(() => {
   const daycare = session.value?.user?.scopes.daycare
-  return [daycare?.unidad, daycare?.sala ? `Sala ${daycare.sala}` : null].filter(Boolean).join(' · ') || 'Guardería'
+  return daycareScopeLabel(daycare)
 })
 
 function compactDate(value?: string | null) {

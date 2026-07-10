@@ -381,7 +381,7 @@ function initials(user: SuperAdminUserSummary) {
 }
 
 function accountLine(user: SuperAdminUserSummary) {
-  return [user.email || displayMatricula(user.username), user.sala ? `Sala ${user.sala}` : '', user.campus || user.empresa || ''].filter(Boolean).join(' / ') || `ID ${user.id}`
+  return [user.email || displayMatricula(user.username), user.salaName || '', user.campus || user.empresa || ''].filter(Boolean).join(' / ') || `ID ${user.id}`
 }
 
 function accountType(user: SuperAdminUserSummary) {

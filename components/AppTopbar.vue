@@ -47,6 +47,7 @@ import type { PublicSession } from '~/types/session'
 import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
 import { defaultAdminRoute, effectiveAdminUser } from '~/utils/sessionScopes'
+import { daycareScopeLabel } from '~/utils/daycare'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -83,7 +84,7 @@ const sessionScopeLabel = computed(() => {
   const admin = effectiveAdminUser(user)
   if (admin) return admin.unidades.length ? admin.unidades.join(' · ') : 'Administración'
   const daycare = user.scopes.daycare
-  if (daycare) return `${daycare.unidad} · Sala ${daycare.sala}`
+  if (daycare) return daycareScopeLabel(daycare)
   return user.campus || user.empresa || ''
 })
 

@@ -35,7 +35,8 @@ export default defineEventHandler(async (event) => {
       daycare: {
         product: 'daycare',
         unidad: sala.unidad,
-        sala: String(sala.id)
+        sala: String(sala.id),
+        salaName: sala.sala
       }
     },
     impersonation: {

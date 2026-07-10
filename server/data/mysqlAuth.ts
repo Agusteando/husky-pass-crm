@@ -25,6 +25,7 @@ interface LegacyUserRow extends RowDataPacket {
   empresa: string | null
   unidad: string | null
   sala: string | null
+  salaName: string | null
   has_alumno_pa: number | boolean | null
   has_personas_autorizadas: number | boolean | null
 }
@@ -45,6 +46,7 @@ interface DirectoryUserRow extends RowDataPacket {
   empresa: string | null
   unidad: string | null
   sala: string | null
+  salaName: string | null
   nombre_nino: string | null
   routes: string | null
   has_alumno_pa: number | boolean | null
@@ -95,9 +97,11 @@ const baseUserSql = `
     A.empresa,
     A.unidad,
     A.sala,
+    S.sala AS salaName,
     EXISTS(SELECT 1 FROM alumno_pa AP WHERE AP.user_id = A.id LIMIT 1) AS has_alumno_pa,
     EXISTS(SELECT 1 FROM personas_autorizadas PA WHERE PA.user_id = A.id LIMIT 1) AS has_personas_autorizadas
   FROM users AS A
+  LEFT JOIN salas AS S ON S.id = CAST(A.sala AS UNSIGNED)
   LEFT JOIN rutas_rol AS B ON (FIND_IN_SET(B.role, REPLACE(COALESCE(A.role, ''), ' ', '')) > 0)
 `
 
@@ -326,7 +330,7 @@ function resolveFamilyProductScopes(
   const hasDaycareRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
 
   if (hasDaycareRole && sala && unidad) {
-    scopes.daycare = { product: 'daycare', sala, unidad }
+    scopes.daycare = { product: 'daycare', sala, unidad, salaName: resolvedSalaName(row.salaName, sala) }
   }
 
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route.route))
@@ -368,6 +372,13 @@ function normalizeLegacyScope(value?: string | null) {
   return normalized || null
 }
 
+function resolvedSalaName(value: string | null | undefined, legacySala: string | null | undefined) {
+  const joinedName = normalizeLegacyScope(value)
+  if (joinedName) return joinedName
+  const legacyValue = normalizeLegacyScope(legacySala)
+  return legacyValue && !/^\d+$/.test(legacyValue) ? legacyValue : null
+}
+
 
 export async function listSuperAdminDirectory(filters: { plantel?: string; search?: string; scope?: SuperAdminDirectoryScope; limit?: number } = {}): Promise<SuperAdminDirectoryResponse> {
   const plantel = normalizeLegacyScope(filters.plantel)
@@ -390,10 +401,10 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   if (search) {
     where.push(`(
       A.email LIKE ? OR A.username LIKE ? OR A.displayName LIKE ? OR A.nombre_nino LIKE ? OR
-      A.role LIKE ? OR A.sala LIKE ? OR A.unidad LIKE ? OR A.campus LIKE ? OR A.empresa LIKE ?
+      A.role LIKE ? OR A.sala LIKE ? OR S.sala LIKE ? OR A.unidad LIKE ? OR A.campus LIKE ? OR A.empresa LIKE ?
     )`)
     const like = `%${search}%`
-    params.push(like, like, like, like, like, like, like, like, like)
+    params.push(like, like, like, like, like, like, like, like, like, like)
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
@@ -410,8 +421,10 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       A.empresa,
       A.unidad,
       A.sala,
+      S.sala AS salaName,
       A.nombre_nino
      FROM users AS A
+     LEFT JOIN salas AS S ON S.id = CAST(A.sala AS UNSIGNED)
      ${whereSql}
      ORDER BY COALESCE(NULLIF(A.unidad, ''), A.campus, A.empresa, '') ASC, A.id DESC
      LIMIT ${queryLimit}`,
@@ -484,8 +497,10 @@ export async function getSuperAdminUserSummaryById(userId: number) {
       A.empresa,
       A.unidad,
       A.sala,
+      S.sala AS salaName,
       A.nombre_nino
      FROM users AS A
+     LEFT JOIN salas AS S ON S.id = CAST(A.sala AS UNSIGNED)
      WHERE A.id = ?
      LIMIT 1`,
     [userId]
@@ -790,6 +805,7 @@ function directoryRowToSummary(row: DirectoryUserRow, schoolScopes: SuperAdminSc
     empresa: normalizeLegacyScope(row.empresa),
     unidad,
     sala: normalizeLegacyScope(row.sala),
+    salaName: resolvedSalaName(row.salaName, row.sala),
     nombre_nino: normalizeLegacyScope(row.nombre_nino),
     routes,
     productScopes,

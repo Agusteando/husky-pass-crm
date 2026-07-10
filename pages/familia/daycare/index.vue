@@ -135,7 +135,7 @@ import { computed } from 'vue'
 import { useFetch, useRuntimeConfig } from 'nuxt/app'
 import { useAppSession } from '~/composables/useAppSession'
 import type { DaycareResource } from '~/types/daycare'
-import { formatCalendarDay, isImageResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { daycareScopeLabel, formatCalendarDay, isImageResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
 import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 import { hasFamilyScope } from '~/utils/sessionScopes'
 
@@ -166,7 +166,7 @@ const firstName = computed(() => {
 })
 const salaLine = computed(() => {
   const daycare = session.value?.user?.scopes.daycare
-  return [daycare?.unidad || 'Guardería', daycare?.sala ? `Sala ${daycare.sala}` : null].filter(Boolean).join(' · ')
+  return daycareScopeLabel(daycare)
 })
 const overviewCards = computed(() => [
   {

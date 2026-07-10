@@ -21,6 +21,7 @@ import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { defaultAdminRoute, familyNavItems, hasFamilyScope } from '~/utils/sessionScopes'
 import { setCachedRouteSession } from '~/utils/routeSession'
+import { daycareScopeLabel } from '~/utils/daycare'
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
@@ -49,7 +50,7 @@ const primaryName = computed(() => props.session?.user?.displayName || displayMa
 const secondaryName = computed(() => {
   const user = props.session?.user
   if (!user) return ''
-  if (activeProduct.value === 'daycare') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' · ')
+  if (activeProduct.value === 'daycare') return daycareScopeLabel(user.scopes.daycare)
   return user.email || ''
 })
 

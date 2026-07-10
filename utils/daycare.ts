@@ -1,3 +1,17 @@
+import type { DaycareFamilyScope } from '~/types/session'
+
+export function daycareSalaName(scope?: Pick<DaycareFamilyScope, 'sala' | 'salaName'> | null) {
+  const explicitName = String(scope?.salaName || '').trim()
+  if (explicitName) return explicitName
+
+  const legacyValue = String(scope?.sala || '').trim()
+  return legacyValue && !/^\d+$/.test(legacyValue) ? legacyValue : ''
+}
+
+export function daycareScopeLabel(scope?: Pick<DaycareFamilyScope, 'unidad' | 'sala' | 'salaName'> | null, separator = ' · ') {
+  return [String(scope?.unidad || '').trim(), daycareSalaName(scope)].filter(Boolean).join(separator) || 'Guardería'
+}
+
 export function parseLegacyDate(value?: string | Date | null) {
   if (!value) return null
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value

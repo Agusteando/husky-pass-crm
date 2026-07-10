@@ -11,6 +11,7 @@ export interface DaycareFamilyScope {
   product: 'daycare'
   unidad: string
   sala: string
+  salaName?: string | null
 }
 
 export interface PersonasAutorizadasFamilyScope {

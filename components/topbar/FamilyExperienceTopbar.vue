@@ -57,6 +57,7 @@ import type { ExperienceVisualIdentity } from '~/types/identity'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { defaultAdminRoute, hasFamilyScope } from '~/utils/sessionScopes'
 import { setCachedRouteSession } from '~/utils/routeSession'
+import { daycareSalaName } from '~/utils/daycare'
 
 const props = defineProps<{
   session?: PublicSession | null
@@ -73,9 +74,8 @@ const contextLine = computed(() => {
   const user = props.session?.user
   if (!user) return isGuarderia.value ? 'Guardería' : props.identity.officialName
   if (isGuarderia.value) {
-    return ['Guardería', user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null]
-      .filter(Boolean)
-      .join(' · ')
+    const daycare = user.scopes.daycare
+    return ['Guardería', daycare?.unidad, daycareSalaName(daycare)].filter(Boolean).join(' · ')
   }
   return [props.identity.levelLabel, props.identity.context.plantel].filter(Boolean).join(' / ') || props.identity.officialName
 })

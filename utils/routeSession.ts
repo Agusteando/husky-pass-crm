@@ -45,6 +45,7 @@ export function sessionAccountIdentity(session: PublicSession | null | undefined
     routes,
     daycare?.unidad || '',
     daycare?.sala || '',
+    daycare?.salaName || '',
     personas?.legacyRoute || '',
     user.impersonation?.mode || '',
     user.impersonation?.admin.id || ''

@@ -1,1 +1,1 @@
-Redirige la ruta heredada de inicio de sesión a la portada
+Muestra los nombres reales de las salas en guardería

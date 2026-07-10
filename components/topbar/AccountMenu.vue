@@ -43,6 +43,7 @@ import { defaultLoginRouteForExperience } from '~/utils/experienceIdentity'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { anonymousSession, setCachedRouteSession } from '~/utils/routeSession'
 import { defaultAdminRoute, effectiveAdminUser } from '~/utils/sessionScopes'
+import { daycareScopeLabel } from '~/utils/daycare'
 
 const props = withDefaults(defineProps<{
   session?: PublicSession | null
@@ -66,7 +67,7 @@ const profileDetail = computed(() => {
   if (!user) return ''
   const admin = effectiveAdminUser(user)
   if (admin) return admin.isSuperAdmin ? 'Super Admin' : (admin.unidades[0] || 'Administración')
-  if (props.experience === 'guarderia') return [user.scopes.daycare?.unidad, user.scopes.daycare?.sala ? `Sala ${user.scopes.daycare.sala}` : null].filter(Boolean).join(' / ') || 'Familia guardería'
+  if (props.experience === 'guarderia') return daycareScopeLabel(user.scopes.daycare, ' / ')
   return displayMatriculaCandidate(user.username) || user.email || 'Familia escolar'
 })
 watch(() => props.session?.user?.picture, () => {

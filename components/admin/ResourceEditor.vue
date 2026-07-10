@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">{{ model.id ? 'Editar publicación' : 'Nueva publicación' }}</p>
         <h2>{{ label }}</h2>
-        <p>{{ unidad || 'Guardería' }} / {{ salaName || `Sala ${salaId}` }}</p>
+        <p>{{ unidad || 'Guardería' }} / {{ salaName || 'Sala' }}</p>
       </div>
       <div class="actions top-actions">
         <button class="btn btn-primary" type="submit" :disabled="saving || uploading">{{ saving ? 'Guardando...' : uploading ? 'Subiendo...' : 'Guardar' }}</button>
@@ -86,7 +86,7 @@
       </label>
       <div class="context-chip">
         <span>Destino</span>
-        <strong>{{ unidad || 'Guardería' }} / {{ salaName || `Sala ${salaId}` }}</strong>
+        <strong>{{ unidad || 'Guardería' }} / {{ salaName || 'Sala' }}</strong>
       </div>
     </section>
   </form>

@@ -24,6 +24,7 @@ export interface SuperAdminUserSummary {
   empresa: string | null
   unidad: string[]
   sala: string | null
+  salaName: string | null
   nombre_nino: string | null
   routes: string[]
   productScopes: FamilyProductScope[]
