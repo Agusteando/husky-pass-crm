@@ -146,8 +146,33 @@ export async function findLegacyUserById(id: number) {
 }
 
 export async function findLegacyFamilyByLogin(login: string) {
-  const rows = await legacyQuery<LegacyUserRow[]>(`${baseUserSql} WHERE A.email = ? OR A.username = ?`, [login, login])
-  return hydrateUserRows(rows)
+  const candidates = await findLegacyUsersByLogin(login)
+  return candidates.length === 1 ? candidates[0] : null
+}
+
+export async function authenticateLegacyFamily(login: string, password: string) {
+  const candidates = await findLegacyUsersByLogin(login)
+  const matches: typeof candidates = []
+
+  for (const candidate of candidates) {
+    if (await validateLegacyPassword(password, candidate.raw)) {
+      matches.push(candidate)
+    }
+  }
+
+  return matches.length === 1 ? matches[0] : null
+}
+
+async function findLegacyUsersByLogin(login: string) {
+  const trimmedLogin = login.trim()
+  if (!trimmedLogin) return []
+
+  const rows = await legacyQuery<LegacyUserRow[]>(
+    `${baseUserSql} WHERE LOWER(A.email) = ? OR A.username = ? ORDER BY A.id ASC`,
+    [normalizeEmail(trimmedLogin), trimmedLogin]
+  )
+
+  return hydrateUserCandidates(rows)
 }
 
 export async function findLegacyFamilyByEmail(email: string) {
@@ -228,6 +253,21 @@ export async function createSuperAdminSession(input: { email: string; displayNam
   }
 
   return session
+}
+
+function hydrateUserCandidates(rows: LegacyUserRow[]) {
+  const rowsByUser = new Map<number, LegacyUserRow[]>()
+
+  for (const row of rows) {
+    const userId = Number(row.id)
+    const userRows = rowsByUser.get(userId) || []
+    userRows.push(row)
+    rowsByUser.set(userId, userRows)
+  }
+
+  return Array.from(rowsByUser.values())
+    .map((userRows) => hydrateUserRows(userRows))
+    .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
 }
 
 function hydrateUserRows(rows: LegacyUserRow[]) {

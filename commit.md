@@ -1,1 +1,1 @@
-Corregir tipado de diagnosticos de lista externa de guarderia
+Corregir la resolución de cuentas duplicadas al iniciar sesión

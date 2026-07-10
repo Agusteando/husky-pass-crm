@@ -1,6 +1,6 @@
-import { defineEventHandler, readBody, setCookie } from 'h3'
+import { defineEventHandler, readBody, setCookie, setHeader } from 'h3'
 import { z } from 'zod'
-import { findLegacyFamilyByLogin, validateLegacyPassword } from '~/server/data/mysqlAuth'
+import { authenticateLegacyFamily } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
 import { hasFamilyScope, hasAnyAdminScope, defaultAdminRoute, defaultFamilyRoute } from '~/utils/sessionScopes'
 import { defaultRouteForExperience, normalizeExperienceName } from '~/utils/experienceIdentity'
@@ -33,14 +33,10 @@ function preferredFamilyRoute(user: AppSessionUser, requestedExperience?: 'escol
 
 export default defineEventHandler(async (event) => {
   const body = schema.parse(await readBody(event))
+  setHeader(event, 'cache-control', 'private, no-store, max-age=0')
   const login = body.login.trim()
-  const legacyUser = await findLegacyFamilyByLogin(login)
+  const legacyUser = await authenticateLegacyFamily(login, body.password)
   if (!legacyUser) {
-    throw publicError(401, 'Usuario o contraseña incorrectos.')
-  }
-
-  const valid = await validateLegacyPassword(body.password, legacyUser.raw)
-  if (!valid) {
     throw publicError(401, 'Usuario o contraseña incorrectos.')
   }
 
