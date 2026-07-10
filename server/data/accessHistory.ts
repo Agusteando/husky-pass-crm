@@ -333,8 +333,16 @@ export async function getFamilyAccessHistory(user: AppSessionUser, input: {
   startDate?: string | null
   endDate?: string | null
 } = {}): Promise<FamilyAccessHistoryResponse> {
-  const range = resolveAccessHistoryRange(input)
   const { selected, children } = await resolveAttendanceChild(user, input.matricula)
+  return getFamilyAccessHistoryForChild(selected, children, input)
+}
+
+export async function getFamilyAccessHistoryForChild(
+  selected: AttendanceChild,
+  children: AttendanceChild[],
+  input: { startDate?: string | null; endDate?: string | null } = {}
+): Promise<FamilyAccessHistoryResponse> {
+  const range = resolveAccessHistoryRange(input)
   const childMatricula = normalizeMatricula(selected.matricula)
   const childByMatricula = new Map(children.map((child) => [normalizeMatricula(child.matricula), child]))
   const users = await userIdsForMatriculas([childMatricula])

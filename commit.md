@@ -1,1 +1,1 @@
-Corrige la carga externa de archivos en toda la plataforma
+Corrige la carga y el encabezado de asistencia

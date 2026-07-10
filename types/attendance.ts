@@ -97,8 +97,10 @@ export interface ParentAttendanceResponse {
     label: 'SIPAE'
     attendance: AttendanceSourceState
     tardiness: AttendanceSourceState
+    access: AttendanceSourceState
     attendanceMessage?: string
     tardinessMessage?: string
+    accessMessage?: string
   }
 }
 

@@ -1,38 +1,83 @@
 <template>
   <FamilyPersonasAutorizadasShell title="Asistencia y accesos">
     <section class="attendance-page" :data-state="pageState" data-product-panel="family-attendance-bitacora">
-      <FamilyAttendanceHeader
-        v-if="data"
-        :student-name="data.selectedChild.name"
-        :student-details="selectedChildLine || displayMatricula(data.selectedChild.matricula)"
-        :student-photo="selectedChildPhoto"
-        :student-initials="initials(data.selectedChild.name)"
-        :school-year="selectedSchoolYearLabel"
-        :children="children"
-        :selected-matricula="selectedMatricula"
-        @open-cycles="cycleDrawerOpen = true"
-        @select-student="selectStudent"
-      />
+      <FamilyPersonasPageHeader
+        eyebrow="Expediente escolar"
+        title="Asistencia y accesos"
+        :description="headerDescription"
+        :meta="headerMeta"
+        ambassador-variant="hero"
+        :ambassador-title="headerAmbassadorTitle"
+        :ambassador-message="headerAmbassadorMessage"
+        :ambassador-tone="headerAmbassadorTone"
+      >
+        <template #actions>
+          <div class="attendance-hero-actions">
+            <label v-if="children.length > 1" class="attendance-student-picker">
+              <span>Alumno</span>
+              <select
+                :value="selectedMatricula"
+                class="select"
+                data-testid="attendance-child-select"
+                :disabled="pending"
+                @change="selectStudentFromEvent"
+              >
+                <option v-for="child in children" :key="child.matricula" :value="child.matricula">
+                  {{ child.name }}
+                </option>
+              </select>
+            </label>
 
-      <FamilyAttendanceHeader
-        v-else
-        student-name="Asistencia y accesos"
-        student-details="Preparando el expediente del alumno"
-        school-year="Ciclo actual"
-      />
+            <button
+              class="attendance-cycle-picker btn btn-secondary"
+              type="button"
+              data-testid="attendance-open-cycles"
+              :disabled="!schoolYears.length"
+              @click="cycleDrawerOpen = true"
+            >
+              <FamilyPersonasIcon name="calendar" />
+              <span>
+                <small>Ciclo escolar</small>
+                <strong>{{ selectedSchoolYearLabel || 'Cargando ciclo' }}</strong>
+              </span>
+              <FamilyPersonasIcon name="chevron" />
+            </button>
+          </div>
+        </template>
+      </FamilyPersonasPageHeader>
 
-      <p v-if="loadError" class="alert" data-state="error">No fue posible abrir la bitácora de asistencia.</p>
+      <section v-if="loadError" class="attendance-recovery card" data-state="error" aria-live="polite">
+        <span class="attendance-recovery-icon"><FamilyPersonasIcon name="calendar" /></span>
+        <div>
+          <p class="eyebrow">Información en actualización</p>
+          <h2>La asistencia estará disponible en un momento</h2>
+          <p>Vuelve a intentarlo para consultar el expediente más reciente.</p>
+        </div>
+        <button class="btn btn-secondary" type="button" :disabled="pending" @click="reload">
+          <FamilyPersonasIcon name="replace" />
+          {{ pending ? 'Actualizando' : 'Reintentar' }}
+        </button>
+      </section>
 
       <section v-else-if="pending && !data" class="loading-layout" data-state="loading">
         <span v-for="item in 6" :key="item" class="loading-card"></span>
       </section>
 
       <template v-else-if="data">
-        <section v-if="sourceWarnings.length" class="source-strip" :data-state="data.status">
-          <span v-for="warning in sourceWarnings" :key="warning">{{ warning }}</span>
+        <section v-if="data.status === 'unavailable'" class="attendance-recovery card" data-state="unavailable">
+          <span class="attendance-recovery-icon"><FamilyPersonasIcon name="calendar" /></span>
+          <div>
+            <p class="eyebrow">Información en actualización</p>
+            <h2>Estamos preparando el expediente</h2>
+            <p>La información de asistencia y accesos volverá a mostrarse automáticamente al actualizar.</p>
+          </div>
+          <button class="btn btn-secondary" type="button" :disabled="pending" @click="reload">
+            <FamilyPersonasIcon name="replace" />
+            {{ pending ? 'Actualizando' : 'Actualizar' }}
+          </button>
         </section>
 
-        <section v-if="emptyState" class="empty-expediente card" data-state="empty">
+        <section v-else-if="emptyState" class="empty-expediente card" data-state="empty">
           <div class="empty-mark"><FamilyPersonasIcon name="calendar" /></div>
           <div>
             <p class="eyebrow">{{ selectedSchoolYearLabel }}</p>
@@ -76,14 +121,15 @@
               </div>
             </article>
 
-            <article class="latest-access-card card" :data-state="latestAccessAction ? 'ready' : 'empty'">
+            <article class="latest-access-card card" :data-state="latestAccessAction ? 'ready' : accessAvailable ? 'empty' : 'unavailable'">
               <div class="latest-copy">
                 <div class="latest-title-row">
                   <span class="latest-icon"><FamilyPersonasIcon name="check" /></span>
                   <div>
                     <p class="eyebrow">Último acceso registrado</p>
                     <h2 v-if="latestAccessAction">{{ latestAccessAction.label }} · {{ dateLabel(latestAccessAction.action.date) }}</h2>
-                    <h2 v-else>Sin accesos recientes</h2>
+                    <h2 v-else-if="accessAvailable">Sin accesos recientes</h2>
+                    <h2 v-else>Accesos en actualización</h2>
                   </div>
                 </div>
 
@@ -107,7 +153,8 @@
                   </div>
                 </template>
 
-                <p v-else class="quiet-copy">Cuando haya entrada o salida registrada, aparecerá aquí.</p>
+                <p v-else-if="accessAvailable" class="quiet-copy">Cuando haya entrada o salida registrada, aparecerá aquí.</p>
+                <p v-else class="quiet-copy">La asistencia disponible se muestra mientras se actualizan entradas y salidas.</p>
               </div>
 
               <button
@@ -469,7 +516,8 @@ const { data, pending, error: loadError, refresh } = useFetch<ParentAttendanceRe
   query: requestQuery,
   timeout: 45000,
   watch: [requestQuery],
-  key: 'family-attendance'
+  key: 'family-attendance',
+  server: false
 })
 
 const children = computed(() => data.value?.children || [])
@@ -479,6 +527,30 @@ const missingAbsences = computed(() => absences.value.filter((absence) => absenc
 const attentionAbsences = computed(() => missingAbsences.value.slice(0, 2))
 const selectedChildLine = computed(() => [data.value?.selectedChild.nivelEdu, data.value?.selectedChild.grado, data.value?.selectedChild.grupo].filter(Boolean).join(' / ') || data.value?.selectedChild.plantelCode || '')
 const selectedSchoolYearLabel = computed(() => data.value?.selectedSchoolYear.label || selectedSchoolYear.value || '')
+const headerDescription = computed(() => {
+  const firstName = data.value?.selectedChild.givenName?.split(/\s+/).filter(Boolean)[0]
+    || data.value?.selectedChild.name.split(/\s+/).filter(Boolean)[0]
+  return firstName
+    ? `Consulta asistencias, retardos, entradas y salidas de ${firstName}.`
+    : 'Consulta asistencias, retardos, entradas y salidas del alumno.'
+})
+const headerMeta = computed(() => {
+  if (!data.value) return pending.value ? 'Preparando la información del alumno' : 'Expediente escolar'
+  return [
+    data.value.selectedChild.name,
+    selectedChildLine.value,
+    displayMatricula(data.value.selectedChild.matricula)
+  ].filter(Boolean).join(' · ')
+})
+const headerAmbassadorTitle = computed(() => data.value ? 'Tu expediente, en un solo lugar' : 'Asistencia escolar')
+const headerAmbassadorMessage = computed(() => data.value
+  ? 'Revisa incidencias y accesos del ciclo seleccionado.'
+  : 'Estamos preparando la información más reciente.')
+const headerAmbassadorTone = computed<'calm' | 'success' | 'notice'>(() => {
+  if (loadError.value || data.value?.status === 'unavailable') return 'notice'
+  if (data.value && !missingAbsences.value.length) return 'success'
+  return 'calm'
+})
 const theme = computed(() => resolvePersonasTheme({
   matricula: data.value?.selectedChild.matricula || selectedMatricula.value,
   plantel: data.value?.selectedChild.plantel || data.value?.selectedChild.plantelCode,
@@ -486,7 +558,7 @@ const theme = computed(() => resolvePersonasTheme({
   campus: data.value?.selectedChild.campus
 }))
 
-const selectedChildPhoto = computed(() => String(data.value?.selectedChild.foto || '').trim())
+const accessAvailable = computed(() => data.value?.source.access === 'ready')
 const latestAccessAction = computed<SelectedAccessAction | null>(() => {
   const actions = (data.value?.accessHistory.days || [])
     .flatMap((day) => day.actions || [])
@@ -506,15 +578,6 @@ const pageState = computed(() => {
   if (emptyState.value) return 'empty'
   return 'content'
 })
-const sourceWarnings = computed(() => {
-  const source = data.value?.source
-  if (!source) return []
-  const warnings: string[] = []
-  if (source.attendance !== 'ready') warnings.push(source.attendanceMessage || 'Asistencia no disponible.')
-  if (source.tardiness !== 'ready') warnings.push(source.tardinessMessage || 'Retardos no disponibles.')
-  return warnings
-})
-
 const attendanceByDate = computed(() => new Map((data.value?.calendarDays || []).map((day) => [day.date, day])))
 const absenceByDate = computed(() => new Map((data.value?.absences || []).map((absence) => [absence.date, absence])))
 const tardiesByDate = computed(() => {
@@ -656,6 +719,14 @@ function selectStudent(matricula: string) {
   syncRoute()
 }
 
+function selectStudentFromEvent(event: Event) {
+  selectStudent((event.target as HTMLSelectElement).value)
+}
+
+async function reload() {
+  await refresh()
+}
+
 function syncRoute() {
   notice.value = ''
   motivoError.value = ''
@@ -693,10 +764,6 @@ function monthShort(date: string) {
 
 function weekDay(date: string) {
   return new Intl.DateTimeFormat('es-MX', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))
-}
-
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'A'
 }
 
 function openMotivo(absence: AttendanceAbsenceRecord) {
@@ -773,9 +840,7 @@ async function saveMotivo() {
 <style scoped>
 .attendance-page {
   display: grid;
-  gap: 13px;
-  margin: 0 auto;
-  max-width: 1240px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -808,6 +873,107 @@ async function saveMotivo() {
   text-transform: uppercase;
 }
 
+.attendance-hero-actions {
+  display: grid;
+  gap: 9px;
+  min-width: min(290px, 26vw);
+  width: 100%;
+}
+
+.attendance-student-picker {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
+}
+
+.attendance-student-picker > span,
+.attendance-cycle-picker small {
+  color: #6f7b8f;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.attendance-student-picker .select {
+  min-width: 0;
+  width: 100%;
+}
+
+.attendance-cycle-picker {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 54px;
+  padding: 8px 11px;
+  text-align: left;
+  width: 100%;
+}
+
+.attendance-cycle-picker > span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.attendance-cycle-picker strong {
+  color: #0f6b52;
+  font-family: var(--font-title);
+  font-size: 1rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-recovery {
+  align-items: center;
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--pa-primary-rgb), .12), transparent 12rem),
+    rgba(255, 255, 255, .96);
+  border: 1px solid #dbe5ed;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(30, 53, 78, .055);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  padding: 16px;
+}
+
+.attendance-recovery-icon {
+  align-items: center;
+  background: var(--pa-soft);
+  border: 1px solid var(--pa-border);
+  border-radius: 16px;
+  color: var(--pa-primary);
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.attendance-recovery h2,
+.attendance-recovery p {
+  margin: 0;
+}
+
+.attendance-recovery h2 {
+  color: #1f2d46;
+  font-family: var(--font-title);
+  font-size: 1.08rem;
+  margin-top: 2px;
+}
+
+.attendance-recovery p:not(.eyebrow) {
+  color: #687386;
+  font-size: .84rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
 .loading-layout {
   display: grid;
   gap: 12px;
@@ -827,7 +993,6 @@ async function saveMotivo() {
   to { opacity: 1; }
 }
 
-.source-strip,
 .notice {
   background: #fff8ea;
   border: 1px solid #f0d9a5;
@@ -991,6 +1156,16 @@ async function saveMotivo() {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.latest-access-card[data-state='unavailable'] {
+  background: linear-gradient(135deg, #fff, #f7f9fb);
+  border-color: #dbe3eb;
+}
+
+.latest-access-card[data-state='unavailable'] .latest-icon {
+  background: #eef2f5;
+  color: #6f7b8f;
 }
 
 .latest-copy {
@@ -1660,6 +1835,20 @@ async function saveMotivo() {
   .attention-card,
   .latest-access-card {
     grid-template-columns: 1fr;
+  }
+
+  .attendance-hero-actions {
+    min-width: 0;
+  }
+
+  .attendance-recovery {
+    align-items: start;
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .attendance-recovery .btn {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .attention-card {

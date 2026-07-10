@@ -622,10 +622,23 @@ export async function resolveAttendanceChild(user: AppSessionUser, matricula?: s
   return { selected, children }
 }
 
-function sourceStatus(attendanceStatus: ParentAttendanceResponse['source']['attendance'], tardyStatus: ParentAttendanceResponse['source']['tardiness']): ParentAttendanceResponse['status'] {
-  if (attendanceStatus === 'ready' && tardyStatus === 'ready') return 'ready'
-  if (attendanceStatus === 'ready' || tardyStatus === 'ready') return 'partial'
+type ParentAttendanceSource = 'attendance' | 'tardiness' | 'access'
+
+interface ParentAttendanceOptions {
+  onSourceError?: (source: ParentAttendanceSource, error: unknown) => void
+}
+
+function sourceStatus(...states: Array<ParentAttendanceResponse['source']['attendance']>): ParentAttendanceResponse['status'] {
+  const readySources = states.filter((state) => state === 'ready').length
+  if (readySources === states.length) return 'ready'
+  if (readySources > 0) return 'partial'
   return 'unavailable'
+}
+
+function genericSourceErrorState(error: unknown): ParentAttendanceResponse['source']['access'] {
+  const candidate = error as { name?: string; message?: string; code?: string }
+  const text = `${candidate?.name || ''} ${candidate?.message || ''} ${candidate?.code || ''}`
+  return /timeout|timed out|abort|deadline/i.test(text) ? 'timeout' : 'error'
 }
 
 const PARENT_SIPAE_DEADLINE_MS = 2500
@@ -661,7 +674,8 @@ async function resolveAttendanceSource(child: AttendanceChild, plantelCode: stri
     return {
       absences: dbResult.value.absences,
       groupDates: dbResult.value.groupDates,
-      status: 'ready' as const
+      status: 'ready' as const,
+      error: undefined
     }
   }
 
@@ -673,7 +687,8 @@ async function resolveAttendanceSource(child: AttendanceChild, plantelCode: stri
     return {
       absences: apiAbsences,
       groupDates: apiGroupDates,
-      status: 'ready' as const
+      status: 'ready' as const,
+      error: undefined
     }
   }
 
@@ -682,7 +697,8 @@ async function resolveAttendanceSource(child: AttendanceChild, plantelCode: stri
     absences: [] as AttendanceAbsenceRecord[],
     groupDates: new Set<string>(),
     status: sipaeErrorState(reason),
-    message: sipaeErrorMessage(reason)
+    message: sipaeErrorMessage(reason),
+    error: reason
   }
 }
 
@@ -692,7 +708,8 @@ async function resolveTardySource(child: AttendanceChild, plantelCode: string, r
   if (dbResult.status === 'fulfilled') {
     return {
       tardies: dbResult.value,
-      status: 'ready' as const
+      status: 'ready' as const,
+      error: undefined
     }
   }
 
@@ -702,7 +719,8 @@ async function resolveTardySource(child: AttendanceChild, plantelCode: string, r
     const apiTardies = extractTardies(apiResult.value, child)
     return {
       tardies: apiTardies,
-      status: 'ready' as const
+      status: 'ready' as const,
+      error: undefined
     }
   }
 
@@ -710,11 +728,16 @@ async function resolveTardySource(child: AttendanceChild, plantelCode: string, r
   return {
     tardies: [] as AttendanceTardyRecord[],
     status: sipaeErrorState(reason),
-    message: sipaeErrorMessage(reason)
+    message: sipaeErrorMessage(reason),
+    error: reason
   }
 }
 
-export async function getParentAttendance(user: AppSessionUser, input: { matricula?: string | null; schoolYear?: string | null }) {
+export async function getParentAttendance(
+  user: AppSessionUser,
+  input: { matricula?: string | null; schoolYear?: string | null },
+  options: ParentAttendanceOptions = {}
+) {
   const { selected, children } = await resolveAttendanceChild(user, input.matricula)
   const schoolYears = buildSchoolYearOptions(selected.ciclo)
   const selectedSchoolYear = resolveSchoolYearOption(input.schoolYear, schoolYears)
@@ -725,12 +748,42 @@ export async function getParentAttendance(user: AppSessionUser, input: { matricu
     resolveAttendanceSource(selected, requestPlantel, selectedSchoolYear),
     resolveTardySource(selected, requestPlantel, selectedSchoolYear)
   ])
-  const { getFamilyAccessHistory } = await import('~/server/data/accessHistory')
-  const accessHistory = await getFamilyAccessHistory(user, {
-    matricula: selected.matricula,
-    startDate: selectedSchoolYear.startDate,
-    endDate: selectedSchoolYear.endDate
-  })
+  if (attendanceSource.status !== 'ready' && attendanceSource.error) {
+    options.onSourceError?.('attendance', attendanceSource.error)
+  }
+  if (tardySource.status !== 'ready' && tardySource.error) {
+    options.onSourceError?.('tardiness', tardySource.error)
+  }
+
+  const { getFamilyAccessHistoryForChild } = await import('~/server/data/accessHistory')
+  let accessStatus: ParentAttendanceResponse['source']['access'] = 'ready'
+  let accessMessage: string | undefined
+  let accessHistory: ParentAttendanceResponse['accessHistory']
+
+  try {
+    accessHistory = await getFamilyAccessHistoryForChild(selected, children, {
+      startDate: selectedSchoolYear.startDate,
+      endDate: selectedSchoolYear.endDate
+    })
+  } catch (error) {
+    accessStatus = genericSourceErrorState(error)
+    accessMessage = accessStatus === 'timeout'
+      ? 'Los accesos excedieron el tiempo de espera.'
+      : 'Los accesos no están disponibles.'
+    options.onSourceError?.('access', error)
+    accessHistory = {
+      scope: 'family',
+      range: {
+        startDate: selectedSchoolYear.startDate,
+        endDate: selectedSchoolYear.endDate
+      },
+      selectedChild: selected,
+      children,
+      days: [],
+      people: [],
+      summary: { days: 0, entries: 0, exits: 0, uniquePeople: 0, students: 0 }
+    }
+  }
 
   const absences = attendanceSource.absences
   const groupDates = attendanceSource.groupDates
@@ -744,7 +797,7 @@ export async function getParentAttendance(user: AppSessionUser, input: { matricu
   const summary = summarize(calendarDays, absences, tardies)
 
   return {
-    status: sourceStatus(attendanceStatus, tardinessStatus),
+    status: sourceStatus(attendanceStatus, tardinessStatus, accessStatus),
     selectedChild: selected,
     children,
     selectedSchoolYear,
@@ -762,8 +815,10 @@ export async function getParentAttendance(user: AppSessionUser, input: { matricu
       label: 'SIPAE',
       attendance: attendanceStatus,
       tardiness: tardinessStatus,
+      access: accessStatus,
       attendanceMessage,
-      tardinessMessage
+      tardinessMessage,
+      accessMessage
     }
   } satisfies ParentAttendanceResponse
 }
