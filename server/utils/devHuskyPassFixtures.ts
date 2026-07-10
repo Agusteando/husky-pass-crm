@@ -184,6 +184,7 @@ export function buildDevPrintableAuthorizedPerson(input: {
     nivelEdu: variant.nivelEdu,
     plantel: variant.plantel,
     matricula: variant.matricula,
+    cicloEscolar: '2026-2027',
     fullnameA: longName ? 'Emiliano Sebastian Alvarez de la Torre' : 'Valentina Perez Ramos',
     fotoA: studentPhoto,
     gradoA: variant.grado,

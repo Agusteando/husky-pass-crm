@@ -37,10 +37,10 @@ export default defineEventHandler(async (event) => {
   if (!template) throw publicError(503, 'Plantilla de Husky Pass no disponible.')
 
   const templateSvg = await readMarbeteTemplateSvg(template)
-  const renderValues = buildMarbeteRenderValues(fixture.data, origin)
-  const renderedSvg = renderMarbeteSvg(templateSvg, fixture.data, origin)
+  const renderValues = buildMarbeteRenderValues(fixture.data, origin, template.cicloEscolar)
+  const renderedSvg = renderMarbeteSvg(templateSvg, fixture.data, origin, template.cicloEscolar)
   const pdfInput = { templateSvg, renderedSvg, values: renderValues.values, origin }
-  const readiness = validateMarbeteRequirements(templateSvg, fixture.data, origin)
+  const readiness = validateMarbeteRequirements(templateSvg, fixture.data, origin, template.cicloEscolar)
   const downloadName = marbeteDownloadName(fixture.data, template)
   const selectedExpectedTemplate = template.id === fixture.variant.expectedTemplateId
 

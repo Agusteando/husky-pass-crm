@@ -28,14 +28,14 @@ export default defineEventHandler(async (event) => {
   const templates = await listMarbeteTemplates()
   if (!templates.length) throw publicError(503, 'El Husky Pass no está disponible en este momento. Solicita apoyo a la escuela.')
 
-  const template = selectMarbeteTemplate(templates, { matricula: data.matricula, plantel: data.plantel, nivelEdu: data.nivelEdu })
+  const template = selectMarbeteTemplate(templates, { matricula: data.matricula, plantel: data.plantel, nivelEdu: data.nivelEdu, cicloEscolar: data.cicloEscolar })
   if (!template) throw publicError(503, 'El Husky Pass no está disponible para este alumno. Solicita apoyo a la escuela.')
 
   const origin = getRequestURL(event).origin
   const templateSvg = await readMarbeteTemplateSvg(template)
-  const requirementStatus = validateMarbeteRequirements(templateSvg, data, origin)
-  const renderValues = buildMarbeteRenderValues(data, origin)
-  const svg = renderMarbeteSvg(templateSvg, data, origin)
+  const requirementStatus = validateMarbeteRequirements(templateSvg, data, origin, template.cicloEscolar)
+  const renderValues = buildMarbeteRenderValues(data, origin, template.cicloEscolar)
+  const svg = renderMarbeteSvg(templateSvg, data, origin, template.cicloEscolar)
   const pdfInput = { templateSvg, renderedSvg: svg, values: renderValues.values, origin }
   const downloadName = marbeteDownloadName(data, template)
 

@@ -3,14 +3,18 @@ import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
-import { saveMarbeteTemplate } from '~/server/utils/marbeteTemplates'
+import { saveMarbeteTemplate, saveVisualMarbeteTemplate } from '~/server/utils/marbeteTemplates'
+import { normalizeMarbeteVisualDesign } from '~/utils/marbeteDesigner'
 
 const schema = z.object({
   id: z.string().optional().nullable(),
   name: z.string().trim().min(1),
   nivel: z.string().trim().min(1),
   planteles: z.string().optional().default(''),
-  themeKey: z.enum(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis'])
+  themeKey: z.enum(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis']),
+  mode: z.enum(['legacy-svg', 'visual']).optional().default('legacy-svg'),
+  cicloEscolar: z.string().optional().default(''),
+  visualDesign: z.string().optional().default('')
 })
 
 function field(parts: NonNullable<Awaited<ReturnType<typeof readMultipartFormData>>>, name: string) {
@@ -29,10 +33,35 @@ export default defineEventHandler(async (event) => {
     name: field(parts, 'name'),
     nivel: field(parts, 'nivel'),
     planteles: field(parts, 'planteles'),
-    themeKey: field(parts, 'themeKey')
+    themeKey: field(parts, 'themeKey'),
+    mode: field(parts, 'mode') || 'legacy-svg',
+    cicloEscolar: field(parts, 'cicloEscolar'),
+    visualDesign: field(parts, 'visualDesign')
   })
-  const filePart = parts.find((part) => part.name === 'file' && part.data?.length)
   const planteles = body.planteles.split(',').map((item) => item.trim()).filter(Boolean)
+
+  if (body.mode === 'visual') {
+    const visualDesign: unknown = (() => {
+      try {
+        return body.visualDesign ? JSON.parse(body.visualDesign) : null
+      } catch {
+        throw publicError(400, 'La configuración visual no es válida.')
+      }
+    })()
+    const artworkPart = parts.find((part) => part.name === 'artwork' && part.data?.length)
+    return saveVisualMarbeteTemplate({
+      id: body.id,
+      name: body.name,
+      nivel: body.nivel,
+      planteles,
+      themeKey: body.themeKey,
+      cicloEscolar: body.cicloEscolar,
+      visualDesign: normalizeMarbeteVisualDesign(visualDesign, body.themeKey),
+      artwork: artworkPart?.data?.length ? { filename: artworkPart.filename, type: artworkPart.type, data: artworkPart.data } : undefined
+    })
+  }
+
+  const filePart = parts.find((part) => part.name === 'file' && part.data?.length)
 
   return saveMarbeteTemplate({
     id: body.id,
@@ -40,6 +69,7 @@ export default defineEventHandler(async (event) => {
     nivel: body.nivel,
     planteles,
     themeKey: body.themeKey,
+    cicloEscolar: body.cicloEscolar,
     file: filePart?.data?.length ? { filename: filePart.filename, data: filePart.data } : undefined
   })
 })

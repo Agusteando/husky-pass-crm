@@ -7,6 +7,7 @@
       </div>
       <nav class="dev-links" aria-label="Dev shortcuts">
         <NuxtLink to="/__dev/personas-modals">Modales PA</NuxtLink>
+        <NuxtLink to="/__dev/marbete-editor">Editor visual</NuxtLink>
         <a :href="pdfUrl" target="_blank" rel="noopener" data-diagnostic-action="dev-open-pdf">Abrir PDF</a>
         <a :href="downloadUrl" data-diagnostic-action="dev-download-pdf">Descargar</a>
       </nav>

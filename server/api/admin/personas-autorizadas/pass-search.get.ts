@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       let readiness = { ok: false, issues: [templateIssue] }
       if (template) {
         const svg = await readMarbeteTemplateSvg(template)
-        readiness = validateMarbeteRequirements(svg, fixture.data, origin)
+        readiness = validateMarbeteRequirements(svg, fixture.data, origin, template.cicloEscolar)
       }
       return {
         personId: Number(fixture.data.id),

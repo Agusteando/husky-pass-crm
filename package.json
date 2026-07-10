@@ -29,6 +29,7 @@
     "verify:prod": "node scripts/product-visual-verify.mjs --suite prod --production",
     "verify:identity": "node scripts/identity-visual-verify.mjs",
     "verify:husky-pass": "node scripts/husky-pass-visual-verify.mjs",
+    "verify:marbete-editor": "node scripts/marbete-editor-visual-verify.mjs",
     "verify:requests": "node scripts/verify-requests.mjs",
     "verify:logs": "node scripts/verify-logs.mjs",
     "verify:uploads": "node scripts/verify-external-upload.mjs",

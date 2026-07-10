@@ -960,6 +960,7 @@ export async function getCredentialAuthorizedPersona(user: AppSessionUser, id: n
        A.user_id,
        IFNULL(MAX(IFNULL(m.nivel, B.nivelEdu)), 'preescolar') AS nivelEdu,
        UPPER(MAX(u.username)) AS matricula,
+       MAX(m.ciclo) AS cicloEscolar,
        MAX(${schoolPlantelSqlFromMatricula('u.username')}) AS plantel,
        MAX(CONCAT_WS(' ', IFNULL(m.nombres, B.nombreA), IFNULL(m.apellido_paterno, B.paternoA), IFNULL(m.apellido_materno, B.maternoA))) AS fullnameA,
        MAX(${lightweightPhotoSelect('IFNULL(c.foto, IFNULL(m.foto, B.foto))')}) AS fotoA,

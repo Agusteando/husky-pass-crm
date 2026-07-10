@@ -157,6 +157,7 @@ export interface PrintableAuthorizedPerson extends AuthorizedPerson {
   nivelEdu?: string | null
   plantel?: string | null
   matricula?: string | null
+  cicloEscolar?: string | null
   fullnameA?: string | null
   fotoA?: string | null
   gradoA?: string | null
@@ -227,8 +228,77 @@ export interface MarbeteTemplateMeta {
   planteles: string[]
   color: string
   isDefault?: boolean
+  mode?: MarbeteTemplateMode
+  status?: MarbeteTemplateStatus
+  cicloEscolar?: string
+  visualDesign?: MarbeteVisualDesign
+  basedOnId?: string
+  publishedAt?: string
   createdAt?: string
   updatedAt?: string
+}
+
+export type MarbeteTemplateMode = 'legacy-svg' | 'visual'
+
+export type MarbeteTemplateStatus = 'draft' | 'published'
+
+export type MarbeteVisualElementKind =
+  | 'person-photo'
+  | 'student-photo'
+  | 'qr'
+  | 'authorized-name'
+  | 'relationship'
+  | 'student-name'
+  | 'school-detail'
+  | 'validity'
+  | 'ciclo-tag'
+
+export interface MarbeteVisualTextStyle {
+  fontSize: number
+  fontWeight: 500 | 600 | 700 | 800
+  color: string
+  align: 'left' | 'center' | 'right'
+  lineHeight: number
+  uppercase?: boolean
+}
+
+export interface MarbeteVisualImageStyle {
+  fit: 'cover' | 'contain'
+  focalX: number
+  focalY: number
+  borderRadius: number
+  borderWidth: number
+  borderColor: string
+}
+
+export interface MarbeteVisualElement {
+  id: string
+  kind: MarbeteVisualElementKind
+  label: string
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+  visible: boolean
+  zIndex: number
+  textStyle?: MarbeteVisualTextStyle
+  imageStyle?: MarbeteVisualImageStyle
+}
+
+export interface MarbeteVisualDesign {
+  version: 1
+  canvas: {
+    width: 420
+    height: 640
+  }
+  background: {
+    url: string
+    color: string
+    fit: 'cover' | 'contain'
+  }
+  elements: MarbeteVisualElement[]
+  showInstructions: boolean
 }
 
 export interface MarbeteTemplateListResponse {

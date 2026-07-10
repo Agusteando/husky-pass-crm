@@ -35,6 +35,7 @@ interface ReadinessDbRow extends RowDataPacket {
   matriculaNivel: string | null
   matriculaGrado: string | null
   matriculaGrupo: string | null
+  matriculaCiclo: string | null
   authorizedCount: number
   authorizedPhotoCount: number
   credentialId: number | null
@@ -150,6 +151,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
       m.nivel AS matriculaNivel,
       m.grado AS matriculaGrado,
       m.grupo AS matriculaGrupo,
+      m.ciclo AS matriculaCiclo,
       COALESCE(pa.authorizedCount, 0) AS authorizedCount,
       COALESCE(pa.authorizedPhotoCount, 0) AS authorizedPhotoCount,
       c.id AS credentialId,
@@ -362,6 +364,7 @@ function adminPassPrintable(row: AdminPassDbRow): PrintableAuthorizedPerson {
     nivelEdu: nivel,
     plantel,
     matricula,
+    cicloEscolar: clean(row.matriculaCiclo),
     fullnameA: studentName,
     fotoA: studentPhoto,
     gradoA: grado,
@@ -431,12 +434,13 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
       matricula: printable.matricula,
       plantel: printable.plantel,
       nivelEdu: printable.nivelEdu,
-      themeKey: theme.key
+      themeKey: theme.key,
+      cicloEscolar: printable.cicloEscolar
     })
     let readiness = { ok: false, issues: [templateIssue || 'Plantilla de Husky Pass no disponible.'] }
     if (template) {
       const svg = await readMarbeteTemplateSvg(template)
-      readiness = validateMarbeteRequirements(svg, printable, origin)
+      readiness = validateMarbeteRequirements(svg, printable, origin, template.cicloEscolar)
     }
     return {
       personId: printable.id ? Number(printable.id) : null,

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#d9f2f7"/><stop offset="1" stop-color="#8bc3d3"/></linearGradient></defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <circle cx="120" cy="92" r="50" fill="#286f86" opacity=".84"/>
+  <path d="M42 285c8-78 48-116 78-116s70 38 78 116" fill="#286f86" opacity=".84"/>
+  <text x="120" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#fff">PERSONA</text>
+</svg>

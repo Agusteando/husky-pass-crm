@@ -43,15 +43,16 @@ export default defineEventHandler(async (event) => {
   const template = selectMarbeteTemplate(templates, {
     matricula: data.matricula,
     plantel: data.plantel,
-    nivelEdu: data.nivelEdu
+    nivelEdu: data.nivelEdu,
+    cicloEscolar: data.cicloEscolar
   })
   if (!template) throw publicError(503, 'El Husky Pass no esta disponible para este alumno.')
 
   const templateSvg = await readMarbeteTemplateSvg(template)
-  const renderedSvg = renderMarbeteSvg(templateSvg, data, origin)
-  const renderValues = buildMarbeteRenderValues(data, origin)
+  const renderedSvg = renderMarbeteSvg(templateSvg, data, origin, template.cicloEscolar)
+  const renderValues = buildMarbeteRenderValues(data, origin, template.cicloEscolar)
   const pdfInput = { templateSvg, renderedSvg, values: renderValues.values, origin }
-  const readiness = validateMarbeteRequirements(templateSvg, data, origin)
+  const readiness = validateMarbeteRequirements(templateSvg, data, origin, template.cicloEscolar)
   const downloadName = marbeteDownloadName(data, template)
 
   if (query.format === 'readiness') {
