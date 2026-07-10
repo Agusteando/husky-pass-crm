@@ -89,7 +89,7 @@ async function checkStaticAssets() {
     'grupo-icons/manifest.json',
     'grupo-icons/icons/mask/05-a.png',
     'personas-autorizadas/ambassadors/primaria-brave.png',
-    'fonts/Montserrat-SemiBold.woff2'
+    'fonts/Montserrat-SemiBold.ttf'
   ]
   for (const asset of required) {
     if (!existsSync(join(root, 'public', ...asset.split('/')))) errors.push(`Asset publico requerido no existe: /${asset}`)

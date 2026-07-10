@@ -219,7 +219,7 @@ for (const path of [
   '/grupo-icons/manifest.json',
   '/grupo-icons/icons/mask/05-a.png',
   '/personas-autorizadas/ambassadors/primaria-brave.png',
-  '/fonts/Montserrat-SemiBold.woff2'
+  '/fonts/Montserrat-SemiBold.ttf'
 ]) {
   await checkFetch(results, baseUrl, `static ${path}`, path, {
     accept: (response) => response.status === 200

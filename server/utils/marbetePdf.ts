@@ -13,18 +13,25 @@ import { publicError } from '~/server/utils/httpError'
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
 const FRIENDLY_IMAGE_MESSAGE = 'Para descargar el Husky Pass, actualiza la foto de la persona autorizada o solicita apoyo a la escuela.'
 const FRIENDLY_RENDER_MESSAGE = 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
-const LOCAL_MONTSERRAT_CANDIDATES = [
-  resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.ttf'),
+const LOCAL_MONTSERRAT_WEB_CANDIDATES = [
   resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.woff2'),
+  resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.ttf'),
   resolve(process.cwd(), 'public/fonts/Montserrat.ttf'),
-  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-600-normal.woff'),
   resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-600-normal.woff2'),
-  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff'),
-  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff2')
+  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-600-normal.woff'),
+  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff2'),
+  resolve(process.cwd(), 'node_modules/@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff')
 ]
-const PUBLIC_MONTSERRAT_FILES = [
-  'Montserrat-SemiBold.ttf',
-  'Montserrat-SemiBold.woff2'
+const LOCAL_MONTSERRAT_PDFKIT_CANDIDATES = [
+  resolve(process.cwd(), 'public/fonts/Montserrat-SemiBold.ttf'),
+  resolve(process.cwd(), 'public/fonts/Montserrat.ttf')
+]
+const PUBLIC_MONTSERRAT_WEB_FILES = [
+  'Montserrat-SemiBold.woff2',
+  'Montserrat-SemiBold.ttf'
+]
+const PUBLIC_MONTSERRAT_PDFKIT_FILES = [
+  'Montserrat-SemiBold.ttf'
 ]
 const CHROMIUM_CANDIDATES = [
   process.env.HUSKY_PASS_CHROMIUM_PATH || '',
@@ -62,6 +69,7 @@ type MarbetePdfDiagnosticCode =
   | 'unsupported-image-mime'
   | 'unresolved-svg-token'
   | 'font-not-found'
+  | 'pdfkit-render-failed'
   | 'chromium-not-found'
   | 'chromium-render-failed'
   | 'pdf-invalid'
@@ -302,9 +310,12 @@ async function chromiumLaunchConfig() {
   return null
 }
 
-async function readFontBytesFromOrigin(origin: string): Promise<{ bytes: Buffer; path: string } | null> {
+async function readFontBytesFromOrigin(
+  origin: string,
+  files: readonly string[] = PUBLIC_MONTSERRAT_WEB_FILES
+): Promise<{ bytes: Buffer; path: string } | null> {
   if (!origin) return null
-  for (const file of PUBLIC_MONTSERRAT_FILES) {
+  for (const file of files) {
     const url = `${origin.replace(/\/$/, '')}/fonts/${file}`
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
@@ -319,7 +330,7 @@ async function readFontBytesFromOrigin(origin: string): Promise<{ bytes: Buffer;
 }
 
 async function fontFaceCss(origin = '') {
-  const fontPath = LOCAL_MONTSERRAT_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
+  const fontPath = LOCAL_MONTSERRAT_WEB_CANDIDATES.find((candidate) => candidate && existsSync(candidate)) || ''
   let bytes: Buffer | null
   let sourcePath = fontPath
 
@@ -334,8 +345,8 @@ async function fontFaceCss(origin = '') {
   if (!bytes) {
     throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
       candidates: [
-        ...LOCAL_MONTSERRAT_CANDIDATES,
-        ...PUBLIC_MONTSERRAT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
+        ...LOCAL_MONTSERRAT_WEB_CANDIDATES,
+        ...PUBLIC_MONTSERRAT_WEB_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
       ].filter(Boolean)
     })
   }
@@ -512,8 +523,8 @@ function rawBytesToBuffer(raw: unknown) {
   return null
 }
 
-async function readBundledFontBytes() {
-  for (const file of PUBLIC_MONTSERRAT_FILES) {
+async function readBundledPdfKitFontBytes() {
+  for (const file of PUBLIC_MONTSERRAT_PDFKIT_FILES) {
     const raw = await useStorage('assets:hp-fonts').getItem(file)
     const bytes = rawBytesToBuffer(raw)
     if (bytes?.length) return { bytes, path: `assets:hp-fonts/${file}` }
@@ -545,26 +556,26 @@ async function registerPdfFont(
   origin: string
 ) {
   const fontName = 'Montserrat-SemiBold-Embedded'
-  const candidates = LOCAL_MONTSERRAT_CANDIDATES.filter((candidate) => candidate && existsSync(candidate))
+  const candidates = LOCAL_MONTSERRAT_PDFKIT_CANDIDATES.filter((candidate) => candidate && existsSync(candidate))
   for (const candidate of candidates) {
     if (tryRegisterPdfFont(doc, fontName, candidate, candidate)) return fontName
   }
 
-  const bundled = await readBundledFontBytes()
+  const bundled = await readBundledPdfKitFontBytes()
   if (bundled?.bytes.length && tryRegisterPdfFont(doc, fontName, bundled.bytes, bundled.path)) {
     return fontName
   }
 
-  const remoteFont = await readFontBytesFromOrigin(origin)
+  const remoteFont = await readFontBytesFromOrigin(origin, PUBLIC_MONTSERRAT_PDFKIT_FILES)
   if (remoteFont?.bytes.length && tryRegisterPdfFont(doc, fontName, remoteFont.bytes, remoteFont.path)) {
     return fontName
   }
 
   throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
     candidates: [
-      ...LOCAL_MONTSERRAT_CANDIDATES,
-      ...PUBLIC_MONTSERRAT_FILES.map((file) => `assets:hp-fonts/${file}`),
-      ...PUBLIC_MONTSERRAT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
+      ...LOCAL_MONTSERRAT_PDFKIT_CANDIDATES,
+      ...PUBLIC_MONTSERRAT_PDFKIT_FILES.map((file) => `assets:hp-fonts/${file}`),
+      ...PUBLIC_MONTSERRAT_PDFKIT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
     ].filter(Boolean)
   })
 }
@@ -615,14 +626,22 @@ async function renderSvgToPdfKit(input: MarbetePdfInput) {
       })
     }
   } catch (error) {
-    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'chromium-render-failed', {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdfkit-render-failed', {
       reason: 'pdfkit-render-error',
       message: error instanceof Error ? error.message : String(error),
       warnings: warnings.slice(0, 10)
     })
   }
 
-  const pdf = await collectPdfBuffer(doc)
+  let pdf: Buffer
+  try {
+    pdf = await collectPdfBuffer(doc)
+  } catch (error) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdfkit-render-failed', {
+      message: error instanceof Error ? error.message : String(error),
+      warnings: warnings.slice(0, 10)
+    })
+  }
   if (pdf.length < 1024 || pdf.subarray(0, 5).toString('ascii') !== '%PDF-') {
     throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'pdf-invalid', {
       bytes: pdf.length,

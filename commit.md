@@ -1,1 +1,1 @@
-Aislar los datos de cada cuenta al cambiar de sesión
+Corrige la generación del marbete usando una fuente TTF compatible con PDFKit
