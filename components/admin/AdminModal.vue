@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div ref="backdropRef" class="admin-modal-backdrop" role="presentation" @click.self="requestClose">
-      <section ref="modalRef" class="admin-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+      <section ref="modalRef" class="admin-modal" :class="{ wide }" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
         <header class="admin-modal-head">
           <span class="modal-mark"><slot name="icon"><FamilyPersonasIcon name="daycare" /></slot></span>
           <div>
@@ -48,11 +48,13 @@ const props = withDefaults(defineProps<{
   dirty?: boolean
   dirtyTitle?: string
   dirtyMessage?: string
+  wide?: boolean
 }>(), {
   closeDisabled: false,
   dirty: false,
   dirtyTitle: 'Tus cambios todavía no se han guardado',
-  dirtyMessage: 'Puedes seguir editando o descartar el borrador para cerrar esta ventana.'
+  dirtyMessage: 'Puedes seguir editando o descartar el borrador para cerrar esta ventana.',
+  wide: false
 })
 
 const emit = defineEmits<{ close: [] }>()
@@ -179,6 +181,10 @@ defineExpose({ requestClose })
   overflow: hidden;
   position: relative;
   width: 100%;
+}
+
+.admin-modal.wide {
+  max-width: min(1120px, calc(100vw - 28px));
 }
 
 .admin-modal:focus { outline: none; }

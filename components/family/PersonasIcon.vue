@@ -48,6 +48,8 @@ import {
   Send,
   Sparkles,
   Trash2,
+  ZoomIn,
+  X,
   UserRound,
   UserRoundCheck,
   UsersRound
@@ -96,7 +98,9 @@ const iconMap: Record<string, FunctionalComponent> = {
   document: FileCheck,
   security: ShieldCheck,
   search: Search,
-  sparkles: Sparkles
+  sparkles: Sparkles,
+  zoom: ZoomIn,
+  close: X
 }
 
 const iconComponent = computed(() => iconMap[props.name] || Sparkles)

@@ -1,3 +1,4 @@
+import { daycareMediaAsset, daycareMediaUrl } from '~/utils/daycareMedia'
 import type { DaycareFamilyScope } from '~/types/session'
 
 export function daycareSalaName(scope?: Pick<DaycareFamilyScope, 'sala' | 'salaName'> | null) {
@@ -49,11 +50,11 @@ export function formatCalendarDay(value?: string | Date | null) {
 }
 
 export function isImageResource(resource?: string | null) {
-  return Boolean(resource && /\.(png|jpe?g|webp)(\?|#|$)/i.test(resource))
+  return daycareMediaAsset(resource)?.kind === 'image'
 }
 
 export function isPdfResource(resource?: string | null) {
-  return Boolean(resource && /\.pdf(\?|#|$)/i.test(resource))
+  return daycareMediaAsset(resource)?.kind === 'pdf'
 }
 
 export function stripHtml(value?: string | null) {
@@ -61,11 +62,12 @@ export function stripHtml(value?: string | null) {
 }
 
 export function publishedPdfViewerUrl(resource?: string | null) {
-  if (!resource) return ''
-  if (/^https?:\/\//i.test(resource)) return resource
-  if (resource.startsWith('/uploads/')) return resource
-  const fileName = resource.split('/').pop()?.split('#')[0]?.split('?')[0]
-  if (!fileName) return resource
+  const cleanResource = daycareMediaUrl(resource)
+  if (!cleanResource) return ''
+  if (/^https?:\/\//i.test(cleanResource)) return cleanResource
+  if (cleanResource.startsWith('/uploads/')) return cleanResource
+  const fileName = cleanResource.split('/').pop()?.split('#')[0]?.split('?')[0]
+  if (!fileName) return cleanResource
   return `https://admin.casitaiedis.edu.mx/pdfjs/web/viewer.html?file=${encodeURIComponent(`/virtual/${fileName}`)}`
 }
 

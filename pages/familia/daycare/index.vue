@@ -48,41 +48,23 @@
       </nav>
 
       <section class="daycare-mosaic">
-        <article class="notice-spotlight">
+        <ResourceCard
+          v-if="latestNotice"
+          class="home-featured-resource"
+          :resource="latestNotice"
+          variant="notice"
+          density="comfortable"
+          featured
+        />
+
+        <article v-else class="notice-spotlight empty-spotlight">
           <header class="spotlight-meta">
-            <span><FamilyPersonasIcon name="announcement" /> Aviso reciente</span>
-            <time v-if="latestNotice">{{ compactDate(latestNotice.date || latestNotice.timestamp) }}</time>
+            <span><FamilyPersonasIcon name="announcement" /> Avisos</span>
           </header>
-
-          <template v-if="latestNotice">
-            <div class="spotlight-copy">
-              <h2>{{ latestNotice.title || 'Aviso' }}</h2>
-              <p v-if="noticeCopy">{{ noticeCopy }}</p>
-            </div>
-            <img
-              v-if="noticeImage"
-              class="spotlight-image"
-              :src="noticeImage"
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-            <a v-if="resourceUrl(latestNotice)" class="spotlight-action" :href="resourceUrl(latestNotice)" target="_blank" rel="noopener">
-              Abrir
-              <FamilyPersonasIcon name="arrow" />
-            </a>
-            <NuxtLink v-else class="spotlight-action" to="/familia/daycare/avisos">
-              Ver avisos
-              <FamilyPersonasIcon name="arrow" />
-            </NuxtLink>
-          </template>
-
-          <template v-else>
-            <div class="spotlight-empty">
-              <h2>Sin avisos nuevos</h2>
-              <img :src="sunnyEmpty" alt="" />
-            </div>
-          </template>
+          <div class="spotlight-empty">
+            <h2>Sin avisos nuevos</h2>
+            <img :src="sunnyEmpty" alt="" />
+          </div>
         </article>
 
         <div class="mosaic-side">
@@ -135,7 +117,7 @@ import { computed } from 'vue'
 import { useFetch, useRuntimeConfig } from 'nuxt/app'
 import { useAppSession } from '~/composables/useAppSession'
 import type { DaycareResource } from '~/types/daycare'
-import { daycareScopeLabel, formatCalendarDay, isImageResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { daycareScopeLabel, formatCalendarDay, parseLegacyDate } from '~/utils/daycare'
 import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 import { hasFamilyScope } from '~/utils/sessionScopes'
 
@@ -157,8 +139,6 @@ const latestNotice = computed(() => dashboard.value?.circulares?.[0] || null)
 const latestHomework = computed(() => dashboard.value?.tareas?.[0] || null)
 const nextCalendar = computed(() => dashboard.value?.calendario?.[0] || null)
 const calendarDate = computed(() => formatCalendarDay(nextCalendar.value?.date || nextCalendar.value?.timestamp))
-const noticeCopy = computed(() => stripHtml(latestNotice.value?.description || latestNotice.value?.html))
-const noticeImage = computed(() => latestNotice.value?.resource && isImageResource(latestNotice.value.resource) ? latestNotice.value.resource : '')
 const totalItems = computed(() => (dashboard.value?.tareas?.length || 0) + (dashboard.value?.circulares?.length || 0) + (dashboard.value?.calendario?.length || 0))
 const firstName = computed(() => {
   const displayName = session.value?.user?.displayName?.trim()
@@ -210,10 +190,6 @@ function compactDate(value?: string | null) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(date).replace('.', '')
 }
 
-function resourceUrl(resource?: DaycareResource | null) {
-  if (!resource?.resource) return ''
-  return isPdfResource(resource.resource) ? publishedPdfViewerUrl(resource.resource) : resource.resource
-}
 
 </script>
 
@@ -463,6 +439,10 @@ function resourceUrl(resource?: DaycareResource | null) {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.home-featured-resource {
+  min-width: 0;
 }
 
 .notice-spotlight {

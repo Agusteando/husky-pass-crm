@@ -4,6 +4,29 @@ export interface Sala {
   unidad: string
 }
 
+
+export type DaycareMediaKind = 'image' | 'pdf' | 'document' | 'spreadsheet' | 'text' | 'unknown'
+
+export interface DaycareMediaMetadata {
+  version?: 1
+  name?: string | null
+  mime?: string | null
+  size?: number | null
+  width?: number | null
+  height?: number | null
+  alt?: string | null
+  caption?: string | null
+  focalX?: number | null
+  focalY?: number | null
+}
+
+export interface DaycareMediaAsset extends DaycareMediaMetadata {
+  url: string
+  kind: DaycareMediaKind
+  extension: string
+  aspectRatio?: number | null
+}
+
 export interface DaycareResource {
   id?: number
   starred?: number | boolean | null

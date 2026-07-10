@@ -34,6 +34,7 @@
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="saving"
       :dirty="resourceDraftDirty"
+      wide
       @close="closeEditor"
     >
       <template #default="{ requestClose }">
@@ -111,7 +112,7 @@
             <span class="row-status">
               <AdminSyncCue v-if="resourceStatus(item.id)" :status="resourceStatus(item.id)" compact />
               <strong :class="isHiddenResource(item.hidden) ? 'status-hidden' : 'status-published'">{{ isHiddenResource(item.hidden) ? 'Oculta' : 'Publicada' }}</strong>
-              <small>{{ item.resource ? 'Adjunto' : 'Sin adjunto' }}</small>
+              <small>{{ daycareMediaLabel(item.resource) }}</small>
             </span>
           </button>
         </div>
@@ -120,23 +121,26 @@
 
       <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
-          <div class="notice-preview">
-            <span class="notice-date">{{ compactDate(selected.date || selected.timestamp) }}</span>
+          <div class="preview-status-row">
             <span class="scope-pill" :class="{ muted: isHiddenResource(selected.hidden) }">{{ isHiddenResource(selected.hidden) ? 'Oculta' : 'Publicada' }}</span>
             <AdminSyncCue v-if="resourceStatus(selected.id)" :status="resourceStatus(selected.id)" />
-            <h2>{{ selected.title || 'Sin título' }}</h2>
-            <p>{{ stripHtml(selected.description) || 'Sin descripción.' }}</p>
           </div>
+
+          <ResourceCard
+            :resource="selected"
+            :variant="selected.type === 'hw' ? 'homework' : selected.type === 'cal' ? 'calendar' : 'notice'"
+            density="comfortable"
+            featured
+          />
 
           <div class="preview-meta">
             <span><FamilyPersonasIcon name="calendar" />{{ formatDate(selected.date || selected.timestamp, '—') }}</span>
             <span><FamilyPersonasIcon name="person" />{{ selected.autor || '—' }}</span>
             <span><FamilyPersonasIcon name="people" />{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</span>
-            <span v-if="selected.resource"><FamilyPersonasIcon name="attachment" />Adjunto</span>
+            <span v-if="selected.resource"><FamilyPersonasIcon name="attachment" />{{ daycareMediaLabel(selected.resource) }}</span>
           </div>
 
           <div class="preview-actions">
-            <a v-if="selected.resource" class="btn btn-secondary" :href="resourceHref(selected.resource)" target="_blank" rel="noopener" data-diagnostic-link="abrir-recurso">Abrir recurso</a>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" :disabled="isResourcePending(selected.id)" @click="openEditor(selected)">Editar</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" :disabled="isResourcePending(selected.id)" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
             <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" :disabled="isResourcePending(selected.id)" @click="openDeleteDialog(selected)">Eliminar</button>
@@ -160,7 +164,8 @@ import EmptyState from '~/components/EmptyState.vue'
 import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 import { useOptimisticStatus } from '~/composables/useOptimisticStatus'
 import type { DaycareResource, Sala } from '~/types/daycare'
-import { daycareResourceSection, formatDate, isHiddenResource, isPdfResource, parseLegacyDate, publishedPdfViewerUrl, stripHtml } from '~/utils/daycare'
+import { daycareResourceSection, formatDate, isHiddenResource, parseLegacyDate, stripHtml } from '~/utils/daycare'
+import { daycareMediaLabel } from '~/utils/daycareMedia'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -542,9 +547,6 @@ function isResourcePending(id?: number) {
   return Boolean(id && isPending(resourceKey(id)))
 }
 
-function resourceHref(resource?: string | null) {
-  return isPdfResource(resource) ? publishedPdfViewerUrl(resource) : resource || ''
-}
 
 function compactDate(value?: string | null) {
   const date = parseLegacyDate(value)
@@ -847,6 +849,14 @@ function isCreateQuery(value: unknown) {
   padding: 14px;
   position: sticky;
   top: calc(var(--topbar-height) + 14px);
+}
+
+.preview-status-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
 }
 
 .notice-preview {
