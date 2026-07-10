@@ -3,6 +3,7 @@ import type { AppSessionUser, FamilyProductScope } from '~/types/session'
 export const DAYCARE_FAMILY_ROLE = 'ROLE_HUSKY_USER'
 export const DAYCARE_ADMIN_ROLE = 'ROLE_HUSKY'
 export const SCHOOL_ADMIN_ROLE = 'ROLE_CTRL'
+export const MARKETING_ADMIN_ROLE = 'ROLE_MKT'
 
 export function hasRoleToken(roles: string[] | null | undefined, role: string) {
   return Boolean(roles?.some((candidate) => candidate.trim().toUpperCase() === role.toUpperCase()))
@@ -53,15 +54,23 @@ export function hasSchoolAdminScope(user: AppSessionUser | null | undefined) {
   return hasRoleToken(admin.roles, SCHOOL_ADMIN_ROLE)
 }
 
+export function hasMarketingAdminScope(user: AppSessionUser | null | undefined) {
+  const admin = effectiveAdminUser(user)
+  if (!admin) return false
+  if (admin.isSuperAdmin) return true
+  return hasRoleToken(admin.roles, MARKETING_ADMIN_ROLE)
+}
+
 export function hasAnyAdminScope(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
-  return Boolean(admin && (admin.isSuperAdmin || hasSchoolAdminScope(admin) || hasDaycareAdminScope(admin)))
+  return Boolean(admin && (admin.isSuperAdmin || hasMarketingAdminScope(admin) || hasSchoolAdminScope(admin) || hasDaycareAdminScope(admin)))
 }
 
 export function defaultAdminRoute(user: AppSessionUser | null | undefined) {
   const admin = effectiveAdminUser(user)
   if (!admin) return '/login'
   if (admin.isSuperAdmin) return '/admin/superadmin'
+  if (hasMarketingAdminScope(admin)) return '/mkt'
   if (hasSchoolAdminScope(admin)) return '/admin/gestion-escolar'
   if (hasDaycareAdminScope(admin)) return '/admin/daycare/salas'
   return '/login'

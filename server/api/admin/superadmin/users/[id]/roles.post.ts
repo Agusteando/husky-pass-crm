@@ -11,7 +11,8 @@ const idSchema = z.coerce.number().int().positive()
 const schema = z.object({
   roles: z.object({
     daycareAdmin: z.boolean().optional().default(false),
-    schoolAdmin: z.boolean().optional().default(false)
+    schoolAdmin: z.boolean().optional().default(false),
+    marketingAdmin: z.boolean().optional().default(false)
   }),
   unidades: z.array(z.string().trim().min(1)).max(30).optional().default([]),
   schoolScopes: z.array(z.object({

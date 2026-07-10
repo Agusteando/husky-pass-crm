@@ -6,7 +6,7 @@ import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } fro
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
-import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, MARKETING_ADMIN_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { publicError } from '~/server/utils/httpError'
 
 interface LegacyUserRow extends RowDataPacket {
@@ -120,6 +120,10 @@ function normalizeAdminRoleTokens(roles: string[]) {
       normalized.add(SCHOOL_ADMIN_ROLE)
       continue
     }
+    if (role === MARKETING_ADMIN_ROLE) {
+      normalized.add(MARKETING_ADMIN_ROLE)
+      continue
+    }
     if (RETIRED_HUSKY_ADMIN_ROLE_PATTERN.test(role)) {
       hasRetiredSchoolAdminToken = true
       continue
@@ -217,7 +221,7 @@ export async function createSuperAdminSession(input: { email: string; displayNam
     unidades: unidades.length ? unidades : fromLegacy.unidades,
     plantel: fromLegacy.plantel,
     routes,
-    productScopes: ['superAdmin', 'daycareAdmin', 'schoolAdmin'],
+    productScopes: ['superAdmin', 'daycareAdmin', 'schoolAdmin', 'marketingAdmin'],
     scopes: {},
     anonymous: false,
     loggedin: true
@@ -309,6 +313,9 @@ function resolveAdminProductScopes(
   }
   if (hasRoleToken(roles, SCHOOL_ADMIN_ROLE)) {
     scopes.push('schoolAdmin')
+  }
+  if (hasRoleToken(roles, MARKETING_ADMIN_ROLE)) {
+    scopes.push('marketingAdmin')
   }
   if (isConfiguredSuperAdminEmail(normalizeEmail(row.email))) {
     scopes.push('superAdmin')
@@ -566,7 +573,7 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
   const targetEmail = normalizeEmail(target.email)
   const currentRoles = normalizeAdminRoleTokens(csvToList(String(target.role || '')))
   const isInternalTarget = targetEmail.endsWith('@casitaiedis.edu.mx') || currentRoles.some((role) => role !== DAYCARE_FAMILY_ROLE)
-  const wantsAdminAccess = Boolean(input.roles.schoolAdmin || input.roles.daycareAdmin)
+  const wantsAdminAccess = Boolean(input.roles.schoolAdmin || input.roles.daycareAdmin || input.roles.marketingAdmin)
 
   if (isConfiguredSuperAdminEmail(targetEmail) || Number(target.id) === Number(actor.id)) {
     throw publicError(400, 'El Super Admin base no se modifica desde Usuarios.')
@@ -590,6 +597,7 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
   const roles = new Set(currentRoles.filter((role) => !RETIRED_HUSKY_ADMIN_ROLE_PATTERN.test(role)))
   toggleRoleToken(roles, SCHOOL_ADMIN_ROLE, Boolean(input.roles.schoolAdmin))
   toggleRoleToken(roles, DAYCARE_ADMIN_ROLE, Boolean(input.roles.daycareAdmin))
+  toggleRoleToken(roles, MARKETING_ADMIN_ROLE, Boolean(input.roles.marketingAdmin))
 
   await legacyTransaction(async (tx) => {
     const nextUnidad = input.roles.daycareAdmin ? unidades.join(',') : String(target.unidad || '')
@@ -703,6 +711,7 @@ function directoryRowToSummary(row: DirectoryUserRow, schoolScopes: SuperAdminSc
   const hasDaycareFamilyRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
   const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
   const hasSchoolInternalRole = hasRoleToken(roles, SCHOOL_ADMIN_ROLE)
+  const hasMarketingInternalRole = hasRoleToken(roles, MARKETING_ADMIN_ROLE)
   const hasPersonasRoute = routes.some((route) => /personas[_/-]?autorizadas|persona[-_]?autorizada|credencial|validar/i.test(route))
   const hasPersonasData = Number(row.has_alumno_pa) === 1 || Number(row.has_personas_autorizadas) === 1
   const productScopes: FamilyProductScope[] = []
@@ -713,12 +722,14 @@ function directoryRowToSummary(row: DirectoryUserRow, schoolScopes: SuperAdminSc
   const adminScopes: string[] = []
   if (hasDaycareInternalRole && unidad.length) adminScopes.push('daycare')
   if (hasSchoolInternalRole) adminScopes.push('school')
+  if (hasMarketingInternalRole) adminScopes.push('marketing')
 
   const normalizedEmail = normalizeEmail(row.email)
   const canManageAdminRoles = normalizedEmail.endsWith('@casitaiedis.edu.mx') || adminScopes.length > 0
   const roleAssignments: SuperAdminRoleAssignments = {
     daycareAdmin: hasDaycareInternalRole,
-    schoolAdmin: hasSchoolInternalRole
+    schoolAdmin: hasSchoolInternalRole,
+    marketingAdmin: hasMarketingInternalRole
   }
 
   let audience: SuperAdminUserSummary['audience'] = 'unknown'

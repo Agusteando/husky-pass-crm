@@ -2,7 +2,7 @@ import type { FamilyProductScope } from './session'
 import type { MarbeteTemplateMeta, PersonasTheme } from './daycare'
 
 export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
-export type SuperAdminAssignableRole = 'schoolAdmin' | 'daycareAdmin'
+export type SuperAdminAssignableRole = 'schoolAdmin' | 'daycareAdmin' | 'marketingAdmin'
 
 export type SuperAdminRoleAssignments = Record<SuperAdminAssignableRole, boolean>
 

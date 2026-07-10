@@ -78,6 +78,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
   if (admin.isSuperAdmin) {
     return [
       { key: 'usuarios', label: 'Usuarios', to: '/admin/superadmin', icon: 'people' },
+      { key: 'mkt', label: 'Mercadotecnia', shortLabel: 'MKT', to: '/mkt', icon: 'announcement' },
       { key: 'escolar', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
       { key: 'guarderia', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' }
     ]

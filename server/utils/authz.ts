@@ -5,6 +5,7 @@ import {
   effectiveAdminUser,
   hasDaycareAdminScope,
   hasFamilyScope,
+  hasMarketingAdminScope,
   hasRoleToken,
   hasSchoolAdminScope
 } from '~/utils/sessionScopes'
@@ -54,6 +55,18 @@ export function assertSchoolAdmin(user: AppSessionUser) {
 
   if (!hasSchoolAdminScope(user)) {
     throw publicError(403, 'La cuenta no tiene rol escolar asignado')
+  }
+}
+
+export function assertMarketingAdmin(user: AppSessionUser) {
+  if (user.kind !== 'admin') {
+    throw publicError(403, 'Acceso de Mercadotecnia no autorizado')
+  }
+
+  if (isSuperAdmin(user)) return
+
+  if (!hasMarketingAdminScope(user)) {
+    throw publicError(403, 'La cuenta no tiene el rol de Mercadotecnia asignado')
   }
 }
 

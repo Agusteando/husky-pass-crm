@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '#app-manifest': appManifestStub
   },
   modules: ['@nuxtjs/google-fonts'],
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/mkt.css'],
   googleFonts: {
     families: {
       Montserrat: [600],

@@ -1,0 +1,189 @@
+.mkt-app {
+  --mkt-ink: #123038;
+  --mkt-muted: #6b7b7d;
+  --mkt-teal: #0b6b61;
+  --mkt-teal-dark: #074c49;
+  --mkt-mint: #e9f7f0;
+  --mkt-lime: #8fc849;
+  --mkt-yellow: #f6c745;
+  --mkt-coral: #ec6b5d;
+  --mkt-blue: #4f8bc9;
+  --mkt-line: rgba(18, 73, 76, 0.13);
+  --mkt-shadow: 0 22px 56px rgba(14, 55, 61, 0.08);
+  background:
+    radial-gradient(circle at 4% 2%, rgba(143, 200, 73, 0.12), transparent 24rem),
+    radial-gradient(circle at 94% 8%, rgba(79, 139, 201, 0.10), transparent 26rem),
+    linear-gradient(180deg, #f9fcfa 0%, #f2f7f4 58%, #edf5f3 100%);
+  color: var(--mkt-ink);
+  min-height: 100vh;
+}
+
+.mkt-main {
+  margin: 0 auto;
+  padding: clamp(18px, 2.5vw, 34px) clamp(12px, 2.4vw, 34px) 56px;
+  width: min(100%, 1560px);
+}
+
+.mkt-page {
+  display: grid;
+  gap: 18px;
+}
+
+.mkt-panel {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--mkt-line);
+  border-radius: 24px;
+  box-shadow: var(--mkt-shadow);
+}
+
+.mkt-eyebrow {
+  color: var(--mkt-teal);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0 0 7px;
+  text-transform: uppercase;
+}
+
+.mkt-page h1,
+.mkt-page h2,
+.mkt-page h3 {
+  color: var(--mkt-ink);
+  font-family: var(--font-title);
+  margin: 0;
+}
+
+.mkt-page p {
+  color: var(--mkt-muted);
+}
+
+.mkt-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--mkt-line);
+  border-radius: 14px;
+  color: var(--mkt-teal-dark);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 15px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.mkt-btn:hover {
+  box-shadow: 0 10px 22px rgba(16, 69, 70, 0.1);
+  transform: translateY(-1px);
+}
+
+.mkt-btn.primary {
+  background: linear-gradient(135deg, #0d7568, #07554f);
+  border-color: transparent;
+  box-shadow: 0 12px 28px rgba(11, 107, 97, 0.2);
+  color: #fff;
+}
+
+.mkt-btn.soft {
+  background: var(--mkt-mint);
+  border-color: #d4eadf;
+}
+
+.mkt-btn:disabled {
+  cursor: wait;
+  opacity: 0.64;
+  transform: none;
+}
+
+.mkt-field {
+  display: grid;
+  gap: 7px;
+}
+
+.mkt-field > span {
+  color: #38545a;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.mkt-input,
+.mkt-select,
+.mkt-textarea {
+  background: #fff;
+  border: 1px solid #dbe6e2;
+  border-radius: 13px;
+  color: var(--mkt-ink);
+  min-height: 44px;
+  outline: 0;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.mkt-textarea {
+  line-height: 1.55;
+  min-height: 122px;
+  resize: vertical;
+}
+
+.mkt-input:focus,
+.mkt-select:focus,
+.mkt-textarea:focus {
+  border-color: rgba(11, 107, 97, 0.55);
+  box-shadow: 0 0 0 4px rgba(11, 107, 97, 0.09);
+}
+
+.mkt-alert {
+  background: #fff4f1;
+  border: 1px solid #f3d0c8;
+  border-radius: 14px;
+  color: #963e35;
+  font-size: 0.8rem;
+  padding: 11px 13px;
+}
+
+.mkt-notice {
+  background: #eef8f3;
+  border: 1px solid #d5eae0;
+  border-radius: 14px;
+  color: #17675d;
+  font-size: 0.8rem;
+  padding: 11px 13px;
+}
+
+.mkt-stage-chip {
+  align-items: center;
+  background: #edf7f3;
+  border-radius: 999px;
+  color: #0c685d;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 900;
+  min-height: 27px;
+  padding: 0 9px;
+}
+
+.mkt-stage-chip[data-stage='Primer contacto'] { background: #ebf5fc; color: #3475ad; }
+.mkt-stage-chip[data-stage='Discusión'] { background: #fff7df; color: #85610f; }
+.mkt-stage-chip[data-stage='Negociación'] { background: #fff0ed; color: #a34e43; }
+.mkt-stage-chip[data-stage='Inscrito'] { background: #edf8e6; color: #4e7f23; }
+
+.mkt-empty {
+  align-items: center;
+  color: var(--mkt-muted);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 240px;
+  padding: 28px;
+  text-align: center;
+}
+
+.mkt-empty svg { color: #7ab29d; height: 30px; width: 30px; }
+
+@media (max-width: 720px) {
+  .mkt-main { padding-top: 14px; }
+  .mkt-panel { border-radius: 19px; }
+}

@@ -101,6 +101,15 @@
               <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-guarderia" @click="openRoleEditor('daycare')">{{ selectedUser.roleAssignments.daycareAdmin ? 'Editar acceso guardería' : 'Asignar acceso guardería' }}</button>
             </article>
 
+            <article class="role-row" :data-state="selectedUser.roleAssignments.marketingAdmin ? 'active' : 'none'">
+              <span><FamilyPersonasIcon name="announcement" /></span>
+              <div>
+                <strong>Mercadotecnia</strong>
+                <small>Informes, seguimiento y bitácora</small>
+              </div>
+              <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-mkt" @click="openRoleEditor('marketing')">{{ selectedUser.roleAssignments.marketingAdmin ? 'Editar acceso MKT' : 'Asignar acceso MKT' }}</button>
+            </article>
+
             <article v-if="selectedUser.productScopes.length" class="role-row family" data-state="family">
               <span><FamilyPersonasIcon name="people" /></span>
               <div>
@@ -173,7 +182,7 @@
               </div>
             </section>
 
-            <section v-else class="editor-card active">
+            <section v-else-if="editorMode === 'daycare'" class="editor-card active">
               <label class="toggle-row">
                 <input v-model="roleDraft.daycareAdmin" type="checkbox" />
                 <span class="switch" aria-hidden="true" />
@@ -194,6 +203,17 @@
                   {{ unidad }}
                 </button>
               </div>
+            </section>
+
+            <section v-else class="editor-card active">
+              <label class="toggle-row">
+                <input v-model="roleDraft.marketingAdmin" type="checkbox" />
+                <span class="switch" aria-hidden="true" />
+                <span>
+                  <strong>Mercadotecnia</strong>
+                  <small>CRM de informes y bitácora del área</small>
+                </span>
+              </label>
             </section>
 
             <section v-if="hasChanges || saveBlocker" class="pending-panel">
@@ -234,7 +254,7 @@ import { normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel } 
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
-type EditorMode = 'school' | 'daycare'
+type EditorMode = 'school' | 'daycare' | 'marketing'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,7 +279,7 @@ const saving = ref(false)
 const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
 const hydrated = ref(false)
-const roleDraft = ref<SuperAdminRoleAssignments>({ schoolAdmin: false, daycareAdmin: false })
+const roleDraft = ref<SuperAdminRoleAssignments>({ schoolAdmin: false, daycareAdmin: false, marketingAdmin: false })
 const schoolScopesDraft = ref<SuperAdminSchoolScope[]>([])
 const daycareUnitsDraft = ref<string[]>([])
 
@@ -290,7 +310,7 @@ const unitOptions = computed(() => {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'))
 })
 
-const editorTitle = computed(() => editorMode.value === 'school' ? 'Admin escolar' : 'Admin guardería')
+const editorTitle = computed(() => editorMode.value === 'school' ? 'Admin escolar' : editorMode.value === 'daycare' ? 'Admin guardería' : 'Mercadotecnia')
 const hasChanges = computed(() => Boolean(selectedUser.value && draftSignature() !== userSignature(selectedUser.value)))
 const saveBlocker = computed(() => {
   if (!selectedUser.value || !hasChanges.value) return ''
@@ -308,6 +328,9 @@ const changeLines = computed(() => {
   }
   if (roleDraft.value.daycareAdmin !== current.roleAssignments.daycareAdmin || daycareUnitsDraft.value.join('|') !== current.unidad.join('|')) {
     lines.push(roleDraft.value.daycareAdmin ? `Admin guardería: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guardería')
+  }
+  if (roleDraft.value.marketingAdmin !== current.roleAssignments.marketingAdmin) {
+    lines.push(roleDraft.value.marketingAdmin ? 'Habilitar Mercadotecnia' : 'Quitar Mercadotecnia')
   }
   return lines
 })
@@ -379,6 +402,7 @@ function roleSummary(user: SuperAdminUserSummary) {
   const roles: string[] = []
   if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Falta plantel')
   if (user.roleAssignments.daycareAdmin) roles.push('Guardería')
+  if (user.roleAssignments.marketingAdmin) roles.push('MKT')
   if (roles.length) return roles.join(' + ')
   if (user.productScopes.length) return 'Familia'
   return 'Sin rol'
@@ -432,7 +456,9 @@ function draftSignature() {
 function selectUser(user: SuperAdminUserSummary, updateRoute = true) {
   selectedUser.value = user
   hydrateDraft(user)
-  editorMode.value = user.roleAssignments.daycareAdmin && !user.roleAssignments.schoolAdmin ? 'daycare' : 'school'
+  editorMode.value = user.roleAssignments.marketingAdmin && !user.roleAssignments.schoolAdmin && !user.roleAssignments.daycareAdmin
+    ? 'marketing'
+    : user.roleAssignments.daycareAdmin && !user.roleAssignments.schoolAdmin ? 'daycare' : 'school'
   roleEditorOpen.value = false
   actionError.value = ''
   actionNotice.value = ''
@@ -461,6 +487,7 @@ function focusEditor(mode: EditorMode) {
     roleDraft.value.daycareAdmin = true
     if (!daycareUnitsDraft.value.length && unitOptions.value[0]) daycareUnitsDraft.value = [unitOptions.value[0]]
   }
+  if (mode === 'marketing') roleDraft.value.marketingAdmin = true
 }
 
 function ensureSchoolScope() {

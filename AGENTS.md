@@ -67,6 +67,7 @@ Este archivo existe exclusivamente para ayudar a futuros agentes a desarrollar, 
   - Identity matrix: `/__dev/identity-matrix`.
   - Modal lab: `/__dev/personas-modals`.
   - Password recovery lab: `/__dev/password-recovery`.
+  - Sesion visual MKT: `/__dev/mkt`.
   - Super Admin fixture: `/admin/superadmin/personas-autorizadas?fixture=1`.
 - APIs dev:
   - `/api/dev/husky-pass/pass?variant=<variant>&scenario=<scenario>&format=<pdf|svg-preview|readiness|diagnostics>`.

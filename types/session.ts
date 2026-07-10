@@ -1,6 +1,6 @@
 export type SessionKind = 'family' | 'admin'
 export type FamilyProductScope = 'daycare' | 'personasAutorizadas'
-export type AdminProductScope = 'daycareAdmin' | 'schoolAdmin' | 'superAdmin'
+export type AdminProductScope = 'daycareAdmin' | 'schoolAdmin' | 'marketingAdmin' | 'superAdmin'
 
 export interface LegacyRoutePermission {
   route: string

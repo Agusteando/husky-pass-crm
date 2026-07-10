@@ -5,8 +5,8 @@ import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { assertDaycareAdmin, assertSchoolAdmin } from '~/server/utils/authz'
-import { defaultAdminRoute, hasDaycareAdminScope, hasSchoolAdminScope } from '~/utils/sessionScopes'
+import { assertDaycareAdmin, assertMarketingAdmin, assertSchoolAdmin } from '~/server/utils/authz'
+import { defaultAdminRoute, hasDaycareAdminScope, hasMarketingAdminScope, hasSchoolAdminScope } from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -46,7 +46,9 @@ export default defineEventHandler(async (event) => {
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  if (hasSchoolAdminScope(sessionUser)) {
+  if (hasMarketingAdminScope(sessionUser)) {
+    assertMarketingAdmin(sessionUser)
+  } else if (hasSchoolAdminScope(sessionUser)) {
     assertSchoolAdmin(sessionUser)
   } else if (hasDaycareAdminScope(sessionUser)) {
     assertDaycareAdmin(sessionUser)

@@ -50,6 +50,7 @@ const search = ref('')
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
   if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
+  if (targetPath === '/mkt') return route.path.startsWith('/mkt')
   if (targetPath === '/admin/gestion-escolar') return route.path.startsWith('/admin/gestion-escolar')
   if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
