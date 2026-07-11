@@ -77,7 +77,7 @@
                   v-if="photoUrl(person)"
                   :src="person.foto"
                   :processed-src="person.compressed_foto"
-                  :auto-process="true"
+                  :auto-process="false"
                   :trust-stored-processed="true"
                   :namespace="`pa-person-${person.id || person.indice}`"
                   :alt="fullName(person)"

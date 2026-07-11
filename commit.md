@@ -1,1 +1,1 @@
-feat: eleva la experiencia multimedia de guardería
+fix: desacopla Vision del registro de pases express

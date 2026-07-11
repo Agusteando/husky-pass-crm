@@ -60,22 +60,18 @@
       <FamilyPersonasImageUpload
         :key="photoInputKey"
         :initial-src="form.compressed_foto || form.foto"
-        :persona-id="form.id"
         eyebrow="Foto de identificacion"
         title="Foto"
         description="Foto frontal, clara."
         confirm-label="Confirmar foto"
         @processed="setProcessedPhoto"
         @processing="setPhotoBusy"
-        @error="setVisionError"
       />
     </section>
 
-    <p v-if="visionError" class="alert compact-alert" role="alert">{{ visionError }}</p>
-
     <div class="actions form-actions">
       <button class="btn btn-primary" type="submit" :disabled="submitDisabled" data-diagnostic-action="guardar-persona-autorizada">
-        {{ saving ? 'Guardando...' : photoBusy ? 'Preparando foto...' : 'Guardar' }}
+        {{ saving ? 'Guardando...' : photoBusy ? 'Subiendo foto...' : 'Guardar' }}
       </button>
       <button class="btn btn-secondary" type="button" :disabled="saving || photoBusy" @click="cancel">Cancelar</button>
     </div>
@@ -104,7 +100,6 @@ const emit = defineEmits<{
 const form = ref(createAuthorizedPersonForm(props.person))
 const errors = ref<AuthorizedPersonValidationState>({})
 const photoBusy = ref(false)
-const visionError = ref('')
 const formNotice = ref('')
 const firstInputRef = ref<HTMLInputElement | null>(null)
 const photoInputKey = computed(() => `photo-${form.value.id || 'slot'}-${form.value.indice}-${form.value.foto || ''}-${form.value.compressed_foto || ''}`)
@@ -113,7 +108,6 @@ const submitDisabled = computed(() => Boolean(props.saving || photoBusy.value))
 watch(() => props.person, async (person) => {
   form.value = createAuthorizedPersonForm(person)
   errors.value = {}
-  visionError.value = ''
   formNotice.value = ''
   await nextTick()
   firstInputRef.value?.focus()
@@ -122,19 +116,15 @@ watch(() => props.person, async (person) => {
 function setProcessedPhoto(payload: { url: string }) {
   form.value = {
     ...form.value,
-    compressed_foto: payload.url
+    foto: payload.url,
+    compressed_foto: null
   }
-  visionError.value = ''
   formNotice.value = 'Foto confirmada para este registro.'
 }
 
 function setPhotoBusy(value: boolean) {
   photoBusy.value = value
   emit('busy', value)
-}
-
-function setVisionError(message: string) {
-  visionError.value = message
 }
 
 function clearFieldError(field: keyof AuthorizedPersonValidationState) {

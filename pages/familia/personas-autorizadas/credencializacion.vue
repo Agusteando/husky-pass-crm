@@ -72,7 +72,6 @@
         confirm-label="Confirmar foto"
         @processed="setPendingPhoto"
         @processing="processing = $event"
-        @error="setUploadError"
       />
 
       <div class="modal-actions">
@@ -134,7 +133,7 @@ const currentPhoto = computed(() => normalizeVirtualAssetUrl(profile.value?.read
 const studentName = computed(() => [profile.value?.editable.nombres, profile.value?.editable.apellido_paterno, profile.value?.editable.apellido_materno].filter(Boolean).join(' '))
 const academicLine = computed(() => [displayMatricula(profile.value?.readonly.matricula), profile.value?.readonly.nivel, profile.value?.readonly.grado, profile.value?.readonly.grupo].filter(Boolean).join(' / '))
 const statusText = computed(() => {
-  if (processing.value) return 'Preparando…'
+  if (processing.value) return 'Subiendo…'
   if (saving.value) return 'Guardando…'
   if (saved.value) return 'Guardada.'
   return currentPhoto.value ? 'Lista.' : 'Pendiente.'
@@ -151,11 +150,6 @@ function closePhotoModal() {
   if (processing.value || saving.value) return
   photoModalOpen.value = false
   pendingPhotoUrl.value = ''
-}
-
-function setUploadError(message: string) {
-  error.value = message
-  notice.value = ''
 }
 
 function setPendingPhoto(payload: { url: string }) {

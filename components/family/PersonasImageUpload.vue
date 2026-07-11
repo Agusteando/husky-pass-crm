@@ -14,13 +14,13 @@
 
       <ol class="upload-steps" aria-label="Estado de foto">
         <li :class="{ done: hasSelection, active: !hasSelection && !processing }">Seleccionar</li>
-        <li :class="{ done: processedUrl, active: processing }">Preparar</li>
+        <li :class="{ done: processedUrl, active: processing }">Cargar</li>
         <li :class="{ done: confirmed, active: processedUrl && !confirmed }">Confirmar</li>
       </ol>
 
       <label class="upload-drop" :class="{ busy: processing }">
         <input ref="inputRef" type="file" accept="image/png,image/jpeg,image/webp" :disabled="processing" data-diagnostic-action="subir-imagen-personas" @change="onFileChange" />
-        <span>{{ processing ? 'Preparando…' : selectedName || 'Seleccionar foto' }}</span>
+        <span>{{ processing ? 'Subiendo…' : selectedName || 'Seleccionar foto' }}</span>
         <small>PNG, JPG o WEBP · 5 MB máx.</small>
       </label>
 
@@ -39,11 +39,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
-import { markValidatedVisionPhotoUrl, processFaceImageCached } from '~/utils/visionFace'
 
 const props = withDefaults(defineProps<{
   initialSrc?: string | null
-  personaId?: number | null
   title?: string
   eyebrow?: string
   description?: string
@@ -51,7 +49,6 @@ const props = withDefaults(defineProps<{
   confirmLabel?: string
 }>(), {
   initialSrc: '',
-  personaId: null,
   title: 'Foto',
   eyebrow: 'Fotografía',
   description: '',
@@ -138,24 +135,17 @@ async function onFileChange(event: Event) {
   try {
     const dataUrl = await readFileAsDataUrl(file)
     localPreview.value = dataUrl
-    const uploaded = await $fetch<{ absoluteUrl: string }>('/api/personas-autorizadas/photo-source', {
+    const uploaded = await $fetch<{ url?: string; absoluteUrl?: string }>('/api/personas-autorizadas/photo-source', {
       method: 'POST',
       body: { src: dataUrl }
     })
-    const processed = await processFaceImageCached(uploaded.absoluteUrl, { namespace: `upload:${props.personaId || 'student'}`, force: true })
-    if (!processed.validation.valid) {
-      throw new Error(processed.validation.message)
-    }
-    const stored = await $fetch<{ url: string; absoluteUrl?: string }>('/api/personas-autorizadas/faces', {
-      method: 'POST',
-      body: { src: processed.src, personaId: props.personaId || null }
-    })
-    processedUrl.value = markValidatedVisionPhotoUrl(stored.absoluteUrl || stored.url)
-    localPreview.value = normalizeVirtualAssetUrl(processedUrl.value)
-    notice.value = 'Foto validada. Lista para confirmar.'
-  } catch (err: unknown) {
-    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    fail(failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible preparar la foto.')
+    const uploadedUrl = uploaded.absoluteUrl || uploaded.url || ''
+    if (!uploadedUrl) throw new Error('No fue posible guardar la foto.')
+    processedUrl.value = uploadedUrl
+    localPreview.value = dataUrl
+    notice.value = 'Foto lista para confirmar.'
+  } catch {
+    fail('No fue posible subir la foto. Intenta nuevamente.')
   } finally {
     setProcessing(false)
     input.value = ''
