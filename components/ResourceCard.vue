@@ -12,14 +12,15 @@
         <span v-if="!imageReady && !imageFailed" class="media-skeleton" aria-hidden="true" />
         <img
           v-if="!imageFailed"
-          v-show="imageReady"
+          ref="imageElement"
+          :class="{ 'is-ready': imageReady }"
           :src="asset.url"
           :alt="asset.alt || resource.title || 'Imagen de la publicación'"
           :style="imagePosition"
           decoding="async"
           loading="lazy"
-          @load="imageReady = true"
-          @error="imageFailed = true"
+          @load="markImageReady"
+          @error="markImageFailed"
         />
         <span v-else class="media-error">
           <FamilyPersonasIcon name="camera" />
@@ -81,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { DaycareResource } from '~/types/daycare'
 import { formatCalendarDay, formatDate, stripHtml } from '~/utils/daycare'
 import { daycareDocumentIcon, daycareMediaAsset, formatDaycareMediaSize } from '~/utils/daycareMedia'
@@ -93,6 +94,7 @@ const props = defineProps<{
   featured?: boolean
 }>()
 
+const imageElement = ref<HTMLImageElement | null>(null)
 const imageReady = ref(false)
 const imageFailed = ref(false)
 const viewerOpen = ref(false)
@@ -135,11 +137,31 @@ const mediaKindLabel = computed(() => {
 const extensionLabel = computed(() => asset.value?.extension ? asset.value.extension.toUpperCase() : 'FILE')
 const documentMeta = computed(() => [extensionLabel.value, formatDaycareMediaSize(asset.value?.size)].filter(Boolean).join(' · '))
 
-watch(() => props.resource.resource, () => {
+function markImageReady() {
+  imageReady.value = true
+  imageFailed.value = false
+}
+
+function markImageFailed() {
+  imageReady.value = false
+  imageFailed.value = true
+}
+
+function recoverCompletedImage() {
+  const image = imageElement.value
+  if (!image?.complete) return
+  if (image.naturalWidth > 0) markImageReady()
+}
+
+watch(() => asset.value?.url, async () => {
   imageReady.value = false
   imageFailed.value = false
   viewerOpen.value = false
+  await nextTick()
+  recoverCompletedImage()
 }, { immediate: true })
+
+onMounted(recoverCompletedImage)
 </script>
 
 <style scoped>
@@ -188,10 +210,12 @@ watch(() => props.resource.resource, () => {
   height: 100%;
   inset: 0;
   object-fit: cover;
+  opacity: 0;
   position: absolute;
-  transition: transform 220ms ease;
+  transition: opacity 180ms ease, transform 220ms ease;
   width: 100%;
 }
+.media-image img.is-ready { opacity: 1; }
 .resource-card:hover .media-image img { transform: scale(1.025); }
 .orientation-portrait .media-image {
   background:

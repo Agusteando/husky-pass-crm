@@ -1,1 +1,1 @@
-fix: desacopla Vision del registro de pases express
+Corrige la carga persistente de imágenes en guardería
