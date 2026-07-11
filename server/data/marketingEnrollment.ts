@@ -1,7 +1,7 @@
 import type { AppSessionUser } from '~/types/session'
 import type {
   MktEnrollmentOptionsResponse,
-  MktEnrollmentParentPatch,
+  MktEnrollmentStudentPatch,
   MktEnrollmentStudent,
   MktEnrollmentStudentResponse,
   MktEnrollmentStudentsResponse
@@ -28,15 +28,7 @@ let healthCache: { value: AuroraHealthResponse; expiresAt: number } | null = nul
 const HEALTH_CACHE_TTL_MS = 60_000
 const HEALTH_TIMEOUT_MS = 6_000
 
-const PLANTEL_LABELS: Record<string, string> = {
-  GM: 'Guardería Metepec',
-  PREEM: 'Preescolar Matutino',
-  PREET: 'Preescolar Vespertino',
-  PM: 'Primaria Matutina',
-  PT: 'Primaria Vespertina',
-  SM: 'Secundaria Matutina',
-  ST: 'Secundaria Vespertina'
-}
+
 
 const clean = (value: unknown, max = 500) => String(value ?? '').trim().slice(0, max)
 const normalizeCiclo = (value: unknown) => clean(value, 20).match(/\d{4}/)?.[0] || ''
@@ -242,7 +234,7 @@ export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<Mkt
   const scopes = Array.isArray(health?.scopes) ? health.scopes : []
   const planteles = availablePlanteles.map((code) => ({
     code,
-    label: PLANTEL_LABELS[code] || code,
+    label: code,
     level: levelForPlantel(code),
     hasData: scopes.some((scope) => normalizeAuroraEnrollmentPlantel(scope.plantel) === code && Number(scope.rows || 0) > 0)
   }))
@@ -310,11 +302,11 @@ export async function getMktEnrollmentStudent(user: AppSessionUser, matriculaVal
   return { data: sanitizeStudent(response?.data), meta: response?.meta || {} }
 }
 
-export async function updateMktEnrollmentParents(
+export async function updateMktEnrollmentStudent(
   user: AppSessionUser,
   matriculaValue: unknown,
   query: Record<string, any>,
-  patch: MktEnrollmentParentPatch
+  patch: MktEnrollmentStudentPatch
 ): Promise<MktEnrollmentStudentResponse> {
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)

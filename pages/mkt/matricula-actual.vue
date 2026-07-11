@@ -4,25 +4,37 @@
       <div class="hero-copy">
         <p class="mkt-eyebrow">Marketing · Aurora</p>
         <h1>Matrícula actual</h1>
-        <p>Consulta institucional de alumnos, grupos y contacto familiar.</p>
-        <div class="hero-context">
-          <span><FamilyPersonasIcon name="school" /> {{ activePlantelLabel }}</span>
-          <span><FamilyPersonasIcon name="calendar" /> {{ activeCycleLabel }}</span>
+        <div class="hero-meta">
+          <span>{{ activePlantelCode }}</span>
+          <span>{{ activeCycleLabel }}</span>
           <span :data-state="freshnessState"><i />{{ freshnessLabel }}</span>
         </div>
       </div>
-      <div class="hero-actions">
+
+      <div class="hero-controls">
+        <div v-if="options?.planteles.length" class="plantel-tabs" aria-label="Planteles">
+          <button
+            v-for="plantel in options.planteles"
+            :key="plantel.code"
+            type="button"
+            :class="{ active: selectedPlantel === plantel.code }"
+            @click="selectedPlantel = plantel.code"
+          >
+            {{ plantel.code }}
+          </button>
+        </div>
         <label class="cycle-picker">
-          <span>Ciclo escolar</span>
+          <span>Ciclo</span>
           <select v-model="selectedCiclo" :disabled="!options?.schoolYears.length">
             <option v-for="cycle in options?.schoolYears || []" :key="cycle.value" :value="cycle.value">{{ cycle.label }}</option>
           </select>
         </label>
         <button class="mkt-btn export-btn" type="button" :disabled="!canQuery || exporting" @click="downloadExcel">
           <FamilyPersonasIcon name="download" />
-          {{ exporting ? 'Preparando…' : 'Descargar Excel' }}
+          {{ exporting ? 'Preparando…' : 'Excel' }}
         </button>
       </div>
+
       <img class="hero-ambassador" :src="activeAmbassador" alt="" aria-hidden="true" />
     </header>
 
@@ -32,136 +44,187 @@
 
     <section v-else-if="optionsError" class="mkt-panel connection-error" data-state="error">
       <span><FamilyPersonasIcon name="alert" /></span>
-      <div><p class="mkt-eyebrow">Conexión institucional</p><h2>Aurora no respondió</h2><p>{{ optionErrorMessage }}</p></div>
+      <div><p class="mkt-eyebrow">Aurora</p><h2>No respondió</h2><p>{{ optionErrorMessage }}</p></div>
       <button class="mkt-btn" type="button" @click="refreshOptions">Reintentar</button>
     </section>
 
     <section v-else-if="!options?.planteles.length" class="mkt-panel access-state">
       <img src="/personas-autorizadas/ambassadors/primaria-brave.png" alt="" aria-hidden="true" />
-      <div><p class="mkt-eyebrow">Alcance de matrícula</p><h2>No hay planteles escolares asignados</h2><p>La cuenta de Marketing necesita al menos un plantel compatible con Aurora.</p></div>
+      <div><p class="mkt-eyebrow">Matrícula actual</p><h2>Sin planteles asignados</h2></div>
     </section>
 
     <template v-else>
-      <section class="plantel-switcher" aria-label="Planteles disponibles">
-        <button
-          v-for="plantel in options.planteles"
-          :key="plantel.code"
-          type="button"
-          :class="{ active: selectedPlantel === plantel.code }"
-          :data-level="plantel.level"
-          @click="selectedPlantel = plantel.code"
-        >
-          <span class="plantel-code">{{ plantel.code }}</span>
-          <span><strong>{{ plantel.label }}</strong><small>{{ plantel.hasData ? 'Matrícula disponible' : 'Consulta directa' }}</small></span>
-          <i />
-        </button>
-      </section>
-
-      <section class="enrollment-kpis" aria-label="Resumen de matrícula">
-        <article class="enrollment-kpi primary">
+      <section class="enrollment-totals" aria-label="Totales de matrícula">
+        <article class="total-card internal">
+          <span><FamilyPersonasIcon name="school" /></span>
+          <div><small>Internos</small><strong>{{ formatNumber(kpis?.internos ?? 0) }}</strong></div>
+          <em>{{ percent(kpis?.internos, kpis?.inscritos) }}%</em>
+        </article>
+        <article class="total-card external">
+          <span><FamilyPersonasIcon name="entry" /></span>
+          <div><small>Externos</small><strong>{{ formatNumber(kpis?.externos ?? 0) }}</strong></div>
+          <em>{{ percent(kpis?.externos, kpis?.inscritos) }}%</em>
+        </article>
+        <article class="total-card enrolled">
           <span><FamilyPersonasIcon name="people" /></span>
-          <div><small>Alumnos visibles</small><strong>{{ formatNumber(kpis?.totalVisible ?? total) }}</strong></div>
+          <div><small>Inscritos</small><strong>{{ formatNumber(kpis?.inscritos ?? 0) }}</strong></div>
           <em>{{ activePlantelCode }}</em>
         </article>
-        <article class="enrollment-kpi lime">
-          <span><FamilyPersonasIcon name="check" /></span>
-          <div><small>Inscritos</small><strong>{{ formatNumber(kpis?.inscritos ?? 0) }}</strong></div>
-          <em>{{ enrollmentPercent }}%</em>
-        </article>
-        <article class="enrollment-kpi blue">
-          <span><FamilyPersonasIcon name="document" /></span>
-          <div><small>Expedientes completos</small><strong>{{ formatNumber(kpis?.expedientesCompletos ?? 0) }}</strong></div>
-          <em>{{ completionPercent }}%</em>
-        </article>
-        <article class="enrollment-kpi coral" :data-attention="Number(kpis?.sinContacto || 0) > 0">
-          <span><FamilyPersonasIcon name="phone" /></span>
-          <div><small>Sin contacto familiar</small><strong>{{ formatNumber(kpis?.sinContacto ?? 0) }}</strong></div>
-          <em>{{ Number(kpis?.sinContacto || 0) ? 'Requiere atención' : 'Al día' }}</em>
+        <article class="total-card visible">
+          <span><FamilyPersonasIcon name="clipboard" /></span>
+          <div><small>Alumnos</small><strong>{{ formatNumber(kpis?.totalVisible ?? total) }}</strong></div>
+          <em>{{ activeCycleLabel }}</em>
         </article>
       </section>
 
-      <section class="enrollment-workspace">
-        <aside class="filters-panel mkt-panel">
-          <div class="filter-title">
-            <span><FamilyPersonasIcon name="filter" /></span>
-            <div><p class="mkt-eyebrow">Vista actual</p><h2>Explorar matrícula</h2></div>
+      <section class="grade-board mkt-panel">
+        <header class="section-head">
+          <div>
+            <p class="mkt-eyebrow">Distribución</p>
+            <h2>Matrícula por grado</h2>
           </div>
+          <div class="legend" aria-hidden="true">
+            <span class="internal"><i />Internos</span>
+            <span class="external"><i />Externos</span>
+          </div>
+        </header>
+
+        <div v-if="loading && !gradeRows.length" class="matrix-loading">
+          <span v-for="index in 6" :key="index" />
+        </div>
+
+        <div v-else-if="gradeRows.length" class="grade-matrix">
+          <div class="matrix-header" aria-hidden="true">
+            <span>Grado</span><span>Internos</span><span>Externos</span><span>Total</span><span />
+          </div>
+
+          <article v-for="grade in gradeRows" :key="grade.grado" class="grade-entry" :class="{ open: isGradeOpen(grade.grado) }">
+            <button class="grade-row" type="button" @click="toggleGrade(grade.grado)">
+              <span class="grade-name"><b>{{ gradeLabel(grade.grado) }}</b><small>{{ grade.grupos.length }} grupo{{ grade.grupos.length === 1 ? '' : 's' }}</small></span>
+              <strong class="number internal">{{ formatNumber(grade.interno) }}</strong>
+              <strong class="number external">{{ formatNumber(grade.externo) }}</strong>
+              <strong class="number total">{{ formatNumber(grade.total) }}</strong>
+              <span class="chevron"><FamilyPersonasIcon name="chevron" /></span>
+            </button>
+
+            <div v-show="isGradeOpen(grade.grado)" class="group-rows">
+              <button
+                v-for="group in grade.grupos"
+                :key="`${grade.grado}-${group.grupo}`"
+                type="button"
+                :class="{ selected: filters.grado === grade.grado && filters.grupo === group.grupo }"
+                @click="selectGroup(grade.grado, group.grupo)"
+              >
+                <span class="group-name"><i />Grupo {{ group.grupo }}</span>
+                <strong class="number internal">{{ formatNumber(group.interno) }}</strong>
+                <strong class="number external">{{ formatNumber(group.externo) }}</strong>
+                <strong class="number total">{{ formatNumber(group.total) }}</strong>
+                <span class="group-action">Ver <FamilyPersonasIcon name="arrow" /></span>
+              </button>
+              <button v-if="!grade.grupos.length" class="empty-grade" type="button" @click="selectGrade(grade.grado)">
+                <span>Sin grupo</span><span /><span /><strong>{{ grade.total }}</strong><span class="group-action">Ver <FamilyPersonasIcon name="arrow" /></span>
+              </button>
+            </div>
+          </article>
+
+          <footer class="matrix-total">
+            <span>Total</span>
+            <strong class="internal">{{ formatNumber(matrixTotals.interno) }}</strong>
+            <strong class="external">{{ formatNumber(matrixTotals.externo) }}</strong>
+            <strong>{{ formatNumber(matrixTotals.total) }}</strong>
+            <span />
+          </footer>
+        </div>
+
+        <div v-else class="matrix-empty">
+          <span><FamilyPersonasIcon name="clipboard" /></span>
+          <strong>Sin matrícula en este ciclo</strong>
+        </div>
+      </section>
+
+      <section class="directory-panel mkt-panel">
+        <header class="directory-head">
+          <div>
+            <p class="mkt-eyebrow">Alumnos</p>
+            <h2>{{ directoryTitle }}</h2>
+            <p v-if="directoryActive">{{ total }} resultado{{ total === 1 ? '' : 's' }}</p>
+          </div>
+          <button v-if="!directoryActive" class="mkt-btn soft" type="button" @click="showAllStudents">
+            <FamilyPersonasIcon name="people" /> Ver todos
+          </button>
+          <button v-else class="refresh-button" type="button" aria-label="Actualizar alumnos" :disabled="loading" @click="loadStudents(true)">
+            <FamilyPersonasIcon name="replace" />
+          </button>
+        </header>
+
+        <div class="directory-tools">
           <label class="search-field">
             <FamilyPersonasIcon name="search" />
             <input v-model="filters.search" type="search" placeholder="Nombre, matrícula, CURP o familia" autocomplete="off" />
             <button v-if="filters.search" type="button" aria-label="Limpiar búsqueda" @click="filters.search = ''">×</button>
           </label>
-          <div class="filter-grid">
-            <label><span>Nivel</span><select v-model="filters.nivel"><option value="">Todos</option><option v-for="level in catalogs.niveles" :key="level" :value="level">{{ titleCase(level) }}</option></select></label>
-            <label><span>Grado</span><select v-model="filters.grado"><option value="">Todos</option><option v-for="grade in catalogs.grados" :key="grade" :value="grade">{{ titleCase(grade) }}</option></select></label>
-            <label><span>Grupo</span><select v-model="filters.grupo"><option value="">Todos</option><option v-for="group in availableGroups" :key="group" :value="group">{{ group }}</option></select></label>
-            <label><span>Estado</span><select v-model="filters.status"><option value="">Todos</option><option value="inscrito">Inscritos</option><option value="no_inscrito">No inscritos</option><option value="bajas">Bajas</option><option value="activos">Activos</option></select></label>
-          </div>
-          <button v-if="hasFilters" class="clear-filters" type="button" @click="clearFilters"><FamilyPersonasIcon name="close" /> Limpiar filtros</button>
-
-          <div v-if="groupDistribution.length" class="group-distribution">
-            <div class="distribution-head"><span>Grado y grupo</span><small>{{ groupDistribution.length }} grupos</small></div>
-            <button v-for="group in groupDistribution" :key="group.label" type="button" @click="applyGroupLabel(group.label)">
-              <span>{{ group.label }}</span><strong>{{ group.total }}</strong>
+          <div class="status-tabs" aria-label="Tipo de alumno">
+            <button v-for="item in statusOptions" :key="item.value" type="button" :class="{ active: filters.status === item.value }" @click="setStatus(item.value)">
+              {{ item.label }}
             </button>
           </div>
-        </aside>
+        </div>
 
-        <main class="students-panel mkt-panel">
-          <header class="students-head">
-            <div>
-              <p class="mkt-eyebrow">{{ activePlantelLabel }}</p>
-              <h2>{{ listTitle }}</h2>
-              <p>{{ total }} resultado{{ total === 1 ? '' : 's' }} · {{ students.length }} cargados</p>
-            </div>
-            <div class="view-status">
-              <span v-if="loading"><i />Actualizando</span>
-              <span v-else><i />Lista al día</span>
-              <button type="button" aria-label="Actualizar matrícula" :disabled="loading" @click="loadStudents(true)"><FamilyPersonasIcon name="replace" /></button>
-            </div>
-          </header>
+        <div v-if="filters.grado || filters.grupo" class="active-selection">
+          <span>{{ [gradeLabel(filters.grado), filters.grupo ? `Grupo ${filters.grupo}` : ''].filter(Boolean).join(' · ') }}</span>
+          <button type="button" @click="clearGroupSelection">×</button>
+        </div>
 
-          <div v-if="loading && !students.length" class="students-loading">
-            <article v-for="index in 7" :key="index"><span /><div><i /><i /></div><b /></article>
-          </div>
-          <section v-else-if="listError && !students.length" class="students-state error-state">
-            <FamilyPersonasIcon name="alert" /><h3>No pudimos consultar este plantel</h3><p>{{ listError }}</p><button class="mkt-btn" type="button" @click="loadStudents(true)">Reintentar</button>
-          </section>
-          <section v-else-if="!students.length" class="students-state">
-            <img :src="activeAmbassador" alt="" aria-hidden="true" /><h3>No hay alumnos en esta vista</h3><p>Cambia los filtros o selecciona otro ciclo escolar.</p><button v-if="hasFilters" class="mkt-btn soft" type="button" @click="clearFilters">Mostrar todos</button>
-          </section>
+        <div v-if="!directoryActive" class="directory-idle">
+          <div class="idle-mark"><FamilyPersonasIcon name="search" /></div>
+          <span>Directorio</span>
+        </div>
 
-          <div v-else class="students-list">
-            <button v-for="student in students" :key="student.matricula" class="student-row" type="button" @click="openStudent(student)">
-              <span class="row-photo" :data-level="activeLevel">
-                <img v-if="student.photoUrl && !failedPhotos.has(student.matricula)" :src="student.photoUrl" :alt="`Foto de ${student.fullName}`" loading="lazy" @error="markPhotoFailed(student.matricula)" />
-                <b v-else>{{ initials(student.fullName) }}</b>
-              </span>
-              <span class="row-identity">
-                <strong>{{ student.fullName || 'Alumno sin nombre' }}</strong>
-                <small>{{ student.matricula }} · {{ titleCase(student.nivel || '') }}</small>
-              </span>
-              <span class="row-group"><small>Grado · grupo</small><strong>{{ gradeGroup(student) }}</strong></span>
-              <span class="row-family" :data-ready="familyReady(student)">
-                <i><FamilyPersonasIcon :name="familyReady(student) ? 'check' : 'alert'" /></i>
-                <span><small>Contacto familiar</small><strong>{{ familyReady(student) ? primaryContact(student) : 'Por completar' }}</strong></span>
-              </span>
-              <span class="row-progress">
-                <span><i :style="{ width: `${studentCompletion(student)}%` }" /></span>
-                <small>{{ studentCompletion(student) }}%</small>
-              </span>
-              <span class="row-status" :data-state="rowState(student)">{{ rowStatusLabel(student) }}</span>
-              <FamilyPersonasIcon class="row-arrow" name="arrow" />
-            </button>
-          </div>
+        <div v-else-if="loading && !students.length" class="students-loading">
+          <article v-for="index in 6" :key="index"><span /><div><i /><i /></div><b /></article>
+        </div>
 
-          <footer v-if="students.length" class="students-footer">
-            <span>Mostrando {{ students.length }} de {{ total }}</span>
-            <button v-if="nextCursor" class="mkt-btn soft" type="button" :disabled="loadingMore" @click="loadMore">
-              <FamilyPersonasIcon name="plus" />{{ loadingMore ? 'Cargando…' : 'Cargar más' }}
-            </button>
-          </footer>
-        </main>
+        <section v-else-if="listError && !students.length" class="students-state error-state">
+          <FamilyPersonasIcon name="alert" /><h3>No fue posible consultar</h3><p>{{ listError }}</p><button class="mkt-btn" type="button" @click="loadStudents(true)">Reintentar</button>
+        </section>
+
+        <section v-else-if="!students.length" class="students-state">
+          <img :src="activeAmbassador" alt="" aria-hidden="true" /><h3>Sin resultados</h3>
+          <button v-if="hasFilters" class="mkt-btn soft" type="button" @click="clearDirectoryFilters">Mostrar todos</button>
+        </section>
+
+        <div v-else class="students-grid">
+          <button v-for="student in students" :key="student.matricula" class="student-card" type="button" @click="openStudent(student)">
+            <span class="student-photo" :data-level="activeLevel">
+              <img v-if="student.photoUrl && !failedPhotos.has(student.matricula)" :src="student.photoUrl" :alt="`Foto de ${student.fullName}`" loading="lazy" @error="markPhotoFailed(student.matricula)" />
+              <b v-else>{{ initials(student.fullName) }}</b>
+            </span>
+            <span class="student-main">
+              <span class="student-badges">
+                <i :data-kind="tipoIngresoValue(student)">{{ tipoIngresoLabel(student) }}</i>
+                <i :data-state="rowState(student)">{{ rowStatusLabel(student) }}</i>
+              </span>
+              <strong>{{ student.fullName || 'Alumno sin nombre' }}</strong>
+              <small>{{ student.matricula }} · {{ gradeGroup(student) }}</small>
+            </span>
+            <span class="student-contact" :data-ready="familyReady(student)">
+              <FamilyPersonasIcon :name="familyReady(student) ? 'check' : 'alert'" />
+              <span><small>Familia</small><strong>{{ familyReady(student) ? primaryContact(student) : 'Pendiente' }}</strong></span>
+            </span>
+            <span class="student-completion">
+              <span><i :style="{ width: `${studentCompletion(student)}%` }" /></span>
+              <small>{{ studentCompletion(student) }}%</small>
+            </span>
+            <FamilyPersonasIcon class="student-arrow" name="arrow" />
+          </button>
+        </div>
+
+        <footer v-if="directoryActive && students.length" class="students-footer">
+          <span>{{ students.length }} de {{ total }}</span>
+          <button v-if="nextCursor" class="mkt-btn soft" type="button" :disabled="loadingMore" @click="loadMore">
+            {{ loadingMore ? 'Cargando…' : 'Cargar más' }}
+          </button>
+        </footer>
       </section>
     </template>
 
@@ -173,7 +236,7 @@
       v-if="selectedStudent"
       :student="selectedStudent"
       :plantel="selectedPlantel"
-      :plantel-label="activePlantelLabel"
+      :plantel-label="activePlantelCode"
       :ciclo="selectedCiclo"
       @close="selectedStudent = null"
       @optimistic="applyOptimisticStudent"
@@ -188,6 +251,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type {
   MktEnrollmentCatalogs,
+  MktEnrollmentGradeSummary,
   MktEnrollmentKpis,
   MktEnrollmentOptionsResponse,
   MktEnrollmentStudent,
@@ -215,18 +279,26 @@ const exporting = ref(false)
 const listError = ref('')
 const selectedStudent = ref<MktEnrollmentStudent | null>(null)
 const failedPhotos = reactive(new Set<string>())
+const expandedGrades = ref(new Set<string>())
+const directoryActive = ref(false)
 const actionMessage = ref('')
 const actionState = ref<'saving' | 'saved' | 'failed'>('saved')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let requestSequence = 0
 let toastTimer: ReturnType<typeof setTimeout> | null = null
-const filters = reactive({ search: '', nivel: '', grado: '', grupo: '', status: '' })
+const filters = reactive({ search: '', grado: '', grupo: '', status: '' })
+
+const statusOptions = [
+  { value: '', label: 'Todos' },
+  { value: 'internos', label: 'Internos' },
+  { value: 'externos', label: 'Externos' },
+  { value: 'bajas', label: 'Bajas' }
+]
 
 const optionsError = computed(() => Boolean(optionsFetchError.value))
 const optionErrorMessage = computed(() => optionsFetchError.value?.data?.message || optionsFetchError.value?.message || 'No fue posible abrir la conexión con Aurora.')
 const activePlantel = computed(() => options.value?.planteles.find((item) => item.code === selectedPlantel.value) || null)
 const activePlantelCode = computed(() => activePlantel.value?.code || '—')
-const activePlantelLabel = computed(() => activePlantel.value?.label || 'Selecciona un plantel')
 const activeLevel = computed(() => activePlantel.value?.level || 'preescolar')
 const activeAmbassador = computed(() => ({
   daycare: '/personas-autorizadas/ambassadors/daycare-sunny.png',
@@ -234,17 +306,20 @@ const activeAmbassador = computed(() => ({
   primaria: '/personas-autorizadas/ambassadors/primaria-brave.png',
   secundaria: '/personas-autorizadas/ambassadors/secundaria-hope.png'
 }[activeLevel.value]))
-const activeCycleLabel = computed(() => options.value?.schoolYears.find((item) => item.value === selectedCiclo.value)?.label || selectedCiclo.value || 'Ciclo escolar')
+const activeCycleLabel = computed(() => options.value?.schoolYears.find((item) => item.value === selectedCiclo.value)?.label || selectedCiclo.value || '—')
 const canQuery = computed(() => Boolean(selectedPlantel.value && selectedCiclo.value))
-const hasFilters = computed(() => Boolean(filters.search || filters.nivel || filters.grado || filters.grupo || filters.status))
-const availableGroups = computed(() => {
-  const byGrade = filters.grado ? catalogs.gruposPorGrado[filters.grado] : null
-  return Array.isArray(byGrade) && byGrade.length ? byGrade : catalogs.grupos
+const hasFilters = computed(() => Boolean(filters.search || filters.grado || filters.grupo || filters.status))
+const gradeRows = computed<MktEnrollmentGradeSummary[]>(() => Array.isArray(kpis.value?.porGrado) ? kpis.value!.porGrado : [])
+const matrixTotals = computed(() => gradeRows.value.reduce((result, grade) => ({
+  interno: result.interno + Number(grade.interno || 0),
+  externo: result.externo + Number(grade.externo || 0),
+  total: result.total + Number(grade.total || 0)
+}), { interno: 0, externo: 0, total: 0 }))
+const directoryTitle = computed(() => {
+  if (filters.search) return 'Resultados'
+  if (filters.grado || filters.grupo) return [gradeLabel(filters.grado), filters.grupo ? `Grupo ${filters.grupo}` : ''].filter(Boolean).join(' · ')
+  return 'Directorio'
 })
-const groupDistribution = computed(() => (kpis.value?.porGrupo || []).slice(0, 12))
-const listTitle = computed(() => filters.grado || filters.grupo ? [titleCase(filters.grado), filters.grupo].filter(Boolean).join(' · ') : 'Alumnos del ciclo')
-const enrollmentPercent = computed(() => percent(kpis.value?.inscritos, kpis.value?.totalVisible))
-const completionPercent = computed(() => percent(kpis.value?.expedientesCompletos, Number(kpis.value?.expedientesCompletos || 0) + Number(kpis.value?.expedientesIncompletos || 0)))
 const freshnessState = computed(() => {
   if (loading.value) return 'loading'
   const resolved = String(meta.value?.freshness || '').toLowerCase()
@@ -252,10 +327,10 @@ const freshnessState = computed(() => {
   return options.value?.connected ? 'fresh' : 'stale'
 })
 const freshnessLabel = computed(() => {
-  if (loading.value) return 'Consultando Aurora'
-  if (freshnessState.value === 'stale') return meta.value?.source ? 'Sincronización reciente' : 'Conexión bajo demanda'
-  if (freshnessState.value === 'expired') return 'Actualizando origen'
-  return 'Aurora conectada'
+  if (loading.value) return 'Actualizando'
+  if (freshnessState.value === 'stale') return 'Consulta directa'
+  if (freshnessState.value === 'expired') return 'Actualizando'
+  return 'Aurora'
 })
 
 watch(options, (value) => {
@@ -266,20 +341,22 @@ watch(options, (value) => {
 
 watch([selectedPlantel, selectedCiclo], () => {
   filters.search = ''
-  filters.nivel = ''
   filters.grado = ''
   filters.grupo = ''
   filters.status = ''
+  directoryActive.value = false
+  expandedGrades.value = new Set()
   selectedStudent.value = null
+  kpis.value = null
   if (canQuery.value) loadStudents(true)
 })
-watch(() => [filters.nivel, filters.grado, filters.grupo, filters.status], () => {
-  if (filters.grado && filters.grupo && !availableGroups.value.includes(filters.grupo)) filters.grupo = ''
-  if (canQuery.value) loadStudents(true)
+watch(() => [filters.grado, filters.grupo, filters.status], () => {
+  if (canQuery.value && directoryActive.value) loadStudents(true)
 })
-watch(() => filters.search, () => {
+watch(() => filters.search, (value) => {
   if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => { if (canQuery.value) loadStudents(true) }, 320)
+  if (value.trim()) directoryActive.value = true
+  searchTimer = setTimeout(() => { if (canQuery.value && directoryActive.value) loadStudents(true) }, 320)
 })
 
 async function refreshOptions() {
@@ -291,9 +368,9 @@ function queryParams(cursor = '') {
     plantel: selectedPlantel.value,
     ciclo: selectedCiclo.value,
     search: filters.search,
-    nivel: filters.nivel,
     grado: filters.grado,
     grupo: filters.grupo,
+    nivel: '',
     status: filters.status,
     cursor,
     limit: 100
@@ -316,7 +393,7 @@ async function loadStudents(reset = false) {
     total.value = response.pagination.total
     nextCursor.value = response.pagination.nextCursor
     Object.assign(catalogs, response.catalogs)
-    kpis.value = response.kpis
+    if (response.kpis) kpis.value = response.kpis
     meta.value = response.meta || {}
   } catch (caught: any) {
     if (sequence !== requestSequence) return
@@ -342,6 +419,51 @@ async function loadMore() {
   }
 }
 
+function toggleGrade(grado: string) {
+  const next = new Set(expandedGrades.value)
+  if (next.has(grado)) next.delete(grado)
+  else next.add(grado)
+  expandedGrades.value = next
+}
+function isGradeOpen(grado: string) { return expandedGrades.value.has(grado) }
+function selectGroup(grado: string, grupo: string) {
+  directoryActive.value = true
+  filters.search = ''
+  filters.grado = grado
+  filters.grupo = grupo
+  window.setTimeout(() => document.querySelector('.directory-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+}
+function selectGrade(grado: string) {
+  directoryActive.value = true
+  filters.search = ''
+  filters.grado = grado
+  filters.grupo = ''
+}
+function showAllStudents() {
+  directoryActive.value = true
+  filters.search = ''
+  filters.grado = ''
+  filters.grupo = ''
+  filters.status = ''
+  loadStudents(true)
+}
+function setStatus(value: string) {
+  directoryActive.value = true
+  filters.status = value
+}
+function clearGroupSelection() {
+  filters.grado = ''
+  filters.grupo = ''
+}
+function clearDirectoryFilters() {
+  filters.search = ''
+  filters.grado = ''
+  filters.grupo = ''
+  filters.status = ''
+  directoryActive.value = true
+  loadStudents(true)
+}
+
 async function openStudent(student: MktEnrollmentStudent) {
   selectedStudent.value = { ...student }
   try {
@@ -350,7 +472,7 @@ async function openStudent(student: MktEnrollmentStudent) {
     })
     if (selectedStudent.value?.matricula === student.matricula) selectedStudent.value = response.data
   } catch (caught: any) {
-    showAction(caught?.data?.message || 'La consulta detallada no pudo actualizarse.', 'failed')
+    showAction(caught?.data?.message || 'La ficha no pudo actualizarse.', 'failed')
   }
 }
 
@@ -360,12 +482,12 @@ function replaceListStudent(student: MktEnrollmentStudent) {
 }
 function applyOptimisticStudent(student: MktEnrollmentStudent) {
   replaceListStudent(student)
-  showAction('Guardando información familiar en Aurora…', 'saving')
+  showAction('Guardando en Aurora…', 'saving')
 }
 function applySavedStudent(student: MktEnrollmentStudent) {
   replaceListStudent(student)
   selectedStudent.value = student
-  showAction('Información familiar actualizada.', 'saved')
+  showAction('Ficha actualizada.', 'saved')
   window.setTimeout(() => { if (canQuery.value) loadStudents(false) }, 180)
 }
 function applyRollbackStudent(student: MktEnrollmentStudent, message: string) {
@@ -378,20 +500,6 @@ function showAction(message: string, state: 'saving' | 'saved' | 'failed') {
   actionState.value = state
   if (toastTimer) clearTimeout(toastTimer)
   if (state !== 'saving') toastTimer = setTimeout(() => { actionMessage.value = '' }, 3600)
-}
-
-function clearFilters() {
-  filters.search = ''
-  filters.nivel = ''
-  filters.grado = ''
-  filters.grupo = ''
-  filters.status = ''
-}
-
-function applyGroupLabel(label: string) {
-  const parts = String(label).trim().split(/\s+/)
-  filters.grupo = parts.pop() || ''
-  filters.grado = parts.join(' ')
 }
 
 async function downloadExcel() {
@@ -408,47 +516,51 @@ async function downloadExcel() {
     document.body.appendChild(link)
     link.click()
     link.remove()
-    showAction('Aurora está preparando el Excel con la vista actual.', 'saved')
+    showAction('Excel en preparación.', 'saved')
   } finally {
     window.setTimeout(() => { exporting.value = false }, 900)
   }
 }
 
 function markPhotoFailed(matricula: string) { failedPhotos.add(matricula) }
-function initials(name: string) { return String(name || 'HP').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() }
-function gradeGroup(student: MktEnrollmentStudent) { return [titleCase(student.grado || ''), student.group || student.grupo].filter(Boolean).join(' · ') || 'Sin grupo' }
-function studentCompletion(student: MktEnrollmentStudent) { return Math.max(0, Math.min(100, Number(student.completenessTiers?.basic?.progress ?? (student.missingFields?.length ? 50 : 100)) || 0)) }
-function familyReady(student: MktEnrollmentStudent) {
-  const validPhone = [student.telefonoPadre, student.telefonoMadre].some((value) => String(value || '').replace(/\D/g, '').length >= 10)
-  const validEmail = [student.emailPadre, student.emailMadre].some((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '')) && !String(value).includes('@casita'))
-  return validPhone && validEmail
+function formatNumber(value: unknown) { return new Intl.NumberFormat('es-MX').format(Number(value || 0)) }
+function percent(value: unknown, base: unknown) {
+  const denominator = Number(base || 0)
+  return denominator > 0 ? Math.round((Number(value || 0) / denominator) * 100) : 0
 }
-function primaryContact(student: MktEnrollmentStudent) { return String(student.fatherName || student.motherName || student.guardianName || 'Contacto registrado') }
+function gradeLabel(value: unknown) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+}
+function initials(name: string) { return String(name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'HP' }
+function gradeGroup(student: MktEnrollmentStudent) { return [gradeLabel(student.grado), student.group || student.grupo].filter(Boolean).join(' · ') || 'Sin grupo' }
+function familyReady(student: MktEnrollmentStudent) { return Boolean(student.telefonoPadre || student.telefonoMadre || student.emailPadre || student.emailMadre || student.phone || student.email) }
+function primaryContact(student: MktEnrollmentStudent) { return String(student.contactoPrincipal?.nombre || student.fatherName || student.motherName || student.telefonoPadre || student.telefonoMadre || 'Familia') }
+function studentCompletion(student: MktEnrollmentStudent) { return Math.max(0, Math.min(100, Number(student.completenessTiers?.basic?.progress ?? (student.missingFields?.length ? 50 : 100)) || 0)) }
+function tipoIngresoValue(student: MktEnrollmentStudent) { return String(student.tipoIngresoValue || student.tipoIngreso || '').toLowerCase() === 'interno' ? 'internal' : 'external' }
+function tipoIngresoLabel(student: MktEnrollmentStudent) { return tipoIngresoValue(student) === 'internal' ? 'Interno' : 'Externo' }
 function rowState(student: MktEnrollmentStudent) {
-  if (student.status === 'Baja' || ['baja', 'baja_inscrita'].includes(String(student.enrollmentState || '').toLowerCase())) return 'inactive'
-  if (student.enrollmentState === 'no_inscrito') return 'pending'
+  const state = String(student.enrollmentState || student.status || '').toLowerCase()
+  if (state.includes('baja') || state.includes('inactiv')) return 'inactive'
+  if (state.includes('no_inscrito') || state.includes('pend')) return 'pending'
   return 'active'
 }
-function rowStatusLabel(student: MktEnrollmentStudent) { const state = rowState(student); return state === 'inactive' ? 'Baja' : state === 'pending' ? 'No inscrito' : 'Inscrito' }
-function titleCase(value: string) { return String(value || '').replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase('es-MX')) }
-function formatNumber(value: unknown) { return Number(value || 0).toLocaleString('es-MX') }
-function percent(value: unknown, totalValue: unknown) { const totalNumber = Number(totalValue || 0); return totalNumber ? Math.round((Number(value || 0) / totalNumber) * 100) : 0 }
+function rowStatusLabel(student: MktEnrollmentStudent) {
+  if (rowState(student) === 'inactive') return 'Baja'
+  if (String(student.enrollmentState || '').toLowerCase() === 'inscrito') return 'Inscrito'
+  return student.status || 'Activo'
+}
 </script>
 
 <style scoped>
-.enrollment-page { gap:16px; }
-.enrollment-hero { background:linear-gradient(128deg,#075950 0%,#0b6b61 50%,#166f78 100%); display:grid; grid-template-columns:minmax(0,1fr) auto 150px; min-height:218px; overflow:hidden; padding:30px 32px; position:relative; }
-.enrollment-hero::before { background:radial-gradient(circle,rgba(246,199,69,.3),transparent 68%); content:''; height:330px; position:absolute; right:20px; top:-180px; width:330px; }.enrollment-hero[data-level='primaria']{background:linear-gradient(128deg,#175d86,#347eb6 53%,#0b6b61)}.enrollment-hero[data-level='secundaria']{background:linear-gradient(128deg,#7d3f52,#b55252 52%,#315f87)}
-.hero-copy{align-self:center;position:relative;z-index:2}.hero-copy .mkt-eyebrow{color:#cceee0}.hero-copy h1{color:white;font-size:clamp(2rem,4vw,3.35rem);letter-spacing:-.045em}.hero-copy>p:not(.mkt-eyebrow){color:#d9eeea;font-size:.86rem;margin:8px 0 0;max-width:610px}.hero-context{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}.hero-context>span{align-items:center;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.14);border-radius:999px;color:#ecf8f5;display:flex;font-size:.66rem;font-weight:800;gap:6px;min-height:31px;padding:0 10px}.hero-context>span i{background:#8fc849;border-radius:999px;height:7px;width:7px}.hero-context>span[data-state='stale'] i{background:#f6c745}.hero-context>span[data-state='expired'] i{background:#ec6b5d}.hero-actions{align-content:center;display:grid;gap:10px;min-width:190px;position:relative;z-index:2}.cycle-picker{display:grid;gap:5px}.cycle-picker span{color:#c8e5df;font-size:.61rem;font-weight:900;text-transform:uppercase}.cycle-picker select{appearance:none;background:rgba(255,255,255,.96);border:0;border-radius:13px;color:#17434a;font:inherit;font-size:.75rem;font-weight:850;min-height:43px;padding:0 12px}.export-btn{background:white!important;border:0!important;color:#0b6b61!important;box-shadow:0 13px 30px rgba(2,35,38,.2)!important}.hero-ambassador{align-self:end;height:184px;justify-self:end;object-fit:contain;position:relative;width:145px;z-index:1}
-.connection-error,.access-state{align-items:center;display:grid;gap:18px;grid-template-columns:auto minmax(0,1fr) auto;padding:22px}.connection-error>span{align-items:center;background:#fff2ef;border-radius:18px;color:#b14f43;display:flex;height:56px;justify-content:center;width:56px}.connection-error h2,.access-state h2{font-size:1.3rem}.connection-error p:last-child,.access-state p:last-child{font-size:.76rem;margin:5px 0 0}.access-state{grid-template-columns:100px minmax(0,1fr)}.access-state img{height:100px;object-fit:contain;width:100px}
-.plantel-switcher{display:flex;gap:9px;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:none}.plantel-switcher button{align-items:center;background:rgba(255,255,255,.82);border:1px solid var(--mkt-line);border-radius:17px;color:#5f7174;cursor:pointer;display:grid;flex:0 0 min(250px,72vw);gap:10px;grid-template-columns:46px minmax(0,1fr) 8px;min-height:68px;padding:10px;text-align:left;transition:.18s ease}.plantel-switcher button:hover{transform:translateY(-1px)}.plantel-switcher button.active{background:#fff;border-color:rgba(11,107,97,.36);box-shadow:0 13px 30px rgba(14,55,61,.09);color:#123038}.plantel-code{align-items:center;background:#e9f7f0;border-radius:13px;color:#0b6b61;display:flex;font-size:.7rem;font-weight:950;height:46px;justify-content:center}.plantel-switcher button[data-level='daycare'] .plantel-code{background:#fff7d9;color:#8d6b0a}.plantel-switcher button[data-level='primaria'] .plantel-code{background:#eaf3ff;color:#3979b1}.plantel-switcher button[data-level='secundaria'] .plantel-code{background:#fff0ed;color:#b05246}.plantel-switcher strong,.plantel-switcher small{display:block}.plantel-switcher strong{font-size:.72rem}.plantel-switcher small{color:#859294;font-size:.61rem;margin-top:3px}.plantel-switcher button>i{background:#dfe9e4;border-radius:999px;height:8px;width:8px}.plantel-switcher button.active>i{background:#8fc849;box-shadow:0 0 0 4px rgba(143,200,73,.16)}
-.enrollment-kpis{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr))}.enrollment-kpi{align-items:center;background:#fff;border:1px solid var(--mkt-line);border-radius:19px;box-shadow:0 14px 34px rgba(14,55,61,.055);display:grid;gap:11px;grid-template-columns:44px minmax(0,1fr) auto;min-height:84px;padding:13px}.enrollment-kpi>span{align-items:center;background:#e9f7f0;border-radius:13px;color:#0b6b61;display:flex;height:44px;justify-content:center;width:44px}.enrollment-kpi.lime>span{background:#edf8e6;color:#5a882c}.enrollment-kpi.blue>span{background:#eaf3ff;color:#3979b1}.enrollment-kpi.coral>span{background:#fff0ed;color:#b05246}.enrollment-kpi small,.enrollment-kpi strong{display:block}.enrollment-kpi small{color:#77878a;font-size:.61rem}.enrollment-kpi strong{font-family:var(--font-title);font-size:1.38rem;margin-top:2px}.enrollment-kpi em,.enrollment-kpi button{background:#f2f7f4;border:0;border-radius:999px;color:#587075;font-size:.59rem;font-style:normal;font-weight:850;padding:6px 8px}.enrollment-kpi button{color:#a34e43;cursor:pointer}.enrollment-kpi[data-attention='true']{border-color:rgba(236,107,93,.3)}
-.enrollment-workspace{align-items:start;display:grid;gap:14px;grid-template-columns:286px minmax(0,1fr)}.filters-panel{padding:17px;position:sticky;top:94px}.filter-title{align-items:center;display:flex;gap:10px}.filter-title>span{align-items:center;background:#edf8f3;border-radius:13px;color:#0b6b61;display:flex;height:42px;justify-content:center;width:42px}.filter-title h2{font-size:1rem}.filter-title .mkt-eyebrow{font-size:.57rem;margin-bottom:2px}.search-field{align-items:center;background:#f7faf8;border:1px solid #dce8e3;border-radius:14px;display:grid;gap:7px;grid-template-columns:18px minmax(0,1fr) 24px;margin-top:15px;padding:0 10px}.search-field svg{color:#6f8584}.search-field input{background:transparent;border:0;font:inherit;font-size:.69rem;min-height:43px;outline:0;width:100%}.search-field button{background:transparent;border:0;color:#7c8c8e;cursor:pointer;font-size:1.1rem}.filter-grid{display:grid;gap:9px;grid-template-columns:1fr 1fr;margin-top:12px}.filter-grid label{display:grid;gap:5px}.filter-grid label>span{color:#64777a;font-size:.58rem;font-weight:900;text-transform:uppercase}.filter-grid select{background:#fff;border:1px solid #dce7e2;border-radius:11px;color:#29494e;font:inherit;font-size:.66rem;min-height:39px;padding:0 8px}.clear-filters{align-items:center;background:transparent;border:0;color:#a45246;cursor:pointer;display:flex;font:inherit;font-size:.63rem;font-weight:800;gap:6px;margin-top:11px}.group-distribution{border-top:1px solid #e5ece8;margin-top:15px;padding-top:14px}.distribution-head{align-items:center;display:flex;justify-content:space-between;margin-bottom:8px}.distribution-head span{font-size:.68rem;font-weight:900}.distribution-head small{color:#899698;font-size:.57rem}.group-distribution button{align-items:center;background:transparent;border:0;border-radius:9px;color:#52676b;cursor:pointer;display:flex;font:inherit;font-size:.63rem;justify-content:space-between;padding:7px 6px;width:100%}.group-distribution button:hover{background:#f0f7f3;color:#0b6b61}.group-distribution button strong{background:#eaf4ef;border-radius:999px;font-size:.56rem;padding:4px 6px}
-.students-panel{min-width:0;overflow:hidden}.students-head{align-items:center;border-bottom:1px solid #e4ece8;display:flex;justify-content:space-between;padding:18px 20px}.students-head h2{font-size:1.15rem}.students-head p:last-child{font-size:.65rem;margin:4px 0 0}.view-status{align-items:center;display:flex;gap:8px}.view-status>span{align-items:center;color:#638078;display:flex;font-size:.61rem;font-weight:800;gap:6px}.view-status>span i{background:#8fc849;border-radius:999px;height:7px;width:7px}.view-status button{align-items:center;background:#eef7f3;border:0;border-radius:11px;color:#0b6b61;cursor:pointer;display:flex;height:38px;justify-content:center;width:38px}.view-status button:disabled svg{animation:spin 1s linear infinite}.students-list{display:grid}.student-row{align-items:center;background:#fff;border:0;border-bottom:1px solid #edf1ef;color:inherit;cursor:pointer;display:grid;font:inherit;gap:12px;grid-template-columns:52px minmax(160px,1.6fr) minmax(100px,.75fr) minmax(150px,1.05fr) 100px 80px 18px;padding:11px 18px;text-align:left;transition:.15s ease;width:100%}.student-row:hover{background:#f8fbf9}.row-photo{align-items:center;background:#e9f7f0;border-radius:15px;display:flex;height:48px;justify-content:center;overflow:hidden;width:48px}.row-photo[data-level='daycare']{background:#fff7d9}.row-photo[data-level='primaria']{background:#eaf3ff}.row-photo[data-level='secundaria']{background:#fff0ed}.row-photo img{height:100%;object-fit:cover;width:100%}.row-photo b{color:#0b6b61;font-size:.7rem}.row-identity strong,.row-identity small,.row-group strong,.row-group small,.row-family strong,.row-family small{display:block}.row-identity strong{font-size:.72rem;line-height:1.2}.row-identity small,.row-group small,.row-family small{color:#829092;font-size:.56rem;margin-top:3px}.row-group strong,.row-family strong{font-size:.64rem;margin-top:3px}.row-family{align-items:center;display:flex;gap:8px;min-width:0}.row-family>i{align-items:center;background:#fff0ed;border-radius:10px;color:#b05246;display:flex;flex:0 0 auto;height:32px;justify-content:center;width:32px}.row-family[data-ready='true']>i{background:#edf8e6;color:#5c872e}.row-family span{min-width:0}.row-family strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row-progress>span{background:#edf2ef;border-radius:999px;display:block;height:6px;overflow:hidden}.row-progress>span i{background:linear-gradient(90deg,#8fc849,#0b6b61);display:block;height:100%}.row-progress small{color:#687a7d;display:block;font-size:.56rem;margin-top:4px;text-align:right}.row-status{border-radius:999px;font-size:.55rem;font-weight:900;justify-self:start;padding:6px 8px}.row-status[data-state='active']{background:#edf8e6;color:#557f2a}.row-status[data-state='pending']{background:#fff7df;color:#85610f}.row-status[data-state='inactive']{background:#fff0ed;color:#a34e43}.row-arrow{color:#9bacaa;height:15px;width:15px}.students-footer{align-items:center;display:flex;justify-content:space-between;padding:14px 18px}.students-footer>span{color:#7b898c;font-size:.62rem}.students-loading{display:grid}.students-loading article{align-items:center;border-bottom:1px solid #edf1ef;display:grid;gap:12px;grid-template-columns:52px minmax(0,1fr) 90px;padding:11px 18px}.students-loading article>span{animation:shimmer 1.2s infinite;background:#eaf0ed;border-radius:15px;height:48px;width:48px}.students-loading article div{display:grid;gap:7px}.students-loading article i,.students-loading article b{animation:shimmer 1.2s infinite;background:#eaf0ed;border-radius:999px;height:8px}.students-loading article i:first-child{width:48%}.students-loading article i:last-child{width:28%}.students-loading article b{height:22px;width:80px}.students-state{align-items:center;display:flex;flex-direction:column;min-height:360px;justify-content:center;padding:28px;text-align:center}.students-state img{height:130px;object-fit:contain;width:130px}.students-state>svg{color:#b05246;height:32px;width:32px}.students-state h3{font-size:1.05rem;margin-top:8px}.students-state p{font-size:.72rem;margin:5px 0 15px}.error-state{background:linear-gradient(180deg,#fff,#fff8f6)}
-.action-toast{align-items:center;background:#123f42;border:1px solid rgba(255,255,255,.16);border-radius:999px;bottom:24px;box-shadow:0 18px 48px rgba(5,35,40,.28);color:#fff;display:flex;font-size:.7rem;font-weight:850;gap:8px;left:50%;padding:11px 16px;position:fixed;transform:translateX(-50%);z-index:1300}.action-toast span{background:#8fc849;border-radius:999px;height:8px;width:8px}.action-toast[data-state='saving'] span{animation:pulse 1s infinite;background:#f6c745}.action-toast[data-state='failed']{background:#913f37}.action-toast[data-state='failed'] span{background:#ffd2ca}.status-toast-enter-active,.status-toast-leave-active{transition:.18s ease}.status-toast-enter-from,.status-toast-leave-to{opacity:0;transform:translate(-50%,10px)}
+.enrollment-page{--internal:#0b7168;--external:#4f86c6;--warm:#f4bb45}.enrollment-hero{background:radial-gradient(circle at 78% 10%,rgba(246,199,69,.26),transparent 28%),radial-gradient(circle at 4% 90%,rgba(143,200,73,.18),transparent 34%),linear-gradient(135deg,#073f3d,#0a685e 58%,#10786c);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,.72fr) 190px;min-height:230px;overflow:hidden;padding:30px 30px 24px;position:relative}.hero-copy{align-self:center;position:relative;z-index:2}.hero-copy .mkt-eyebrow{color:#bdebd9}.hero-copy h1{color:#fff;font-size:clamp(2.45rem,4.6vw,4.4rem);letter-spacing:-.045em;line-height:.9}.hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.hero-meta span{align-items:center;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.16);border-radius:999px;color:#e9fbf5;display:inline-flex;font-size:.69rem;font-weight:850;gap:7px;min-height:31px;padding:0 11px}.hero-meta i{background:#a8d95a;border-radius:50%;height:7px;width:7px}.hero-meta [data-state='loading'] i{animation:pulse 1s infinite;background:#f6c745}.hero-controls{align-content:center;align-self:center;display:grid;gap:10px;grid-template-columns:minmax(0,1fr) auto;position:relative;z-index:3}.plantel-tabs{background:rgba(1,35,34,.28);border:1px solid rgba(255,255,255,.17);border-radius:16px;display:flex;gap:5px;grid-column:1/-1;padding:5px}.plantel-tabs button{background:transparent;border:0;border-radius:11px;color:rgba(255,255,255,.7);cursor:pointer;flex:1;font:inherit;font-size:.72rem;font-weight:950;min-height:40px;padding:0 12px}.plantel-tabs button.active{background:#fff;box-shadow:0 8px 22px rgba(1,30,29,.2);color:#075d56}.cycle-picker{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.16);border-radius:14px;display:grid;gap:2px;padding:6px 10px}.cycle-picker span{color:#bdebd9;font-size:.55rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.cycle-picker select{appearance:none;background:transparent;border:0;color:#fff;font:inherit;font-size:.75rem;font-weight:850;min-height:25px;outline:0}.cycle-picker option{color:#17383b}.export-btn{background:#f6c745;border-color:transparent;color:#473600;min-width:100px}.hero-ambassador{align-self:end;filter:drop-shadow(0 20px 20px rgba(0,0,0,.18));height:214px;justify-self:center;object-fit:contain;position:relative;width:184px;z-index:2}.connection-error,.access-state{align-items:center;display:grid;gap:16px;grid-template-columns:auto minmax(0,1fr) auto;padding:22px}.connection-error>span{align-items:center;background:#fff0ed;border-radius:16px;color:#b34c40;display:flex;height:50px;justify-content:center;width:50px}.connection-error h2,.access-state h2{font-size:1.15rem}.connection-error p:last-child{font-size:.73rem;margin:4px 0 0}.access-state{grid-template-columns:100px minmax(0,1fr)}.access-state img{height:96px;object-fit:contain;width:96px}
+.enrollment-totals{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}.total-card{align-items:center;background:#fff;border:1px solid var(--mkt-line);border-radius:20px;box-shadow:0 14px 34px rgba(14,55,61,.06);display:grid;gap:12px;grid-template-columns:46px minmax(0,1fr) auto;min-height:88px;padding:14px}.total-card>span{align-items:center;border-radius:15px;display:flex;height:46px;justify-content:center;width:46px}.total-card small,.total-card strong{display:block}.total-card small{color:#738386;font-size:.65rem;font-weight:800}.total-card strong{font-family:var(--font-title);font-size:1.7rem;line-height:1;margin-top:4px}.total-card em{background:#f2f7f4;border-radius:999px;color:#64777a;font-size:.6rem;font-style:normal;font-weight:900;padding:6px 8px}.total-card.internal>span{background:#e7f6f1;color:var(--internal)}.total-card.external>span{background:#eaf2fb;color:var(--external)}.total-card.enrolled>span{background:#fff5d8;color:#9a6c00}.total-card.visible>span{background:#fff0ed;color:#a74e43}
+.grade-board{overflow:hidden}.section-head{align-items:center;border-bottom:1px solid #e5ece8;display:flex;justify-content:space-between;padding:20px 22px}.section-head h2{font-size:1.28rem}.legend{display:flex;gap:14px}.legend span{align-items:center;color:#6b7b7d;display:flex;font-size:.64rem;font-weight:850;gap:6px}.legend i{border-radius:50%;height:8px;width:8px}.legend .internal i{background:var(--internal)}.legend .external i{background:var(--external)}.grade-matrix{padding:0 18px 18px}.matrix-header,.grade-row,.group-rows button,.matrix-total{align-items:center;display:grid;grid-template-columns:minmax(170px,1.5fr) repeat(3,minmax(75px,.55fr)) 70px}.matrix-header{color:#849194;font-size:.59rem;font-weight:900;letter-spacing:.07em;padding:13px 13px 8px;text-align:center;text-transform:uppercase}.matrix-header span:first-child{text-align:left}.grade-entry{border:1px solid #e2ebe6;border-radius:16px;margin-top:8px;overflow:hidden;transition:.18s ease}.grade-entry.open{border-color:rgba(11,113,104,.25);box-shadow:0 10px 28px rgba(16,76,72,.07)}.grade-row{background:#fff;border:0;color:inherit;cursor:pointer;font:inherit;min-height:66px;padding:9px 13px;text-align:center;width:100%}.grade-row:hover{background:#f8fbf9}.grade-name{text-align:left}.grade-name b,.grade-name small{display:block}.grade-name b{font-family:var(--font-title);font-size:1rem}.grade-name small{color:#879396;font-size:.58rem;margin-top:3px}.number{font-family:var(--font-title);font-size:1.03rem;text-align:center}.number.internal{color:var(--internal)}.number.external{color:var(--external)}.number.total{color:#193b40}.chevron{align-items:center;color:#879a98;display:flex;justify-content:center;transition:.18s ease}.grade-entry.open .chevron{transform:rotate(180deg)}.group-rows{background:#f6faf8;border-top:1px solid #e4ece8;padding:6px 8px 8px}.group-rows button{background:transparent;border:0;border-radius:11px;color:#3c565b;cursor:pointer;font:inherit;min-height:47px;padding:5px 10px;text-align:center;width:100%}.group-rows button:hover,.group-rows button.selected{background:#fff;box-shadow:0 6px 18px rgba(15,65,64,.07)}.group-name{align-items:center;display:flex;font-size:.7rem;font-weight:850;gap:9px;text-align:left}.group-name i{background:#9ecac0;border-radius:999px;height:6px;width:6px}.group-action{align-items:center;color:#0b6b61;display:flex;font-size:.62rem;font-weight:900;gap:4px;justify-content:flex-end}.group-action svg{height:13px;width:13px}.matrix-total{background:#0b4f4a;border-radius:14px;color:#fff;margin-top:10px;min-height:56px;padding:8px 13px;text-align:center}.matrix-total span:first-child{font-family:var(--font-title);font-size:1rem;text-align:left}.matrix-total strong{font-family:var(--font-title);font-size:1.08rem}.matrix-total .internal{color:#a8e4d4}.matrix-total .external{color:#bcd8f6}.matrix-loading{display:grid;gap:8px;padding:18px}.matrix-loading span{animation:shimmer 1.2s infinite;background:#edf2ef;border-radius:14px;height:62px}.matrix-empty{align-items:center;color:#758587;display:flex;gap:10px;justify-content:center;min-height:180px}.matrix-empty>span{align-items:center;background:#edf6f2;border-radius:14px;color:#0b6b61;display:flex;height:44px;justify-content:center;width:44px}
+.directory-panel{overflow:hidden}.directory-head{align-items:center;border-bottom:1px solid #e5ece8;display:flex;justify-content:space-between;padding:19px 22px}.directory-head h2{font-size:1.22rem}.directory-head p:last-child{font-size:.65rem;margin:3px 0 0}.refresh-button{align-items:center;background:#eef7f3;border:0;border-radius:12px;color:#0b6b61;cursor:pointer;display:flex;height:42px;justify-content:center;width:42px}.refresh-button:disabled svg{animation:spin 1s linear infinite}.directory-tools{align-items:center;display:grid;gap:12px;grid-template-columns:minmax(240px,1fr) auto;padding:15px 18px}.search-field{align-items:center;background:#f7faf8;border:1px solid #dce8e3;border-radius:14px;display:grid;gap:8px;grid-template-columns:18px minmax(0,1fr) 24px;padding:0 11px}.search-field svg{color:#6f8584}.search-field input{background:transparent;border:0;font:inherit;font-size:.73rem;min-height:44px;outline:0;width:100%}.search-field button{background:transparent;border:0;color:#7c8c8e;cursor:pointer;font-size:1.1rem}.status-tabs{background:#f1f6f3;border-radius:13px;display:flex;gap:3px;padding:4px}.status-tabs button{background:transparent;border:0;border-radius:10px;color:#687b7d;cursor:pointer;font:inherit;font-size:.62rem;font-weight:850;min-height:36px;padding:0 11px}.status-tabs button.active{background:#fff;box-shadow:0 4px 12px rgba(14,55,61,.08);color:#075f58}.active-selection{align-items:center;background:#edf8f3;border-top:1px solid #dfece6;color:#0b655c;display:flex;font-size:.67rem;font-weight:900;justify-content:space-between;padding:9px 18px}.active-selection button{background:transparent;border:0;color:inherit;cursor:pointer;font-size:1rem}.directory-idle{align-items:center;color:#7d8d8e;display:flex;flex-direction:column;gap:8px;justify-content:center;min-height:150px}.idle-mark{align-items:center;background:#edf7f3;border-radius:18px;color:#0b6b61;display:flex;height:52px;justify-content:center;width:52px}.directory-idle>span{font-family:var(--font-title);font-size:.9rem}.students-grid{border-top:1px solid #edf1ef;display:grid;grid-template-columns:1fr 1fr}.student-card{align-items:center;background:#fff;border:0;border-bottom:1px solid #edf1ef;color:inherit;cursor:pointer;display:grid;font:inherit;gap:11px;grid-template-columns:54px minmax(0,1fr) minmax(105px,.75fr) 72px 18px;padding:13px 16px;text-align:left;transition:.15s ease;width:100%}.student-card:nth-child(odd){border-right:1px solid #edf1ef}.student-card:hover{background:#f8fbf9}.student-photo{align-items:center;background:#e9f7f0;border-radius:17px;display:flex;height:52px;justify-content:center;overflow:hidden;width:52px}.student-photo[data-level='daycare']{background:#fff7d9}.student-photo[data-level='primaria']{background:#eaf3ff}.student-photo[data-level='secundaria']{background:#fff0ed}.student-photo img{height:100%;object-fit:cover;width:100%}.student-photo b{color:#0b6b61;font-size:.72rem}.student-main{min-width:0}.student-main>strong,.student-main>small{display:block}.student-main>strong{font-size:.75rem;line-height:1.22;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.student-main>small{color:#7d8b8e;font-size:.58rem;margin-top:4px}.student-badges{display:flex;gap:5px}.student-badges i{border-radius:999px;font-size:.5rem;font-style:normal;font-weight:950;padding:4px 6px}.student-badges i[data-kind='internal']{background:#e7f6f1;color:#087268}.student-badges i[data-kind='external']{background:#eaf2fb;color:#3976b3}.student-badges i[data-state='active']{background:#edf8e6;color:#557f2a}.student-badges i[data-state='pending']{background:#fff7df;color:#85610f}.student-badges i[data-state='inactive']{background:#fff0ed;color:#a34e43}.student-contact{align-items:center;display:flex;gap:8px;min-width:0}.student-contact>svg{background:#fff0ed;border-radius:9px;color:#b05246;flex:0 0 auto;height:31px;padding:8px;width:31px}.student-contact[data-ready='true']>svg{background:#edf8e6;color:#5c872e}.student-contact span{min-width:0}.student-contact small,.student-contact strong{display:block}.student-contact small{color:#879396;font-size:.54rem}.student-contact strong{font-size:.61rem;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.student-completion>span{background:#edf2ef;border-radius:999px;display:block;height:6px;overflow:hidden}.student-completion>span i{background:linear-gradient(90deg,#8fc849,#0b6b61);display:block;height:100%}.student-completion small{color:#687a7d;display:block;font-size:.54rem;margin-top:4px;text-align:right}.student-arrow{color:#9bacaa;height:15px;width:15px}.students-footer{align-items:center;display:flex;justify-content:space-between;padding:14px 18px}.students-footer>span{color:#7b898c;font-size:.62rem}.students-loading{border-top:1px solid #edf1ef;display:grid;grid-template-columns:1fr 1fr}.students-loading article{align-items:center;border-bottom:1px solid #edf1ef;display:grid;gap:12px;grid-template-columns:52px minmax(0,1fr) 70px;padding:13px 16px}.students-loading article:nth-child(odd){border-right:1px solid #edf1ef}.students-loading article>span{animation:shimmer 1.2s infinite;background:#eaf0ed;border-radius:16px;height:52px;width:52px}.students-loading article div{display:grid;gap:7px}.students-loading article i,.students-loading article b{animation:shimmer 1.2s infinite;background:#eaf0ed;border-radius:999px;height:8px}.students-loading article i:first-child{width:58%}.students-loading article i:last-child{width:34%}.students-loading article b{height:22px;width:64px}.students-state{align-items:center;display:flex;flex-direction:column;min-height:280px;justify-content:center;padding:28px;text-align:center}.students-state img{height:112px;object-fit:contain;width:112px}.students-state>svg{color:#b05246;height:30px;width:30px}.students-state h3{font-size:1rem;margin-top:8px}.students-state p{font-size:.7rem;margin:5px 0 14px}.error-state{background:linear-gradient(180deg,#fff,#fff8f6)}.action-toast{align-items:center;background:#123f42;border:1px solid rgba(255,255,255,.16);border-radius:999px;bottom:24px;box-shadow:0 18px 48px rgba(5,35,40,.28);color:#fff;display:flex;font-size:.7rem;font-weight:850;gap:8px;left:50%;padding:11px 16px;position:fixed;transform:translateX(-50%);z-index:1300}.action-toast span{background:#8fc849;border-radius:999px;height:8px;width:8px}.action-toast[data-state='saving'] span{animation:pulse 1s infinite;background:#f6c745}.action-toast[data-state='failed']{background:#913f37}.action-toast[data-state='failed'] span{background:#ffd2ca}.status-toast-enter-active,.status-toast-leave-active{transition:.18s ease}.status-toast-enter-from,.status-toast-leave-to{opacity:0;transform:translate(-50%,10px)}
 @keyframes shimmer{0%,100%{opacity:.55}50%{opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
-@media(max-width:1180px){.enrollment-kpis{grid-template-columns:1fr 1fr}.student-row{grid-template-columns:48px minmax(150px,1.5fr) minmax(90px,.7fr) minmax(140px,1fr) 80px 18px}.row-progress{display:none}.enrollment-workspace{grid-template-columns:250px minmax(0,1fr)}}
-@media(max-width:900px){.enrollment-hero{grid-template-columns:minmax(0,1fr) 160px;padding:24px}.hero-actions{grid-column:1/2;grid-row:2;margin-top:16px;grid-template-columns:1fr 1fr}.hero-ambassador{grid-column:2;grid-row:1/3}.enrollment-workspace{grid-template-columns:1fr}.filters-panel{position:static}.filter-grid{grid-template-columns:repeat(4,1fr)}.group-distribution{display:none}.student-row{grid-template-columns:48px minmax(130px,1.4fr) 100px minmax(130px,1fr) 72px 18px}.filters-panel{padding:14px}}
-@media(max-width:720px){.enrollment-hero{border-radius:24px;grid-template-columns:minmax(0,1fr) 100px;min-height:240px;padding:20px}.hero-copy h1{font-size:2.15rem}.hero-copy>p:not(.mkt-eyebrow){font-size:.75rem}.hero-context span:nth-child(3){display:none}.hero-actions{grid-template-columns:1fr}.hero-ambassador{height:142px;width:105px}.plantel-switcher button{flex-basis:220px}.enrollment-kpis{grid-template-columns:1fr 1fr}.enrollment-kpi{grid-template-columns:39px minmax(0,1fr);min-height:76px;padding:10px}.enrollment-kpi>span{height:39px;width:39px}.enrollment-kpi em,.enrollment-kpi button{display:none}.enrollment-kpi strong{font-size:1.15rem}.filter-grid{grid-template-columns:1fr 1fr}.students-head{padding:15px}.students-head .view-status>span{display:none}.student-row{gap:10px;grid-template-columns:46px minmax(0,1fr) auto;padding:11px 13px}.row-photo{height:44px;width:44px}.row-group,.row-family,.row-progress,.row-arrow{display:none}.row-status{grid-column:3;grid-row:1}.row-identity{grid-column:2;grid-row:1}.students-footer{padding:12px 14px}.action-toast{bottom:78px;max-width:calc(100vw - 24px);text-align:center;white-space:normal}.connection-error{grid-template-columns:auto minmax(0,1fr)}.connection-error .mkt-btn{grid-column:1/-1}.access-state{grid-template-columns:78px minmax(0,1fr)}.access-state img{height:78px;width:78px}}
-@media(max-width:430px){.enrollment-kpis{gap:8px}.enrollment-kpi small{font-size:.56rem}.hero-context>span{font-size:.59rem}.students-head h2{font-size:1rem}.filter-title h2{font-size:.9rem}}
+@media(max-width:1180px){.enrollment-hero{grid-template-columns:minmax(0,1fr) minmax(300px,.8fr) 150px}.hero-ambassador{height:190px;width:150px}.enrollment-totals{grid-template-columns:1fr 1fr}.students-grid{grid-template-columns:1fr}.student-card:nth-child(odd){border-right:0}.students-loading{grid-template-columns:1fr}.students-loading article:nth-child(odd){border-right:0}}
+@media(max-width:820px){.enrollment-hero{grid-template-columns:minmax(0,1fr) 130px;padding:23px}.hero-controls{grid-column:1;grid-row:2;margin-top:18px}.hero-ambassador{grid-column:2;grid-row:1/3;height:170px;width:130px}.enrollment-totals{gap:9px}.matrix-header,.grade-row,.group-rows button,.matrix-total{grid-template-columns:minmax(130px,1.35fr) repeat(3,70px) 45px}.directory-tools{grid-template-columns:1fr}.status-tabs{overflow-x:auto}.status-tabs button{flex:1;white-space:nowrap}}
+@media(max-width:620px){.enrollment-hero{border-radius:23px;grid-template-columns:minmax(0,1fr) 86px;min-height:250px;padding:20px}.hero-copy h1{font-size:2.35rem}.hero-controls{grid-template-columns:1fr auto}.plantel-tabs{overflow-x:auto}.plantel-tabs button{flex:0 0 58px}.hero-ambassador{height:126px;width:92px}.enrollment-totals{grid-template-columns:1fr 1fr}.total-card{gap:8px;grid-template-columns:39px minmax(0,1fr);min-height:78px;padding:10px}.total-card>span{height:39px;width:39px}.total-card strong{font-size:1.35rem}.total-card em{display:none}.section-head{padding:17px}.legend{gap:8px}.legend span{font-size:.57rem}.grade-matrix{padding:0 9px 10px}.matrix-header{display:none}.grade-row,.group-rows button,.matrix-total{grid-template-columns:minmax(105px,1.25fr) repeat(3,48px) 30px;padding-inline:8px}.grade-name b{font-size:.86rem}.number,.matrix-total strong{font-size:.83rem}.grade-name small{font-size:.52rem}.group-name{font-size:.62rem}.group-action{font-size:0}.group-action svg{height:14px;width:14px}.directory-head,.directory-tools{padding-inline:14px}.students-grid{grid-template-columns:1fr}.student-card{grid-template-columns:48px minmax(0,1fr) 18px;padding:12px 13px}.student-photo{height:46px;width:46px}.student-contact,.student-completion{display:none}.student-arrow{grid-column:3;grid-row:1}.action-toast{bottom:78px;max-width:calc(100vw - 24px);text-align:center;white-space:normal}.connection-error{grid-template-columns:auto minmax(0,1fr)}.connection-error .mkt-btn{grid-column:1/-1}.access-state{grid-template-columns:76px minmax(0,1fr)}.access-state img{height:74px;width:74px}}
+@media(max-width:400px){.hero-controls{grid-template-columns:1fr}.export-btn{min-width:0}.enrollment-totals{grid-template-columns:1fr 1fr}.total-card small{font-size:.58rem}.grade-row,.group-rows button,.matrix-total{grid-template-columns:minmax(85px,1.2fr) repeat(3,42px) 24px}.number,.matrix-total strong{font-size:.76rem}.group-name i{display:none}}
 </style>
