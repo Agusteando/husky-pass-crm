@@ -1,1 +1,1 @@
-Corrige la inferencia recursiva del alcance de planteles para el build de Vercel
+Corrige el alcance múltiple de planteles para usuarios de Marketing

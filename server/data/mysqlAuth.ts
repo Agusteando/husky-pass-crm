@@ -97,15 +97,18 @@ const baseUserSql = `
     B.route,
     B.icono,
     A.displayName,
-    (
-      SELECT GROUP_CONCAT(DISTINCT GP.plantel ORDER BY GP.plantel SEPARATOR ',')
-      FROM gestion_escolar_permissions GP
-      WHERE GP.user_id = A.id
-        AND GP.enabled = 1
-        AND GP.is_global = 0
-        AND GP.plantel IS NOT NULL
-        AND TRIM(CAST(GP.plantel AS CHAR)) <> ''
-        AND (GP.capability IN ('role_mkt', 'role_ctrl') OR GP.capability IS NULL OR TRIM(CAST(GP.capability AS CHAR)) = '')
+    CONCAT_WS(',',
+      NULLIF(TRIM(CAST(A.plantel AS CHAR)), ''),
+      (
+        SELECT GROUP_CONCAT(DISTINCT GP.plantel ORDER BY GP.plantel SEPARATOR ',')
+        FROM gestion_escolar_permissions GP
+        WHERE GP.user_id = A.id
+          AND GP.enabled = 1
+          AND GP.is_global = 0
+          AND GP.plantel IS NOT NULL
+          AND TRIM(CAST(GP.plantel AS CHAR)) <> ''
+          AND (GP.capability IN ('role_mkt', 'role_ctrl') OR GP.capability IS NULL OR TRIM(CAST(GP.capability AS CHAR)) = '')
+      )
     ) AS plantel,
     A.campus,
     A.empresa,
@@ -301,7 +304,7 @@ function hydrateUserRows(rows: LegacyUserRow[]) {
     toSession(kind: SessionKind): AppSessionUser {
       const roles = normalizeAdminRoleTokens(csvToList(first.role))
       const unidades = csvToList(first.unidad)
-      const plantel = csvToList(first.plantel)
+      const plantel = Array.from(new Set(csvToList(first.plantel)))
       const familyScopes = kind === 'family' ? resolveFamilyProductScopes(first, routes, roles, unidades) : {}
       const productScopes = kind === 'family'
         ? Object.keys(familyScopes) as FamilyProductScope[]
@@ -430,7 +433,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
       A.picture,
       A.role,
       A.displayName,
-      NULL AS plantel,
+      A.plantel,
       A.campus,
       A.empresa,
       A.unidad,
@@ -446,7 +449,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
   )
 
   const plantelRows = await legacyQuery<DirectoryPlantelRow[]>(
-    `SELECT NULL AS plantel, unidad, campus
+    `SELECT plantel, unidad, campus
      FROM users
      WHERE unidad IS NOT NULL OR campus IS NOT NULL
      ORDER BY unidad ASC, campus ASC
@@ -494,9 +497,13 @@ async function summarizeDirectoryRows(rows: DirectoryUserRow[]) {
     const schoolScopes = schoolScopeMap.get(Number(row.id)) || []
     const explicitMarketingPlanteles = marketingPlantelMap.get(Number(row.id)) || []
     const campusPlantel = normalizeSchoolPlantel(row.campus)
+    const directMarketingPlanteles = csvToList(row.plantel)
+      .map((plantel) => normalizeSchoolPlantel(plantel))
+      .filter(Boolean) as string[]
     const legacyMarketingPlanteles = explicitMarketingPlanteles.length
       ? explicitMarketingPlanteles
       : Array.from(new Set([
+          ...directMarketingPlanteles,
           ...schoolScopes.map((scope) => scope.plantel).filter(Boolean),
           ...(campusPlantel ? [campusPlantel] : [])
         ]))
@@ -518,7 +525,7 @@ export async function getSuperAdminUserSummaryById(userId: number) {
       A.picture,
       A.role,
       A.displayName,
-      NULL AS plantel,
+      A.plantel,
       A.campus,
       A.empresa,
       A.unidad,

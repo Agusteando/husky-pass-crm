@@ -11,6 +11,11 @@ interface AssignedPlantelRow extends RowDataPacket {
   is_global: number | boolean | null
 }
 
+interface MarketingUserScopeRow extends RowDataPacket {
+  plantel: string | null
+  campus: string | null
+}
+
 const AURORA_PLANTEL_SET = new Set<string>(AURORA_ENROLLMENT_PLANTELES)
 
 const normalizeWords = (value: unknown) => String(value ?? '')
@@ -88,9 +93,23 @@ export async function resolveMarketingEnrollmentPlanteles(user: AppSessionUser) 
   if (isEffectiveSuperAdmin(user)) return [...AURORA_ENROLLMENT_PLANTELES]
 
   const fromSession = normalizeAuroraEnrollmentPlanteles([
-    ...(user.plantel || []),
+    user.plantel || [],
     user.campus || ''
   ])
+
+  let liveUserScope: MarketingUserScopeRow | null = null
+  try {
+    const userRows = await legacyQuery<MarketingUserScopeRow[]>(
+      `SELECT plantel, campus
+       FROM users
+       WHERE id = ?
+       LIMIT 1`,
+      [user.id]
+    )
+    liveUserScope = userRows[0] || null
+  } catch {
+    // Keep the signed session as a fallback if the legacy users source is unavailable.
+  }
 
   let rows: AssignedPlantelRow[] = []
   try {
@@ -111,14 +130,15 @@ export async function resolveMarketingEnrollmentPlanteles(user: AppSessionUser) 
       [user.id]
     )
   } catch {
-    // Older deployments may not have the permission table available to this connection.
-    // The signed session and campus remain safe fallbacks.
+    // Dedicated permission rows are optional; users.plantel remains authoritative.
   }
 
   if (rows.some((row) => row.is_global === true || Number(row.is_global) === 1)) return [...AURORA_ENROLLMENT_PLANTELES]
 
   return normalizeAuroraEnrollmentPlanteles([
-    ...fromSession,
-    ...rows.map((row) => row.plantel || '')
+    fromSession,
+    liveUserScope?.plantel || '',
+    liveUserScope?.campus || '',
+    rows.map((row) => row.plantel || '')
   ])
 }
