@@ -1,1 +1,1 @@
-feat(marketing): integra la matrícula actual de Aurora
+Corrige el alcance de planteles y la conexión de Matrícula Actual con Aurora

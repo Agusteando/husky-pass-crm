@@ -105,7 +105,7 @@
               <span><FamilyPersonasIcon name="announcement" /></span>
               <div>
                 <strong>Mercadotecnia</strong>
-                <small>Informes, seguimiento y bitácora</small>
+                <small>{{ marketingPlantelLabel(selectedUser.marketingPlanteles) }}</small>
               </div>
               <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-mkt" @click="openRoleEditor('marketing')">{{ selectedUser.roleAssignments.marketingAdmin ? 'Editar acceso MKT' : 'Asignar acceso MKT' }}</button>
             </article>
@@ -207,13 +207,25 @@
 
             <section v-else class="editor-card active">
               <label class="toggle-row">
-                <input v-model="roleDraft.marketingAdmin" type="checkbox" />
+                <input v-model="roleDraft.marketingAdmin" type="checkbox" @change="ensureMarketingPlantel" />
                 <span class="switch" aria-hidden="true" />
                 <span>
                   <strong>Mercadotecnia</strong>
-                  <small>CRM de informes y bitácora del área</small>
+                  <small>CRM, matrícula actual y consulta institucional</small>
                 </span>
               </label>
+
+              <div v-if="roleDraft.marketingAdmin" class="unit-grid marketing-plantel-grid" aria-label="Planteles de Mercadotecnia">
+                <button
+                  v-for="plantel in schoolPlantelOptions"
+                  :key="plantel"
+                  type="button"
+                  :class="{ active: marketingPlantelesDraft.includes(plantel) }"
+                  @click="toggleMarketingPlantel(plantel)"
+                >
+                  {{ plantel }}
+                </button>
+              </div>
             </section>
 
             <section v-if="hasChanges || saveBlocker" class="pending-panel">
@@ -281,6 +293,7 @@ const confirmingImpersonationId = ref<number | null>(null)
 const hydrated = ref(false)
 const roleDraft = ref<SuperAdminRoleAssignments>({ schoolAdmin: false, daycareAdmin: false, marketingAdmin: false })
 const schoolScopesDraft = ref<SuperAdminSchoolScope[]>([])
+const marketingPlantelesDraft = ref<string[]>([])
 const daycareUnitsDraft = ref<string[]>([])
 
 const query = computed(() => ({
@@ -315,6 +328,7 @@ const hasChanges = computed(() => Boolean(selectedUser.value && draftSignature()
 const saveBlocker = computed(() => {
   if (!selectedUser.value || !hasChanges.value) return ''
   if (roleDraft.value.schoolAdmin && !validSchoolScopes.value.length) return 'Falta plantel escolar.'
+  if (roleDraft.value.marketingAdmin && !marketingPlantelesDraft.value.length) return 'Falta plantel de Mercadotecnia.'
   if (roleDraft.value.daycareAdmin && !daycareUnitsDraft.value.length) return 'Falta unidad de guardería.'
   return ''
 })
@@ -329,8 +343,13 @@ const changeLines = computed(() => {
   if (roleDraft.value.daycareAdmin !== current.roleAssignments.daycareAdmin || daycareUnitsDraft.value.join('|') !== current.unidad.join('|')) {
     lines.push(roleDraft.value.daycareAdmin ? `Admin guardería: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guardería')
   }
-  if (roleDraft.value.marketingAdmin !== current.roleAssignments.marketingAdmin) {
-    lines.push(roleDraft.value.marketingAdmin ? 'Habilitar Mercadotecnia' : 'Quitar Mercadotecnia')
+  if (
+    roleDraft.value.marketingAdmin !== current.roleAssignments.marketingAdmin ||
+    [...marketingPlantelesDraft.value].sort().join('|') !== [...current.marketingPlanteles].sort().join('|')
+  ) {
+    lines.push(roleDraft.value.marketingAdmin
+      ? `Mercadotecnia: ${marketingPlantelLabel(marketingPlantelesDraft.value)}`
+      : 'Quitar Mercadotecnia')
   }
   return lines
 })
@@ -402,7 +421,7 @@ function roleSummary(user: SuperAdminUserSummary) {
   const roles: string[] = []
   if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Falta plantel')
   if (user.roleAssignments.daycareAdmin) roles.push('Guardería')
-  if (user.roleAssignments.marketingAdmin) roles.push('MKT')
+  if (user.roleAssignments.marketingAdmin) roles.push(user.marketingPlanteles.length ? 'MKT' : 'MKT sin plantel')
   if (roles.length) return roles.join(' + ')
   if (user.productScopes.length) return 'Familia'
   return 'Sin rol'
@@ -418,6 +437,11 @@ function familyScopeLabel(user: SuperAdminUserSummary) {
 function schoolScopeLabel(scopes: SuperAdminSchoolScope[]) {
   if (!scopes.length) return 'Sin plantel asignado'
   return scopes.map((scope) => [scope.plantel, scope.grado || 'todos'].filter(Boolean).join(' / ')).join(' + ')
+}
+
+function marketingPlantelLabel(planteles: string[]) {
+  if (!planteles.length) return 'Sin plantel asignado'
+  return planteles.join(' / ')
 }
 
 function schoolRoleState(user: SuperAdminUserSummary) {
@@ -441,6 +465,7 @@ function userSignature(user: SuperAdminUserSummary) {
   return JSON.stringify({
     roles: user.roleAssignments,
     schoolScopes: normalizeSchoolScopes(user.schoolScopes),
+    marketingPlanteles: [...user.marketingPlanteles].sort(),
     unidades: user.roleAssignments.daycareAdmin ? [...user.unidad].sort() : []
   })
 }
@@ -449,6 +474,7 @@ function draftSignature() {
   return JSON.stringify({
     roles: roleDraft.value,
     schoolScopes: validSchoolScopes.value,
+    marketingPlanteles: roleDraft.value.marketingAdmin ? [...marketingPlantelesDraft.value].sort() : [],
     unidades: roleDraft.value.daycareAdmin ? [...daycareUnitsDraft.value].sort() : []
   })
 }
@@ -469,6 +495,7 @@ function selectUser(user: SuperAdminUserSummary, updateRoute = true) {
 function hydrateDraft(user: SuperAdminUserSummary) {
   roleDraft.value = { ...user.roleAssignments }
   schoolScopesDraft.value = user.schoolScopes.length ? user.schoolScopes.map((scope) => ({ ...scope })) : []
+  marketingPlantelesDraft.value = [...user.marketingPlanteles]
   daycareUnitsDraft.value = [...user.unidad]
 }
 
@@ -487,11 +514,27 @@ function focusEditor(mode: EditorMode) {
     roleDraft.value.daycareAdmin = true
     if (!daycareUnitsDraft.value.length && unitOptions.value[0]) daycareUnitsDraft.value = [unitOptions.value[0]]
   }
-  if (mode === 'marketing') roleDraft.value.marketingAdmin = true
+  if (mode === 'marketing') {
+    roleDraft.value.marketingAdmin = true
+    ensureMarketingPlantel()
+  }
 }
 
 function ensureSchoolScope() {
   if (roleDraft.value.schoolAdmin && !schoolScopesDraft.value.length) addSchoolScope()
+}
+
+function ensureMarketingPlantel() {
+  if (roleDraft.value.marketingAdmin && !marketingPlantelesDraft.value.length && schoolPlantelOptions.value[0]) {
+    marketingPlantelesDraft.value = [schoolPlantelOptions.value[0]]
+  }
+}
+
+function toggleMarketingPlantel(plantel: string) {
+  const set = new Set(marketingPlantelesDraft.value)
+  if (set.has(plantel)) set.delete(plantel)
+  else set.add(plantel)
+  marketingPlantelesDraft.value = Array.from(set).sort((left, right) => left.localeCompare(right, 'es'))
 }
 
 function addSchoolScope() {
@@ -540,6 +583,7 @@ async function saveRoles() {
       body: {
         roles: roleDraft.value,
         schoolScopes: validSchoolScopes.value,
+        marketingPlanteles: roleDraft.value.marketingAdmin ? marketingPlantelesDraft.value : [],
         unidades: roleDraft.value.daycareAdmin ? daycareUnitsDraft.value : []
       }
     })

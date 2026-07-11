@@ -6,7 +6,7 @@ export interface MktEnrollmentSchoolYear {
 export interface MktEnrollmentPlantel {
   code: string
   label: string
-  level: 'preescolar' | 'primaria' | 'secundaria'
+  level: 'daycare' | 'preescolar' | 'primaria' | 'secundaria'
   hasData: boolean
 }
 
@@ -16,6 +16,10 @@ export interface MktEnrollmentOptionsResponse {
   defaultPlantel: string
   defaultCiclo: string
   connected: boolean
+  connection?: {
+    status: 'online' | 'degraded'
+    message: string
+  }
   generatedAt: string
 }
 

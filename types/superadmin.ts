@@ -30,6 +30,7 @@ export interface SuperAdminUserSummary {
   productScopes: FamilyProductScope[]
   adminScopes: string[]
   schoolScopes: SuperAdminSchoolScope[]
+  marketingPlanteles: string[]
   audience: 'daycareFamily' | 'schoolFamily' | 'multiProductFamily' | 'internal' | 'unknown'
   canImpersonate: boolean
   canManageAdminRoles: boolean

@@ -45,9 +45,9 @@ export default defineNuxtConfig({
       timeoutMs: Number(process.env.SIPAE_API_TIMEOUT_MS || 10000)
     },
     aurora: {
-      apiBaseUrl: process.env.AURORA_API_BASE_URL || process.env.HUSKY_PASS_AURORA_API_BASE_URL || 'https://aurora.casitaiedis.edu.mx',
-      apiToken: process.env.AURORA_API_TOKEN || process.env.HUSKY_PASS_AURORA_API_TOKEN || '',
-      timeoutMs: Number(process.env.AURORA_API_TIMEOUT_MS || process.env.HUSKY_PASS_AURORA_TIMEOUT_MS || 10000),
+      apiBaseUrl: process.env.AURORA_API_BASE_URL || process.env.HUSKY_PASS_AURORA_API_BASE_URL || process.env.AURORA_URL || 'https://aurora.casitaiedis.edu.mx',
+      apiToken: process.env.AURORA_API_TOKEN || process.env.HUSKY_PASS_AURORA_API_TOKEN || process.env.AURORA_STUDENTS_API_TOKEN || process.env.EXTERNAL_CONTROL_ESCOLAR_API_TOKEN || '',
+      timeoutMs: Number(process.env.AURORA_API_TIMEOUT_MS || process.env.HUSKY_PASS_AURORA_TIMEOUT_MS || 45000),
       ciclo: process.env.AURORA_CICLO || process.env.HUSKY_PASS_AURORA_CICLO || ''
     },
     externalUpload: {

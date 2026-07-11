@@ -19,7 +19,8 @@ const schema = z.object({
     plantel: z.string().trim().min(1),
     nivel: z.string().trim().nullable().optional(),
     grado: z.string().trim().nullable().optional()
-  })).max(30).optional().default([])
+  })).max(30).optional().default([]),
+  marketingPlanteles: z.array(z.string().trim().min(1)).max(30).optional().default([])
 })
 
 export default defineEventHandler(async (event) => {
@@ -34,7 +35,8 @@ export default defineEventHandler(async (event) => {
     targetUserId: userId,
     enabledRoles: Object.entries(body.roles).filter(([, enabled]) => enabled).map(([role]) => role),
     unitCount: body.unidades.length,
-    schoolScopeCount: body.schoolScopes.length
+    schoolScopeCount: body.schoolScopes.length,
+    marketingPlantelCount: body.marketingPlanteles.length
   }, event)
   return updated
 })
