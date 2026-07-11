@@ -6,13 +6,15 @@ import {
   type CreateMktLeadInput,
   type MktJournalEntry,
   type MktJournalResponse,
+  type MktAnalyticsResponse,
   type MktLeadDetail,
   type MktLeadFilters,
   type MktLeadsResponse,
   type MktLeadSummary,
   type MktOverviewResponse,
   type MktStage,
-  type MktStudentInterest
+  type MktStudentInterest,
+  type UpdateMktLeadInput
 } from '~/types/mkt'
 import { legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
 import { publicError } from '~/server/utils/httpError'
@@ -75,6 +77,10 @@ interface JournalRow extends RowDataPacket {
   feedback: string | null
 }
 
+interface IdRow extends RowDataPacket {
+  id: number | string
+}
+
 interface CountRow extends RowDataPacket {
   total: number | string | null
 }
@@ -86,6 +92,11 @@ interface OptionRow extends RowDataPacket {
 interface StageCountRow extends RowDataPacket {
   stage: string | null
   total: number | string | null
+}
+
+interface LeadStateRow extends RowDataPacket {
+  enrolled: number | string | boolean | null
+  stage: string | null
 }
 
 interface ChannelDayRow extends RowDataPacket {
@@ -102,9 +113,43 @@ interface MetricsRow extends RowDataPacket {
   enrolled: number | string | null
 }
 
+interface AverageRow extends RowDataPacket {
+  average: number | string | null
+}
+
+interface AnalyticsMetricRow extends RowDataPacket {
+  total: number | string | null
+  contacted: number | string | null
+  converted: number | string | null
+  averageFollowUps: number | string | null
+}
+
+interface PerformanceRow extends RowDataPacket {
+  dimension: string | null
+  leads: number | string | null
+  contacted: number | string | null
+  converted: number | string | null
+}
+
+interface WeeklyTrendRow extends RowDataPacket {
+  weekStart: string | null
+  leads: number | string | null
+  converted: number | string | null
+}
+
+interface WeeklyFollowUpRow extends RowDataPacket {
+  weekStart: string | null
+  followUps: number | string | null
+}
+
+const EFFECTIVE_STAGE_SQL = `CASE
+  WHEN COALESCE(student_first.any_enrolled, 0) = 1 THEN 'Inscrito'
+  ELSE COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes')
+END`
+
 const LEAD_JOINS = `
   LEFT JOIN (
-    SELECT parent_id, MIN(id) AS first_id
+    SELECT parent_id, MIN(id) AS first_id, MAX(CASE WHEN inscrito = 1 THEN 1 ELSE 0 END) AS any_enrolled
     FROM informes_mkt_siblings
     GROUP BY parent_id
   ) AS student_first ON student_first.parent_id = I.matricula
@@ -138,8 +183,8 @@ const LEAD_SELECT = `
     COALESCE(NULLIF(S.nombre_alumno, ''), CONCAT_WS(' ', S.nombres, S.apellido_paterno, S.apellido_materno)) AS studentName,
     S.nivel_interes AS level,
     S.grado_interes AS grade,
-    S.inscrito AS enrolled,
-    COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') AS stage,
+    COALESCE(student_first.any_enrolled, 0) AS enrolled,
+    ${EFFECTIVE_STAGE_SQL} AS stage,
     F.created_at AS lastFollowUpAt,
     F.seguimiento AS lastFollowUp,
     COALESCE(follow_summary.follow_up_count, 0) AS followUpCount
@@ -231,14 +276,22 @@ function leadFromRow(row: LeadRow): MktLeadSummary {
   }
 }
 
+function normalizedFilterDate(value: unknown) {
+  const date = clean(value)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
+  const parsed = new Date(`${date}T12:00:00Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date ? date : ''
+}
+
 function normalizedFilters(filters: MktLeadFilters = {}) {
   return {
     search: clean(filters.search).slice(0, 100),
     stage: clean(filters.stage),
     channel: clean(filters.channel).slice(0, 80),
     plantel: clean(filters.plantel).toUpperCase().slice(0, 20),
-    from: /^\d{4}-\d{2}-\d{2}$/.test(clean(filters.from)) ? clean(filters.from) : '',
-    to: /^\d{4}-\d{2}-\d{2}$/.test(clean(filters.to)) ? clean(filters.to) : '',
+    from: normalizedFilterDate(filters.from),
+    to: normalizedFilterDate(filters.to),
+    attention: clean(filters.attention).toLocaleLowerCase('es-MX'),
     limit: Math.min(Math.max(numberValue(filters.limit) || 240, 1), 5000)
   }
 }
@@ -251,21 +304,25 @@ function leadWhere(filters: ReturnType<typeof normalizedFilters>) {
     where.push(`(
       I.matricula LIKE ? OR I.nombre_padre LIKE ? OR I.nombre_madre LIKE ? OR
       I.email_padre LIKE ? OR I.email_madre LIKE ? OR I.tel_padre LIKE ? OR I.tel_madre LIKE ? OR
-      S.nombre_alumno LIKE ?
+      EXISTS (
+        SELECT 1 FROM informes_mkt_siblings AS search_student
+        WHERE search_student.parent_id = I.matricula
+          AND COALESCE(NULLIF(search_student.nombre_alumno, ''), CONCAT_WS(' ', search_student.nombres, search_student.apellido_paterno, search_student.apellido_materno)) LIKE ?
+      )
     )`)
     const like = `%${filters.search}%`
     params.push(like, like, like, like, like, like, like, like)
   }
   if (filters.stage && filters.stage !== 'all') {
-    where.push(`COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') = ?`)
+    where.push(`${EFFECTIVE_STAGE_SQL} = ?`)
     params.push(normalizeMktStage(filters.stage))
   }
   if (filters.channel && filters.channel !== 'all') {
-    where.push('LOWER(COALESCE(I.via_informes, \'\')) = LOWER(?)')
+    where.push(`LOWER(COALESCE(I.via_informes, '')) = LOWER(?)`)
     params.push(filters.channel)
   }
   if (filters.plantel && filters.plantel !== 'ALL') {
-    where.push('UPPER(COALESCE(I.plantel, \'\')) = ?')
+    where.push(`UPPER(COALESCE(I.plantel, '')) = ?`)
     params.push(filters.plantel)
   }
   if (filters.from) {
@@ -275,6 +332,14 @@ function leadWhere(filters: ReturnType<typeof normalizedFilters>) {
   if (filters.to) {
     where.push('DATE(I.timestamp) <= ?')
     params.push(filters.to)
+  }
+  if (filters.attention === 'uncontacted') {
+    where.push(`${EFFECTIVE_STAGE_SQL} = 'Leads Entrantes'`)
+  } else if (filters.attention === 'stale' || filters.attention === 'cold') {
+    where.push(`${EFFECTIVE_STAGE_SQL} <> 'Inscrito'`)
+    where.push(`DATE(COALESCE(F.created_at, I.timestamp)) <= DATE_SUB(CURRENT_DATE, INTERVAL ${filters.attention === 'cold' ? 14 : 7} DAY)`)
+  } else if (filters.attention === 'negotiating') {
+    where.push(`${EFFECTIVE_STAGE_SQL} = 'Negociación'`)
   }
 
   return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params }
@@ -303,6 +368,14 @@ function orphanLeadWhere(filters: ReturnType<typeof normalizedFilters>) {
     where.push('DATE(follow_summary.first_created_at) <= ?')
     params.push(filters.to)
   }
+  if (filters.attention === 'uncontacted') {
+    where.push(`COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') = 'Leads Entrantes'`)
+  } else if (filters.attention === 'stale' || filters.attention === 'cold') {
+    where.push(`COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') <> 'Inscrito'`)
+    where.push(`DATE(F.created_at) <= DATE_SUB(CURRENT_DATE, INTERVAL ${filters.attention === 'cold' ? 14 : 7} DAY)`)
+  } else if (filters.attention === 'negotiating') {
+    where.push(`COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') = 'Negociación'`)
+  }
   return { sql: `WHERE ${where.join(' AND ')}`, params }
 }
 
@@ -310,13 +383,15 @@ export async function listMktLeads(input: MktLeadFilters = {}): Promise<MktLeads
   const filters = normalizedFilters(input)
   const where = leadWhere(filters)
   const orphanWhere = orphanLeadWhere(filters)
-  const [rows, orphanRows, totalRow, orphanTotalRow, channelRows, plantelRows] = await Promise.all([
+  const [rows, orphanRows, totalRow, orphanTotalRow, channelRows, plantelRows, stageRows, orphanStageRows] = await Promise.all([
     legacyQuery<LeadRow[]>(`${LEAD_SELECT} ${where.sql} ORDER BY I.timestamp DESC, I.id DESC LIMIT ${filters.limit}`, where.params),
     legacyQuery<LeadRow[]>(`${ORPHAN_LEAD_SELECT} ${orphanWhere.sql} ORDER BY F.created_at DESC, F.id DESC LIMIT ${filters.limit}`, orphanWhere.params),
     legacyOne<CountRow>(`SELECT COUNT(*) AS total FROM informes_mkt AS I ${LEAD_JOINS} ${where.sql}`, where.params),
     legacyOne<CountRow>(`SELECT COUNT(*) AS total FROM (${ORPHAN_LEAD_SELECT} ${orphanWhere.sql}) AS orphan_leads`, orphanWhere.params),
     legacyQuery<OptionRow[]>(`SELECT DISTINCT LOWER(TRIM(via_informes)) AS value FROM informes_mkt WHERE via_informes IS NOT NULL AND TRIM(via_informes) <> '' ORDER BY value ASC LIMIT 100`),
-    legacyQuery<OptionRow[]>(`SELECT DISTINCT UPPER(TRIM(plantel)) AS value FROM informes_mkt WHERE plantel IS NOT NULL AND TRIM(plantel) <> '' ORDER BY value ASC LIMIT 100`)
+    legacyQuery<OptionRow[]>(`SELECT DISTINCT UPPER(TRIM(plantel)) AS value FROM informes_mkt WHERE plantel IS NOT NULL AND TRIM(plantel) <> '' ORDER BY value ASC LIMIT 100`),
+    legacyQuery<StageCountRow[]>(`SELECT ${EFFECTIVE_STAGE_SQL} AS stage, COUNT(*) AS total FROM informes_mkt AS I ${LEAD_JOINS} ${where.sql} GROUP BY ${EFFECTIVE_STAGE_SQL}`, where.params),
+    legacyQuery<StageCountRow[]>(`SELECT stage, COUNT(*) AS total FROM (${ORPHAN_LEAD_SELECT} ${orphanWhere.sql}) AS orphan_leads GROUP BY stage`, orphanWhere.params)
   ])
 
   const leads = [...rows, ...orphanRows]
@@ -324,10 +399,24 @@ export async function listMktLeads(input: MktLeadFilters = {}): Promise<MktLeads
     .sort((a, b) => clean(b.lastFollowUpAt || b.createdAt).localeCompare(clean(a.lastFollowUpAt || a.createdAt)))
     .slice(0, filters.limit)
 
+  const stageCounts = Object.fromEntries(MKT_STAGES.map((stage) => [stage, 0])) as Record<MktStage, number>
+  for (const row of [...stageRows, ...orphanStageRows]) {
+    const stage = normalizeMktStage(row.stage)
+    stageCounts[stage] += numberValue(row.total)
+  }
+  const total = numberValue(totalRow?.total) + numberValue(orphanTotalRow?.total)
+
   return {
     leads,
-    total: numberValue(totalRow?.total) + numberValue(orphanTotalRow?.total),
+    total,
     filters,
+    summary: {
+      total,
+      uncontacted: stageCounts['Leads Entrantes'],
+      negotiating: stageCounts['Negociación'],
+      enrolled: stageCounts.Inscrito,
+      stageCounts
+    },
     options: {
       channels: Array.from(new Set([...MKT_CHANNELS, ...channelRows.map((row) => clean(row.value)).filter(Boolean)])),
       planteles: plantelRows.map((row) => clean(row.value)).filter(Boolean),
@@ -447,10 +536,12 @@ export async function createMktLead(input: CreateMktLeadInput) {
             clean(input.birthDate) ? `${clean(input.birthDate)} 00:00:00` : null, Boolean(input.enrolled)
           ]
         )
-        if (clean(input.initialNote)) {
+        const initialStage: MktStage = input.enrolled ? 'Inscrito' : 'Leads Entrantes'
+        const initialNote = clean(input.initialNote) || (input.enrolled ? 'Inscripción confirmada al registrar el informe.' : '')
+        if (initialNote) {
           await client.write(
             `INSERT INTO follow_ups (folio, seguimiento, stage) VALUES (?, ?, ?)`,
-            [generatedFolio, clean(input.initialNote), 'Leads Entrantes']
+            [generatedFolio, initialNote, initialStage]
           )
         }
         return generatedFolio
@@ -464,19 +555,135 @@ export async function createMktLead(input: CreateMktLeadInput) {
   throw publicError(409, 'No fue posible reservar el folio. Intenta nuevamente.')
 }
 
+export async function updateMktLead(folioInput: string, input: UpdateMktLeadInput) {
+  const folio = clean(folioInput).toUpperCase()
+  const plantel = folioPrefix(input.plantel)
+  const channel = clean(input.channel)
+  const students = input.students
+    .map((student) => ({
+      id: numberValue(student.id),
+      fullName: clean(student.fullName),
+      level: clean(student.level),
+      grade: clean(student.grade),
+      birthDate: clean(student.birthDate),
+      enrolled: Boolean(student.enrolled)
+    }))
+    .filter((student) => student.fullName)
+
+  if (!channel) throw publicError(400, 'Selecciona una vía de informe.')
+  if (!clean(input.father.name) && !clean(input.mother.name)) throw publicError(400, 'Registra al menos un contacto familiar.')
+  if (!students.length) throw publicError(400, 'Registra al menos un estudiante.')
+
+  await legacyTransaction(async (client) => {
+    const existing = await client.one<IdRow>('SELECT id FROM informes_mkt WHERE matricula = ? LIMIT 1', [folio])
+    if (existing) {
+      await client.write(
+        `UPDATE informes_mkt SET
+           via_informes = ?, plantel = ?, campus = ?,
+           nombre_padre = ?, nombre_madre = ?, email_padre = ?, email_madre = ?, tel_padre = ?, tel_madre = ?,
+           domicilio_padre = ?, domicilio_madre = ?, medio_padre = ?, medio_madre = ?
+         WHERE matricula = ?`,
+        [
+          channel, plantel, clean(input.campus) || null,
+          clean(input.father.name) || null, clean(input.mother.name) || null,
+          clean(input.father.email) || null, clean(input.mother.email) || null,
+          clean(input.father.phone) || null, clean(input.mother.phone) || null,
+          clean(input.father.address) || null, clean(input.mother.address) || null,
+          clean(input.father.source) || null, clean(input.mother.source) || null,
+          folio
+        ]
+      )
+    } else {
+      const orphan = await client.one<IdRow>('SELECT id FROM follow_ups WHERE folio = ? LIMIT 1', [folio])
+      if (!orphan) throw publicError(404, 'No encontramos el informe solicitado.')
+      await client.write(
+        `INSERT INTO informes_mkt (
+           matricula, via_informes, plantel, campus,
+           nombre_padre, nombre_madre, email_padre, email_madre, tel_padre, tel_madre,
+           domicilio_padre, domicilio_madre, medio_padre, medio_madre
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          folio, channel, plantel, clean(input.campus) || null,
+          clean(input.father.name) || null, clean(input.mother.name) || null,
+          clean(input.father.email) || null, clean(input.mother.email) || null,
+          clean(input.father.phone) || null, clean(input.mother.phone) || null,
+          clean(input.father.address) || null, clean(input.mother.address) || null,
+          clean(input.father.source) || null, clean(input.mother.source) || null
+        ]
+      )
+    }
+
+    const existingStudents = await client.query<IdRow[]>(
+      'SELECT id FROM informes_mkt_siblings WHERE parent_id = ?',
+      [folio]
+    )
+    const allowedIds = new Set(existingStudents.map((row) => numberValue(row.id)))
+    const retainedIds = new Set(students.map((student) => student.id).filter((id) => id && allowedIds.has(id)))
+    const removedIds = [...allowedIds].filter((id) => !retainedIds.has(id))
+    if (removedIds.length) {
+      await client.write(
+        `DELETE FROM informes_mkt_siblings WHERE parent_id = ? AND id IN (${removedIds.map(() => '?').join(', ')})`,
+        [folio, ...removedIds]
+      )
+    }
+
+    for (const student of students) {
+      const birthDate = student.birthDate ? `${student.birthDate.slice(0, 10)} 00:00:00` : null
+      if (student.id && allowedIds.has(student.id)) {
+        await client.write(
+          `UPDATE informes_mkt_siblings SET nombre_alumno = ?, nivel_interes = ?, grado_interes = ?, fecha_nacimiento = ?, inscrito = ?
+           WHERE id = ? AND parent_id = ?`,
+          [student.fullName, student.level, student.grade || null, birthDate, student.enrolled, student.id, folio]
+        )
+      } else {
+        await client.write(
+          `INSERT INTO informes_mkt_siblings (parent_id, nombre_alumno, nivel_interes, grado_interes, fecha_nacimiento, inscrito)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [folio, student.fullName, student.level, student.grade || null, birthDate, student.enrolled]
+        )
+      }
+    }
+
+    if (students.some((student) => student.enrolled)) {
+      const latest = await client.one<LeadStateRow>(
+        `SELECT stage, 1 AS enrolled FROM follow_ups WHERE folio = ? ORDER BY id DESC LIMIT 1`,
+        [folio]
+      )
+      if (normalizeMktStage(latest?.stage) !== 'Inscrito') {
+        await client.write(
+          `INSERT INTO follow_ups (folio, seguimiento, stage) VALUES (?, ?, 'Inscrito')`,
+          [folio, 'Inscripción confirmada al actualizar la ficha familiar.']
+        )
+      }
+    }
+  })
+
+  return getMktLead(folio)
+}
+
 export async function addMktFollowUp(folioInput: string, noteInput: string, stageInput: string) {
   const folio = clean(folioInput).toUpperCase()
   const note = clean(noteInput)
-  const stage = normalizeMktStage(stageInput)
+  const requestedStage = normalizeMktStage(stageInput)
   if (!note) throw publicError(400, 'Escribe el resultado del seguimiento.')
-  const exists = await legacyOne<RowDataPacket & { id: number }>(
-    `SELECT 1 AS id
+  const state = await legacyOne<LeadStateRow>(
+    `SELECT
+       EXISTS (SELECT 1 FROM informes_mkt_siblings WHERE parent_id = ? AND inscrito = 1) AS enrolled,
+       (SELECT stage FROM follow_ups WHERE folio = ? ORDER BY id DESC LIMIT 1) AS stage
      WHERE EXISTS (SELECT 1 FROM informes_mkt WHERE matricula = ?)
         OR EXISTS (SELECT 1 FROM follow_ups WHERE folio = ?)`,
-    [folio, folio]
+    [folio, folio, folio, folio]
   )
-  if (!exists) throw publicError(404, 'No encontramos el informe solicitado.')
-  await legacyWrite('INSERT INTO follow_ups (folio, seguimiento, stage) VALUES (?, ?, ?)', [folio, note, stage])
+  if (!state) throw publicError(404, 'No encontramos el informe solicitado.')
+  const stage: MktStage = Boolean(Number(state.enrolled)) || normalizeMktStage(state.stage) === 'Inscrito'
+    ? 'Inscrito'
+    : requestedStage
+  await legacyTransaction(async (client) => {
+    await client.write('INSERT INTO follow_ups (folio, seguimiento, stage) VALUES (?, ?, ?)', [folio, note, stage])
+    if (stage === 'Inscrito') {
+      await client.write('UPDATE informes_mkt_siblings SET inscrito = 1 WHERE parent_id = ?', [folio])
+    }
+  })
   return getMktLead(folio)
 }
 
@@ -517,6 +724,10 @@ function textToLegacyHtml(value: unknown) {
 function dateOnly(value: unknown) {
   const date = clean(value).slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw publicError(400, 'Selecciona una fecha válida.')
+  const parsed = new Date(`${date}T12:00:00Z`)
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    throw publicError(400, 'Selecciona una fecha válida.')
+  }
   return date
 }
 
@@ -593,7 +804,10 @@ export async function saveMktJournal(user: AppSessionUser, input: {
 
 export async function getMktOverview(user: AppSessionUser, todayInput: string): Promise<MktOverviewResponse> {
   const today = dateOnly(todayInput)
-  const [metrics, stageRows, orphanStageRows, channelRows, weeklyRows, recentRows, recentOrphanRows, journalRow] = await Promise.all([
+  const [
+    metrics, stageRows, orphanStageRows, channelRows, weeklyRows, recentRows, recentOrphanRows,
+    journalRow, staleRow, orphanStaleRow, averageResponseRow, attentionRows, attentionOrphanRows
+  ] = await Promise.all([
     legacyOne<MetricsRow>(
       `SELECT
          ((SELECT COUNT(*) FROM informes_mkt) +
@@ -604,17 +818,21 @@ export async function getMktOverview(user: AppSessionUser, todayInput: string): 
              FROM follow_ups F LEFT JOIN informes_mkt I ON I.matricula = F.folio
              WHERE I.id IS NULL GROUP BY F.folio
            ) O WHERE O.first_created_at >= DATE_SUB(?, INTERVAL WEEKDAY(?) DAY))) AS newThisWeek,
-         (SELECT COUNT(*) FROM informes_mkt I WHERE NOT EXISTS (SELECT 1 FROM follow_ups F WHERE F.folio = I.matricula)) AS pendingContact,
+         ((SELECT COUNT(*) FROM informes_mkt I ${LEAD_JOINS} WHERE ${EFFECTIVE_STAGE_SQL} = 'Leads Entrantes') +
+          (SELECT COUNT(*) FROM (
+             SELECT F.folio, MAX(F.id) AS latest_id
+             FROM follow_ups F LEFT JOIN informes_mkt I ON I.matricula = F.folio
+             WHERE I.id IS NULL GROUP BY F.folio
+           ) O INNER JOIN follow_ups F ON F.id = O.latest_id
+           WHERE COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') = 'Leads Entrantes')) AS pendingContact,
          (SELECT COUNT(*) FROM follow_ups WHERE DATE(created_at) = ?) AS followUpsToday,
          (SELECT COUNT(DISTINCT parent_id) FROM informes_mkt_siblings WHERE inscrito = 1) AS enrolled`,
       [today, today, today, today, today]
     ),
     legacyQuery<StageCountRow[]>(
-      `SELECT COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') AS stage, COUNT(*) AS total
-       FROM informes_mkt I
-       LEFT JOIN (SELECT folio, MAX(id) AS latest_id FROM follow_ups GROUP BY folio) L ON L.folio = I.matricula
-       LEFT JOIN follow_ups F ON F.id = L.latest_id
-       GROUP BY COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes')`,
+      `SELECT ${EFFECTIVE_STAGE_SQL} AS stage, COUNT(*) AS total
+       FROM informes_mkt I ${LEAD_JOINS}
+       GROUP BY ${EFFECTIVE_STAGE_SQL}`
     ),
     legacyQuery<StageCountRow[]>(
       `SELECT COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') AS stage, COUNT(*) AS total
@@ -622,7 +840,7 @@ export async function getMktOverview(user: AppSessionUser, todayInput: string): 
        INNER JOIN follow_ups F ON F.id = L.latest_id
        LEFT JOIN informes_mkt I ON I.matricula = F.folio
        WHERE I.id IS NULL
-       GROUP BY COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes')`,
+       GROUP BY COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes')`
     ),
     legacyQuery<StageCountRow[]>(
       `SELECT LOWER(COALESCE(NULLIF(TRIM(via_informes), ''), 'sin especificar')) AS stage, COUNT(*) AS total
@@ -643,9 +861,49 @@ export async function getMktOverview(user: AppSessionUser, todayInput: string): 
        ORDER BY channel ASC, weekday ASC`,
       [today, today, today, today]
     ),
-    legacyQuery<LeadRow[]>(`${LEAD_SELECT} ORDER BY I.timestamp DESC, I.id DESC LIMIT 6`),
-    legacyQuery<LeadRow[]>(`${ORPHAN_LEAD_SELECT} WHERE I.id IS NULL ORDER BY F.created_at DESC, F.id DESC LIMIT 6`),
-    journalRowForDate(user.id, today)
+    legacyQuery<LeadRow[]>(`${LEAD_SELECT} ORDER BY I.timestamp DESC, I.id DESC LIMIT 8`),
+    legacyQuery<LeadRow[]>(`${ORPHAN_LEAD_SELECT} WHERE I.id IS NULL ORDER BY F.created_at DESC, F.id DESC LIMIT 8`),
+    journalRowForDate(user.id, today),
+    legacyOne<CountRow>(
+      `SELECT COUNT(*) AS total
+       FROM informes_mkt I ${LEAD_JOINS}
+       WHERE ${EFFECTIVE_STAGE_SQL} <> 'Inscrito'
+         AND DATE(COALESCE(F.created_at, I.timestamp)) <= DATE_SUB(?, INTERVAL 7 DAY)`,
+      [today]
+    ),
+    legacyOne<CountRow>(
+      `SELECT COUNT(*) AS total FROM (
+         SELECT F.folio, MAX(F.created_at) AS last_activity, MAX(F.id) AS latest_id
+         FROM follow_ups F LEFT JOIN informes_mkt I ON I.matricula = F.folio
+         WHERE I.id IS NULL GROUP BY F.folio
+       ) O
+       INNER JOIN follow_ups F ON F.id = O.latest_id
+       WHERE COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') <> 'Inscrito'
+         AND DATE(O.last_activity) <= DATE_SUB(?, INTERVAL 7 DAY)`,
+      [today]
+    ),
+    legacyOne<AverageRow>(
+      `SELECT AVG(GREATEST(TIMESTAMPDIFF(HOUR, I.timestamp, first_follow.first_at), 0)) AS average
+       FROM informes_mkt I
+       INNER JOIN (
+         SELECT folio, MIN(created_at) AS first_at
+         FROM follow_ups
+         WHERE COALESCE(NULLIF(stage, ''), 'Leads Entrantes') <> 'Leads Entrantes'
+         GROUP BY folio
+       ) first_follow ON first_follow.folio = I.matricula`
+    ),
+    legacyQuery<LeadRow[]>(
+      `${LEAD_SELECT}
+       WHERE ${EFFECTIVE_STAGE_SQL} <> 'Inscrito'
+       ORDER BY CASE WHEN ${EFFECTIVE_STAGE_SQL} = 'Leads Entrantes' THEN 0 ELSE 1 END ASC,
+                COALESCE(F.created_at, I.timestamp) ASC
+       LIMIT 8`
+    ),
+    legacyQuery<LeadRow[]>(
+      `${ORPHAN_LEAD_SELECT}
+       WHERE I.id IS NULL AND COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') <> 'Inscrito'
+       ORDER BY F.created_at ASC LIMIT 8`
+    )
   ])
 
   const stageMap = new Map<MktStage, number>(MKT_STAGES.map((stage) => [stage, 0]))
@@ -662,28 +920,206 @@ export async function getMktOverview(user: AppSessionUser, todayInput: string): 
     weeklyMap.set(channel, days)
   }
   const journal = journalFromRow(journalRow, user.id, today)
+  const totalLeads = numberValue(metrics?.totalLeads)
+  const enrolled = stageMap.get('Inscrito') || 0
+  const recentLeads = [...recentRows, ...recentOrphanRows]
+    .map(leadFromRow)
+    .sort((a, b) => clean(b.lastFollowUpAt || b.createdAt).localeCompare(clean(a.lastFollowUpAt || a.createdAt)))
+    .slice(0, 8)
+  const attentionLeads = [...attentionRows, ...attentionOrphanRows]
+    .map(leadFromRow)
+    .sort((a, b) => {
+      if (a.stage === 'Leads Entrantes' && b.stage !== 'Leads Entrantes') return -1
+      if (a.stage !== 'Leads Entrantes' && b.stage === 'Leads Entrantes') return 1
+      return clean(a.lastFollowUpAt || a.createdAt).localeCompare(clean(b.lastFollowUpAt || b.createdAt))
+    })
+    .slice(0, 8)
 
   return {
     generatedAt: new Date().toISOString(),
     metrics: {
-      totalLeads: numberValue(metrics?.totalLeads),
+      totalLeads,
       newThisWeek: numberValue(metrics?.newThisWeek),
       pendingContact: numberValue(metrics?.pendingContact),
       followUpsToday: numberValue(metrics?.followUpsToday),
-      enrolled: numberValue(metrics?.enrolled)
+      enrolled,
+      staleLeads: numberValue(staleRow?.total) + numberValue(orphanStaleRow?.total),
+      conversionRate: totalLeads ? Math.round((enrolled / totalLeads) * 100) : 0,
+      averageFirstResponseHours: averageResponseRow?.average === null || averageResponseRow?.average === undefined
+        ? null
+        : Math.round(numberValue(averageResponseRow.average) * 10) / 10
     },
     stageBreakdown: MKT_STAGES.map((stage) => ({ stage, count: stageMap.get(stage) || 0 })),
     channelBreakdown: channelRows.map((row) => ({ channel: clean(row.stage), count: numberValue(row.total) })),
     weeklyChannels: Array.from(weeklyMap, ([channel, days]) => ({ channel, days, total: days.reduce((sum, value) => sum + value, 0) })),
-    recentLeads: [...recentRows, ...recentOrphanRows]
-      .map(leadFromRow)
-      .sort((a, b) => clean(b.lastFollowUpAt || b.createdAt).localeCompare(clean(a.lastFollowUpAt || a.createdAt)))
-      .slice(0, 6),
+    recentLeads,
+    attentionLeads,
     journal: {
       completedToday: journal.completed,
       achievements: journal.achievements,
       activities: journal.activities
     }
+  }
+}
+
+function analyticsDateRange(fromInput: string, toInput: string) {
+  const from = dateOnly(fromInput)
+  const to = dateOnly(toInput)
+  if (from > to) throw publicError(400, 'La fecha inicial debe ser anterior a la fecha final.')
+  const daySpan = Math.round((new Date(`${to}T12:00:00Z`).getTime() - new Date(`${from}T12:00:00Z`).getTime()) / 86400000) + 1
+  if (daySpan > 1096) throw publicError(400, 'El periodo máximo de análisis es de tres años.')
+  return { from, to }
+}
+
+function percent(value: number, total: number) {
+  return total ? Math.round((value / total) * 100) : 0
+}
+
+function weekStarts(from: string, to: string) {
+  const start = new Date(`${from}T12:00:00Z`)
+  const end = new Date(`${to}T12:00:00Z`)
+  const weekday = (start.getUTCDay() + 6) % 7
+  start.setUTCDate(start.getUTCDate() - weekday)
+  const result: string[] = []
+  while (start <= end) {
+    result.push(start.toISOString().slice(0, 10))
+    start.setUTCDate(start.getUTCDate() + 7)
+  }
+  return result
+}
+
+export async function getMktAnalytics(fromInput: string, toInput: string): Promise<MktAnalyticsResponse> {
+  const period = analyticsDateRange(fromInput, toInput)
+  const latestJoin = `
+    LEFT JOIN (
+      SELECT folio, MAX(id) AS latest_id, COUNT(*) AS follow_count
+      FROM follow_ups GROUP BY folio
+    ) LF ON LF.folio = I.matricula
+    LEFT JOIN follow_ups F ON F.id = LF.latest_id
+    LEFT JOIN (
+      SELECT parent_id, MAX(CASE WHEN inscrito = 1 THEN 1 ELSE 0 END) AS any_enrolled
+      FROM informes_mkt_siblings GROUP BY parent_id
+    ) AS analytics_students ON analytics_students.parent_id = I.matricula
+  `
+  const convertedExpression = `(COALESCE(analytics_students.any_enrolled, 0) = 1 OR COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') = 'Inscrito')`
+  const analyticsStageExpression = `CASE WHEN ${convertedExpression} THEN 'Inscrito' ELSE COALESCE(NULLIF(F.stage, ''), 'Leads Entrantes') END`
+
+  const [metricRow, averageRow, stageRows, weeklyLeadRows, weeklyFollowRows, channelRows, plantelRows] = await Promise.all([
+    legacyOne<AnalyticsMetricRow>(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN ${analyticsStageExpression} <> 'Leads Entrantes' THEN 1 ELSE 0 END) AS contacted,
+              SUM(CASE WHEN ${convertedExpression} THEN 1 ELSE 0 END) AS converted,
+              AVG(COALESCE(LF.follow_count, 0)) AS averageFollowUps
+       FROM informes_mkt I ${latestJoin}
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?`,
+      [period.from, period.to]
+    ),
+    legacyOne<AverageRow>(
+      `SELECT AVG(GREATEST(TIMESTAMPDIFF(HOUR, I.timestamp, FF.first_at), 0)) AS average
+       FROM informes_mkt I
+       INNER JOIN (
+         SELECT folio, MIN(created_at) AS first_at
+         FROM follow_ups
+         WHERE COALESCE(NULLIF(stage, ''), 'Leads Entrantes') <> 'Leads Entrantes'
+         GROUP BY folio
+       ) FF ON FF.folio = I.matricula
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?`,
+      [period.from, period.to]
+    ),
+    legacyQuery<StageCountRow[]>(
+      `SELECT ${analyticsStageExpression} AS stage, COUNT(*) AS total
+       FROM informes_mkt I ${latestJoin}
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?
+       GROUP BY ${analyticsStageExpression}`,
+      [period.from, period.to]
+    ),
+    legacyQuery<WeeklyTrendRow[]>(
+      `SELECT DATE_FORMAT(DATE_SUB(DATE(I.timestamp), INTERVAL WEEKDAY(I.timestamp) DAY), '%Y-%m-%d') AS weekStart,
+              COUNT(*) AS leads,
+              SUM(CASE WHEN ${convertedExpression} THEN 1 ELSE 0 END) AS converted
+       FROM informes_mkt I ${latestJoin}
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?
+       GROUP BY DATE_SUB(DATE(I.timestamp), INTERVAL WEEKDAY(I.timestamp) DAY)
+       ORDER BY weekStart ASC`,
+      [period.from, period.to]
+    ),
+    legacyQuery<WeeklyFollowUpRow[]>(
+      `SELECT DATE_FORMAT(DATE_SUB(DATE(created_at), INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d') AS weekStart,
+              COUNT(*) AS followUps
+       FROM follow_ups
+       WHERE DATE(created_at) BETWEEN ? AND ?
+       GROUP BY DATE_SUB(DATE(created_at), INTERVAL WEEKDAY(created_at) DAY)
+       ORDER BY weekStart ASC`,
+      [period.from, period.to]
+    ),
+    legacyQuery<PerformanceRow[]>(
+      `SELECT LOWER(COALESCE(NULLIF(TRIM(I.via_informes), ''), 'sin especificar')) AS dimension,
+              COUNT(*) AS leads,
+              SUM(CASE WHEN ${analyticsStageExpression} <> 'Leads Entrantes' THEN 1 ELSE 0 END) AS contacted,
+              SUM(CASE WHEN ${convertedExpression} THEN 1 ELSE 0 END) AS converted
+       FROM informes_mkt I ${latestJoin}
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?
+       GROUP BY LOWER(COALESCE(NULLIF(TRIM(I.via_informes), ''), 'sin especificar'))
+       ORDER BY leads DESC, dimension ASC`,
+      [period.from, period.to]
+    ),
+    legacyQuery<PerformanceRow[]>(
+      `SELECT UPPER(COALESCE(NULLIF(TRIM(I.plantel), ''), 'SIN PLANTEL')) AS dimension,
+              COUNT(*) AS leads,
+              SUM(CASE WHEN ${analyticsStageExpression} <> 'Leads Entrantes' THEN 1 ELSE 0 END) AS contacted,
+              SUM(CASE WHEN ${convertedExpression} THEN 1 ELSE 0 END) AS converted
+       FROM informes_mkt I ${latestJoin}
+       WHERE DATE(I.timestamp) BETWEEN ? AND ?
+       GROUP BY UPPER(COALESCE(NULLIF(TRIM(I.plantel), ''), 'SIN PLANTEL'))
+       ORDER BY leads DESC, dimension ASC`,
+      [period.from, period.to]
+    )
+  ])
+
+  const total = numberValue(metricRow?.total)
+  const stageMap = new Map<MktStage, number>(MKT_STAGES.map((stage) => [stage, 0]))
+  for (const row of stageRows) stageMap.set(normalizeMktStage(row.stage), numberValue(row.total))
+  const weeklyLeads = new Map(weeklyLeadRows.map((row) => [clean(row.weekStart).slice(0, 10), row]))
+  const weeklyFollowUps = new Map(weeklyFollowRows.map((row) => [clean(row.weekStart).slice(0, 10), numberValue(row.followUps)]))
+  const weekFormatter = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+
+  return {
+    generatedAt: new Date().toISOString(),
+    period,
+    metrics: {
+      total,
+      contacted: numberValue(metricRow?.contacted),
+      converted: numberValue(metricRow?.converted),
+      conversionRate: percent(numberValue(metricRow?.converted), total),
+      averageFirstResponseHours: averageRow?.average === null || averageRow?.average === undefined
+        ? null
+        : Math.round(numberValue(averageRow.average) * 10) / 10,
+      averageFollowUps: Math.round(numberValue(metricRow?.averageFollowUps) * 10) / 10
+    },
+    stageBreakdown: MKT_STAGES.map((stage) => {
+      const count = stageMap.get(stage) || 0
+      return { stage, count, percentage: percent(count, total) }
+    }),
+    weeklyTrend: weekStarts(period.from, period.to).map((weekStart) => {
+      const leadRow = weeklyLeads.get(weekStart)
+      return {
+        weekStart,
+        label: weekFormatter.format(new Date(`${weekStart}T12:00:00Z`)),
+        leads: numberValue(leadRow?.leads),
+        followUps: weeklyFollowUps.get(weekStart) || 0,
+        converted: numberValue(leadRow?.converted)
+      }
+    }),
+    channels: channelRows.map((row) => {
+      const leads = numberValue(row.leads)
+      const converted = numberValue(row.converted)
+      return { channel: clean(row.dimension), leads, contacted: numberValue(row.contacted), converted, conversionRate: percent(converted, leads) }
+    }),
+    planteles: plantelRows.map((row) => {
+      const leads = numberValue(row.leads)
+      const converted = numberValue(row.converted)
+      return { plantel: clean(row.dimension), leads, contacted: numberValue(row.contacted), converted, conversionRate: percent(converted, leads) }
+    })
   }
 }
 

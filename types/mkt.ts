@@ -30,6 +30,7 @@ export interface MktFollowUp {
   note: string
   stage: MktStage
   createdAt: string | null
+  pending?: boolean
 }
 
 export interface MktStudentInterest {
@@ -44,21 +45,17 @@ export interface MktStudentInterest {
   enrolled: boolean
 }
 
+export interface MktContactRecord {
+  name: string
+  email: string
+  phone: string
+  address: string
+  source: string
+}
+
 export interface MktLeadDetail extends MktLeadSummary {
-  father: {
-    name: string
-    email: string
-    phone: string
-    address: string
-    source: string
-  }
-  mother: {
-    name: string
-    email: string
-    phone: string
-    address: string
-    source: string
-  }
+  father: MktContactRecord
+  mother: MktContactRecord
   students: MktStudentInterest[]
   followUps: MktFollowUp[]
 }
@@ -70,6 +67,7 @@ export interface MktLeadFilters {
   plantel?: string
   from?: string
   to?: string
+  attention?: string
   limit?: number
 }
 
@@ -77,6 +75,13 @@ export interface MktLeadsResponse {
   leads: MktLeadSummary[]
   total: number
   filters: Required<Omit<MktLeadFilters, 'limit'>> & { limit: number }
+  summary: {
+    total: number
+    uncontacted: number
+    negotiating: number
+    enrolled: number
+    stageCounts: Record<MktStage, number>
+  }
   options: {
     channels: string[]
     planteles: string[]
@@ -92,11 +97,15 @@ export interface MktOverviewResponse {
     pendingContact: number
     followUpsToday: number
     enrolled: number
+    staleLeads: number
+    conversionRate: number
+    averageFirstResponseHours: number | null
   }
   stageBreakdown: Array<{ stage: MktStage; count: number }>
   channelBreakdown: Array<{ channel: string; count: number }>
   weeklyChannels: Array<{ channel: string; days: number[]; total: number }>
   recentLeads: MktLeadSummary[]
+  attentionLeads: MktLeadSummary[]
   journal: {
     completedToday: boolean
     achievements: string
@@ -137,4 +146,44 @@ export interface CreateMktLeadInput {
   birthDate?: string
   enrolled?: boolean
   initialNote?: string
+}
+
+export interface UpdateMktStudentInput {
+  id?: number
+  fullName: string
+  level: string
+  grade?: string
+  birthDate?: string
+  enrolled?: boolean
+}
+
+export interface UpdateMktLeadInput {
+  plantel: string
+  campus?: string
+  channel: string
+  father: MktContactRecord
+  mother: MktContactRecord
+  students: UpdateMktStudentInput[]
+}
+
+export interface MktAnalyticsFilters {
+  from: string
+  to: string
+}
+
+export interface MktAnalyticsResponse {
+  generatedAt: string
+  period: MktAnalyticsFilters
+  metrics: {
+    total: number
+    contacted: number
+    converted: number
+    conversionRate: number
+    averageFirstResponseHours: number | null
+    averageFollowUps: number
+  }
+  stageBreakdown: Array<{ stage: MktStage; count: number; percentage: number }>
+  weeklyTrend: Array<{ weekStart: string; label: string; leads: number; followUps: number; converted: number }>
+  channels: Array<{ channel: string; leads: number; contacted: number; converted: number; conversionRate: number }>
+  planteles: Array<{ plantel: string; leads: number; contacted: number; converted: number; conversionRate: number }>
 }

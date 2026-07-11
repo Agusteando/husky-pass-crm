@@ -1,1 +1,1 @@
-Corrige la resolución de marbetes por plantel en personas autorizadas
+feat: completa y eleva la experiencia de Mercadotecnia
