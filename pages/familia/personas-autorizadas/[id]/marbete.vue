@@ -7,15 +7,14 @@
         :description="passContext"
         :theme="theme"
         ambassador-variant="preview"
-        :ambassador-title="downloadAvailable ? 'Listo para imprimir' : 'Revisión pendiente'"
-        :ambassador-message="downloadAvailable ? 'Descarga el PDF y conserva el formato solicitado por la escuela.' : readinessMessage"
-        :ambassador-tone="downloadAvailable ? 'success' : 'notice'"
+        ambassador-title="Listo para imprimir"
+        ambassador-message="Descarga el PDF y conserva el formato solicitado por la escuela."
+        ambassador-tone="success"
       >
         <template #actions>
           <div class="head-actions">
             <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${route.params.id}`">Volver</NuxtLink>
             <button
-              v-if="downloadAvailable"
               class="btn btn-primary pa-primary"
               type="button"
               :disabled="downloading"
@@ -24,19 +23,18 @@
             >
               {{ downloading ? 'Preparando...' : 'Descargar Husky Pass' }}
             </button>
-            <button v-else class="btn btn-secondary" type="button" disabled>{{ readinessMessage }}</button>
           </div>
         </template>
       </FamilyPersonasPageHeader>
 
       <p v-if="downloadError" class="alert" data-state="error">{{ downloadError }}</p>
-      <p v-if="loadError || readinessError" class="alert" data-state="error">{{ readinessMessage || 'No fue posible cargar el Husky Pass.' }}</p>
-      <div v-else-if="pending || readinessPending" class="preview-state" data-product-loading data-state="loading">
+      <p v-if="loadError" class="alert" data-state="error">No fue posible cargar el Husky Pass.</p>
+      <div v-else-if="pending" class="preview-state" data-product-loading data-state="loading">
         <span></span>
         <strong>Generando vista...</strong>
       </div>
 
-      <section v-else-if="downloadAvailable" class="preview-shell" data-product-panel="husky-pass-preview" data-state="content">
+      <section v-else class="preview-shell" data-product-panel="husky-pass-preview" data-state="content">
         <iframe :src="previewUrl" title="Vista previa de Husky Pass"></iframe>
         <div class="download-ready">
           <span>Listo para descargar</span>
@@ -44,13 +42,7 @@
         </div>
       </section>
 
-      <section v-else class="preview-state unavailable" data-product-panel="husky-pass-preview" data-state="unavailable">
-        <FamilyPersonasAmbassador :theme="theme" variant="empty" compact decorative />
-        <div>
-          <strong>Husky Pass no disponible</strong>
-          <p>{{ readinessMessage }}</p>
-        </div>
-      </section>
+
     </section>
   </FamilyPersonasAutorizadasShell>
 </template>
@@ -58,7 +50,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useFetch, useRoute } from 'nuxt/app'
-import type { MarbeteReadinessResponse, PrintableAuthorizedPerson } from '~/types/daycare'
+import type { PrintableAuthorizedPerson } from '~/types/daycare'
 import { usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { displayMatricula } from '~/utils/matricula'
 
@@ -67,11 +59,6 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-marbete-${route.params.id}` })
 const { data, pending, error: loadError } = useFetch<PrintableAuthorizedPerson>('/api/personas-autorizadas/credential', { query: { id: route.params.id }, timeout: 15000 })
-const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
-  key: `pa-marbete-readiness-${route.params.id}`,
-  query: { id: route.params.id, format: 'readiness' },
-  timeout: 20000
-})
 const { theme, themeVars } = useResolvedPersonasTheme(() => ({
   matricula: data.value?.matricula || data.value?.child?.matricula || familyTheme.primaryChild.value?.matricula || familyTheme.session.value?.user?.username,
   plantel: data.value?.plantel || familyTheme.primaryChild.value?.plantel || familyTheme.session.value?.user?.plantel?.[0],
@@ -84,30 +71,19 @@ const previewUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.
 const downloadUrl = computed(() => `/api/personas-autorizadas/marbete?id=${route.params.id}&download=1`)
 const downloading = ref(false)
 const downloadError = ref('')
-const downloadAvailable = computed(() => Boolean(readiness.value?.ok))
-const readinessMessage = computed(() => friendlyReadinessMessage(readiness.value?.issues?.[0], Boolean(readinessError.value)))
-
-function friendlyReadinessMessage(message?: string | null, hasError = false) {
-  const value = String(message || '').toLowerCase()
-  if (value.includes('foto') || value.includes('imagen') || value.includes('image')) return 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.'
-  if (value.includes('dato') || value.includes('nombre') || value.includes('parentesco') || value.includes('matr')) return 'Completa los datos solicitados para descargar el Husky Pass.'
-  if (hasError) return 'No pudimos validar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
-  return 'Validando datos del Husky Pass...'
-}
-
 async function downloadHuskyPass() {
-  if (downloading.value || !downloadAvailable.value) return
+  if (downloading.value) return
   downloadError.value = ''
   downloading.value = true
   try {
     const response = await fetch(downloadUrl.value, { credentials: 'include' })
     if (!response.ok) {
-      const message = await response.text().catch(() => '')
-      throw new Error(friendlyReadinessMessage(message, true))
+      await response.text().catch(() => '')
+      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.')
     }
     const blob = await response.blob()
     if (!blob.size || !response.headers.get('content-type')?.toLowerCase().includes('pdf')) {
-      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.')
+      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.')
     }
     const objectUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -118,7 +94,7 @@ async function downloadHuskyPass() {
     anchor.remove()
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
   } catch (err: unknown) {
-    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.'
   } finally {
     downloading.value = false
   }
@@ -163,18 +139,6 @@ async function downloadHuskyPass() {
   display: flex;
   gap: 12px;
   padding: 12px;
-}
-
-.preview-state.unavailable {
-  align-items: center;
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-}
-
-.preview-state.unavailable p {
-  color: var(--pa-muted);
-  font-weight: 700;
-  margin: 0;
 }
 
 .preview-state span {

@@ -33,6 +33,7 @@ const PUBLIC_MONTSERRAT_WEB_FILES = [
 const PUBLIC_MONTSERRAT_PDFKIT_FILES = [
   'Montserrat-SemiBold.ttf'
 ]
+const TRANSPARENT_IMAGE_DATA_URL = `data:image/svg+xml;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1" fill="transparent"/></svg>').toString('base64')}`
 const CHROMIUM_CANDIDATES = [
   process.env.HUSKY_PASS_CHROMIUM_PATH || '',
   process.env.CHROMIUM_PATH || '',
@@ -53,6 +54,7 @@ export interface MarbetePdfInput {
   renderedSvg: string
   values: Record<string, string>
   origin: string
+  tolerateAssetFailures?: boolean
 }
 
 interface LoadedImage {
@@ -243,11 +245,20 @@ function imageHrefMatches(svg: string) {
     })
 }
 
-async function inlineSvgImages(svg: string, origin = '') {
+async function inlineSvgImages(svg: string, origin = '', tolerateFailures = false) {
   const matches = imageHrefMatches(svg)
   const replacements = await Promise.all(matches.map(async (match) => {
-    const inlined = await inlineImage(match[2], origin)
-    return { from: match[0], to: `${match[1]}="${inlined}"` }
+    try {
+      const inlined = await inlineImage(match[2], origin)
+      return { from: match[0], to: `${match[1]}="${inlined}"` }
+    } catch (error) {
+      if (!tolerateFailures) throw error
+      logPersonasWarning('marbete-pdf-image-fallback', {
+        url: publicDiagnosticUrl(match[2]),
+        message: error instanceof Error ? error.message : String(error)
+      })
+      return { from: match[0], to: `${match[1]}="${TRANSPARENT_IMAGE_DATA_URL}"` }
+    }
   }))
 
   return replacements.reduce((next, replacement) => next.replace(replacement.from, replacement.to), svg)
@@ -343,12 +354,13 @@ async function fontFaceCss(origin = '') {
   }
 
   if (!bytes) {
-    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
+    logPersonasWarning('marbete-pdf-font-fallback', {
       candidates: [
         ...LOCAL_MONTSERRAT_WEB_CANDIDATES,
         ...PUBLIC_MONTSERRAT_WEB_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
       ].filter(Boolean)
     })
+    return ''
   }
   const format = sourcePath.endsWith('.woff2') ? 'woff2' : 'truetype'
   const mime = sourcePath.endsWith('.woff2') ? 'font/woff2' : 'font/ttf'
@@ -377,7 +389,7 @@ function supplementalDataLines(values: Record<string, string>) {
 }
 
 async function composeMarbeteHtml(input: MarbetePdfInput) {
-  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin)
+  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin, input.tolerateAssetFailures)
   if (/{{\s*[^}]+\s*}}/.test(completeSvg)) {
     throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'unresolved-svg-token', {
       tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)
@@ -571,17 +583,18 @@ async function registerPdfFont(
     return fontName
   }
 
-  throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'font-not-found', {
+  logPersonasWarning('marbete-pdf-font-fallback', {
     candidates: [
       ...LOCAL_MONTSERRAT_PDFKIT_CANDIDATES,
       ...PUBLIC_MONTSERRAT_PDFKIT_FILES.map((file) => `assets:hp-fonts/${file}`),
       ...PUBLIC_MONTSERRAT_PDFKIT_FILES.map((file) => origin ? `${origin.replace(/\/$/, '')}/fonts/${file}` : '')
     ].filter(Boolean)
   })
+  return 'Helvetica-Bold'
 }
 
 async function renderSvgToPdfKit(input: MarbetePdfInput) {
-  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin)
+  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin, input.tolerateAssetFailures)
   if (/{{\s*[^}]+\s*}}/.test(completeSvg)) {
     throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'unresolved-svg-token', {
       tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)
@@ -655,6 +668,45 @@ async function renderSvgToPdfKit(input: MarbetePdfInput) {
   return pdf
 }
 
+async function renderEmergencyMarbetePdf(input: MarbetePdfInput) {
+  const doc = new PDFDocument({ size: 'LETTER', margin: 0, compress: true, info: { Title: 'Husky Pass', Creator: 'Husky Pass CRM' } })
+  const values = input.values
+  const name = String(values.fullnameP || values.authorizedPersonName || values.nombreP || 'Persona autorizada').trim()
+  const relationship = String(values.parenP || values.parentesco || 'Persona autorizada').trim()
+  const student = String(values.fullnameA || values.studentName || 'Alumno').trim()
+  const validity = String(values.validityLabel || values.vigencia || '').trim()
+  const primary = '#2E6F95'
+
+  doc.roundedRect(90, 68, 432, 610, 24).fill('#F4F8FB')
+  doc.roundedRect(90, 68, 432, 94, 24).fill(primary)
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(22).text('HUSKY PASS', 120, 102, { width: 372, align: 'center' })
+
+  let portraitDrawn = false
+  const photo = String(values.foto || values.fotoP || '').trim()
+  if (photo) {
+    try {
+      const image = await loadImage(photo, input.origin, 'foto')
+      doc.save().roundedRect(194, 190, 224, 250, 20).clip().image(image.bytes, 194, 190, { fit: [224, 250], align: 'center', valign: 'center' }).restore()
+      portraitDrawn = true
+    } catch {
+      portraitDrawn = false
+    }
+  }
+  if (!portraitDrawn) {
+    const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'PA'
+    doc.circle(306, 300, 90).fill('#DDEAF1')
+    doc.fillColor(primary).font('Helvetica-Bold').fontSize(42).text(initials, 216, 280, { width: 180, align: 'center' })
+  }
+
+  doc.fillColor('#132238').font('Helvetica-Bold').fontSize(20).text(name, 126, 468, { width: 360, align: 'center' })
+  doc.fillColor(primary).font('Helvetica-Bold').fontSize(13).text(relationship, 126, 524, { width: 360, align: 'center' })
+  doc.fillColor('#5F6B7A').font('Helvetica').fontSize(10).text(student, 126, 558, { width: 360, align: 'center' })
+  if (validity) doc.text(validity, 126, 578, { width: 360, align: 'center' })
+  doc.fillColor('#7B8794').fontSize(8).text('Archivo generado por Husky Pass', 126, 642, { width: 360, align: 'center' })
+
+  return collectPdfBuffer(doc)
+}
+
 export async function prepareMarbeteSvgForPdf(svg: string, origin = '') {
   return inlineSvgImages(svg, origin)
 }
@@ -662,6 +714,11 @@ export async function prepareMarbeteSvgForPdf(svg: string, origin = '') {
 export async function assertMarbetePdfAssets(input: string | MarbetePdfInput) {
   if (typeof input === 'string') {
     await inlineSvgImages(input)
+    return { ok: true }
+  }
+
+  if (input.tolerateAssetFailures) {
+    await inlineSvgImages(input.renderedSvg, input.origin, true)
     return { ok: true }
   }
 
@@ -677,14 +734,30 @@ export async function assertMarbetePdfAssets(input: string | MarbetePdfInput) {
 }
 
 export async function renderMarbetePdf(input: string | MarbetePdfInput) {
-  const pdfInput = typeof input === 'string'
+  const pdfInput: MarbetePdfInput = typeof input === 'string'
     ? { templateSvg: input, renderedSvg: input, values: {}, origin: '' }
     : input
 
   await assertMarbetePdfAssets(pdfInput)
-  if (process.env.HUSKY_PASS_PDF_RENDERER === 'chromium') {
-    const html = await composeMarbeteHtml(pdfInput)
-    return renderHtmlToPdf(html)
+
+  const renderWithChromium = async () => renderHtmlToPdf(await composeMarbeteHtml(pdfInput))
+  const renderers = process.env.HUSKY_PASS_PDF_RENDERER === 'chromium'
+    ? [renderWithChromium, () => renderSvgToPdfKit(pdfInput)]
+    : [() => renderSvgToPdfKit(pdfInput), renderWithChromium]
+
+  let lastError: unknown
+  for (const renderer of renderers) {
+    try {
+      return await renderer()
+    } catch (error) {
+      lastError = error
+      if (!pdfInput.tolerateAssetFailures) throw error
+      logPersonasWarning('marbete-pdf-renderer-fallback', {
+        message: error instanceof Error ? error.message : String(error)
+      })
+    }
   }
-  return renderSvgToPdfKit(pdfInput)
+
+  if (pdfInput.tolerateAssetFailures) return renderEmergencyMarbetePdf(pdfInput)
+  throw lastError
 }

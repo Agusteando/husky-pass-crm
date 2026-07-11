@@ -10,6 +10,7 @@ import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { runtimeDataDir } from '~/server/utils/serverlessPaths'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
+import QRCode from 'qrcode'
 import { uploadToExternalService } from '~/server/utils/externalUpload'
 import { compileMarbeteVisualSvg, normalizeMarbeteVisualDesign, renderMarbeteVisualValues } from '~/utils/marbeteDesigner'
 
@@ -395,6 +396,30 @@ function fullName(parts: Array<string | null | undefined>) {
   return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
 }
 
+
+function svgDataUrl(svg: string) {
+  return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`
+}
+
+function qrDataUrl(value: string) {
+  const qr = QRCode.create(value, { errorCorrectionLevel: 'M' })
+  const size = qr.modules.size
+  const matrix = qr.modules.data as unknown as ArrayLike<number | boolean>
+  const margin = 2
+  const paths: string[] = []
+  for (let row = 0; row < size; row += 1) {
+    for (let column = 0; column < size; column += 1) {
+      if (matrix[row * size + column]) paths.push(`M${column + margin} ${row + margin}h1v1h-1z`)
+    }
+  }
+  const total = size + margin * 2
+  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges"><rect width="${total}" height="${total}" fill="#fff"/><path d="${paths.join('')}" fill="#111"/></svg>`)
+}
+
+function initialsDataUrl(name: string, color: string) {
+  const initials = String(name || 'PA').trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'PA'
+  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 720"><rect width="600" height="720" fill="#F3F7EF"/><circle cx="300" cy="265" r="138" fill="${escapeXml(color)}" opacity=".18"/><circle cx="300" cy="220" r="84" fill="${escapeXml(color)}" opacity=".42"/><path d="M122 650c18-160 106-250 178-250s160 90 178 250" fill="${escapeXml(color)}" opacity=".42"/><text x="300" y="696" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="${escapeXml(color)}">${escapeXml(initials)}</text></svg>`)
+}
 function currentSchoolYearLabel(date = new Date()) {
   const year = date.getMonth() >= 7 ? date.getFullYear() : date.getFullYear() - 1
   return `${year}-${year + 1}`
@@ -420,8 +445,8 @@ function normalizeDynamicPhotoFrames(svg: string) {
 export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null): MarbeteRenderValues {
   const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
   const trustedProcessedPhoto = isValidatedVisionPhotoUrl(data.compressed_foto) ? data.compressed_foto : ''
-  const personPhoto = absoluteAssetUrl(String(trustedProcessedPhoto || data.foto || ''), origin)
-  const studentPhoto = absoluteAssetUrl(String(data.fotoA || data.child?.foto || ''), origin)
+  const personPhotoSource = absoluteAssetUrl(String(trustedProcessedPhoto || data.foto || ''), origin)
+  const studentPhotoSource = absoluteAssetUrl(String(data.fotoA || data.child?.foto || ''), origin)
   const studentName = fullName([
     data.fullnameA || '',
   ]) || fullName([data.child?.nombreA, data.child?.paternoA, data.child?.maternoA])
@@ -435,7 +460,10 @@ export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin
   const validityLabel = String(data.fechaP || '').trim()
     ? `Vigente desde ${String(data.fechaP).slice(0, 10)}`
     : `Vigente ciclo ${ciclo}`
-  const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl)}`
+  const theme = resolvePersonasTheme({ matricula: data.matricula || data.child?.matricula, plantel, nivelEdu: nivel })
+  const personPhoto = personPhotoSource || initialsDataUrl(authorizedName, theme.primary)
+  const studentPhoto = studentPhotoSource || initialsDataUrl(studentName || 'Alumno', theme.primary)
+  const qrImage = qrDataUrl(validationUrl)
 
   return {
     validationUrl,
@@ -521,13 +549,16 @@ export function validateMarbeteRequirements(svg: string, data: PrintableAuthoriz
   return { ok: !unique(issues).length, issues: unique(issues) }
 }
 
-export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null) {
-  const { values } = buildMarbeteRenderValues(data, origin, templateCycle)
-
+export function renderMarbeteSvgValues(svg: string, values: Record<string, string>) {
   return renderMarbeteVisualValues(normalizeDynamicPhotoFrames(svg), values)
     .replace(/{{\s*getTrustedUrl\(data\.([A-Za-z0-9_]+)\)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
     .replace(/{{\s*data\.([A-Za-z0-9_]+)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
     .replace(/{{\s*[^}]+\s*}}/g, '')
+}
+
+export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null) {
+  const { values } = buildMarbeteRenderValues(data, origin, templateCycle)
+  return renderMarbeteSvgValues(svg, values)
 }
 
 export function marbeteDownloadName(data: PrintableAuthorizedPerson, template: MarbeteTemplateMeta) {

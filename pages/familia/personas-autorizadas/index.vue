@@ -35,7 +35,7 @@
               <span class="callout-icon" aria-hidden="true">i</span>
               <span class="callout-copy">
                 <strong>Foto del alumno pendiente</strong>
-                <small>Sube la foto de {{ studentFirstName }} para generar los Husky Pass.</small>
+                <small>Agrega la foto de {{ studentFirstName }} para completar su perfil.</small>
               </span>
               <span class="callout-action">Subir foto</span>
             </NuxtLink>
@@ -66,7 +66,7 @@
               :data-state="person.id ? 'registered' : 'available'"
               :data-slot="person.indice"
             >
-              <span v-if="person.id && marbeteReady(person)" class="slot-check" aria-label="Husky Pass listo"><FamilyPersonasIcon name="check" /></span>
+              <span v-if="person.id" class="slot-check" aria-label="Husky Pass listo"><FamilyPersonasIcon name="check" /></span>
               <span v-if="!person.id && person.indice === 4" class="slot-badge">Nuevo</span>
               <span v-if="!person.id && person.indice === 4" class="express-preview" aria-hidden="true">
                 <span class="express-preview-screen"><FamilyPersonasIcon name="check" /></span>
@@ -94,7 +94,7 @@
 
               <div class="slot-actions" @click.stop>
                 <button
-                  v-if="person.id && marbeteReady(person)"
+                  v-if="person.id"
                   class="slot-btn slot-btn-primary"
                   type="button"
                   :disabled="downloadingId === person.id"
@@ -104,7 +104,6 @@
                   <FamilyPersonasIcon name="download" />
                   {{ downloadingId === person.id ? 'Preparando...' : 'Descargar Husky Pass' }}
                 </button>
-                <button v-else-if="person.id" class="slot-btn slot-btn-muted" type="button" disabled>{{ marbeteState(person) }}</button>
                 <button
                   v-else
                   class="slot-btn slot-btn-outline"
@@ -271,7 +270,7 @@
 import { computed, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import { usePersonasFamilyPeople } from '~/composables/usePersonasTheme'
-import type { AuthorizedChild, AuthorizedPerson, MarbeteReadinessResponse } from '~/types/daycare'
+import type { AuthorizedChild, AuthorizedPerson } from '~/types/daycare'
 import type { AccessHistoryAction, FamilyExpressAccessHistoryResponse } from '~/types/accessHistory'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { createAuthorizedPersonForm, toAuthorizedPersonSavePayload } from '~/utils/authorizedPersonForm'
@@ -292,7 +291,6 @@ const error = ref('')
 const notice = ref('')
 const selectedIndice = ref(1)
 const openFaq = ref<number | null>(null)
-const marbeteReadiness = ref<Record<number, MarbeteReadinessResponse & { pending?: boolean }>>({})
 const downloadingId = ref<number | null>(null)
 const downloadError = ref('')
 const editingKey = computed(() => editing.value ? `edit-${editing.value.id || 'slot'}-${editing.value.indice}` : 'edit-none')
@@ -420,9 +418,6 @@ watch(people, (value) => {
   if (!value.length) return
   if (!value.some((person) => person.indice === selectedIndice.value)) selectedIndice.value = value[0]?.indice || 1
 }, { immediate: true })
-watch(() => people.value.map((person) => `${person.id || 'empty'}:${person.foto || ''}:${person.compressed_foto || ''}:${person.nombreP || ''}:${person.paternoP || ''}:${person.maternoP || ''}:${person.parenP || ''}`).join('|'), () => {
-  void refreshMarbeteReadiness()
-}, { immediate: true })
 
 function formatExpressAccessDate(action: AccessHistoryAction) {
   const timestamp = String(action.timestamp || `${action.date} ${action.time || ''}`).trim()
@@ -457,27 +452,8 @@ function slotSubtitle(person: AuthorizedPerson) {
   if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
   return person.parenP || 'Datos pendientes'
 }
-function localMarbeteReady(person: AuthorizedPerson) {
-  return Boolean(person.id && photoUrl(person) && fullName(person) && person.parenP)
-}
-function marbeteStatus(person: AuthorizedPerson) {
-  const id = Number(person.id || 0)
-  return id ? marbeteReadiness.value[id] : null
-}
-function marbeteReady(person: AuthorizedPerson) {
-  return Boolean(localMarbeteReady(person) && marbeteStatus(person)?.ok)
-}
-function friendlyReadinessMessage(message?: string | null) {
-  const value = String(message || '').toLowerCase()
-  if (value.includes('imagen') || value.includes('foto') || value.includes('image')) return 'Actualiza la foto'
-  if (value.includes('dato') || value.includes('text') || value.includes('required')) return 'Completa los datos'
-  return 'No disponible'
-}
-function friendlyDownloadMessage(message?: string | null) {
-  const value = String(message || '').toLowerCase()
-  if (value.includes('foto') || value.includes('imagen') || value.includes('image')) return 'Actualiza la foto para descargar el Husky Pass o solicita apoyo a la escuela.'
-  if (value.includes('dato') || value.includes('nombre') || value.includes('parentesco') || value.includes('matr')) return 'Completa los datos solicitados para descargar el Husky Pass.'
-  return 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+function friendlyDownloadMessage() {
+  return 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.'
 }
 async function downloadHuskyPass(person: AuthorizedPerson | null) {
   if (!person?.id || downloadingId.value) return
@@ -486,12 +462,12 @@ async function downloadHuskyPass(person: AuthorizedPerson | null) {
   try {
     const response = await fetch(`/api/personas-autorizadas/marbete?id=${person.id}&download=1`, { credentials: 'include' })
     if (!response.ok) {
-      const message = await response.text().catch(() => '')
-      throw new Error(friendlyDownloadMessage(message))
+      await response.text().catch(() => '')
+      throw new Error(friendlyDownloadMessage())
     }
     const blob = await response.blob()
     if (!blob.size || !response.headers.get('content-type')?.toLowerCase().includes('pdf')) {
-      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.')
+      throw new Error('No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.')
     }
     const objectUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -502,38 +478,10 @@ async function downloadHuskyPass(person: AuthorizedPerson | null) {
     anchor.remove()
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
   } catch (err: unknown) {
-    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente o solicita apoyo a la escuela.'
+    downloadError.value = err instanceof Error ? err.message : 'No pudimos preparar el Husky Pass en este momento. Intenta nuevamente.'
   } finally {
     downloadingId.value = null
   }
-}
-function marbeteState(person: AuthorizedPerson) {
-  if (!person.id) return person.indice === 4 ? 'Opcional' : 'Disponible'
-  if (!photoUrl(person)) return 'Actualiza la foto'
-  if (!fullName(person)) return 'Completa el nombre'
-  if (!person.parenP) return 'Completa parentesco'
-  const status = marbeteStatus(person)
-  if (!status || status.pending) return 'Validando Husky Pass'
-  if (!status.ok) return friendlyReadinessMessage(status.issues[0])
-  return 'Listo'
-}
-async function refreshMarbeteReadiness() {
-  const candidates = people.value.filter((person) => localMarbeteReady(person))
-  const candidateIds = new Set(candidates.map((person) => Number(person.id)))
-  for (const id of Object.keys(marbeteReadiness.value)) {
-    if (!candidateIds.has(Number(id))) delete marbeteReadiness.value[Number(id)]
-  }
-  await Promise.all(candidates.map(async (person) => {
-    const id = Number(person.id)
-    marbeteReadiness.value[id] = { ...(marbeteReadiness.value[id] || { ok: false, issues: [] }), pending: true }
-    try {
-      const result = await $fetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', { query: { id, format: 'readiness' } })
-      marbeteReadiness.value[id] = { ...result, pending: false }
-    } catch (err: unknown) {
-      const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-      marbeteReadiness.value[id] = { ok: false, issues: [friendlyReadinessMessage(failure?.data?.statusMessage || failure?.statusMessage || failure?.message)], pending: false }
-    }
-  }))
 }
 function edit(person: AuthorizedPerson) {
   error.value = ''
@@ -587,7 +535,6 @@ async function save(payload: Partial<AuthorizedPerson>) {
     editing.value = null
     notice.value = Number(saved.indice || 0) === 4 ? 'Pase Express guardado. Su actividad aparecerá en el historial cuando se use.' : 'Registro guardado. Tu red de confianza quedó actualizada.'
     await refresh()
-    await refreshMarbeteReadiness()
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
     editorError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar el registro.'
@@ -605,7 +552,6 @@ async function remove(id: number | null | undefined, options: { recapture?: bool
     const nextIndice = normalizeIndice(options.indice)
     annulTarget.value = null
     await refresh()
-    await refreshMarbeteReadiness()
     if (options.recapture) {
       openFreshCapture(nextIndice)
       notice.value = 'Registro anulado. Te dejo listo el espacio para capturar la información correcta.'

@@ -7,9 +7,9 @@
         :description="subtitle"
         :theme="theme"
         ambassador-variant="header"
-        :ambassador-title="marbeteReady ? 'Registro confiable' : 'Falta un paso'"
-        :ambassador-message="marbeteReady ? 'Este Husky Pass puede descargarse para uso familiar.' : marbeteMessage"
-        :ambassador-tone="marbeteReady ? 'success' : 'notice'"
+        ambassador-title="Registro confiable"
+        ambassador-message="Este Husky Pass puede descargarse para uso familiar."
+        ambassador-tone="success"
       >
         <template #actions>
           <NuxtLink class="btn btn-secondary" to="/familia/personas-autorizadas">Volver</NuxtLink>
@@ -36,14 +36,13 @@
           <div class="readiness">
             <span class="ok">Registro guardado</span>
             <span :class="{ ok: Boolean(primaryChild) }">{{ primaryChild ? studentLine : 'Alumno pendiente' }}</span>
-            <span :class="{ ok: marbeteReady }">{{ marbeteMessage }}</span>
+            <span class="ok">Husky Pass listo</span>
           </div>
 
           <div class="action-grid">
-            <a v-if="marbeteReady" class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-husky-pass">
+            <a class="btn btn-primary pa-primary" :href="`/api/personas-autorizadas/marbete?id=${person.id}&download=1`" data-diagnostic-link="descargar-husky-pass">
               Descargar Husky Pass
             </a>
-            <button v-else class="btn btn-secondary" type="button" disabled>{{ marbeteMessage }}</button>
             <NuxtLink class="btn btn-secondary" :to="`/familia/personas-autorizadas/${person.id}/marbete`" data-diagnostic-link="previsualizar-husky-pass">
               Vista previa
             </NuxtLink>
@@ -58,8 +57,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useFetch, useRoute } from 'nuxt/app'
-import type { AuthorizedChild, MarbeteReadinessResponse } from '~/types/daycare'
+import { useRoute } from 'nuxt/app'
+import type { AuthorizedChild } from '~/types/daycare'
 import { authorizedPersonLabel, normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { usePersonasFamilyPeople, usePersonasFamilyTheme, useResolvedPersonasTheme } from '~/composables/usePersonasTheme'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
@@ -70,11 +69,6 @@ definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] }
 const route = useRoute()
 const familyTheme = usePersonasFamilyTheme({ key: `pa-detail-${route.params.id}` })
 const { data, pending, error: loadError } = usePersonasFamilyPeople()
-const { data: readiness, pending: readinessPending, error: readinessError } = useFetch<MarbeteReadinessResponse>('/api/personas-autorizadas/marbete', {
-  key: `pa-detail-marbete-readiness-${route.params.id}`,
-  query: { id: route.params.id, format: 'readiness' },
-  timeout: 20000
-})
 const person = computed(() => (data.value || []).find((item) => String(item.id) === String(route.params.id)))
 const primaryChild = computed<AuthorizedChild | null>(() => person.value?.children?.[0] || null)
 const { theme, themeVars } = useResolvedPersonasTheme(() => ({
@@ -95,12 +89,6 @@ const studentLine = computed(() => {
   const child = primaryChild.value
   if (!child) return ''
   return [displayMatricula(child.matricula), child.plantel, child.nivelEdu, child.grado, child.grupo].filter(Boolean).join(' / ')
-})
-const marbeteReady = computed(() => Boolean(readiness.value?.ok))
-const marbeteMessage = computed(() => {
-  if (readinessPending.value) return 'Validando Husky Pass'
-  if (readinessError.value) return 'No fue posible validar el Husky Pass'
-  return readiness.value?.ok ? 'Husky Pass listo' : readiness.value?.issues?.[0] || 'Husky Pass no disponible'
 })
 </script>
 

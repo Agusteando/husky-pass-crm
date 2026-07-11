@@ -1,1 +1,1 @@
-Rediseña la administración de guardería con una experiencia visual premium
+Elimina bloqueos de descarga y garantiza la generación del Husky Pass
