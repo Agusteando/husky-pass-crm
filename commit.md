@@ -1,1 +1,1 @@
-Elimina bloqueos de descarga y garantiza la generación del Husky Pass
+Restaura los marbetes SVG predeterminados y agrega control de personalizados

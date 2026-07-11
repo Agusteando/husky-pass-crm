@@ -7,11 +7,9 @@ import { getSuperAdminPrintableAuthorizedPersona } from '~/server/data/mysqlPers
 import { DEV_HUSKY_PASS_VARIANTS, buildDevPrintableAuthorizedPerson } from '~/server/utils/devHuskyPassFixtures'
 import {
   buildMarbeteRenderValues,
-  listMarbeteTemplates,
   marbeteDownloadName,
-  readMarbeteTemplateSvg,
   renderMarbeteSvg,
-  selectMarbeteTemplate,
+  resolveEffectiveMarbeteTemplateSvg,
   validateMarbeteRequirements
 } from '~/server/utils/marbeteTemplates'
 import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
@@ -23,9 +21,6 @@ const schema = z.object({
   format: z.enum(['pdf', 'svg-preview', 'readiness', 'diagnostics']).optional().default('pdf')
 })
 
-function firstIssue(issues: string[]) {
-  return issues[0] || 'Completa los datos solicitados para generar el Husky Pass.'
-}
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
@@ -39,19 +34,15 @@ export default defineEventHandler(async (event) => {
     : await getSuperAdminPrintableAuthorizedPersona(query.id)
   if (!data) throw publicError(404, 'Persona autorizada no encontrada.')
 
-  const templates = await listMarbeteTemplates()
-  const template = selectMarbeteTemplate(templates, {
+  const { template, templateSvg } = await resolveEffectiveMarbeteTemplateSvg({
     matricula: data.matricula,
     plantel: data.plantel,
     nivelEdu: data.nivelEdu,
     cicloEscolar: data.cicloEscolar
   })
-  if (!template) throw publicError(503, 'El Husky Pass no esta disponible para este alumno.')
-
-  const templateSvg = await readMarbeteTemplateSvg(template)
   const renderedSvg = renderMarbeteSvg(templateSvg, data, origin, template.cicloEscolar)
   const renderValues = buildMarbeteRenderValues(data, origin, template.cicloEscolar)
-  const pdfInput = { templateSvg, renderedSvg, values: renderValues.values, origin }
+  const pdfInput = { templateSvg, renderedSvg, values: renderValues.values, origin, tolerateAssetFailures: true }
   const readiness = validateMarbeteRequirements(templateSvg, data, origin, template.cicloEscolar)
   const downloadName = marbeteDownloadName(data, template)
 
@@ -89,9 +80,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (!readiness.ok) {
-    throw publicError(422, firstIssue(readiness.issues))
-  }
 
   if (query.format === 'svg-preview') {
     setHeader(event, 'Content-Type', 'image/svg+xml; charset=utf-8')
@@ -101,7 +89,6 @@ export default defineEventHandler(async (event) => {
     return renderedSvg
   }
 
-  await assertMarbetePdfAssets(pdfInput)
   const pdf = await renderMarbetePdf(pdfInput)
   setHeader(event, 'Content-Type', 'application/pdf')
   setHeader(event, 'Cache-Control', 'private, no-store')

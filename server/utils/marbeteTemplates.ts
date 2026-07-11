@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
-import type { MarbeteTemplateMeta, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteTemplateMeta, MarbeteTemplateSettings, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
 import { allPersonasThemes, normalizeNivel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { displayMatricula } from '~/utils/matricula'
@@ -13,9 +13,12 @@ import { publicError } from '~/server/utils/httpError'
 import QRCode from 'qrcode'
 import { uploadToExternalService } from '~/server/utils/externalUpload'
 import { compileMarbeteVisualSvg, normalizeMarbeteVisualDesign, renderMarbeteVisualValues } from '~/utils/marbeteDesigner'
+import { readMarbeteTemplateSettings } from '~/server/utils/marbeteSettings'
 
-const TEMPLATE_DIR = runtimeDataDir('marbete-templates')
-const TEMPLATE_INDEX = join(TEMPLATE_DIR, 'templates.json')
+const LEGACY_TEMPLATE_DIR = runtimeDataDir('marbete-templates')
+const TEMPLATE_STATE_DIR = runtimeDataDir('marbete-template-state')
+const TEMPLATE_INDEX = join(TEMPLATE_STATE_DIR, 'custom-templates.json')
+const LEGACY_TEMPLATE_INDEX = join(LEGACY_TEMPLATE_DIR, 'templates.json')
 const VALID_THEME_KEYS = new Set<PersonasThemeKey>(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis'])
 
 export interface MarbeteRenderValues {
@@ -66,7 +69,7 @@ function normalizeTemplatePlanteles(values?: unknown[] | null): string[] {
   return planteles
 }
 
-function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMeta | null {
+function normalizeTemplate(row: Partial<MarbeteTemplateMeta>, source: 'bundled-svg' | 'custom' = 'custom'): MarbeteTemplateMeta | null {
   if (!row.id) return null
   if (!VALID_THEME_KEYS.has(row.themeKey as PersonasThemeKey)) return null
   const themeKey = row.themeKey as PersonasThemeKey
@@ -91,17 +94,21 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>): MarbeteTemplateMe
     basedOnId: row.basedOnId ? String(row.basedOnId) : undefined,
     publishedAt: row.publishedAt ? String(row.publishedAt) : undefined,
     createdAt: row.createdAt || new Date().toISOString(),
-    updatedAt: row.updatedAt || new Date().toISOString()
+    updatedAt: row.updatedAt || new Date().toISOString(),
+    source
   }
 }
 
 async function ensureTemplateDir() {
-  await mkdir(TEMPLATE_DIR, { recursive: true })
+  await mkdir(TEMPLATE_STATE_DIR, { recursive: true })
 }
 
 async function writeTemplateIndex(templates: MarbeteTemplateMeta[]) {
   await ensureTemplateDir()
-  await writeFile(TEMPLATE_INDEX, `${JSON.stringify(templates, null, 2)}\n`, 'utf8')
+  const customTemplates = templates
+    .filter((template) => template.source !== 'bundled-svg')
+    .map(({ source: _source, ...template }) => template)
+  await writeFile(TEMPLATE_INDEX, `${JSON.stringify(customTemplates, null, 2)}\n`, 'utf8')
 }
 
 async function readBundledTemplateIndex() {
@@ -121,20 +128,44 @@ async function readBundledTemplateSvg(filename: string) {
   return String(raw)
 }
 
-export async function listMarbeteTemplates() {
-  await ensureTemplateDir()
+export async function listBundledMarbeteTemplates() {
+  const parsed = await readBundledTemplateIndex()
+  return parsed
+    .map((row) => normalizeTemplate({ ...row, mode: 'legacy-svg', status: 'published', isDefault: true }, 'bundled-svg'))
+    .filter(Boolean) as MarbeteTemplateMeta[]
+}
+
+async function readCustomTemplateRows() {
   try {
-    const raw = await readFile(TEMPLATE_INDEX, 'utf8')
-    const parsed = JSON.parse(raw) as Partial<MarbeteTemplateMeta>[]
-    return parsed.map(normalizeTemplate).filter(Boolean) as MarbeteTemplateMeta[]
-  } catch (error) {
-    const parsed = await readBundledTemplateIndex()
-    const templates = parsed.map(normalizeTemplate).filter(Boolean) as MarbeteTemplateMeta[]
-    if (!templates.length) {
-      logPersonasWarning('marbete-template-index-missing', { message: error instanceof Error ? error.message : String(error) })
+    return JSON.parse(await readFile(TEMPLATE_INDEX, 'utf8')) as Partial<MarbeteTemplateMeta>[]
+  } catch {
+    try {
+      return JSON.parse(await readFile(LEGACY_TEMPLATE_INDEX, 'utf8')) as Partial<MarbeteTemplateMeta>[]
+    } catch {
+      return []
     }
-    return templates
   }
+}
+
+export async function listCustomMarbeteTemplates() {
+  await ensureTemplateDir()
+  const parsed = await readCustomTemplateRows()
+  const bundledIds = new Set((await listBundledMarbeteTemplates()).map((template) => template.id))
+  return parsed
+    .filter((row) => row.id && !bundledIds.has(String(row.id)))
+    .map((row) => normalizeTemplate(row, 'custom'))
+    .filter(Boolean) as MarbeteTemplateMeta[]
+}
+
+export async function listMarbeteTemplates() {
+  const [bundled, custom] = await Promise.all([
+    listBundledMarbeteTemplates(),
+    listCustomMarbeteTemplates()
+  ])
+  if (!bundled.length) {
+    logPersonasWarning('marbete-template-index-missing', { message: 'No bundled SVG templates were found.' })
+  }
+  return [...bundled, ...custom]
 }
 
 export function marbeteTemplateThemes() {
@@ -146,7 +177,9 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
     return compileMarbeteVisualSvg(normalizeMarbeteVisualDesign(template.visualDesign, template.themeKey), { mode: 'print' })
   }
   let svg: string
-  if (template.url) {
+  if (template.source === 'bundled-svg') {
+    svg = await readBundledTemplateSvg(template.filename)
+  } else if (template.url) {
     try {
       const response = await fetch(template.url, { signal: AbortSignal.timeout(30000) })
       if (!response.ok) throw new Error(`Upload service responded ${response.status}`)
@@ -156,7 +189,7 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
     }
   } else {
     try {
-      svg = await readFile(join(TEMPLATE_DIR, template.filename), 'utf8')
+      svg = await readFile(join(LEGACY_TEMPLATE_DIR, template.filename), 'utf8')
     } catch {
       svg = await readBundledTemplateSvg(template.filename)
     }
@@ -166,14 +199,21 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   return svg
 }
 
-export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: { matricula?: string | null; plantel?: string | null; nivelEdu?: string | null; themeKey?: string | null; cicloEscolar?: string | null }) {
+export type MarbeteTemplateSelectionInput = {
+  matricula?: string | null
+  plantel?: string | null
+  nivelEdu?: string | null
+  themeKey?: string | null
+  cicloEscolar?: string | null
+}
+
+function selectFromPool(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
   const theme = resolvePersonasTheme(input)
   const plantel = normalizeSchoolPlantel(input.matricula) || normalizeSchoolPlantel(input.plantel) || ''
   const nivel = normalizeNivel(input.nivelEdu)
   const ciclo = normalizeSchoolCycle(input.cicloEscolar)
-  const published = templates.filter((template) => template.status !== 'draft')
-  const sameCycle = ciclo ? published.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo) : []
-  const pool = (sameCycle.length ? sameCycle : published).sort((left, right) => {
+  const sameCycle = ciclo ? templates.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo) : []
+  const pool = (sameCycle.length ? sameCycle : templates).sort((left, right) => {
     const active = Number(Boolean(right.isDefault)) - Number(Boolean(left.isDefault))
     if (active) return active
     return String(right.updatedAt || '').localeCompare(String(left.updatedAt || ''))
@@ -191,6 +231,73 @@ export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: {
   throw publicError(422, `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`)
 }
 
+export function selectBundledMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
+  const bundled = templates.filter((template) => template.source === 'bundled-svg')
+  return selectFromPool(bundled, input)
+}
+
+export function selectCustomMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
+  const custom = templates.filter((template) => template.source === 'custom' && template.status !== 'draft' && template.isDefault)
+  if (!custom.length) return null
+  try {
+    return selectFromPool(custom, input)
+  } catch {
+    return null
+  }
+}
+
+export function selectEffectiveMarbeteTemplate(
+  templates: MarbeteTemplateMeta[],
+  settings: MarbeteTemplateSettings,
+  input: MarbeteTemplateSelectionInput
+) {
+  if (settings.customTemplatesEnabled) {
+    const custom = selectCustomMarbeteTemplate(templates, input)
+    if (custom) return custom
+  }
+  return selectBundledMarbeteTemplate(templates, input)
+}
+
+export function selectMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
+  return selectBundledMarbeteTemplate(templates, input)
+}
+
+export async function resolveEffectiveMarbeteTemplate(input: MarbeteTemplateSelectionInput) {
+  const [templates, settings] = await Promise.all([
+    listMarbeteTemplates(),
+    readMarbeteTemplateSettings()
+  ])
+  return {
+    template: selectEffectiveMarbeteTemplate(templates, settings, input),
+    templates,
+    settings
+  }
+}
+
+export async function resolveEffectiveMarbeteTemplateSvg(input: MarbeteTemplateSelectionInput) {
+  const [templates, settings] = await Promise.all([
+    listMarbeteTemplates(),
+    readMarbeteTemplateSettings()
+  ])
+
+  if (settings.customTemplatesEnabled) {
+    const custom = selectCustomMarbeteTemplate(templates, input)
+    if (custom) {
+      try {
+        return { template: custom, templateSvg: await readMarbeteTemplateSvg(custom), settings }
+      } catch (error) {
+        logPersonasWarning('marbete-custom-template-fallback', {
+          templateId: custom.id,
+          message: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+  }
+
+  const bundled = selectBundledMarbeteTemplate(templates, input)
+  return { template: bundled, templateSvg: await readMarbeteTemplateSvg(bundled), settings }
+}
+
 export async function saveMarbeteTemplate(input: {
   id?: string | null
   name: string
@@ -204,7 +311,7 @@ export async function saveMarbeteTemplate(input: {
     throw publicError(400, 'Tema de plantilla invalido.')
   }
 
-  const templates = await listMarbeteTemplates()
+  const templates = await listCustomMarbeteTemplates()
   const existingIndex = input.id ? templates.findIndex((template) => template.id === input.id) : -1
   const now = new Date().toISOString()
   const baseId = input.id || safeId(input.name || `${input.themeKey}-${input.nivel}`) || `template-${Date.now()}`
@@ -254,7 +361,8 @@ export async function saveMarbeteTemplate(input: {
     basedOnId: existing?.basedOnId,
     publishedAt: existing?.publishedAt,
     createdAt: existing?.createdAt || now,
-    updatedAt: now
+    updatedAt: now,
+    source: 'custom'
   }
 
   if (existingIndex >= 0) templates.splice(existingIndex, 1, next)
@@ -277,7 +385,7 @@ export async function saveVisualMarbeteTemplate(input: {
   const cicloEscolar = normalizeSchoolCycle(input.cicloEscolar)
   if (!cicloEscolar) throw publicError(400, 'Usa un ciclo escolar válido, por ejemplo 2026-2027.')
 
-  const templates = await listMarbeteTemplates()
+  const templates = await listCustomMarbeteTemplates()
   const existingIndex = input.id ? templates.findIndex((template) => template.id === input.id) : -1
   const existing = existingIndex >= 0 ? templates[existingIndex] : null
   if (existing?.status === 'published') {
@@ -312,7 +420,8 @@ export async function saveVisualMarbeteTemplate(input: {
     visualDesign,
     basedOnId: existing?.basedOnId,
     createdAt: existing?.createdAt || now,
-    updatedAt: now
+    updatedAt: now,
+    source: 'custom'
   }
 
   if (existingIndex >= 0) templates.splice(existingIndex, 1, next)
@@ -326,10 +435,13 @@ export async function applyMarbeteTemplateAction(input: {
   action: 'duplicate' | 'publish' | 'activate'
   cicloEscolar?: string | null
 }) {
-  const templates = await listMarbeteTemplates()
-  const index = templates.findIndex((template) => template.id === input.id)
-  if (index < 0) throw publicError(404, 'Diseño de marbete no encontrado.')
-  const current = templates[index]
+  const [allTemplates, customTemplates] = await Promise.all([
+    listMarbeteTemplates(),
+    listCustomMarbeteTemplates()
+  ])
+  const current = allTemplates.find((template) => template.id === input.id)
+  if (!current) throw publicError(404, 'Diseño de marbete no encontrado.')
+  const index = customTemplates.findIndex((template) => template.id === input.id)
   const now = new Date().toISOString()
 
   if (input.action === 'duplicate') {
@@ -347,10 +459,11 @@ export async function applyMarbeteTemplateAction(input: {
       publishedAt: undefined,
       visualDesign: current.visualDesign ? normalizeMarbeteVisualDesign(JSON.parse(JSON.stringify(current.visualDesign)), current.themeKey) : undefined,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      source: 'custom'
     }
-    templates.push(duplicate)
-    await writeTemplateIndex(templates)
+    customTemplates.push(duplicate)
+    await writeTemplateIndex(customTemplates)
     return duplicate
   }
 
@@ -366,14 +479,16 @@ export async function applyMarbeteTemplateAction(input: {
       if (missing.length) throw publicError(422, 'Muestra foto, QR, nombre, parentesco y ciclo escolar antes de publicar.')
     }
     const published: MarbeteTemplateMeta = { ...current, status: 'published', publishedAt: now, updatedAt: now, isDefault: false }
-    templates.splice(index, 1, published)
-    await writeTemplateIndex(templates)
+    if (index < 0) throw publicError(409, 'La plantilla SVG institucional no se publica; duplícala para crear una personalizada.')
+    customTemplates.splice(index, 1, { ...published, source: 'custom' })
+    await writeTemplateIndex(customTemplates)
     return published
   }
 
   if (current.status !== 'published') throw publicError(409, 'Publica el diseño antes de activarlo.')
   const targetNivel = normalizeNivel(current.nivel)
-  const activated = templates.map((template) => {
+  if (current.source === 'bundled-svg' || index < 0) throw publicError(409, 'La plantilla SVG institucional ya es la base predeterminada.')
+  const activated = customTemplates.map((template) => {
     if (template.id === current.id) return { ...template, isDefault: true, updatedAt: now }
     if (template.status !== 'draft' && template.themeKey === current.themeKey && normalizeNivel(template.nivel) === targetNivel && template.isDefault) {
       return { ...template, isDefault: false, updatedAt: now }

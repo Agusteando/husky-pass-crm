@@ -8,7 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Cuentas</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Plantillas</NuxtLink>
+        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Marbetes</NuxtLink>
       </div>
     </header>
 

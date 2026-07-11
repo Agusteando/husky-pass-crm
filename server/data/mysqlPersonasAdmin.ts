@@ -2,7 +2,8 @@ import type { RowDataPacket } from 'mysql2/promise'
 import type { PersonasReadinessIssue, PersonasReadinessResponse, PersonasReadinessRow, PrintableAuthorizedPerson } from '~/types/daycare'
 import type { SuperAdminPassSearchResponse } from '~/types/superadmin'
 import { legacyOne, legacyQuery } from '~/server/utils/mysql'
-import { listMarbeteTemplates, readMarbeteTemplateSvg, selectMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
+import { listMarbeteTemplates, readMarbeteTemplateSvg, selectEffectiveMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
+import { readMarbeteTemplateSettings } from '~/server/utils/marbeteSettings'
 import { readLastAccessActions } from '~/server/utils/personasConfig'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeMatricula } from '~/utils/matricula'
@@ -112,10 +113,11 @@ function unavailableTemplateMessage(error: unknown) {
 
 function selectTemplateOrIssue(
   templates: Awaited<ReturnType<typeof listMarbeteTemplates>>,
-  input: Parameters<typeof selectMarbeteTemplate>[1]
+  settings: Awaited<ReturnType<typeof readMarbeteTemplateSettings>>,
+  input: Parameters<typeof selectEffectiveMarbeteTemplate>[2]
 ) {
   try {
-    return { template: selectMarbeteTemplate(templates, input), templateIssue: '' }
+    return { template: selectEffectiveMarbeteTemplate(templates, settings, input), templateIssue: '' }
   } catch (error) {
     return { template: null, templateIssue: unavailableTemplateMessage(error) }
   }
@@ -188,7 +190,10 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
      LIMIT ${queryLimit}`
   )
 
-  const templates = await listMarbeteTemplates()
+  const [templates, templateSettings] = await Promise.all([
+    listMarbeteTemplates(),
+    readMarbeteTemplateSettings()
+  ])
   const lastAccessActions = await readLastAccessActions()
   const mapped = rows.map((row) => {
     const studentName = compactName(row.matriculaNombre || row.nombreA, row.matriculaPaterno || row.paternoA, row.matriculaMaterno || row.maternoA)
@@ -198,7 +203,7 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     const plantel = derivedPlantel(row)
     const matricula = normalizeMatricula(row.username)
     const theme = resolvePersonasTheme({ matricula, plantel, nivelEdu: nivel, campus: row.childCampus || row.campus })
-    const { template, templateIssue } = selectTemplateOrIssue(templates, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
+    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
     const hasStudentData = Boolean(studentName && nivel && grado && grupo && matricula)
     const hasParentAccess = Boolean(clean(row.email) || clean(row.username))
     const authorizedCount = Number(row.authorizedCount || 0)
@@ -421,7 +426,10 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
      LIMIT ${queryLimit}`,
     params
   )
-  const templates = await listMarbeteTemplates()
+  const [templates, templateSettings] = await Promise.all([
+    listMarbeteTemplates(),
+    readMarbeteTemplateSettings()
+  ])
   const mapped = await Promise.all(rows.map(async (row) => {
     const printable = adminPassPrintable(row)
     const theme = resolvePersonasTheme({
@@ -430,7 +438,7 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
       nivelEdu: printable.nivelEdu,
       campus: row.childCampus || row.campus
     })
-    const { template, templateIssue } = selectTemplateOrIssue(templates, {
+    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, {
       matricula: printable.matricula,
       plantel: printable.plantel,
       nivelEdu: printable.nivelEdu,

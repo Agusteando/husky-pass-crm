@@ -8,7 +8,7 @@
       </div>
       <div class="head-actions">
         <NuxtLink class="btn btn-secondary" to="/admin/superadmin/personas-autorizadas">Ver Husky Pass</NuxtLink>
-        <button class="btn btn-primary" type="button" data-diagnostic-action="nuevo-marbete" @click="startChooseMode">Nuevo diseño</button>
+        <button class="btn btn-primary" type="button" data-diagnostic-action="nuevo-marbete" @click="startChooseMode">Nuevo personalizado</button>
       </div>
     </header>
 
@@ -16,6 +16,29 @@
       <article><span>1</span><div><strong>Prepara</strong><small>Elige nivel, ciclo y fondo.</small></div></article>
       <article><span>2</span><div><strong>Ajusta y revisa</strong><small>Mueve solo el contenido real del marbete.</small></div></article>
       <article><span>3</span><div><strong>Publica y activa</strong><small>La versión anterior sigue disponible hasta el cambio.</small></div></article>
+    </section>
+
+    <section class="template-policy card" :data-custom-enabled="customTemplatesEnabled">
+      <span class="policy-badge" aria-hidden="true">SVG</span>
+      <div class="policy-copy">
+        <p class="eyebrow">Configuración de producción</p>
+        <h2>Marbetes institucionales por defecto</h2>
+        <p>Guardería, preescolar, primaria y secundaria se generan desde los SVG incluidos en Husky Pass. Los diseños personalizados solo sustituyen esa base cuando Super Admin los habilita.</p>
+        <div class="policy-status">
+          <span class="base">Base activa · SVG institucional</span>
+          <span :class="customTemplatesEnabled ? 'enabled' : 'disabled'">Personalizados · {{ customTemplatesEnabled ? 'habilitados' : 'deshabilitados' }}</span>
+        </div>
+      </div>
+      <div class="policy-control">
+        <label class="policy-switch">
+          <input v-model="customTemplatesEnabled" type="checkbox" :disabled="settingsSaving" />
+          <span aria-hidden="true"></span>
+          <strong>Permitir personalizados</strong>
+        </label>
+        <button class="btn btn-primary" type="button" :disabled="!settingsDirty || settingsSaving" data-diagnostic-action="guardar-config-marbete" @click="saveSettings">
+          {{ settingsSaving ? 'Guardando...' : settingsDirty ? 'Guardar configuración' : 'Configuración guardada' }}
+        </button>
+      </div>
     </section>
 
     <p v-if="loadError" class="alert" data-state="error">No fue posible cargar los diseños. Recarga la página para volver a intentar.</p>
@@ -51,10 +74,11 @@
               <small>{{ template.nivel }} · {{ template.cicloEscolar || 'Ciclo heredado' }}</small>
               <span class="version-meta">
                 <em :class="`status-${template.status || 'published'}`">{{ statusLabel(template) }}</em>
-                <em>{{ template.mode === 'visual' ? 'Visual' : 'SVG completo' }}</em>
+                <em>{{ template.source === 'bundled-svg' ? 'SVG institucional' : template.mode === 'visual' ? 'Visual personalizado' : 'SVG personalizado' }}</em>
               </span>
             </span>
-            <span v-if="template.isDefault" class="active-chip">Activo</span>
+            <span v-if="template.source === 'bundled-svg'" class="active-chip base">Base</span>
+            <span v-else-if="template.isDefault" class="active-chip" :class="{ paused: !customTemplatesEnabled }">{{ customTemplatesEnabled ? 'En uso' : 'Pausado' }}</span>
           </button>
           <EmptyState v-if="!filteredTemplates.length" title="Sin versiones" description="Crea el primer diseño para este nivel." />
         </div>
@@ -85,29 +109,31 @@
         <template v-else-if="editing">
           <section class="version-banner" :class="`tone-${form.status}`">
             <div>
-              <span>{{ form.status === 'draft' ? 'Borrador protegido' : form.isDefault ? 'Publicado y activo' : 'Publicado' }}</span>
+              <span>{{ bannerStatus }}</span>
               <strong>{{ form.name || 'Nuevo diseño' }}</strong>
-              <small v-if="form.status === 'draft' && activeReplacement">Las familias siguen usando “{{ activeReplacement.name }}” hasta que publiques y actives este reemplazo.</small>
-              <small v-else-if="form.status === 'draft'">Este borrador todavía no es visible para las familias.</small>
-              <small v-else>{{ form.isDefault ? 'Esta versión resuelve actualmente los Husky Pass del nivel.' : 'Está publicada, pero no seleccionada como versión activa.' }}</small>
+              <small v-if="isBundledTemplate">Este SVG institucional es la base estable. Siempre se usa cuando los personalizados están deshabilitados o no existe uno activo para el nivel.</small>
+              <small v-else-if="form.status === 'draft' && activeReplacement">La base SVG y “{{ activeReplacement.name }}” permanecen intactos mientras preparas este borrador.</small>
+              <small v-else-if="form.status === 'draft'">Este borrador no es visible para las familias.</small>
+              <small v-else-if="form.isDefault && !customTemplatesEnabled">Está seleccionado como personalizado activo, pero la configuración global mantiene los SVG institucionales.</small>
+              <small v-else>{{ form.isDefault ? 'Este personalizado sustituye al SVG institucional para el nivel.' : 'Está publicado, pero no seleccionado como personalizado activo.' }}</small>
             </div>
             <div class="banner-actions">
               <a v-if="form.id" class="btn btn-secondary" :href="previewSvgUrl" target="_blank" rel="noopener">Vista SVG</a>
               <a v-if="form.id" class="btn btn-secondary" :href="previewPdfUrl" target="_blank" rel="noopener">Probar PDF</a>
-              <button v-if="form.status === 'draft'" class="btn btn-primary" type="button" :disabled="saving" @click="saveTemplate">{{ saving ? 'Guardando...' : 'Guardar borrador' }}</button>
-              <button v-if="form.id && form.status === 'draft'" class="btn btn-primary publish" type="button" :disabled="acting" @click="publishTemplate">Publicar</button>
-              <button v-if="form.id && form.status === 'published' && !form.isDefault" class="btn btn-primary publish" type="button" :disabled="acting" @click="activateTemplate">Activar para familias</button>
+              <button v-if="!isBundledTemplate && form.status === 'draft'" class="btn btn-primary" type="button" :disabled="saving" @click="saveTemplate">{{ saving ? 'Guardando...' : 'Guardar borrador' }}</button>
+              <button v-if="!isBundledTemplate && form.id && form.status === 'draft'" class="btn btn-primary publish" type="button" :disabled="acting" @click="publishTemplate">Publicar</button>
+              <button v-if="!isBundledTemplate && form.id && form.status === 'published' && !form.isDefault" class="btn btn-primary publish" type="button" :disabled="acting" @click="activateTemplate">Seleccionar personalizado</button>
             </div>
           </section>
 
           <section v-if="form.status === 'published'" class="published-view card">
             <div class="section-title">
               <div><p class="eyebrow">Vista exacta</p><h2>{{ form.nivel }} · {{ form.cicloEscolar || 'Ciclo heredado' }}</h2></div>
-              <span class="mode-badge">{{ form.mode === 'visual' ? 'Editor visual' : 'SVG completo' }}</span>
+              <span class="mode-badge">{{ isBundledTemplate ? 'Base SVG institucional' : form.mode === 'visual' ? 'Editor visual' : 'SVG personalizado' }}</span>
             </div>
             <iframe :src="previewSvgUrl" title="Vista del diseño publicado"></iframe>
             <div class="duplicate-panel">
-              <div><strong>¿Preparar el siguiente ciclo?</strong><small>Se crea un borrador independiente. Esta versión seguirá publicada.</small></div>
+              <div><strong>¿Preparar el siguiente ciclo?</strong><small>Se crea un personalizado independiente. La base SVG seguirá disponible.</small></div>
               <label>Nuevo ciclo <input v-model="duplicateCycle" class="input" placeholder="2027-2028" /></label>
               <button class="btn btn-primary" type="button" :disabled="acting" @click="duplicateTemplate">Duplicar para nuevo ciclo</button>
             </div>
@@ -162,7 +188,7 @@
           </template>
         </template>
 
-        <EmptyState v-else title="Elige una versión" description="Selecciona un ciclo para revisar su estado, probar el PDF o preparar el reemplazo." />
+        <EmptyState v-else title="Elige una versión" description="Selecciona una base SVG o un personalizado para revisar su estado y probar el PDF." />
 
         <p v-if="actionError" class="alert action-message" data-state="error">{{ actionError }}</p>
         <p v-if="actionNotice" class="notice action-message">{{ actionNotice }}</p>
@@ -201,6 +227,9 @@ const selectedArtwork = ref<File | null>(null)
 const selectedLegacyFile = ref<File | null>(null)
 const legacyFileName = ref('')
 const duplicateCycle = ref('2027-2028')
+const customTemplatesEnabled = ref(false)
+const savedCustomTemplatesEnabled = ref(false)
+const settingsSaving = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive({
@@ -214,11 +243,21 @@ const form = reactive({
   status: 'draft' as MarbeteTemplateStatus,
   isDefault: false,
   filename: '',
+  source: 'custom' as 'bundled-svg' | 'custom',
   visualDesign: createDefaultMarbeteVisualDesign('preescolar') as MarbeteVisualDesign
 })
 
 const templates = computed(() => data.value?.templates || [])
 const themes = computed<PersonasTheme[]>(() => data.value?.themes || [])
+const settingsDirty = computed(() => customTemplatesEnabled.value !== savedCustomTemplatesEnabled.value)
+const isBundledTemplate = computed(() => form.source === 'bundled-svg')
+const bannerStatus = computed(() => {
+  if (isBundledTemplate.value) return 'Base SVG institucional'
+  if (form.status === 'draft') return 'Borrador personalizado'
+  if (form.isDefault && customTemplatesEnabled.value) return 'Personalizado activo'
+  if (form.isDefault) return 'Personalizado seleccionado · pausado'
+  return 'Personalizado publicado'
+})
 const selected = computed(() => templates.value.find((template) => template.id === selectedId.value) || null)
 const availableLevels = computed(() => Array.from(new Set(templates.value.map((item) => item.nivel).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')))
 const filteredTemplates = computed(() => templates.value
@@ -230,9 +269,15 @@ const filteredTemplates = computed(() => templates.value
     if (active) return active
     return String(right.cicloEscolar || '').localeCompare(String(left.cicloEscolar || ''))
   }))
-const activeReplacement = computed(() => templates.value.find((template) => template.isDefault && template.status !== 'draft' && template.themeKey === form.themeKey && template.nivel.toLowerCase() === form.nivel.toLowerCase()) || null)
+const activeReplacement = computed(() => templates.value.find((template) => template.source === 'custom' && template.isDefault && template.status !== 'draft' && template.themeKey === form.themeKey && template.nivel.toLowerCase() === form.nivel.toLowerCase()) || null)
 const previewSvgUrl = computed(() => form.id ? `/api/admin/marbete-templates/${encodeURIComponent(form.id)}/preview?format=svg-preview&surface=print&scenario=long-name` : '')
 const previewPdfUrl = computed(() => form.id ? `/api/admin/marbete-templates/${encodeURIComponent(form.id)}/preview?format=pdf&surface=print&scenario=long-name` : '')
+
+watch(() => data.value?.settings, (settings) => {
+  if (!settings || settingsDirty.value) return
+  customTemplatesEnabled.value = Boolean(settings.customTemplatesEnabled)
+  savedCustomTemplatesEnabled.value = Boolean(settings.customTemplatesEnabled)
+}, { immediate: true })
 
 watch(templates, (items) => {
   if (!items.length || selectedId.value || choosingMode.value || editing.value) return
@@ -252,6 +297,7 @@ function loadForm(template: MarbeteTemplateMeta) {
     status: template.status || 'published',
     isDefault: Boolean(template.isDefault),
     filename: template.filename,
+    source: template.source || 'custom',
     visualDesign: normalizeMarbeteVisualDesign(template.visualDesign, template.themeKey)
   })
   duplicateCycle.value = nextCycle(form.cicloEscolar)
@@ -290,6 +336,7 @@ function startCreate(mode: MarbeteTemplateMode) {
     status: 'draft',
     isDefault: false,
     filename: '',
+    source: 'custom',
     visualDesign: createDefaultMarbeteVisualDesign(themeKey)
   })
   choosingMode.value = false
@@ -376,12 +423,14 @@ async function runAction(action: 'duplicate' | 'publish' | 'activate', cicloEsco
 
 async function publishTemplate() {
   const saved = await runAction('publish')
-  if (saved) actionNotice.value = 'Versión publicada. La versión activa anterior sigue atendiendo a las familias hasta que decidas activarla.'
+  if (saved) actionNotice.value = 'Personalizado publicado. La base SVG seguirá atendiendo a las familias hasta que lo selecciones y habilites los personalizados.'
 }
 
 async function activateTemplate() {
   const saved = await runAction('activate')
-  if (saved) actionNotice.value = 'Diseño activado. Los nuevos Husky Pass de este nivel ya usan esta versión.'
+  if (saved) actionNotice.value = customTemplatesEnabled.value
+    ? 'Personalizado seleccionado. Los nuevos Husky Pass del nivel ya usan esta versión.'
+    : 'Personalizado seleccionado. Seguirá pausado hasta habilitar personalizados en la configuración global.'
 }
 
 async function duplicateTemplate() {
@@ -390,8 +439,34 @@ async function duplicateTemplate() {
 }
 
 function statusLabel(template: MarbeteTemplateMeta) {
+  if (template.source === 'bundled-svg') return 'Base SVG'
   if (template.status === 'draft') return 'Borrador'
-  return template.isDefault ? 'Publicado · activo' : 'Publicado'
+  if (template.isDefault) return customTemplatesEnabled.value ? 'Publicado · en uso' : 'Publicado · pausado'
+  return 'Publicado'
+}
+
+async function saveSettings() {
+  if (!settingsDirty.value) return
+  settingsSaving.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const settings = await $fetch<{ customTemplatesEnabled: boolean }>('/api/admin/marbete-templates/settings', {
+      method: 'POST',
+      body: { customTemplatesEnabled: customTemplatesEnabled.value }
+    })
+    customTemplatesEnabled.value = Boolean(settings.customTemplatesEnabled)
+    savedCustomTemplatesEnabled.value = Boolean(settings.customTemplatesEnabled)
+    await refresh()
+    actionNotice.value = settings.customTemplatesEnabled
+      ? 'Marbetes personalizados habilitados. Solo se usan los publicados y seleccionados para cada nivel.'
+      : 'Marbetes personalizados deshabilitados. Todos los Husky Pass vuelven a los SVG institucionales.'
+  } catch (error) {
+    customTemplatesEnabled.value = savedCustomTemplatesEnabled.value
+    actionError.value = errorMessage(error, 'No fue posible guardar la configuración de marbetes.')
+  } finally {
+    settingsSaving.value = false
+  }
 }
 
 function suggestedCycle() {
@@ -873,6 +948,148 @@ function errorMessage(error: unknown, fallback: string) {
   padding: 10px 12px;
 }
 
+.template-policy {
+  align-items: center;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(91, 139, 66, .14), transparent 18rem),
+    linear-gradient(135deg, #ffffff 0%, #f4f8f1 100%);
+  border: 1px solid #d7e4d1;
+  border-radius: 22px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(250px, auto);
+  padding: 18px 20px;
+}
+
+.policy-badge {
+  align-items: center;
+  background: #315f2d;
+  border-radius: 17px;
+  box-shadow: 0 12px 28px rgba(49, 95, 45, .18);
+  color: #fff;
+  display: flex;
+  font-size: .78rem;
+  font-weight: 900;
+  height: 58px;
+  justify-content: center;
+  letter-spacing: .08em;
+  width: 58px;
+}
+
+.policy-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.policy-copy h2,
+.policy-copy p {
+  margin: 0;
+}
+
+.policy-copy > p:last-of-type {
+  color: #657163;
+  line-height: 1.5;
+  max-width: 820px;
+}
+
+.policy-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+.policy-status span {
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.policy-status .base,
+.active-chip.base {
+  background: #e5f1df;
+  color: #315f2d;
+}
+
+.policy-status .enabled {
+  background: #e1f0f6;
+  color: #236481;
+}
+
+.policy-status .disabled,
+.active-chip.paused {
+  background: #f0f2f4;
+  color: #697482;
+}
+
+.policy-control {
+  align-items: stretch;
+  display: grid;
+  gap: 9px;
+  justify-items: stretch;
+}
+
+.policy-switch {
+  align-items: center;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid #d7e2d3;
+  border-radius: 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-height: 46px;
+  padding: 8px 11px;
+}
+
+.policy-switch input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.policy-switch > span {
+  background: #cbd2ce;
+  border-radius: 999px;
+  height: 24px;
+  position: relative;
+  transition: background .2s ease;
+  width: 42px;
+}
+
+.policy-switch > span::after {
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 7px rgba(31, 43, 36, .24);
+  content: '';
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform .2s ease;
+  width: 18px;
+}
+
+.policy-switch input:checked + span {
+  background: #3f7a36;
+}
+
+.policy-switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.policy-switch input:focus-visible + span {
+  outline: 3px solid rgba(44, 111, 150, .22);
+  outline-offset: 2px;
+}
+
+.policy-switch strong {
+  color: #344238;
+  font-size: .78rem;
+}
+
 .loading-card {
   color: #6c7a8c;
 }
@@ -888,6 +1105,15 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 @media (max-width: 900px) {
+  .template-policy {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .policy-control {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .studio-head,
   .studio-workspace {
     grid-template-columns: 1fr;
@@ -910,6 +1136,22 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 @media (max-width: 620px) {
+  .template-policy {
+    align-items: start;
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .policy-badge {
+    height: 46px;
+    width: 46px;
+  }
+
+  .policy-control {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
   .head-actions,
   .banner-actions,
   .draft-footer {

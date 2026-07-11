@@ -241,6 +241,8 @@ export interface PersonasTheme {
   wordmark?: string
 }
 
+export type MarbeteTemplateSource = 'bundled-svg' | 'custom'
+
 export interface MarbeteTemplateMeta {
   id: string
   name: string
@@ -259,6 +261,7 @@ export interface MarbeteTemplateMeta {
   publishedAt?: string
   createdAt?: string
   updatedAt?: string
+  source?: MarbeteTemplateSource
 }
 
 export type MarbeteTemplateMode = 'legacy-svg' | 'visual'
@@ -324,9 +327,16 @@ export interface MarbeteVisualDesign {
   showInstructions: boolean
 }
 
+export interface MarbeteTemplateSettings {
+  customTemplatesEnabled: boolean
+  updatedAt?: string
+  updatedBy?: string | null
+}
+
 export interface MarbeteTemplateListResponse {
   templates: MarbeteTemplateMeta[]
   themes: PersonasTheme[]
+  settings: MarbeteTemplateSettings
 }
 
 export interface RenderedMarbeteResponse {

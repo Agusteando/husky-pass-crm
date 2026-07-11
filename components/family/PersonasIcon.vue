@@ -89,6 +89,7 @@ const iconMap: Record<string, FunctionalComponent> = {
   handshake: Handshake,
   download: Download,
   marbete: BadgeCheck,
+  badge: BadgeCheck,
   check: Check,
   chevron: ChevronDown,
   more: EllipsisVertical,

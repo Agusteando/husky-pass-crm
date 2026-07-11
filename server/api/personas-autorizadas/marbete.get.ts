@@ -5,11 +5,9 @@ import { assertPersonasAutorizadasFamily } from '~/server/utils/authz'
 import { getCredentialAuthorizedPersona } from '~/server/data/mysqlDaycare'
 import {
   buildMarbeteRenderValues,
-  listMarbeteTemplates,
   marbeteDownloadName,
-  readMarbeteTemplateSvg,
   renderMarbeteSvgValues,
-  selectMarbeteTemplate
+  resolveEffectiveMarbeteTemplateSvg
 } from '~/server/utils/marbeteTemplates'
 import { renderMarbetePdf } from '~/server/utils/marbetePdf'
 import { withRequestBoundary } from '~/server/utils/logger'
@@ -55,15 +53,12 @@ function fallbackTemplate(data: PrintableAuthorizedPerson): { template: MarbeteT
 
 async function resolveTemplate(data: PrintableAuthorizedPerson) {
   try {
-    const templates = await listMarbeteTemplates()
-    const template = selectMarbeteTemplate(templates, {
+    return await resolveEffectiveMarbeteTemplateSvg({
       matricula: data.matricula,
       plantel: data.plantel,
       nivelEdu: data.nivelEdu,
       cicloEscolar: data.cicloEscolar
     })
-    const templateSvg = await readMarbeteTemplateSvg(template)
-    return { template, templateSvg }
   } catch {
     return fallbackTemplate(data)
   }

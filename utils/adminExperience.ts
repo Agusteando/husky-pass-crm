@@ -36,7 +36,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
     return {
       key: 'superAdmin',
       title: 'Super Admin',
-      subtitle: 'Usuarios y roles',
+      subtitle: 'Usuarios y configuración',
       context: '',
       homeTo
     }
@@ -78,6 +78,8 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
   if (admin.isSuperAdmin) {
     return [
       { key: 'usuarios', label: 'Usuarios', to: '/admin/superadmin', icon: 'people' },
+      { key: 'husky-pass', label: 'Husky Pass', shortLabel: 'Pases', to: '/admin/superadmin/personas-autorizadas', icon: 'badge' },
+      { key: 'marbetes', label: 'Marbetes', to: '/admin/superadmin/marbetes', icon: 'marbete' },
       { key: 'mkt', label: 'Mercadotecnia', shortLabel: 'MKT', to: '/mkt', icon: 'announcement' },
       { key: 'escolar', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
       { key: 'guarderia', label: 'Guardería', to: daycareRouteForUser(admin), icon: 'daycare' }
