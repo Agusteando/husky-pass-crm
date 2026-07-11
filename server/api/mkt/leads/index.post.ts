@@ -7,10 +7,6 @@ import { requireSession } from '~/server/utils/session'
 import { parseOrBadRequest } from '~/server/utils/validation'
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().default('')
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
-  const parsed = new Date(`${value}T12:00:00Z`)
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
-}, 'La fecha no es válida.')
 const schema = z.object({
   plantel: z.string().trim().min(2).max(20),
   campus: optionalText(100),
@@ -24,7 +20,7 @@ const schema = z.object({
   studentName: z.string().trim().min(2).max(255),
   level: z.string().trim().min(1).max(100),
   grade: optionalText(100),
-  birthDate: z.union([isoDate, z.literal('')]).optional().default(''),
+  birthDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).optional().default(''),
   enrolled: z.boolean().optional().default(false),
   initialNote: optionalText(4000)
 })

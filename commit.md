@@ -1,1 +1,1 @@
-feat: completa y eleva la experiencia de Mercadotecnia
+feat(marketing): integra la matrícula actual de Aurora

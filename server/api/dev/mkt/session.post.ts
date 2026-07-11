@@ -17,7 +17,7 @@ export default defineEventHandler((event) => {
     sala: null,
     roles: ['ROLE_MKT'],
     unidades: [],
-    plantel: [],
+    plantel: ['PREEM', 'PM', 'SM'],
     routes: [],
     productScopes: ['marketingAdmin'],
     scopes: {},
