@@ -122,13 +122,33 @@ function mimeFromContentType(contentType: string | null, url: string) {
   if (/\.png($|[?#])/i.test(url)) return 'image/png'
   if (/\.webp($|[?#])/i.test(url)) return 'image/webp'
   if (/\.svg($|[?#])/i.test(url)) return 'image/svg+xml'
-  return 'image/png'
+  return ''
+}
+
+function sniffImageMime(bytes: Buffer, declaredMime = '') {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return 'image/png'
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg'
+  }
+  if (bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return 'image/webp'
+  }
+  const textStart = bytes.subarray(0, Math.min(bytes.length, 512)).toString('utf8').trimStart()
+  if (/^(?:<\?xml[^>]*>\s*)?<svg\b/i.test(textStart)) return 'image/svg+xml'
+  return declaredMime
 }
 
 function assertRenderableImageMime(mime: string) {
   const normalized = mime === 'image/jpg' ? 'image/jpeg' : mime
   if (normalized.startsWith('image/')) return normalized
   throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'unsupported-image-mime', { mime })
+}
+
+function normalizeLoadedImage(bytes: Buffer, declaredMime: string, source: string): LoadedImage {
+  const mime = assertRenderableImageMime(sniffImageMime(bytes, declaredMime))
+  return { bytes, mime }
 }
 
 function isDataImage(value: string) {
@@ -143,7 +163,7 @@ function parseDataImage(value: string): LoadedImage | null {
   const bytes = match[2]
     ? Buffer.from(payload.replace(/\s/g, ''), 'base64')
     : Buffer.from(decodeURIComponent(payload), 'utf8')
-  return bytes.length ? { bytes, mime } : null
+  return bytes.length ? normalizeLoadedImage(bytes, mime, 'data-url') : null
 }
 
 function localPublicPathFromUrl(value: string, origin: string) {
@@ -177,7 +197,7 @@ async function loadLocalPublicImage(value: string, origin: string): Promise<Load
   if (!localPath || !existsSync(localPath)) return null
   const bytes = await readFile(localPath)
   if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { source: value, resolvedPath: localPath })
-  return { bytes, mime: assertRenderableImageMime(mimeFromContentType(null, localPath)) }
+  return normalizeLoadedImage(bytes, mimeFromContentType(null, localPath), localPath)
 }
 
 function absoluteSameOriginUrl(value: string, origin: string) {
@@ -225,14 +245,18 @@ async function loadImage(value: string, origin: string, key = 'image'): Promise<
   const bytes = Buffer.from(await response.arrayBuffer())
   if (!bytes.length) throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'image-empty', { key, url: publicDiagnosticUrl(fetchTarget) })
 
-  return {
-    bytes,
-    mime: assertRenderableImageMime(mimeFromContentType(response.headers.get('content-type'), fetchTarget))
-  }
+  return normalizeLoadedImage(bytes, mimeFromContentType(response.headers.get('content-type'), fetchTarget), fetchTarget)
 }
 
-async function inlineImage(url: string, origin = '') {
+async function inlineImage(url: string, origin = '', renderer: 'generic' | 'pdfkit' = 'generic') {
   const image = await loadImage(url, origin)
+  if (renderer === 'pdfkit' && !['image/jpeg', 'image/png', 'image/svg+xml'].includes(image.mime)) {
+    throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'unsupported-image-mime', {
+      mime: image.mime,
+      renderer,
+      url: publicDiagnosticUrl(url)
+    })
+  }
   return `data:${image.mime};base64,${image.bytes.toString('base64')}`
 }
 
@@ -245,16 +269,22 @@ function imageHrefMatches(svg: string) {
     })
 }
 
-async function inlineSvgImages(svg: string, origin = '', tolerateFailures = false) {
+async function inlineSvgImages(
+  svg: string,
+  origin = '',
+  tolerateFailures = false,
+  renderer: 'generic' | 'pdfkit' = 'generic'
+) {
   const matches = imageHrefMatches(svg)
   const replacements = await Promise.all(matches.map(async (match) => {
     try {
-      const inlined = await inlineImage(match[2], origin)
+      const inlined = await inlineImage(match[2], origin, renderer)
       return { from: match[0], to: `${match[1]}="${inlined}"` }
     } catch (error) {
       if (!tolerateFailures) throw error
       logPersonasWarning('marbete-pdf-image-fallback', {
         url: publicDiagnosticUrl(match[2]),
+        renderer,
         message: error instanceof Error ? error.message : String(error)
       })
       return { from: match[0], to: `${match[1]}="${TRANSPARENT_IMAGE_DATA_URL}"` }
@@ -594,7 +624,7 @@ async function registerPdfFont(
 }
 
 async function renderSvgToPdfKit(input: MarbetePdfInput) {
-  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin, input.tolerateAssetFailures)
+  const completeSvg = await inlineSvgImages(input.renderedSvg, input.origin, input.tolerateAssetFailures, 'pdfkit')
   if (/{{\s*[^}]+\s*}}/.test(completeSvg)) {
     throw diagnosticError(422, FRIENDLY_TEXT_MESSAGE, 'unresolved-svg-token', {
       tokens: Array.from(completeSvg.matchAll(/{{\s*([^}]+)\s*}}/g)).map((match) => match[1]).slice(0, 20)

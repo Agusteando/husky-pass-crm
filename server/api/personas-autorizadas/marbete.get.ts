@@ -7,13 +7,11 @@ import {
   buildMarbeteRenderValues,
   marbeteDownloadName,
   renderMarbeteSvgValues,
-  resolveEffectiveMarbeteTemplateSvg
+  resolveAuthorizedPersonMarbeteTemplateSvg
 } from '~/server/utils/marbeteTemplates'
 import { renderMarbetePdf } from '~/server/utils/marbetePdf'
 import { withRequestBoundary } from '~/server/utils/logger'
-import { compileMarbeteVisualSvg, createDefaultMarbeteVisualDesign } from '~/utils/marbeteDesigner'
-import { resolvePersonasTheme } from '~/utils/personasTheme'
-import type { MarbeteReadinessResponse, MarbeteTemplateMeta, PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteReadinessResponse } from '~/types/daycare'
 
 const schema = z.object({
   id: z.coerce.number().int().positive(),
@@ -21,47 +19,13 @@ const schema = z.object({
   format: z.enum(['', 'svg-preview', 'readiness']).optional().default('')
 })
 
-function fallbackTemplate(data: PrintableAuthorizedPerson): { template: MarbeteTemplateMeta; templateSvg: string } {
-  const theme = resolvePersonasTheme({
-    matricula: data.matricula || data.child?.matricula,
-    plantel: data.plantel || data.child?.plantel,
-    nivelEdu: data.nivelEdu || data.child?.nivelEdu,
-    campus: data.child?.campus
+async function resolveTemplate(data: Awaited<ReturnType<typeof getCredentialAuthorizedPersona>>) {
+  return resolveAuthorizedPersonMarbeteTemplateSvg({
+    matricula: data.matricula,
+    plantel: data.plantel,
+    nivelEdu: data.nivelEdu,
+    cicloEscolar: data.cicloEscolar
   })
-  const now = new Date().toISOString()
-  const template: MarbeteTemplateMeta = {
-    id: `${theme.key}-automatic`,
-    name: 'Husky Pass automático',
-    filename: '',
-    themeKey: theme.key,
-    nivel: String(data.nivelEdu || data.child?.nivelEdu || ''),
-    planteles: [],
-    color: theme.primary,
-    isDefault: true,
-    mode: 'visual',
-    status: 'published',
-    cicloEscolar: String(data.cicloEscolar || ''),
-    visualDesign: createDefaultMarbeteVisualDesign(theme.key),
-    createdAt: now,
-    updatedAt: now
-  }
-  return {
-    template,
-    templateSvg: compileMarbeteVisualSvg(template.visualDesign!, { mode: 'print' })
-  }
-}
-
-async function resolveTemplate(data: PrintableAuthorizedPerson) {
-  try {
-    return await resolveEffectiveMarbeteTemplateSvg({
-      matricula: data.matricula,
-      plantel: data.plantel,
-      nivelEdu: data.nivelEdu,
-      cicloEscolar: data.cicloEscolar
-    })
-  } catch {
-    return fallbackTemplate(data)
-  }
 }
 
 export default defineEventHandler(async (event) => {
@@ -101,6 +65,7 @@ export default defineEventHandler(async (event) => {
       setHeader(event, 'Cache-Control', 'private, no-store')
       setHeader(event, 'X-Husky-Marbete-Template', template.id)
       setHeader(event, 'X-Husky-Marbete-Theme', template.themeKey)
+      setHeader(event, 'X-Husky-Marbete-Source', template.source || 'bundled-svg')
       return svg
     }
 
@@ -110,6 +75,7 @@ export default defineEventHandler(async (event) => {
     setHeader(event, 'Cache-Control', 'private, no-store')
     setHeader(event, 'X-Husky-Marbete-Template', template.id)
     setHeader(event, 'X-Husky-Marbete-Theme', template.themeKey)
+    setHeader(event, 'X-Husky-Marbete-Source', template.source || 'bundled-svg')
     if (query.download === '1') {
       setHeader(event, 'Content-Disposition', `attachment; filename="${downloadName}"`)
     } else {

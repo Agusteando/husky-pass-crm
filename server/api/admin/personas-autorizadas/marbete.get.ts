@@ -9,7 +9,7 @@ import {
   buildMarbeteRenderValues,
   marbeteDownloadName,
   renderMarbeteSvg,
-  resolveEffectiveMarbeteTemplateSvg,
+  resolveAuthorizedPersonMarbeteTemplateSvg,
   validateMarbeteRequirements
 } from '~/server/utils/marbeteTemplates'
 import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     : await getSuperAdminPrintableAuthorizedPersona(query.id)
   if (!data) throw publicError(404, 'Persona autorizada no encontrada.')
 
-  const { template, templateSvg } = await resolveEffectiveMarbeteTemplateSvg({
+  const { template, templateSvg } = await resolveAuthorizedPersonMarbeteTemplateSvg({
     matricula: data.matricula,
     plantel: data.plantel,
     nivelEdu: data.nivelEdu,
@@ -86,6 +86,7 @@ export default defineEventHandler(async (event) => {
     setHeader(event, 'Cache-Control', 'private, no-store')
     setHeader(event, 'X-Husky-Marbete-Template', template.id)
     setHeader(event, 'X-Husky-Marbete-Theme', template.themeKey)
+    setHeader(event, 'X-Husky-Marbete-Source', template.source || 'bundled-svg')
     return renderedSvg
   }
 
@@ -94,6 +95,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'private, no-store')
   setHeader(event, 'X-Husky-Marbete-Template', template.id)
   setHeader(event, 'X-Husky-Marbete-Theme', template.themeKey)
+  setHeader(event, 'X-Husky-Marbete-Source', template.source || 'bundled-svg')
   setHeader(event, 'Content-Disposition', `${query.download === '1' ? 'attachment' : 'inline'}; filename="${downloadName}"`)
   return pdf
 })

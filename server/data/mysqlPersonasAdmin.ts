@@ -2,7 +2,7 @@ import type { RowDataPacket } from 'mysql2/promise'
 import type { PersonasReadinessIssue, PersonasReadinessResponse, PersonasReadinessRow, PrintableAuthorizedPerson } from '~/types/daycare'
 import type { SuperAdminPassSearchResponse } from '~/types/superadmin'
 import { legacyOne, legacyQuery } from '~/server/utils/mysql'
-import { listMarbeteTemplates, readMarbeteTemplateSvg, selectEffectiveMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
+import { authorizedPersonMarbeteSelectionInput, listMarbeteTemplates, readMarbeteTemplateSvg, selectEffectiveMarbeteTemplate, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
 import { readMarbeteTemplateSettings } from '~/server/utils/marbeteSettings'
 import { readLastAccessActions } from '~/server/utils/personasConfig'
 import { resolvePersonasTheme } from '~/utils/personasTheme'
@@ -202,8 +202,9 @@ export async function getPersonasReadiness(filters: { plantel?: string; nivel?: 
     const grupo = clean(row.matriculaGrupo || row.grupo)
     const plantel = derivedPlantel(row)
     const matricula = normalizeMatricula(row.username)
-    const theme = resolvePersonasTheme({ matricula, plantel, nivelEdu: nivel, campus: row.childCampus || row.campus })
-    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, { matricula, plantel, nivelEdu: nivel, themeKey: theme.key })
+    const marbeteSelection = authorizedPersonMarbeteSelectionInput({ matricula, plantel, nivelEdu: nivel })
+    const theme = resolvePersonasTheme(marbeteSelection)
+    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, marbeteSelection)
     const hasStudentData = Boolean(studentName && nivel && grado && grupo && matricula)
     const hasParentAccess = Boolean(clean(row.email) || clean(row.username))
     const authorizedCount = Number(row.authorizedCount || 0)
@@ -432,19 +433,14 @@ export async function searchSuperAdminPassCandidates(filters: { search?: string;
   ])
   const mapped = await Promise.all(rows.map(async (row) => {
     const printable = adminPassPrintable(row)
-    const theme = resolvePersonasTheme({
+    const marbeteSelection = authorizedPersonMarbeteSelectionInput({
       matricula: printable.matricula,
       plantel: printable.plantel,
       nivelEdu: printable.nivelEdu,
-      campus: row.childCampus || row.campus
-    })
-    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, {
-      matricula: printable.matricula,
-      plantel: printable.plantel,
-      nivelEdu: printable.nivelEdu,
-      themeKey: theme.key,
       cicloEscolar: printable.cicloEscolar
     })
+    const theme = resolvePersonasTheme(marbeteSelection)
+    const { template, templateIssue } = selectTemplateOrIssue(templates, templateSettings, marbeteSelection)
     let readiness = { ok: false, issues: [templateIssue || 'Plantilla de Husky Pass no disponible.'] }
     if (template) {
       const svg = await readMarbeteTemplateSvg(template)

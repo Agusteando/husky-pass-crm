@@ -8,7 +8,7 @@ import {
   visualIdentityForContext
 } from '~/utils/experienceIdentity'
 import { normalizeMatricula } from './matricula'
-import { deriveSchoolPlantelFromMatricula } from './schoolCatalog'
+import { deriveSchoolPlantelFromMatricula, normalizeSchoolPlantel } from './schoolCatalog'
 
 export type PersonasMascotVariant = 'header' | 'hero' | 'empty' | 'help' | 'preview' | 'transition'
 
@@ -85,6 +85,27 @@ export function normalizePlantel(value?: string | null) {
 
 export function normalizeNivel(value?: string | null) {
   return normalizeNivelIdentity(value) || ''
+}
+
+export type AuthorizedPersonMarbeteLevel = 'preescolar' | 'primaria' | 'secundaria'
+
+export function resolveAuthorizedPersonMarbetePlantel(input: {
+  matricula?: string | number | null
+  plantel?: string | null
+} = {}) {
+  const explicitPlantel = String(input.plantel || '').trim().toUpperCase()
+  if (explicitPlantel) return normalizeSchoolPlantel(explicitPlantel) || explicitPlantel
+  return deriveSchoolPlantelFromMatricula(input.matricula) || ''
+}
+
+export function resolveAuthorizedPersonMarbeteLevel(input: {
+  matricula?: string | number | null
+  plantel?: string | null
+} = {}): AuthorizedPersonMarbeteLevel {
+  const plantel = resolveAuthorizedPersonMarbetePlantel(input)
+  if (plantel === 'PM' || plantel === 'PT') return 'primaria'
+  if (plantel === 'SM' || plantel === 'ST') return 'secundaria'
+  return 'preescolar'
 }
 
 export function personasThemeKeyFromMatricula(value?: string | number | null): PersonasThemeKey {

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
 import type { MarbeteTemplateMeta, MarbeteTemplateSettings, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
-import { allPersonasThemes, normalizeNivel, PA_COLORS, resolvePersonasTheme } from '~/utils/personasTheme'
+import { allPersonasThemes, normalizeNivel, PA_COLORS, resolveAuthorizedPersonMarbeteLevel, resolveAuthorizedPersonMarbetePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { displayMatricula } from '~/utils/matricula'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
@@ -209,7 +209,7 @@ export type MarbeteTemplateSelectionInput = {
 
 function selectFromPool(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
   const theme = resolvePersonasTheme(input)
-  const plantel = normalizeSchoolPlantel(input.matricula) || normalizeSchoolPlantel(input.plantel) || ''
+  const plantel = normalizeSchoolPlantel(input.plantel) || normalizeSchoolPlantel(input.matricula) || ''
   const nivel = normalizeNivel(input.nivelEdu)
   const ciclo = normalizeSchoolCycle(input.cicloEscolar)
   const sameCycle = ciclo ? templates.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo) : []
@@ -218,17 +218,29 @@ function selectFromPool(templates: MarbeteTemplateMeta[], input: MarbeteTemplate
     if (active) return active
     return String(right.updatedAt || '').localeCompare(String(left.updatedAt || ''))
   })
+  const themedPool = pool.filter((template) => template.themeKey === theme.key)
 
-  const byPlantel = pool.find((template) => template.planteles.includes(plantel))
+  const byPlantel = themedPool.find((template) => template.planteles.includes(plantel))
   if (byPlantel) return byPlantel
 
-  const byThemeAndNivel = pool.find((template) => template.themeKey === theme.key && normalizeNivel(template.nivel) && nivel.includes(normalizeNivel(template.nivel)))
-  if (byThemeAndNivel) return byThemeAndNivel
+  const byNivel = themedPool.find((template) => normalizeNivel(template.nivel) && nivel.includes(normalizeNivel(template.nivel)))
+  if (byNivel) return byNivel
 
-  const byTheme = pool.find((template) => template.themeKey === theme.key)
+  const byTheme = themedPool[0]
   if (byTheme) return byTheme
 
   throw publicError(422, `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`)
+}
+
+export function authorizedPersonMarbeteSelectionInput(input: MarbeteTemplateSelectionInput): MarbeteTemplateSelectionInput {
+  const plantel = resolveAuthorizedPersonMarbetePlantel(input)
+  const level = resolveAuthorizedPersonMarbeteLevel({ matricula: input.matricula, plantel })
+  return {
+    ...input,
+    plantel,
+    nivelEdu: level,
+    themeKey: level
+  }
 }
 
 export function selectBundledMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
@@ -296,6 +308,10 @@ export async function resolveEffectiveMarbeteTemplateSvg(input: MarbeteTemplateS
 
   const bundled = selectBundledMarbeteTemplate(templates, input)
   return { template: bundled, templateSvg: await readMarbeteTemplateSvg(bundled), settings }
+}
+
+export async function resolveAuthorizedPersonMarbeteTemplateSvg(input: MarbeteTemplateSelectionInput) {
+  return resolveEffectiveMarbeteTemplateSvg(authorizedPersonMarbeteSelectionInput(input))
 }
 
 export async function saveMarbeteTemplate(input: {

@@ -1,1 +1,1 @@
-Restaura los marbetes SVG predeterminados y agrega control de personalizados
+Corrige la resolución de marbetes por plantel en personas autorizadas
