@@ -1,15 +1,28 @@
 <template>
   <nav class="admin-module-tabs" aria-label="Secciones de sala">
-    <div v-if="unidad || salaName" class="scope-chip">
-      <FamilyPersonasIcon name="daycare" />
-      <span>{{ unidad || 'Guardería' }}<b v-if="salaName"> · {{ salaName }}</b></span>
+    <div class="scope-group">
+      <NuxtLink :to="unitRoute" class="scope-back" data-diagnostic-link="cambiar-unidad" aria-label="Volver a salas">
+        <FamilyPersonasIcon name="arrow" />
+      </NuxtLink>
+      <div v-if="unidad || salaName" class="scope-chip">
+        <span class="scope-mark"><FamilyPersonasIcon name="daycare" /></span>
+        <span><small>{{ unidad || 'Guardería' }}</small><strong>{{ salaName || 'Sala' }}</strong></span>
+      </div>
     </div>
-    <NuxtLink :to="unitRoute" class="change-unit" data-diagnostic-link="cambiar-unidad">Cambiar unidad</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}`" exact-active-class="active" data-diagnostic-link="tab-resumen">Resumen</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/familias`" active-class="active" data-diagnostic-link="tab-familias">Familias</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/tareas`" active-class="active" data-diagnostic-link="tab-tareas">Tareas</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/avisos`" active-class="active" data-diagnostic-link="tab-avisos">Avisos</NuxtLink>
-    <NuxtLink :to="`/admin/daycare/salas/${salaId}/calendario`" active-class="active" data-diagnostic-link="tab-calendario">Calendario</NuxtLink>
+
+    <div class="tab-track">
+      <NuxtLink
+        v-for="item in items"
+        :key="item.to"
+        :to="item.to"
+        :exact-active-class="item.exact ? 'active' : undefined"
+        :active-class="item.exact ? undefined : 'active'"
+        :data-diagnostic-link="item.diagnostic"
+      >
+        <FamilyPersonasIcon :name="item.icon" />
+        <span>{{ item.label }}</span>
+      </NuxtLink>
+    </div>
   </nav>
 </template>
 
@@ -18,67 +31,196 @@ import { computed } from 'vue'
 
 const props = defineProps<{ salaId: number | string; unidad?: string | null; salaName?: string | null }>()
 const unitRoute = computed(() => ({ path: '/admin/daycare/salas', query: props.unidad ? { unidad: props.unidad } : {} }))
+const items = computed(() => [
+  { label: 'Resumen', icon: 'home', to: `/admin/daycare/salas/${props.salaId}`, diagnostic: 'tab-resumen', exact: true },
+  { label: 'Familias', icon: 'people', to: `/admin/daycare/salas/${props.salaId}/familias`, diagnostic: 'tab-familias' },
+  { label: 'Tareas', icon: 'edit', to: `/admin/daycare/salas/${props.salaId}/tareas`, diagnostic: 'tab-tareas' },
+  { label: 'Avisos', icon: 'announcement', to: `/admin/daycare/salas/${props.salaId}/avisos`, diagnostic: 'tab-avisos' },
+  { label: 'Agenda', icon: 'calendar', to: `/admin/daycare/salas/${props.salaId}/calendario`, diagnostic: 'tab-calendario' }
+])
 </script>
 
 <style scoped>
 .admin-module-tabs {
   align-items: center;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-line);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(66, 104, 49, 0.13);
+  border-radius: 24px;
+  box-shadow: 0 16px 44px rgba(51, 82, 37, 0.08);
+  backdrop-filter: blur(16px);
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 6px;
+  gap: 14px;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 7px;
+  position: relative;
+  z-index: 12;
 }
 
-.admin-module-tabs a,
-.scope-chip {
-  border-radius: 13px;
+.scope-group,
+.scope-chip,
+.tab-track,
+.admin-module-tabs a {
+  align-items: center;
+  display: flex;
+}
+
+.scope-group {
+  gap: 7px;
+  min-width: 0;
+}
+
+.scope-back {
+  background: #f3f7ee;
+  border: 1px solid rgba(66, 104, 49, 0.12);
+  border-radius: 16px;
+  color: #426831;
   flex: 0 0 auto;
-  font-size: 0.88rem;
-  font-weight: 800;
-  padding: 9px 12px;
+  height: 46px;
+  justify-content: center;
+  transform: rotate(180deg);
+  width: 46px;
+}
+
+.scope-chip {
+  gap: 10px;
+  min-width: 0;
+  padding-right: 10px;
+}
+
+.scope-mark {
+  align-items: center;
+  background: linear-gradient(135deg, #355f24, #8cad3e);
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(49, 95, 36, 0.18);
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.scope-chip > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.scope-chip small,
+.scope-chip strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-module-tabs a {
-  color: var(--color-muted);
+.scope-chip small {
+  color: #788173;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.admin-module-tabs a:hover,
-.admin-module-tabs a.active {
-  background: var(--color-brand-100);
-  color: var(--color-brand-900);
+.scope-chip strong {
+  color: #263f1c;
+  font-family: var(--font-title);
+  font-size: 1rem;
 }
 
-.scope-chip {
-  align-items: center;
-  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
-  border: 1px solid rgba(8, 135, 125, 0.16);
-  color: #075f58;
-  display: inline-flex;
+.tab-track {
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-track::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-track a {
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: #697463;
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-weight: 800;
   gap: 7px;
+  min-height: 46px;
+  padding: 0 13px;
+  white-space: nowrap;
 }
 
-.scope-chip b {
-  color: #607086;
-  font-weight: 900;
+.tab-track a:hover {
+  background: #f7f9f3;
+  color: #355f24;
 }
 
-.change-unit {
-  border: 1px solid rgba(8, 135, 125, 0.16);
+.tab-track a.active {
+  background: linear-gradient(135deg, #eaf3dd, #fff3db);
+  border-color: rgba(82, 127, 54, 0.15);
+  box-shadow: inset 0 -2px 0 rgba(87, 139, 38, 0.28);
+  color: #355f24;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .admin-module-tabs {
-    margin-inline: -4px;
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .admin-module-tabs a,
-  .scope-chip {
-    padding: 8px 10px;
+  .scope-group {
+    padding-inline: 2px;
+  }
+
+  .tab-track {
+    width: 100%;
+  }
+
+  .tab-track a {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-module-tabs {
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 22px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    box-shadow: 0 24px 64px rgba(31, 44, 25, 0.24);
+    left: 10px;
+    padding: 7px;
+    position: fixed;
+    right: 10px;
+  }
+
+  .scope-group {
+    display: none;
+  }
+
+  .tab-track {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .tab-track a {
+    display: grid;
+    gap: 3px;
+    justify-items: center;
+    min-height: 58px;
+    padding: 6px 2px;
+  }
+
+  .tab-track a span {
+    font-size: 0.61rem;
+  }
+
+  .tab-track a :deep(.pa-icon) {
+    height: 1.22rem;
+    width: 1.22rem;
   }
 }
 </style>

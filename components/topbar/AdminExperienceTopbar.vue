@@ -1,5 +1,5 @@
 <template>
-  <header class="admin-topbar" data-experience="admin">
+  <header class="admin-topbar" :class="{ 'is-daycare': isDaycareRoute }" data-experience="admin">
     <div class="page-shell admin-topbar-inner">
       <NuxtLink class="admin-brand" :to="persona.homeTo" aria-label="Husky Pass Administración">
         <img src="/brand/husky-pass-logo.png" alt="Husky Pass" />
@@ -21,8 +21,9 @@
         <input v-model="search" type="search" placeholder="Buscar cuenta" aria-label="Buscar cuenta" />
       </form>
 
-      <div v-if="persona.context" class="admin-context" :data-persona="persona.key">
-        <span>{{ persona.context }}</span>
+      <div v-if="persona.context || isDaycareRoute" class="admin-context" :data-persona="persona.key">
+        <FamilyPersonasIcon v-if="isDaycareRoute" name="daycare" />
+        <span>{{ persona.context || 'Guardería' }}</span>
       </div>
 
       <div class="admin-account-slot">
@@ -33,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { navigateTo, useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import type { AdminNavItem, AdminPersonaSummary } from '~/utils/adminExperience'
@@ -46,6 +47,7 @@ const props = defineProps<{
 
 const route = useRoute()
 const search = ref('')
+const isDaycareRoute = computed(() => route.path.startsWith('/admin/daycare'))
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
@@ -256,4 +258,59 @@ async function submitSearch() {
     padding-inline: 0;
   }
 }
+
+.admin-topbar.is-daycare {
+  background: rgba(252, 253, 248, 0.88);
+  border-bottom-color: rgba(62, 103, 44, 0.12);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.admin-topbar.is-daycare .admin-topbar-inner {
+  min-height: 70px;
+}
+
+.admin-topbar.is-daycare .admin-brand img {
+  filter: drop-shadow(0 7px 12px rgba(49, 95, 36, 0.13));
+}
+
+.admin-topbar.is-daycare .admin-brand strong {
+  color: #294e20;
+}
+
+.admin-topbar.is-daycare .admin-brand small {
+  color: #73806b;
+}
+
+.admin-topbar.is-daycare .admin-nav a:hover,
+.admin-topbar.is-daycare .admin-nav a.active {
+  background: linear-gradient(135deg, rgba(221, 235, 202, 0.8), rgba(255, 243, 219, 0.78));
+  border-color: rgba(82, 127, 54, 0.18);
+  color: #355f24;
+}
+
+.admin-topbar.is-daycare .admin-context {
+  align-items: center;
+  background: rgba(242, 248, 234, 0.88);
+  border: 1px solid rgba(82, 127, 54, 0.14);
+  border-radius: 999px;
+  color: #355f24;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 7px;
+  max-width: 240px;
+  padding: 8px 11px;
+}
+
+.admin-topbar.is-daycare .admin-context :deep(.pa-icon) {
+  flex: 0 0 auto;
+  height: 1rem;
+  width: 1rem;
+}
+
+@media (max-width: 720px) {
+  .admin-topbar.is-daycare .admin-topbar-inner {
+    min-height: 62px;
+  }
+}
+
 </style>

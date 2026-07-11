@@ -1,27 +1,39 @@
 <template>
   <section class="daycare-console" data-product-area="daycare" data-product-screen="rooms-console">
     <template v-if="clientReady">
-      <header class="ops-bar">
-        <div>
-          <p class="eyebrow">Guardería</p>
+      <header class="command-hero">
+        <div class="hero-copy">
+          <p class="hero-kicker">Husky Pass · Guardería</p>
           <h1>{{ selectedUnidad || 'Salas' }}</h1>
+          <div class="hero-metrics" aria-label="Resumen de unidad">
+            <span><strong>{{ filteredSalas.length }}</strong> salas</span>
+            <span><strong>{{ unitMetrics.familias }}</strong> familias</span>
+            <span><strong>{{ unitMetrics.publicaciones }}</strong> publicaciones</span>
+          </div>
         </div>
-        <div class="head-controls">
-          <label>
+
+        <div class="hero-controls">
+          <label class="control-card">
             <span>Unidad</span>
             <select v-model="selectedUnidad" data-diagnostic-filter="unidad" @change="syncUnidad">
               <option v-for="unidad in unidades" :key="unidad" :value="unidad">{{ unidad }}</option>
             </select>
           </label>
-          <label>
-            <span>Buscar</span>
-            <input v-model="search" type="search" placeholder="Sala" data-diagnostic-filter="buscar-sala" />
+          <label class="control-card search-control">
+            <span>Buscar sala</span>
+            <span class="control-input"><FamilyPersonasIcon name="search" /><input v-model="search" type="search" placeholder="Nombre de sala" data-diagnostic-filter="buscar-sala" /></span>
           </label>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <span class="art-orbit orbit-one" />
+          <span class="art-orbit orbit-two" />
+          <img :src="sunnyHero" alt="" />
         </div>
       </header>
 
       <section v-if="noUnidadAvailable" class="state-panel" data-product-panel="daycare-unidades" data-state="unavailable">
-        <FamilyPersonasIcon name="daycare" />
+        <img :src="sunnyEmpty" alt="" />
         <h2>Unidad pendiente</h2>
       </section>
 
@@ -34,12 +46,13 @@
 
       <section v-else-if="!noUnidadAvailable" class="rooms-workbench">
         <aside class="rooms-pane" data-product-panel="salas-list" :data-state="filteredSalas.length ? 'content' : 'empty'">
-          <div class="pane-title">
+          <header class="pane-title">
             <div>
               <p class="eyebrow">Salas</p>
-              <h2>{{ filteredSalas.length }} visibles</h2>
+              <h2>{{ filteredSalas.length }} disponibles</h2>
             </div>
-          </div>
+            <span class="pane-count">{{ selectedUnidad }}</span>
+          </header>
 
           <div v-if="filteredSalas.length" class="room-list" role="list">
             <button
@@ -56,8 +69,9 @@
               <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
               <span class="room-copy">
                 <strong>{{ sala.sala }}</strong>
-                <small>{{ sala.metrics.familias }} familias · {{ sala.metrics.totalRecursos }} publicaciones</small>
+                <small>{{ sala.metrics.familias }} familias</small>
               </span>
+              <span class="room-publications">{{ sala.metrics.totalRecursos }}</span>
             </button>
           </div>
           <div v-else class="state-panel compact" data-diagnostic="sala-unavailable" data-state="empty">
@@ -66,49 +80,58 @@
           </div>
         </aside>
 
-        <article v-if="selectedSala" class="room-detail" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
-          <div class="room-head">
-            <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
-            <div>
-              <p class="eyebrow">{{ selectedSala.unidad }}</p>
-              <h2>{{ selectedSala.sala }}</h2>
-            </div>
-            <button v-if="canPreviewAsFamily" class="btn btn-secondary" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">Vista familiar</button>
-          </div>
+        <div v-if="selectedSala" class="room-stage">
+          <article class="room-detail" data-diagnostic="sala-context" data-product-panel="sala-context" data-state="content">
+            <header class="room-head">
+              <div class="room-identity">
+                <span class="room-avatar large">{{ roomInitials(selectedSala.sala) }}</span>
+                <div>
+                  <p class="eyebrow">{{ selectedSala.unidad }}</p>
+                  <h2>{{ selectedSala.sala }}</h2>
+                </div>
+              </div>
+              <button v-if="canPreviewAsFamily" class="preview-family" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">
+                <FamilyPersonasIcon name="sparkles" />
+                Vista familiar
+              </button>
+            </header>
 
-          <section class="room-facts" aria-label="Resumen de sala">
-            <article><span>Familias</span><strong>{{ selectedSala.metrics.familias }}</strong></article>
-            <article><span>Tareas</span><strong>{{ selectedSala.metrics.tareas }}</strong></article>
-            <article><span>Avisos</span><strong>{{ selectedSala.metrics.avisos }}</strong></article>
-            <article><span>Fechas</span><strong>{{ selectedSala.metrics.calendario }}</strong></article>
-          </section>
-        </article>
+            <section class="room-facts" aria-label="Resumen de sala">
+              <article class="tone-green"><span><FamilyPersonasIcon name="people" /></span><div><small>Familias</small><strong>{{ selectedSala.metrics.familias }}</strong></div></article>
+              <article class="tone-amber"><span><FamilyPersonasIcon name="edit" /></span><div><small>Tareas</small><strong>{{ selectedSala.metrics.tareas }}</strong></div></article>
+              <article class="tone-coral"><span><FamilyPersonasIcon name="announcement" /></span><div><small>Avisos</small><strong>{{ selectedSala.metrics.avisos }}</strong></div></article>
+              <article class="tone-blue"><span><FamilyPersonasIcon name="calendar" /></span><div><small>Agenda</small><strong>{{ selectedSala.metrics.calendario }}</strong></div></article>
+            </section>
+          </article>
 
-        <aside v-if="selectedSala" class="action-panel">
-          <header class="pane-title">
-            <div>
-              <p class="eyebrow">Operar sala</p>
-              <h2>{{ selectedSala.sala }}</h2>
-              <small>{{ selectedSala.unidad }}</small>
+          <aside class="action-panel">
+            <header class="pane-title">
+              <div>
+                <p class="eyebrow">Acciones</p>
+                <h2>{{ selectedSala.sala }}</h2>
+              </div>
+              <span class="action-badge"><FamilyPersonasIcon name="sparkles" /></span>
+            </header>
+            <div class="action-list">
+              <button
+                v-for="(item, index) in actionItems"
+                :key="item.section"
+                type="button"
+                :class="`tone-${['green', 'amber', 'coral', 'blue'][index]}`"
+                :data-diagnostic-action="item.diagnostic"
+                @click="goToSalaSection(item.section, item.create)"
+              >
+                <span class="action-icon"><FamilyPersonasIcon :name="item.icon" /></span>
+                <span class="action-copy">
+                  <strong>{{ item.label }}</strong>
+                  <small>{{ item.description }}</small>
+                </span>
+                <span class="action-count">{{ item.count }}</span>
+                <FamilyPersonasIcon name="arrow" />
+              </button>
             </div>
-          </header>
-          <div class="action-list">
-            <button
-              v-for="item in actionItems"
-              :key="item.section"
-              type="button"
-              :data-diagnostic-action="item.diagnostic"
-              @click="goToSalaSection(item.section, item.create)"
-            >
-              <span class="action-icon"><FamilyPersonasIcon :name="item.icon" /></span>
-              <span class="action-copy">
-                <strong>{{ item.label }}</strong>
-                <small>{{ item.description }}</small>
-              </span>
-              <b>{{ item.count }}</b>
-            </button>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </section>
     </template>
     <div v-else class="state-panel" data-product-loading>
@@ -116,7 +139,6 @@
     </div>
   </section>
 </template>
-
 
 <script setup lang="ts">
 import { useAppSession } from '~/composables/useAppSession'
@@ -126,6 +148,7 @@ import type { SalaSummary } from '~/types/daycare'
 import type { PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { hasDaycareAdminScope } from '~/utils/sessionScopes'
+import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 import HuskyPassLoader from '~/components/HuskyPassLoader.vue'
 
@@ -134,6 +157,9 @@ type DaycareSalaSection = 'familias' | 'tareas' | 'avisos' | 'calendario'
 const route = useRoute()
 const router = useRouter()
 const { data: session, pending: sessionPending } = useAppSession()
+const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
+const sunnyHero = personasMascot(daycareTheme, 'hero')
+const sunnyEmpty = personasMascot(daycareTheme, 'empty')
 
 const selectedUnidad = ref(typeof route.query.unidad === 'string' ? route.query.unidad : '')
 const search = ref(typeof route.query.buscar === 'string' ? route.query.buscar : '')
@@ -198,15 +224,20 @@ const filteredSalas = computed(() => {
   return rows.filter((sala) => `${sala.sala} ${sala.unidad}`.toLowerCase().includes(needle))
 })
 
+const unitMetrics = computed(() => (salas.value || []).reduce((totals, sala) => ({
+  familias: totals.familias + sala.metrics.familias,
+  publicaciones: totals.publicaciones + sala.metrics.totalRecursos
+}), { familias: 0, publicaciones: 0 }))
+
 const selectedSala = computed(() => filteredSalas.value.find((sala) => sala.id === selectedSalaId.value) || filteredSalas.value[0] || null)
 const actionItems = computed<Array<{ section: DaycareSalaSection; diagnostic: string; icon: string; label: string; description: string; count: number; create?: boolean }>>(() => {
   const sala = selectedSala.value
   if (!sala) return []
   return [
-    { section: 'familias', diagnostic: 'abrir-familias', icon: 'people', label: 'Familias', description: 'Cuentas y soporte', count: sala.metrics.familias },
-    { section: 'tareas', diagnostic: 'abrir-tareas', icon: 'edit', label: 'Preparar tarea', description: 'Trabajo en casa', count: sala.metrics.tareas, create: true },
+    { section: 'familias', diagnostic: 'abrir-familias', icon: 'people', label: 'Familias', description: 'Cuentas y acceso', count: sala.metrics.familias },
+    { section: 'tareas', diagnostic: 'abrir-tareas', icon: 'edit', label: 'Nueva tarea', description: 'Trabajo en casa', count: sala.metrics.tareas, create: true },
     { section: 'avisos', diagnostic: 'abrir-avisos', icon: 'announcement', label: 'Avisos', description: 'Mensajes de sala', count: sala.metrics.avisos },
-    { section: 'calendario', diagnostic: 'abrir-calendario', icon: 'calendar', label: 'Calendario', description: 'Fechas visibles', count: sala.metrics.calendario }
+    { section: 'calendario', diagnostic: 'abrir-calendario', icon: 'calendar', label: 'Agenda', description: 'Fechas y eventos', count: sala.metrics.calendario }
   ]
 })
 
@@ -299,248 +330,375 @@ function roomInitials(value?: string | null) {
 }
 </script>
 
-
 <style scoped>
 .daycare-console {
-  --ink: #102235;
-  --muted: #607086;
-  --line: rgba(18, 95, 89, 0.16);
-  --line-soft: rgba(18, 95, 89, 0.10);
-  --accent: #07877d;
-  --accent-dark: #075f58;
-  --sun: #f6b94f;
   display: grid;
-  gap: 16px;
+  gap: clamp(16px, 2.2vw, 24px);
 }
 
-.ops-bar,
-.rooms-pane,
-.room-detail,
-.action-panel,
-.state-panel {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
-}
-
-.ops-bar {
-  align-items: center;
+.command-hero {
   background:
-    radial-gradient(circle at 10% 20%, rgba(8, 135, 125, 0.13), transparent 34%),
-    radial-gradient(circle at 86% 0%, rgba(246, 185, 79, 0.20), transparent 30%),
-    linear-gradient(135deg, #ffffff, #fbfdf6);
+    radial-gradient(circle at 15% 112%, rgba(255, 190, 71, 0.34), transparent 34%),
+    radial-gradient(circle at 92% 0%, rgba(191, 217, 86, 0.26), transparent 29%),
+    linear-gradient(135deg, #294e20 0%, #4e7f31 55%, #8eae3f 100%);
+  border-radius: 34px;
+  box-shadow: 0 26px 64px rgba(49, 95, 36, 0.22);
+  color: #fff;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.78fr);
+  gap: clamp(20px, 3vw, 38px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr) minmax(190px, 280px);
+  min-height: 286px;
   overflow: hidden;
-  padding: clamp(18px, 2.4vw, 28px);
+  padding: clamp(26px, 4vw, 48px);
   position: relative;
 }
 
-.ops-bar::after {
-  background: linear-gradient(180deg, var(--accent), #8bbf48);
-  border-radius: 999px;
+.command-hero::before {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 50%;
   content: '';
-  height: 82px;
-  opacity: 0.14;
+  height: 360px;
+  left: -190px;
   position: absolute;
-  right: 28px;
-  top: -40px;
-  transform: rotate(34deg);
-  width: 14px;
+  top: -220px;
+  width: 360px;
 }
 
-h1,
-h2,
-p {
-  margin: 0;
-}
-
-h1,
-h2 {
-  color: var(--ink);
-  font-family: var(--font-title, var(--font-body));
-  line-height: 1.02;
-}
-
-.ops-bar h1 {
-  font-size: clamp(2rem, 3.2vw, 3rem);
-  letter-spacing: -0.035em;
-}
-
-.eyebrow,
-.head-controls span,
-.room-facts span,
-.pane-title .eyebrow {
-  color: var(--accent-dark);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-.head-controls {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(150px, 220px) minmax(170px, 1fr);
+.hero-copy,
+.hero-controls,
+.hero-art {
   position: relative;
   z-index: 1;
 }
 
-.head-controls label {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(8, 135, 125, 0.18);
-  border-radius: 17px;
-  box-shadow: 0 14px 30px rgba(14, 40, 55, 0.06);
+.hero-copy {
+  align-content: center;
   display: grid;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 12px;
 }
 
-.head-controls select,
-.head-controls input {
+.hero-kicker {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.hero-copy h1 {
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: clamp(2.8rem, 6vw, 5.2rem);
+  letter-spacing: -0.035em;
+  line-height: 0.88;
+  margin: 0;
+}
+
+.hero-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.hero-metrics span {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.72rem;
+  padding: 8px 11px;
+}
+
+.hero-metrics strong {
+  color: #fff;
+  font-size: 0.86rem;
+  margin-right: 3px;
+}
+
+.hero-controls {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+}
+
+.control-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(24, 53, 18, 0.18);
+  display: grid;
+  gap: 5px;
+  padding: 11px 14px;
+}
+
+.control-card > span:first-child {
+  color: #6d7866;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.control-card select,
+.control-card input {
   background: transparent;
   border: 0;
-  color: var(--ink);
-  min-height: 24px;
+  color: #263f1c;
+  min-height: 27px;
+  min-width: 0;
   outline: 0;
+  width: 100%;
+}
+
+.control-input {
+  align-items: center;
+  color: #578b26;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.hero-art {
+  align-self: end;
+  min-height: 220px;
+}
+
+.hero-art img {
+  bottom: -44px;
+  filter: drop-shadow(0 24px 24px rgba(29, 56, 21, 0.24));
+  max-height: 290px;
+  object-fit: contain;
+  position: absolute;
+  right: -16px;
+  width: min(100%, 250px);
+  z-index: 2;
+}
+
+.art-orbit {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.orbit-one {
+  height: 210px;
+  right: -10px;
+  top: 18px;
+  width: 210px;
+}
+
+.orbit-two {
+  background: rgba(255, 190, 71, 0.75);
+  border: 0;
+  height: 18px;
+  right: 24px;
+  top: 20px;
+  width: 18px;
 }
 
 .rooms-workbench {
   align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(310px, 360px);
+  gap: 18px;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
 }
 
 .rooms-pane,
 .room-detail,
-.action-panel {
+.action-panel,
+.state-panel {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(66, 104, 49, 0.13);
+  border-radius: 28px;
+  box-shadow: 0 20px 58px rgba(51, 82, 37, 0.09);
+}
+
+.rooms-pane {
   display: grid;
   gap: 12px;
   padding: 14px;
+  position: sticky;
+  top: calc(var(--topbar-height) + 18px);
 }
 
-.rooms-pane,
-.action-panel {
-  position: sticky;
-  top: calc(var(--topbar-height) + 16px);
+.room-stage {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.pane-title,
+.room-head,
+.room-identity {
+  align-items: center;
+  display: flex;
 }
 
 .pane-title,
 .room-head {
-  align-items: center;
-  display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: space-between;
+}
+
+.pane-title {
+  padding: 5px 5px 9px;
+}
+
+.eyebrow {
+  color: #578b26;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  margin: 0 0 5px;
+  text-transform: uppercase;
 }
 
 .pane-title h2,
 .room-head h2 {
-  font-size: clamp(1.2rem, 2vw, 1.65rem);
-  letter-spacing: -0.02em;
+  color: #263f1c;
+  font-family: var(--font-title);
+  margin: 0;
 }
 
-.pane-title small {
-  color: var(--muted);
-  display: block;
-  font-size: 0.78rem;
-  margin-top: 3px;
+.pane-title h2 {
+  font-size: 1.35rem;
 }
 
-.room-list,
-.action-list {
+.pane-count {
+  color: #7a8473;
+  font-size: 0.7rem;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-list {
   display: grid;
-  gap: 8px;
-}
-
-.room-row,
-.action-list button {
-  background: #ffffff;
-  border: 1px solid transparent;
-  border-radius: 18px;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  gap: 7px;
 }
 
 .room-row {
   align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: 44px minmax(0, 1fr);
-  padding: 10px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 9px;
+  text-align: left;
+  transition: 160ms ease;
+  width: 100%;
 }
 
 .room-row:hover,
-.room-row.active,
-.action-list button:hover {
-  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
-  border-color: rgba(8, 135, 125, 0.22);
+.room-row.active {
+  background: linear-gradient(135deg, #eef6e4, #fff6e4);
+  border-color: rgba(87, 139, 38, 0.15);
   transform: translateY(-1px);
 }
 
 .room-row.active {
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 #6f971a, 0 12px 26px rgba(51, 82, 37, 0.08);
 }
 
 .room-avatar,
-.action-icon {
+.action-icon,
+.action-badge {
   align-items: center;
-  background: linear-gradient(135deg, #eefaf7, #fff6df);
-  border: 1px solid rgba(8, 135, 125, 0.18);
-  border-radius: 15px;
-  color: var(--accent-dark);
   display: inline-flex;
+  justify-content: center;
+}
+
+.room-avatar {
+  background: linear-gradient(135deg, #ddebca, #fff0c9);
+  border: 1px solid rgba(87, 139, 38, 0.13);
+  border-radius: 15px;
+  color: #355f24;
+  font-size: 0.76rem;
   font-weight: 950;
   height: 44px;
-  justify-content: center;
   width: 44px;
 }
 
 .room-avatar.large {
-  border-radius: 20px;
-  font-size: 1.18rem;
-  height: 68px;
-  width: 68px;
+  border-radius: 22px;
+  font-size: 1.15rem;
+  height: 72px;
+  width: 72px;
 }
 
-.room-copy,
-.action-copy {
+.room-copy {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
 .room-copy strong,
-.room-copy small,
-.action-copy strong,
-.action-copy small {
+.room-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.room-copy strong,
-.action-list strong {
-  color: var(--ink);
+.room-copy strong {
+  color: #263f1c;
 }
 
-.room-copy small,
-.action-list small {
-  color: var(--muted);
-  font-size: 0.78rem;
+.room-copy small {
+  color: #76806f;
+  font-size: 0.75rem;
+}
+
+.room-publications {
+  background: #f6f8f1;
+  border-radius: 999px;
+  color: #6d7866;
+  font-size: 0.7rem;
+  font-weight: 900;
+  min-width: 30px;
+  padding: 6px 8px;
+  text-align: center;
 }
 
 .room-detail {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(249, 253, 250, 0.93));
+    radial-gradient(circle at 100% 0%, rgba(159, 190, 75, 0.16), transparent 28%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 243, 0.94));
+  display: grid;
+  gap: 20px;
+  overflow: hidden;
+  padding: clamp(18px, 2.5vw, 28px);
 }
 
-.room-head {
-  border-bottom: 1px solid var(--line-soft);
-  padding-bottom: 12px;
+.room-identity {
+  gap: 14px;
+  min-width: 0;
+}
+
+.room-head h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+}
+
+.preview-family {
+  align-items: center;
+  background: #263f1c;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 14px 28px rgba(38, 63, 28, 0.2);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 15px;
 }
 
 .room-facts {
@@ -550,84 +708,234 @@ h2 {
 }
 
 .room-facts article {
-  background: #f8fbfb;
-  border: 1px solid var(--line-soft);
-  border-radius: 18px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 22px;
   display: grid;
-  gap: 4px;
-  min-height: 78px;
-  padding: 12px;
+  gap: 10px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  min-height: 92px;
+  padding: 13px;
+}
+
+.room-facts article > span {
+  align-items: center;
+  border-radius: 14px;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.room-facts small,
+.room-facts strong {
+  display: block;
+}
+
+.room-facts small {
+  color: #6f7868;
+  font-size: 0.69rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .room-facts strong {
-  color: var(--ink);
-  font-family: var(--font-title, var(--font-body));
-  font-size: 1.75rem;
+  color: #263f1c;
+  font-family: var(--font-title);
+  font-size: 1.7rem;
   line-height: 1;
+}
+
+.tone-green { background: #eef6e4; border-color: rgba(87, 139, 38, 0.13) !important; }
+.tone-green > span, .tone-green .action-icon { background: #dcebc9; color: #355f24; }
+.tone-amber { background: #fff6e4; border-color: rgba(255, 181, 69, 0.19) !important; }
+.tone-amber > span, .tone-amber .action-icon { background: #ffe8bc; color: #93610c; }
+.tone-coral { background: #fff0ed; border-color: rgba(220, 117, 101, 0.17) !important; }
+.tone-coral > span, .tone-coral .action-icon { background: #fbdad4; color: #a94e42; }
+.tone-blue { background: #edf6fa; border-color: rgba(78, 145, 182, 0.16) !important; }
+.tone-blue > span, .tone-blue .action-icon { background: #d8ebf3; color: #236188; }
+
+.action-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.action-badge {
+  background: #eef6e4;
+  border-radius: 14px;
+  color: #578b26;
+  height: 40px;
+  width: 40px;
+}
+
+.action-list {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .action-list button {
   align-items: center;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  cursor: pointer;
   display: grid;
   gap: 11px;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  min-height: 72px;
-  padding: 10px;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  min-height: 84px;
+  padding: 12px;
+  text-align: left;
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
-.action-list b {
-  background: #fff6df;
-  border: 1px solid rgba(246, 185, 79, 0.32);
+.action-list button:hover {
+  box-shadow: 0 15px 32px rgba(51, 82, 37, 0.1);
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  border-radius: 15px;
+  height: 44px;
+  width: 44px;
+}
+
+.action-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.action-copy strong {
+  color: #263f1c;
+}
+
+.action-copy small {
+  color: #707a69;
+  font-size: 0.74rem;
+}
+
+.action-count {
+  background: rgba(255, 255, 255, 0.72);
   border-radius: 999px;
-  color: #8a650c;
-  font-size: 0.78rem;
-  min-width: 32px;
-  padding: 5px 9px;
+  color: #4e5d46;
+  font-size: 0.72rem;
+  font-weight: 900;
+  min-width: 30px;
+  padding: 6px 8px;
   text-align: center;
 }
 
 .surface-message {
-  background: #edfdf7;
-  border: 1px solid #b7ead6;
-  border-radius: 14px;
-  color: #047857;
+  background: #edf8e7;
+  border: 1px solid #cbe4b8;
+  border-radius: 16px;
+  color: #355f24;
   margin: 0;
-  padding: 10px 12px;
+  padding: 11px 14px;
 }
 
 .surface-message.error {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #be123c;
+  background: #fff1f0;
+  border-color: #f4cbc5;
+  color: #a23f35;
 }
 
 .state-panel {
-  color: var(--muted);
+  color: #717a6c;
   display: grid;
-  gap: 9px;
+  gap: 10px;
   min-height: 260px;
   place-items: center;
-  padding: 24px;
+  padding: 28px;
   text-align: center;
 }
 
-.state-panel h2 { color: var(--ink); margin: 0; }
-.state-panel p { margin: 0; }
-.state-panel.compact { min-height: 180px; }
-
-@media (max-width: 1180px) {
-  .rooms-workbench { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
-  .action-panel { grid-column: 2; position: static; }
+.state-panel img {
+  max-height: 132px;
 }
 
-@media (max-width: 880px) {
-  .ops-bar,
-  .rooms-workbench,
-  .head-controls,
+.state-panel h2 {
+  color: #263f1c;
+  margin: 0;
+}
+
+.state-panel.compact {
+  min-height: 180px;
+}
+
+@media (max-width: 1180px) {
+  .command-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  }
+
+  .hero-art {
+    display: none;
+  }
+
   .room-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  .command-hero,
+  .rooms-workbench {
     grid-template-columns: 1fr;
   }
-  .rooms-pane,
-  .action-panel { position: static; }
+
+  .command-hero {
+    min-height: auto;
+  }
+
+  .rooms-pane {
+    position: static;
+  }
+
+  .room-list {
+    display: flex;
+    margin-inline: -4px;
+    overflow-x: auto;
+    padding: 4px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .room-row {
+    flex: 0 0 min(280px, 82vw);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 680px) {
+  .command-hero {
+    border-radius: 28px;
+    padding: 24px 20px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2.6rem, 14vw, 4.3rem);
+  }
+
+  .room-head,
+  .room-identity {
+    align-items: flex-start;
+  }
+
+  .room-head {
+    display: grid;
+  }
+
+  .preview-family {
+    width: 100%;
+  }
+
+  .room-facts,
+  .action-list {
+    grid-template-columns: 1fr;
+  }
+
+  .action-list button {
+    min-height: 76px;
+  }
 }
 </style>

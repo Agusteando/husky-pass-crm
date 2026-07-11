@@ -114,8 +114,8 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
 }
 
 .password-card {
-  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
-  border: 1px solid rgba(8, 135, 125, 0.16);
+  background: linear-gradient(135deg, #edf6e4, #fff6e4);
+  border: 1px solid rgba(87, 139, 38, 0.16);
   border-radius: 20px;
   padding: 14px;
 }
@@ -126,7 +126,7 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
 }
 
 .password-card h3 {
-  color: #102235;
+  color: #263f1c;
   font-size: 1.15rem;
 }
 
@@ -144,14 +144,14 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
 
 .toggle-line {
   align-items: center;
-  color: #385069;
+  color: #475c3c;
   display: flex;
   font-weight: 800;
   gap: 10px;
 }
 
 .toggle-line input {
-  accent-color: #07877d;
+  accent-color: #578b26;
   height: 18px;
   width: 18px;
 }

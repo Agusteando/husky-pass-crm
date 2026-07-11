@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div ref="backdropRef" class="admin-modal-backdrop" role="presentation" @click.self="requestClose">
-      <section ref="modalRef" class="admin-modal" :class="{ wide }" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+      <section ref="modalRef" class="admin-modal" :class="{ wide, 'daycare-modal': isDaycareModal }" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
         <header class="admin-modal-head">
           <span class="modal-mark"><slot name="icon"><FamilyPersonasIcon name="daycare" /></slot></span>
           <div>
@@ -38,7 +38,8 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { useRoute } from 'nuxt/app'
 
 const props = withDefaults(defineProps<{
   title: string
@@ -58,6 +59,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ close: [] }>()
+const route = useRoute()
+const isDaycareModal = computed(() => route.path.startsWith('/admin/daycare'))
 const modalRef = ref<HTMLElement | null>(null)
 const backdropRef = ref<HTMLElement | null>(null)
 const discardPromptRef = ref<HTMLElement | null>(null)
@@ -351,6 +354,50 @@ defineExpose({ requestClose })
 .draft-guard-enter-from,
 .draft-guard-leave-to { opacity: 0; }
 
+
+.admin-modal.daycare-modal {
+  border-color: rgba(87, 139, 38, 0.18);
+  border-radius: 30px;
+  box-shadow: 0 38px 120px rgba(31, 55, 22, 0.34);
+}
+
+.admin-modal.daycare-modal .admin-modal-head {
+  background:
+    radial-gradient(circle at 0% 10%, rgba(159, 190, 75, 0.16), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(255, 186, 71, 0.20), transparent 30%),
+    linear-gradient(135deg, #ffffff, #f8fbf3);
+  border-bottom-color: rgba(87, 139, 38, 0.14);
+}
+
+.admin-modal.daycare-modal .modal-mark {
+  background: linear-gradient(135deg, #ddebca, #fff0c9);
+  border-color: rgba(87, 139, 38, 0.16);
+  color: #355f24;
+}
+
+.admin-modal.daycare-modal .admin-modal-head h2,
+.admin-modal.daycare-modal .draft-guard-card h3 {
+  color: #263f1c;
+}
+
+.admin-modal.daycare-modal .admin-modal-head p:not(.eyebrow),
+.admin-modal.daycare-modal .draft-guard-card p:not(.eyebrow) {
+  color: #707a69;
+}
+
+.admin-modal.daycare-modal .eyebrow {
+  color: #578b26;
+}
+
+.admin-modal.daycare-modal .modal-close {
+  border-color: rgba(87, 139, 38, 0.15);
+  color: #355f24;
+}
+
+.admin-modal.daycare-modal .admin-modal-body {
+  background: linear-gradient(180deg, #ffffff, rgba(242, 248, 234, 0.62));
+}
+
 :global(body.admin-modal-open) { overflow: hidden; }
 
 @media (max-width: 720px) {
@@ -364,6 +411,8 @@ defineExpose({ requestClose })
     max-height: 92dvh;
     max-width: 100vw;
   }
+
+  .admin-modal.daycare-modal { border-radius: 24px 24px 0 0; }
 
   .admin-modal-head { grid-template-columns: 46px minmax(0, 1fr) auto; }
   .modal-mark { height: 46px; width: 46px; }

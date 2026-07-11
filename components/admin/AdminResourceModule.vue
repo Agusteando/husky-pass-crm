@@ -1,31 +1,49 @@
 <template>
-  <section class="resource-module stack" data-product-area="daycare" :data-product-screen="type">
+  <section class="resource-module stack" :class="moduleTone" data-product-area="daycare" :data-product-screen="type">
     <AdminModuleTabs :sala-id="salaId" :unidad="data?.sala?.unidad" :sala-name="data?.sala?.sala" />
     <AdminProcessingTray :items="syncEntries" />
 
     <header class="module-hero">
-      <div>
-        <p class="eyebrow">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
+      <div class="hero-copy">
+        <p class="hero-kicker">{{ data?.sala?.unidad || 'Guardería' }} · {{ data?.sala?.sala || 'Sala' }}</p>
         <h1>{{ title }}</h1>
+        <div class="hero-stats">
+          <span><strong>{{ resourceStats.published }}</strong> publicadas</span>
+          <span><strong>{{ resourceStats.withMedia }}</strong> con media</span>
+          <span><strong>{{ resourceStats.total }}</strong> total</span>
+        </div>
+        <button class="hero-action" type="button" data-diagnostic-action="crear-recurso" :disabled="saving" @click="startCreate()">
+          <FamilyPersonasIcon name="plus" />{{ actionLabel }}
+        </button>
       </div>
-      <div class="module-actions">
-        <label class="search-field search-field-wide">
-          <FamilyPersonasIcon name="search" />
-          <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" aria-label="Buscar publicación" data-diagnostic-filter="buscar-recurso" />
-        </label>
-        <select v-model="visibilityFilter" class="select filter-select" aria-label="Estado" data-diagnostic-filter="estado-recurso">
+      <div class="hero-art" aria-hidden="true">
+        <span class="hero-disc"><FamilyPersonasIcon :name="moduleIcon" /></span>
+        <img :src="sunnyMascot" alt="" />
+      </div>
+    </header>
+
+    <section class="module-toolbar" aria-label="Filtros de publicaciones">
+      <label class="search-field search-field-wide">
+        <FamilyPersonasIcon name="search" />
+        <input v-model="search" class="input" type="search" placeholder="Título, descripción o autor" aria-label="Buscar publicación" data-diagnostic-filter="buscar-recurso" />
+      </label>
+      <label class="filter-field">
+        <span>Estado</span>
+        <select v-model="visibilityFilter" class="select" aria-label="Estado" data-diagnostic-filter="estado-recurso">
           <option value="published">Publicadas</option>
           <option value="hidden">Ocultas</option>
           <option value="all">Todas</option>
         </select>
-        <select v-model="resourceFilter" class="select filter-select" aria-label="Archivo" data-diagnostic-filter="archivo-recurso">
-          <option value="all">Archivos</option>
+      </label>
+      <label class="filter-field">
+        <span>Contenido</span>
+        <select v-model="resourceFilter" class="select" aria-label="Archivo" data-diagnostic-filter="archivo-recurso">
+          <option value="all">Todos</option>
           <option value="with">Con archivo</option>
           <option value="without">Sin archivo</option>
         </select>
-        <button class="btn btn-primary" type="button" data-diagnostic-action="crear-recurso" :disabled="saving" @click="startCreate()">{{ actionLabel }}</button>
-      </div>
-    </header>
+      </label>
+    </section>
 
     <AdminModal
       v-if="editing"
@@ -55,8 +73,6 @@
       </template>
     </AdminModal>
 
-
-
     <AdminModal
       v-if="deleteDialog"
       title="Eliminar publicación"
@@ -84,14 +100,14 @@
     <div v-if="pending" class="card loading-card" data-product-loading>Cargando publicaciones…</div>
 
     <section v-else class="resource-desk">
-      <div class="card resource-list-card" data-product-panel="resource-list" :data-state="filteredRows.length ? 'content' : 'empty'">
-        <div class="section-head">
+      <div class="resource-list-card" data-product-panel="resource-list" :data-state="filteredRows.length ? 'content' : 'empty'">
+        <header class="section-head">
           <div>
             <p class="eyebrow">Publicaciones</p>
             <h2>{{ filteredRows.length }} visibles</h2>
           </div>
-          <span class="scope-pill">{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</span>
-        </div>
+          <span class="scope-pill">{{ data?.sala?.sala }}</span>
+        </header>
 
         <div v-if="filteredRows.length" class="resource-list">
           <button
@@ -104,27 +120,34 @@
             :aria-pressed="selected?.id === item.id"
             @click="selectRow(item)"
           >
-            <span class="row-date">{{ compactDate(item.date || item.timestamp) }}</span>
+            <span class="row-media" :class="{ 'has-image': mediaAssetFor(item.resource)?.kind === 'image' }">
+              <img v-if="mediaAssetFor(item.resource)?.kind === 'image'" :src="mediaAssetFor(item.resource)?.url" alt="" loading="lazy" />
+              <FamilyPersonasIcon v-else :name="mediaIconFor(item.resource)" />
+            </span>
             <span class="row-main">
+              <span class="row-meta"><time>{{ compactDate(item.date || item.timestamp) }}</time><em>{{ daycareMediaLabel(item.resource) }}</em></span>
               <strong>{{ item.title || 'Sin título' }}</strong>
               <small>{{ stripHtml(item.description) || 'Sin descripción' }}</small>
             </span>
             <span class="row-status">
               <AdminSyncCue v-if="resourceStatus(item.id)" :status="resourceStatus(item.id)" compact />
               <strong :class="isHiddenResource(item.hidden) ? 'status-hidden' : 'status-published'">{{ isHiddenResource(item.hidden) ? 'Oculta' : 'Publicada' }}</strong>
-              <small>{{ daycareMediaLabel(item.resource) }}</small>
+              <FamilyPersonasIcon name="arrow" />
             </span>
           </button>
         </div>
         <EmptyState v-else title="Sin publicaciones" />
       </div>
 
-      <aside class="card preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
+      <aside class="preview-card" data-product-panel="resource-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
-          <div class="preview-status-row">
-            <span class="scope-pill" :class="{ muted: isHiddenResource(selected.hidden) }">{{ isHiddenResource(selected.hidden) ? 'Oculta' : 'Publicada' }}</span>
+          <header class="preview-status-row">
+            <div>
+              <p class="eyebrow">Vista familias</p>
+              <span class="scope-pill" :class="{ muted: isHiddenResource(selected.hidden) }">{{ isHiddenResource(selected.hidden) ? 'Oculta' : 'Publicada' }}</span>
+            </div>
             <AdminSyncCue v-if="resourceStatus(selected.id)" :status="resourceStatus(selected.id)" />
-          </div>
+          </header>
 
           <ResourceCard
             :resource="selected"
@@ -136,14 +159,13 @@
           <div class="preview-meta">
             <span><FamilyPersonasIcon name="calendar" />{{ formatDate(selected.date || selected.timestamp, '—') }}</span>
             <span><FamilyPersonasIcon name="person" />{{ selected.autor || '—' }}</span>
-            <span><FamilyPersonasIcon name="people" />{{ data?.sala?.unidad }} · {{ data?.sala?.sala }}</span>
             <span v-if="selected.resource"><FamilyPersonasIcon name="attachment" />{{ daycareMediaLabel(selected.resource) }}</span>
           </div>
 
           <div class="preview-actions">
-            <button class="btn btn-secondary" type="button" data-diagnostic-action="editar-recurso" :disabled="isResourcePending(selected.id)" @click="openEditor(selected)">Editar</button>
+            <button class="btn btn-primary" type="button" data-diagnostic-action="editar-recurso" :disabled="isResourcePending(selected.id)" @click="openEditor(selected)"><FamilyPersonasIcon name="edit" />Editar</button>
             <button class="btn btn-secondary" type="button" data-diagnostic-action="toggle-publicacion" :disabled="isResourcePending(selected.id)" @click="togglePublished(selected)">{{ isHiddenResource(selected.hidden) ? 'Publicar' : 'Ocultar' }}</button>
-            <button class="btn btn-danger" type="button" data-diagnostic-action="eliminar-recurso" :disabled="isResourcePending(selected.id)" @click="openDeleteDialog(selected)">Eliminar</button>
+            <button class="icon-danger" type="button" data-diagnostic-action="eliminar-recurso" :disabled="isResourcePending(selected.id)" aria-label="Eliminar publicación" @click="openDeleteDialog(selected)"><FamilyPersonasIcon name="trash" /></button>
           </div>
         </template>
         <EmptyState v-else title="Selecciona una publicación" />
@@ -165,7 +187,8 @@ import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 import { useOptimisticStatus } from '~/composables/useOptimisticStatus'
 import type { DaycareResource, Sala } from '~/types/daycare'
 import { daycareResourceSection, formatDate, isHiddenResource, parseLegacyDate, stripHtml } from '~/utils/daycare'
-import { daycareMediaLabel } from '~/utils/daycareMedia'
+import { daycareDocumentIcon, daycareMediaAsset, daycareMediaLabel } from '~/utils/daycareMedia'
+import { personasMascot, resolvePersonasTheme } from '~/utils/personasTheme'
 
 const props = defineProps<{
   type: 'hw' | 'news' | 'cal'
@@ -191,6 +214,10 @@ const actionError = ref('')
 const actionNotice = ref('')
 const selectedIdFromRoute = computed(() => Number(route.query.registro || 0))
 const createRequested = ref(isCreateQuery(route.query.create) || (import.meta.client && new URLSearchParams(window.location.search).get('create') === '1'))
+const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
+const sunnyMascot = personasMascot(daycareTheme, props.type === 'hw' ? 'help' : props.type === 'cal' ? 'preview' : 'header')
+const moduleTone = computed(() => props.type === 'hw' ? 'tone-amber' : props.type === 'cal' ? 'tone-blue' : 'tone-coral')
+const moduleIcon = computed(() => props.type === 'hw' ? 'edit' : props.type === 'cal' ? 'calendar' : 'announcement')
 let optimisticId = -1
 
 const {
@@ -206,6 +233,15 @@ const {
 const { data, pending, error } = useFetch<{ sala: Sala; rows: DaycareResource[] }>('/api/daycare/admin/resources', {
   query: { sala: salaId, type: props.type },
   timeout: 15000
+})
+
+const resourceStats = computed(() => {
+  const rows = data.value?.rows || []
+  return {
+    total: rows.length,
+    published: rows.filter((item) => !isHiddenResource(item.hidden)).length,
+    withMedia: rows.filter((item) => Boolean(item.resource)).length
+  }
 })
 
 const filteredRows = computed(() => {
@@ -548,6 +584,14 @@ function isResourcePending(id?: number) {
 }
 
 
+function mediaAssetFor(resource?: string | null) {
+  return daycareMediaAsset(resource)
+}
+
+function mediaIconFor(resource?: string | null) {
+  return daycareDocumentIcon(daycareMediaAsset(resource)?.kind)
+}
+
 function compactDate(value?: string | null) {
   const date = parseLegacyDate(value)
   if (!date) return '—'
@@ -601,79 +645,184 @@ function isCreateQuery(value: unknown) {
 
 <style scoped>
 .resource-module {
-  --ink: #102235;
-  --muted: #617187;
-  --line: rgba(18, 95, 89, 0.16);
-  --accent: #07877d;
-  --accent-dark: #075f58;
-  --sun: #f6b94f;
-  gap: 14px;
+  --module-accent: #578b26;
+  --module-soft: #edf6e4;
+  --module-soft-strong: #dcebc9;
+  --module-deep: #355f24;
+  --module-gradient-end: #8eae3f;
+  gap: clamp(16px, 2.2vw, 24px);
+}
+
+.resource-module.tone-amber {
+  --module-accent: #d78b16;
+  --module-soft: #fff6e4;
+  --module-soft-strong: #ffe8bc;
+  --module-deep: #7c520d;
+  --module-gradient-end: #d9a83d;
+}
+
+.resource-module.tone-coral {
+  --module-accent: #c15e50;
+  --module-soft: #fff0ed;
+  --module-soft-strong: #fbdad4;
+  --module-deep: #8e4036;
+  --module-gradient-end: #dc7565;
+}
+
+.resource-module.tone-blue {
+  --module-accent: #3f7fa2;
+  --module-soft: #edf6fa;
+  --module-soft-strong: #d8ebf3;
+  --module-deep: #245a77;
+  --module-gradient-end: #64a2c2;
 }
 
 .module-hero {
-  align-items: end;
   background:
-    radial-gradient(circle at 9% 14%, rgba(8, 135, 125, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 0%, rgba(246, 185, 79, 0.20), transparent 28%),
-    linear-gradient(135deg, #ffffff, #fbfdf6);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: 0 22px 58px rgba(14, 40, 55, 0.08);
+    radial-gradient(circle at 15% 116%, rgba(255, 190, 71, 0.28), transparent 34%),
+    radial-gradient(circle at 91% 4%, rgba(255, 255, 255, 0.18), transparent 26%),
+    linear-gradient(135deg, #294e20 0%, var(--module-deep) 54%, var(--module-gradient-end) 100%);
+  border-radius: 34px;
+  box-shadow: 0 26px 64px color-mix(in srgb, var(--module-deep) 22%, transparent);
+  color: #fff;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(520px, 0.95fr);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 330px);
+  min-height: 300px;
   overflow: hidden;
-  padding: clamp(18px, 2.4vw, 28px);
+  padding: clamp(28px, 5vw, 50px);
   position: relative;
 }
 
-.module-hero::after {
-  background: linear-gradient(180deg, var(--accent), #8bbf48);
-  border-radius: 999px;
+.module-hero::before {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 50%;
   content: '';
-  height: 82px;
-  opacity: 0.14;
+  height: 340px;
+  left: -180px;
   position: absolute;
-  right: 34px;
-  top: -40px;
-  transform: rotate(34deg);
-  width: 14px;
+  top: -210px;
+  width: 340px;
 }
 
-.module-hero h1 {
-  color: var(--ink);
-  font-family: var(--font-title, var(--font-body));
-  font-size: clamp(1.8rem, 3.2vw, 3rem);
-  letter-spacing: -0.03em;
-  line-height: 0.96;
-  margin: 0;
+.hero-copy {
+  align-self: center;
+  display: grid;
+  gap: 13px;
+  position: relative;
+  z-index: 2;
 }
 
-.eyebrow {
-  color: var(--accent-dark);
+.hero-kicker {
+  color: rgba(255, 255, 255, 0.74);
   font-size: 0.72rem;
   font-weight: 900;
-  letter-spacing: 0.14em;
-  margin: 0 0 6px;
+  letter-spacing: 0.13em;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.module-actions {
+.hero-copy h1 {
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: clamp(3rem, 7vw, 6rem);
+  letter-spacing: -0.04em;
+  line-height: 0.84;
+  margin: 0;
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-stats span {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.7rem;
+  padding: 8px 11px;
+}
+
+.hero-stats strong {
+  color: #fff;
+  font-size: 0.84rem;
+  margin-right: 3px;
+}
+
+.hero-action {
   align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 16px 32px rgba(31, 55, 22, 0.2);
+  color: var(--module-deep);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  justify-self: start;
+  margin-top: 4px;
+  min-height: 48px;
+  padding: 0 17px;
+}
+
+.hero-art {
+  min-height: 250px;
+  position: relative;
+}
+
+.hero-art img {
+  bottom: -54px;
+  filter: drop-shadow(0 24px 24px rgba(29, 56, 21, 0.22));
+  max-height: 310px;
+  object-fit: contain;
+  position: absolute;
+  right: -8px;
+  width: min(100%, 280px);
+  z-index: 2;
+}
+
+.hero-disc {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  height: 180px;
+  justify-content: center;
+  position: absolute;
+  right: 22px;
+  top: 18px;
+  width: 180px;
+}
+
+.hero-disc :deep(.pa-icon) {
+  height: 3.2rem;
+  opacity: 0.42;
+  width: 3.2rem;
+}
+
+.module-toolbar {
+  align-items: end;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(66, 104, 49, 0.13);
+  border-radius: 24px;
+  box-shadow: 0 16px 44px rgba(51, 82, 37, 0.08);
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(190px, 1fr) minmax(132px, 0.36fr) minmax(132px, 0.36fr) auto;
-  position: relative;
-  z-index: 1;
+  grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.24fr) minmax(150px, 0.24fr);
+  padding: 10px;
 }
 
 .search-field {
   align-items: center;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(8, 135, 125, 0.18);
+  background: #f8faf4;
+  border: 1px solid rgba(66, 104, 49, 0.12);
   border-radius: 17px;
-  box-shadow: 0 14px 30px rgba(14, 40, 55, 0.06);
-  color: var(--accent-dark);
+  color: var(--module-accent);
   display: grid;
   gap: 9px;
   grid-template-columns: 20px minmax(0, 1fr);
@@ -681,41 +830,44 @@ function isCreateQuery(value: unknown) {
   padding: 6px 12px;
 }
 
-.search-field .input {
+.search-field .input,
+.filter-field .select {
   background: transparent;
   border: 0;
   box-shadow: none;
-  padding: 0;
 }
 
-.filter-select {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(8, 135, 125, 0.18);
-  border-radius: 15px;
-  min-height: 48px;
+.filter-field {
+  background: #fff;
+  border: 1px solid rgba(66, 104, 49, 0.12);
+  border-radius: 17px;
+  display: grid;
+  gap: 1px;
+  padding: 7px 11px;
 }
 
-.module-actions .btn-primary {
-  background: #21324a;
-  border-radius: 15px;
-  box-shadow: 0 16px 30px rgba(33, 50, 74, 0.18);
-  min-height: 48px;
-  white-space: nowrap;
+.filter-field > span {
+  color: #7a8473;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .resource-desk {
+  align-items: start;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 380px);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
 }
 
 .resource-list-card,
 .preview-card,
 .loading-card {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: 0 18px 48px rgba(14, 40, 55, 0.07);
+  background: rgba(255, 255, 255, 0.91);
+  border: 1px solid rgba(66, 104, 49, 0.13);
+  border-radius: 28px;
+  box-shadow: 0 20px 58px rgba(51, 82, 37, 0.09);
 }
 
 .resource-list-card {
@@ -723,257 +875,251 @@ function isCreateQuery(value: unknown) {
   padding: 14px;
 }
 
-.section-head {
+.section-head,
+.preview-status-row {
   align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 10px;
+}
+
+.section-head {
+  padding: 5px 5px 13px;
+}
+
+.eyebrow {
+  color: var(--module-accent);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  margin: 0 0 5px;
+  text-transform: uppercase;
 }
 
 .section-head h2 {
-  color: var(--ink);
-  font-family: var(--font-title, var(--font-body));
-  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  color: #263f1c;
+  font-family: var(--font-title);
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
   margin: 0;
 }
 
 .scope-pill {
-  background: #effaf7;
-  border: 1px solid rgba(8, 135, 125, 0.16);
+  background: var(--module-soft);
+  border: 1px solid color-mix(in srgb, var(--module-accent) 18%, transparent);
   border-radius: 999px;
-  color: var(--accent-dark);
-  font-size: 0.78rem;
+  color: var(--module-deep);
+  font-size: 0.72rem;
   font-weight: 900;
   padding: 7px 10px;
   white-space: nowrap;
 }
 
 .scope-pill.muted {
-  background: #f2f4f5;
-  color: var(--muted);
+  background: #f2f4ef;
+  color: #6f7868;
 }
 
 .resource-list {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .resource-row {
   align-items: center;
-  background: #ffffff;
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 22px;
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-columns: 66px minmax(0, 1fr) minmax(100px, auto);
-  padding: 10px;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  min-height: 88px;
+  padding: 9px;
   text-align: left;
+  transition: 160ms ease;
   width: 100%;
 }
 
 .resource-row:hover,
 .resource-row.active {
-  background: linear-gradient(135deg, #f0fbf7, #fffaf0);
-  border-color: rgba(8, 135, 125, 0.22);
+  background: linear-gradient(135deg, var(--module-soft), #fffaf0);
+  border-color: color-mix(in srgb, var(--module-accent) 18%, transparent);
+  transform: translateY(-1px);
 }
 
 .resource-row.active {
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--module-accent), 0 12px 28px rgba(51, 82, 37, 0.08);
 }
 
 .resource-row.hidden {
   opacity: 0.72;
 }
 
-.row-date {
-  background: #fff7df;
-  border: 1px solid rgba(246, 185, 79, 0.32);
-  border-radius: 14px;
-  color: #8a650c;
-  font-size: 0.78rem;
-  font-weight: 900;
-  padding: 8px;
-  text-align: center;
-  text-transform: capitalize;
+.row-media {
+  align-items: center;
+  background: var(--module-soft-strong);
+  border-radius: 18px;
+  color: var(--module-deep);
+  display: inline-flex;
+  height: 68px;
+  justify-content: center;
+  overflow: hidden;
+  width: 68px;
+}
+
+.row-media.has-image {
+  background: #eef0eb;
+}
+
+.row-media img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.row-media :deep(.pa-icon) {
+  height: 1.5rem;
+  width: 1.5rem;
 }
 
 .row-main,
 .row-status {
   display: grid;
-  gap: 3px;
   min-width: 0;
 }
 
+.row-main {
+  gap: 3px;
+}
+
+.row-meta {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.row-meta time,
+.row-meta em {
+  color: #7b8475;
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.row-meta em {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  padding: 3px 6px;
+}
+
 .row-main strong,
-.row-main small,
-.row-status small {
+.row-main small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .row-main strong {
-  color: var(--ink);
+  color: #263f1c;
+  font-size: 0.94rem;
 }
 
-.row-main small,
-.row-status small {
-  color: var(--muted);
-  font-size: 0.78rem;
+.row-main small {
+  color: #747e6d;
+  font-size: 0.76rem;
 }
 
 .row-status {
-  text-align: right;
+  align-items: end;
+  gap: 5px;
+  justify-items: end;
+}
+
+.row-status > :deep(.pa-icon) {
+  color: #99a093;
+  height: 1rem;
+  width: 1rem;
 }
 
 .status-hidden,
 .status-published {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 900;
 }
 
-.status-hidden {
-  color: #8d5a00;
-}
-
-.status-published {
-  color: var(--accent-dark);
-}
+.status-hidden { color: #8d5a00; }
+.status-published { color: #426831; }
 
 .preview-card {
   align-self: start;
   display: grid;
-  gap: 13px;
+  gap: 14px;
   padding: 14px;
   position: sticky;
-  top: calc(var(--topbar-height) + 14px);
+  top: calc(var(--topbar-height) + 16px);
 }
 
-.preview-status-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.notice-preview {
-  background:
-    radial-gradient(circle at 100% 0%, rgba(8, 135, 125, 0.10), transparent 34%),
-    linear-gradient(135deg, #ffffff, #fffaf0);
-  border: 1px solid rgba(8, 135, 125, 0.14);
-  border-radius: 22px;
+.preview-status-row > div {
   display: grid;
-  gap: 10px;
-  padding: 16px;
-}
-
-.notice-date {
-  background: #fff7df;
-  border: 1px solid rgba(246, 185, 79, 0.36);
-  border-radius: 999px;
-  color: #8a650c;
-  font-size: 0.76rem;
-  font-weight: 900;
-  justify-self: start;
-  padding: 7px 10px;
-  text-transform: capitalize;
-}
-
-.notice-preview .scope-pill {
-  justify-self: start;
-}
-
-.notice-preview h2 {
-  color: var(--ink);
-  font-family: var(--font-title, var(--font-body));
-  font-size: clamp(1.45rem, 2vw, 2rem);
-  line-height: 1;
-  margin: 0;
-}
-
-.notice-preview p {
-  color: var(--muted);
-  line-height: 1.45;
-  margin: 0;
+  gap: 2px;
 }
 
 .preview-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
 }
 
 .preview-meta span {
   align-items: center;
-  background: #f8fbfb;
-  border: 1px solid rgba(18, 95, 89, 0.10);
+  background: #f8faf4;
+  border: 1px solid rgba(66, 104, 49, 0.1);
   border-radius: 999px;
-  color: #46586e;
+  color: #64705e;
   display: inline-flex;
-  font-size: 0.76rem;
-  font-weight: 900;
+  font-size: 0.7rem;
+  font-weight: 800;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 7px 9px;
 }
 
 .preview-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) 44px;
+}
+
+.preview-actions .btn-primary {
+  background: #263f1c;
+  box-shadow: 0 14px 28px rgba(38, 63, 28, 0.17);
+}
+
+.icon-danger {
+  align-items: center;
+  background: #fff0ed;
+  border: 1px solid rgba(193, 94, 80, 0.16);
+  border-radius: 13px;
+  color: #a4473b;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
 }
 
 .notice {
-  background: #f0f8e7;
-  border: 1px solid var(--color-brand-200);
-  border-radius: 14px;
-  color: var(--color-brand-900);
-  font-weight: 600;
+  background: #edf8e7;
+  border: 1px solid #cbe4b8;
+  border-radius: 16px;
+  color: #355f24;
+  font-weight: 700;
   margin: 0;
-  padding: 8px 10px;
+  padding: 10px 13px;
 }
 
 .loading-card {
-  color: var(--muted);
-  padding: 20px;
+  color: #717a6c;
+  padding: 22px;
 }
 
-@media (max-width: 1180px) {
-  .module-hero,
-  .resource-desk {
-    grid-template-columns: 1fr;
-  }
-
-  .module-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .module-actions .btn {
-    grid-column: 1 / -1;
-  }
-
-  .preview-card {
-    position: static;
-  }
-}
-
-@media (max-width: 760px) {
-  .module-actions,
-  .resource-row {
-    grid-template-columns: 1fr;
-  }
-
-  .row-status {
-    text-align: left;
-  }
-
-  .section-head {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
 .delete-confirm-modal {
   align-items: center;
   display: grid;
@@ -996,31 +1142,94 @@ function isCreateQuery(value: unknown) {
 
 .delete-confirm-modal strong,
 .delete-confirm-modal small { display: block; }
-.delete-confirm-modal strong { color: var(--ink); }
-.delete-confirm-modal small { color: var(--muted); margin-top: 3px; }
-.delete-confirm-modal .modal-actions {
-  display: flex;
-  gap: 10px;
-  grid-column: 1 / -1;
-  justify-content: flex-end;
-}
-
-
+.delete-confirm-modal strong { color: #263f1c; }
+.delete-confirm-modal small { color: #747e6d; margin-top: 3px; }
+.delete-confirm-modal .modal-actions { display: flex; gap: 10px; grid-column: 1 / -1; justify-content: flex-end; }
 
 .compact-alert { margin: 0 0 12px; }
+.resource-row.syncing { background: #f2f8fb; border-color: rgba(78, 145, 182, 0.2); }
+.resource-row.failed { background: #fff4f2; border-color: rgba(193, 94, 80, 0.2); }
+.row-status :deep(.sync-cue) { justify-self: end; }
 
-.resource-row.syncing {
-  background: #f5faff;
-  border-color: rgba(23, 93, 135, 0.2);
+@media (max-width: 1120px) {
+  .resource-desk {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-card {
+    position: static;
+  }
 }
 
-.resource-row.failed {
-  background: #fff7f8;
-  border-color: rgba(167, 25, 53, 0.2);
+@media (max-width: 820px) {
+  .module-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .hero-art {
+    display: none;
+  }
+
+  .module-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .search-field {
+    grid-column: 1 / -1;
+  }
 }
 
-.row-status :deep(.sync-cue) {
-  justify-self: end;
-  margin-bottom: 2px;
+@media (max-width: 620px) {
+  .module-hero {
+    border-radius: 28px;
+    padding: 26px 20px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(3rem, 16vw, 4.8rem);
+  }
+
+  .hero-action {
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  .module-toolbar,
+  .resource-row,
+  .preview-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .search-field {
+    grid-column: auto;
+  }
+
+  .resource-row {
+    align-items: start;
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .row-media {
+    height: 58px;
+    width: 58px;
+  }
+
+  .row-status {
+    align-items: center;
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding-inline: 4px;
+  }
+
+  .row-main strong,
+  .row-main small {
+    white-space: normal;
+  }
+
+  .icon-danger {
+    min-height: 42px;
+  }
 }
 </style>

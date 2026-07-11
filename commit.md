@@ -1,1 +1,1 @@
-Corrige la carga persistente de imágenes en guardería
+Rediseña la administración de guardería con una experiencia visual premium
