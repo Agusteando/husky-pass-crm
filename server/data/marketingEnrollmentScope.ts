@@ -70,8 +70,8 @@ export function normalizeAuroraEnrollmentPlantel(value: unknown): AuroraEnrollme
   return ''
 }
 
-function splitScopeValues(value: unknown) {
-  if (Array.isArray(value)) return value.flatMap(splitScopeValues)
+function splitScopeValues(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap((item) => splitScopeValues(item))
   return String(value ?? '').split(/[,;|/]+/).map((item) => item.trim()).filter(Boolean)
 }
 
