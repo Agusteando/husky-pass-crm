@@ -15,12 +15,15 @@ const schema = z.object({
     marketingAdmin: z.boolean().optional().default(false)
   }),
   unidades: z.array(z.string().trim().min(1)).max(30).optional().default([]),
-  schoolScopes: z.array(z.object({
-    plantel: z.string().trim().min(1),
-    nivel: z.string().trim().nullable().optional(),
-    grado: z.string().trim().nullable().optional()
-  })).max(30).optional().default([]),
-  marketingPlanteles: z.array(z.string().trim().min(1)).max(30).optional().default([])
+  planteles: z.array(z.string().trim().min(1)).max(30).default([]),
+  schoolPermissions: z.array(z.enum([
+    'familias.impersonate',
+    'comunicados.create',
+    'comunicados.publish',
+    'encuestas.manage',
+    'convenios.manage',
+    'convenios.publish'
+  ])).max(20).optional().default([]),
 })
 
 export default defineEventHandler(async (event) => {
@@ -35,8 +38,8 @@ export default defineEventHandler(async (event) => {
     targetUserId: userId,
     enabledRoles: Object.entries(body.roles).filter(([, enabled]) => enabled).map(([role]) => role),
     unitCount: body.unidades.length,
-    schoolScopeCount: body.schoolScopes.length,
-    marketingPlantelCount: body.marketingPlanteles.length
+    plantelCount: body.planteles.length,
+    schoolPermissionCount: body.schoolPermissions.length
   }, event)
   return updated
 })

@@ -1,13 +1,16 @@
 import bcrypt from 'bcryptjs'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AdminProductScope, AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
-import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminSchoolScope, SuperAdminUserSummary } from '~/types/superadmin'
+import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
+import type { GestionEscolarCapability } from '~/types/gestionEscolar'
 import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, MARKETING_ADMIN_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { publicError } from '~/server/utils/httpError'
+import { normalizeAssignedSchoolPlanteles } from '~/server/data/userPlantelScope'
+import { GESTION_ESCOLAR_OPTIONAL_CAPABILITIES } from '~/utils/gestionPermissions'
 
 interface LegacyUserRow extends RowDataPacket {
   id: number
@@ -68,18 +71,6 @@ interface DirectoryUserIdRow extends RowDataPacket {
   user_id: number | string | null
 }
 
-interface DirectorySchoolScopeRow extends RowDataPacket {
-  user_id: number | string | null
-  plantel: string | null
-  nivel: string | null
-  grado: string | null
-}
-
-interface DirectoryMarketingPlantelRow extends RowDataPacket {
-  user_id: number | string | null
-  plantel: string | null
-}
-
 interface DirectorySchoolOptionRow extends RowDataPacket {
   plantel: string | null
   grado: string | null
@@ -97,19 +88,7 @@ const baseUserSql = `
     B.route,
     B.icono,
     A.displayName,
-    CONCAT_WS(',',
-      NULLIF(TRIM(CAST(A.plantel AS CHAR)), ''),
-      (
-        SELECT GROUP_CONCAT(DISTINCT GP.plantel ORDER BY GP.plantel SEPARATOR ',')
-        FROM gestion_escolar_permissions GP
-        WHERE GP.user_id = A.id
-          AND GP.enabled = 1
-          AND GP.is_global = 0
-          AND GP.plantel IS NOT NULL
-          AND TRIM(CAST(GP.plantel AS CHAR)) <> ''
-          AND (GP.capability IN ('role_mkt', 'role_ctrl') OR GP.capability IS NULL OR TRIM(CAST(GP.capability AS CHAR)) = '')
-      )
-    ) AS plantel,
+    A.plantel,
     A.campus,
     A.empresa,
     A.unidad,
@@ -304,7 +283,7 @@ function hydrateUserRows(rows: LegacyUserRow[]) {
     toSession(kind: SessionKind): AppSessionUser {
       const roles = normalizeAdminRoleTokens(csvToList(first.role))
       const unidades = csvToList(first.unidad)
-      const plantel = Array.from(new Set(csvToList(first.plantel)))
+      const plantel = normalizeAssignedSchoolPlanteles([first.plantel])
       const familyScopes = kind === 'family' ? resolveFamilyProductScopes(first, routes, roles, unidades) : {}
       const productScopes = kind === 'family'
         ? Object.keys(familyScopes) as FamilyProductScope[]
@@ -411,7 +390,7 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 
   const normalizedPlantel = normalizeSchoolPlantel(plantel)
   if (normalizedPlantel) {
-    where.push(`${schoolPlantelSqlFromMatricula('A.username')} = ?`)
+    where.push(`FIND_IN_SET(?, REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(A.plantel, ''), ' ', ''), ';', ','), '|', ','), '/', ',')) > 0`)
     params.push(normalizedPlantel)
   }
 
@@ -488,32 +467,16 @@ export async function listSuperAdminDirectory(filters: { plantel?: string; searc
 async function summarizeDirectoryRows(rows: DirectoryUserRow[]) {
   const userIds = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id))
   const routeMap = await loadDirectoryRoutes(rows)
-  const schoolScopeMap = await loadSchoolScopeMap(userIds)
-  const marketingPlantelMap = await loadMarketingPlantelMap(userIds)
+  const schoolPermissionMap = await loadSchoolPermissionMap(userIds)
   const personasUserIds = await loadPersonasAutorizadasUserIds(userIds)
   const alumnoUserIds = await loadAlumnoPaUserIds(userIds)
 
-  return rows.map((row) => {
-    const schoolScopes = schoolScopeMap.get(Number(row.id)) || []
-    const explicitMarketingPlanteles = marketingPlantelMap.get(Number(row.id)) || []
-    const campusPlantel = normalizeSchoolPlantel(row.campus)
-    const directMarketingPlanteles = csvToList(row.plantel)
-      .map((plantel) => normalizeSchoolPlantel(plantel))
-      .filter(Boolean) as string[]
-    const legacyMarketingPlanteles = explicitMarketingPlanteles.length
-      ? explicitMarketingPlanteles
-      : Array.from(new Set([
-          ...directMarketingPlanteles,
-          ...schoolScopes.map((scope) => scope.plantel).filter(Boolean),
-          ...(campusPlantel ? [campusPlantel] : [])
-        ]))
-    return directoryRowToSummary({
-      ...row,
-      routes: routesForDirectoryRow(row, routeMap).join('||'),
-      has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
-      has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
-    }, schoolScopes, legacyMarketingPlanteles)
-  })
+  return rows.map((row) => directoryRowToSummary({
+    ...row,
+    routes: routesForDirectoryRow(row, routeMap).join('||'),
+    has_alumno_pa: alumnoUserIds.has(Number(row.id)) ? 1 : 0,
+    has_personas_autorizadas: personasUserIds.has(Number(row.id)) ? 1 : 0
+  }, schoolPermissionMap.get(Number(row.id)) || []))
 }
 
 export async function getSuperAdminUserSummaryById(userId: number) {
@@ -573,123 +536,70 @@ async function loadSchoolDirectoryOptions() {
   }
 }
 
-function normalizeSchoolScopes(values: unknown): SuperAdminSchoolScope[] {
+function normalizeAssignedPlanteles(values: unknown): string[] {
+  const raw = Array.isArray(values) ? values : csvToList(String(values || ''))
+  const order = new Map<string, number>(SCHOOL_PLANTELES.map((plantel, index) => [plantel, index]))
+  return Array.from(new Set(raw
+    .map((value) => normalizeSchoolPlantel(String(value || '')))
+    .filter(Boolean) as string[]))
+    .sort((left, right) => (order.get(left) ?? 99) - (order.get(right) ?? 99))
+}
+
+function normalizeSchoolPermissions(values: unknown): GestionEscolarCapability[] {
   const raw = Array.isArray(values) ? values : []
-  const byKey = new Map<string, SuperAdminSchoolScope>()
-  for (const value of raw) {
-    if (!value || typeof value !== 'object') continue
-    const item = value as { plantel?: unknown; nivel?: unknown; grado?: unknown }
-    const plantel = normalizeSchoolPlantel(String(item.plantel || ''))
-    if (!plantel) continue
-    const grado = normalizeSchoolGrade(String(item.grado || ''), plantel)
-    const key = [plantel, grado || ''].join('|')
-    byKey.set(key, { plantel, nivel: null, grado })
-  }
-  return Array.from(byKey.values()).slice(0, 30)
+  const allowed = new Set<GestionEscolarCapability>(GESTION_ESCOLAR_OPTIONAL_CAPABILITIES)
+  return Array.from(new Set(raw
+    .map((value) => String(value || '').trim() as GestionEscolarCapability)
+    .filter((value) => allowed.has(value))))
 }
 
-function roleCtrlScopeKey(scope: SuperAdminSchoolScope) {
-  return [scope.plantel, scope.grado || ''].join('|')
-}
-
-async function loadSchoolScopeMap(userIds: number[]) {
+async function loadSchoolPermissionMap(userIds: number[]) {
   const ids = Array.from(new Set(userIds.filter((id) => Number.isFinite(id))))
-  if (!ids.length) return new Map<number, SuperAdminSchoolScope[]>()
+  if (!ids.length) return new Map<number, GestionEscolarCapability[]>()
   const placeholders = ids.map(() => '?').join(',')
-  const rows = await legacyQuery<DirectorySchoolScopeRow[]>(
-    `SELECT DISTINCT user_id, plantel, nivel, grado
+  const capabilityPlaceholders = GESTION_ESCOLAR_OPTIONAL_CAPABILITIES.map(() => '?').join(',')
+  const rows = await legacyQuery<(RowDataPacket & { user_id: number | string | null; capability: string | null })[]>(
+    `SELECT DISTINCT user_id, capability
      FROM gestion_escolar_permissions
      WHERE user_id IN (${placeholders})
-       AND capability = 'role_ctrl'
        AND enabled = 1
-       AND is_global = 0
-       AND plantel IS NOT NULL
-       AND TRIM(CAST(plantel AS CHAR)) <> ''
-     ORDER BY plantel ASC, nivel ASC, grado ASC`,
-    ids
-  ).catch(() => [] as DirectorySchoolScopeRow[])
+       AND capability IN (${capabilityPlaceholders})
+     ORDER BY capability ASC`,
+    [...ids, ...GESTION_ESCOLAR_OPTIONAL_CAPABILITIES]
+  ).catch(() => [])
 
-  const map = new Map<number, SuperAdminSchoolScope[]>()
+  const map = new Map<number, GestionEscolarCapability[]>()
   for (const row of rows) {
     const userId = Number(row.user_id)
-    if (!Number.isFinite(userId)) continue
-    const scope = normalizeSchoolScopes([{ plantel: row.plantel, nivel: row.nivel, grado: row.grado }])[0]
-    if (!scope) continue
+    const capability = String(row.capability || '').trim() as GestionEscolarCapability
+    if (!Number.isFinite(userId) || !GESTION_ESCOLAR_OPTIONAL_CAPABILITIES.includes(capability)) continue
     const existing = map.get(userId) || []
-    if (!existing.some((item) => roleCtrlScopeKey(item) === roleCtrlScopeKey(scope))) {
-      existing.push(scope)
-      map.set(userId, existing)
-    }
-  }
-  return map
-}
-
-async function loadMarketingPlantelMap(userIds: number[]) {
-  const ids = Array.from(new Set(userIds.filter((id) => Number.isFinite(id))))
-  if (!ids.length) return new Map<number, string[]>()
-  const placeholders = ids.map(() => '?').join(',')
-  const rows = await legacyQuery<DirectoryMarketingPlantelRow[]>(
-    `SELECT DISTINCT user_id, plantel
-     FROM gestion_escolar_permissions
-     WHERE user_id IN (${placeholders})
-       AND capability = 'role_mkt'
-       AND enabled = 1
-       AND is_global = 0
-       AND plantel IS NOT NULL
-       AND TRIM(CAST(plantel AS CHAR)) <> ''
-     ORDER BY plantel ASC`,
-    ids
-  ).catch(() => [] as DirectoryMarketingPlantelRow[])
-
-  const map = new Map<number, string[]>()
-  for (const row of rows) {
-    const userId = Number(row.user_id)
-    const plantel = normalizeSchoolPlantel(row.plantel)
-    if (!Number.isFinite(userId) || !plantel) continue
-    const existing = map.get(userId) || []
-    if (!existing.includes(plantel)) existing.push(plantel)
+    if (!existing.includes(capability)) existing.push(capability)
     map.set(userId, existing)
   }
   return map
 }
 
-function normalizeMarketingPlanteles(values: unknown) {
-  const raw = Array.isArray(values) ? values : []
-  return Array.from(new Set(raw.map((value) => normalizeSchoolPlantel(String(value || ''))).filter(Boolean) as string[])).slice(0, 30)
-}
-
-async function replaceSchoolScopes(
+async function replaceSchoolPermissions(
   client: { write: (sql: string, params?: Array<string | number | boolean | null>) => Promise<unknown> },
   actor: AppSessionUser,
   userId: number,
   enabled: boolean,
-  scopes: SuperAdminSchoolScope[]
+  permissions: GestionEscolarCapability[]
 ) {
-  await client.write("DELETE FROM gestion_escolar_permissions WHERE user_id = ? AND capability = 'role_ctrl'", [userId])
+  const removable = [...GESTION_ESCOLAR_OPTIONAL_CAPABILITIES, 'familias.view', 'role_ctrl', 'role_mkt']
+  const placeholders = removable.map(() => '?').join(',')
+  await client.write(
+    `DELETE FROM gestion_escolar_permissions WHERE user_id = ? AND capability IN (${placeholders})`,
+    [userId, ...removable]
+  )
   if (!enabled) return
-  for (const scope of scopes) {
-    await client.write(
-      `INSERT INTO gestion_escolar_permissions (user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at)
-       VALUES (?, ?, 1, 0, ?, ?, ?, NULL, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-      [userId, 'role_ctrl', scope.plantel, scope.nivel || null, scope.grado || null, actor.id, actor.id]
-    )
-  }
-}
 
-async function replaceMarketingPlanteles(
-  client: { write: (sql: string, params?: Array<string | number | boolean | null>) => Promise<unknown> },
-  actor: AppSessionUser,
-  userId: number,
-  enabled: boolean,
-  planteles: string[]
-) {
-  await client.write("DELETE FROM gestion_escolar_permissions WHERE user_id = ? AND capability = 'role_mkt'", [userId])
-  if (!enabled) return
-  for (const plantel of planteles) {
+  for (const capability of normalizeSchoolPermissions(permissions)) {
     await client.write(
       `INSERT INTO gestion_escolar_permissions (user_id, capability, enabled, is_global, plantel, nivel, grado, grupo, assigned_by, updated_by, created_at, updated_at)
-       VALUES (?, 'role_mkt', 1, 0, ?, NULL, NULL, NULL, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-      [userId, plantel, actor.id, actor.id]
+       VALUES (?, ?, 1, 1, NULL, NULL, NULL, NULL, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+      [userId, capability, actor.id, actor.id]
     )
   }
 }
@@ -704,9 +614,18 @@ function toggleRoleToken(roles: Set<string>, token: string, enabled: boolean) {
   else roles.delete(token)
 }
 
-export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser, userId: number, input: { roles: SuperAdminRoleAssignments; unidades?: string[]; schoolScopes?: SuperAdminSchoolScope[]; marketingPlanteles?: string[] }) {
-  const target = await legacyOne<RowDataPacket & { id: number; email: string | null; role: string | null; unidad: string | null }>(
-    'SELECT id, email, role, unidad FROM users WHERE id = ? LIMIT 1',
+export async function setSuperAdminRoleAssignmentsForUser(
+  actor: AppSessionUser,
+  userId: number,
+  input: {
+    roles: SuperAdminRoleAssignments
+    unidades?: string[]
+    planteles: string[]
+    schoolPermissions?: GestionEscolarCapability[]
+  }
+) {
+  const target = await legacyOne<RowDataPacket & { id: number; email: string | null; role: string | null; unidad: string | null; plantel: string | null }>(
+    'SELECT id, email, role, unidad, plantel FROM users WHERE id = ? LIMIT 1',
     [userId]
   )
   if (!target) throw publicError(404, 'Usuario no encontrado.')
@@ -724,20 +643,16 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
     throw publicError(403, 'Solo cuentas institucionales o internas pueden recibir roles administrativos.')
   }
 
-  const schoolScopes = normalizeSchoolScopes(input.schoolScopes)
-  const marketingPlanteles = normalizeMarketingPlanteles(input.marketingPlanteles)
+  const planteles = normalizeAssignedPlanteles(input.planteles)
+  const schoolPermissions = normalizeSchoolPermissions(input.schoolPermissions)
   const unidades = normalizeRoleUnidadList(input.unidades)
 
-  if (input.roles.schoolAdmin && !schoolScopes.length) {
-    throw publicError(400, 'Selecciona al menos un plantel para Admin escolar.')
+  if ((input.roles.schoolAdmin || input.roles.marketingAdmin) && !planteles.length) {
+    throw publicError(400, 'Selecciona al menos un plantel.')
   }
 
   if (input.roles.daycareAdmin && !unidades.length) {
-    throw publicError(400, 'Selecciona al menos una unidad para Admin guarderia.')
-  }
-
-  if (input.roles.marketingAdmin && !marketingPlanteles.length) {
-    throw publicError(400, 'Selecciona al menos un plantel para Mercadotecnia.')
+    throw publicError(400, 'Selecciona al menos una unidad para Admin guardería.')
   }
 
   const roles = new Set(currentRoles.filter((role) => !RETIRED_HUSKY_ADMIN_ROLE_PATTERN.test(role)))
@@ -747,9 +662,11 @@ export async function setSuperAdminRoleAssignmentsForUser(actor: AppSessionUser,
 
   await legacyTransaction(async (tx) => {
     const nextUnidad = input.roles.daycareAdmin ? unidades.join(',') : String(target.unidad || '')
-    await tx.write('UPDATE users SET role = ?, unidad = ? WHERE id = ?', [Array.from(roles).join(','), nextUnidad || null, userId])
-    await replaceSchoolScopes(tx, actor, userId, Boolean(input.roles.schoolAdmin), schoolScopes)
-    await replaceMarketingPlanteles(tx, actor, userId, Boolean(input.roles.marketingAdmin), marketingPlanteles)
+    await tx.write(
+      'UPDATE users SET role = ?, unidad = ?, plantel = ? WHERE id = ?',
+      [Array.from(roles).join(','), nextUnidad || null, planteles.join(',') || null, userId]
+    )
+    await replaceSchoolPermissions(tx, actor, userId, Boolean(input.roles.schoolAdmin), schoolPermissions)
   })
 
   const updated = await getSuperAdminUserSummaryById(userId)
@@ -850,10 +767,10 @@ function filterDirectoryUsersByScope(users: SuperAdminUserSummary[], scope: Supe
   return users
 }
 
-function directoryRowToSummary(row: DirectoryUserRow, schoolScopes: SuperAdminSchoolScope[] = [], marketingPlanteles: string[] = []): SuperAdminUserSummary {
+function directoryRowToSummary(row: DirectoryUserRow, schoolPermissions: GestionEscolarCapability[] = []): SuperAdminUserSummary {
   const roles = normalizeAdminRoleTokens(csvToList(row.role))
   const unidad = csvToList(row.unidad)
-  const plantel = csvToList(row.plantel)
+  const plantel = normalizeAssignedPlanteles(row.plantel)
   const routes = String(row.routes || '').split('||').map((route) => route.trim()).filter(Boolean)
   const hasDaycareFamilyRole = hasRoleToken(roles, DAYCARE_FAMILY_ROLE)
   const hasDaycareInternalRole = hasRoleToken(roles, DAYCARE_ADMIN_ROLE)
@@ -902,8 +819,7 @@ function directoryRowToSummary(row: DirectoryUserRow, schoolScopes: SuperAdminSc
     routes,
     productScopes,
     adminScopes,
-    schoolScopes,
-    marketingPlanteles,
+    schoolPermissions: normalizeSchoolPermissions(schoolPermissions),
     audience,
     canImpersonate: productScopes.length > 0,
     canManageAdminRoles,

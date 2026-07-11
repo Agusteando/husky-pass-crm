@@ -32,7 +32,9 @@ export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composab
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useAppSession } from '../composables/useAppSession';
 export { draftFingerprint, useDraftState } from '../composables/useDraftState';
+export { useGestionEscolarOverview } from '../composables/useGestionEscolarOverview';
 export { useOptimisticStatus, OptimisticSyncState, OptimisticSyncStatus } from '../composables/useOptimisticStatus';
+export { usePageDraftGuard } from '../composables/usePageDraftGuard';
 export { personasFamilyThemeContextKey, usePersonasFamilyPeople, useResolvedPersonasTheme, usePersonasFamilyTheme, PersonasFamilyThemeContext } from '../composables/usePersonasTheme';
 export { adminPersonaForUser, adminNavigationForUser, adminScopeSummary, AdminPersonaKey, AdminNavItem, AdminPersonaSummary } from '../utils/adminExperience';
 export { normalizeAttendanceText, makeSchoolYearRange, parseSchoolYearLabel, currentSchoolYearStart, buildSchoolYearOptions, resolveSchoolYearOption, dateOnly, formatAttendanceDate, formatAttendanceTime } from '../utils/attendance';
@@ -43,6 +45,7 @@ export { splitDaycareMediaResource, encodeDaycareMediaResource, daycareMediaUrl,
 export { DAYCARE_ROSTER_SOURCE_URL, normalizeRosterText, normalizeRosterEmail, normalizeRosterName, normalizeRosterSala, compactRosterName, unitRosterKey, rosterSheetMatchesUnidad, compareRosterSalaProgression } from '../utils/daycareRoster';
 export { normalizeExperienceName, normalizeInstitutionName, normalizeNivelIdentity, normalizePlantelIdentity, institutionFromContextData, defaultLoginRouteForExperience, recoveryRouteForExperience, defaultRouteForExperience, resolveExperienceContext, visualIdentityForContext, experienceThemeVars, resolveVisualIdentity, identityDiagnosticsPayload } from '../utils/experienceIdentity';
 export { formatGestionScope, emptyGestionScopeTree } from '../utils/gestionEscolar';
+export { GESTION_ESCOLAR_BASE_CAPABILITIES, GESTION_ESCOLAR_OPTIONAL_CAPABILITIES, GESTION_ESCOLAR_CAPABILITIES, GESTION_ESCOLAR_PERMISSION_LABELS } from '../utils/gestionPermissions';
 export { resolveGrupoIcon, GrupoIconManifestEntry, GrupoIconManifest, ResolvedGrupoIcon } from '../utils/grupoIcons';
 export { MARBETE_CARD_WIDTH, MARBETE_CARD_HEIGHT, MARBETE_PAGE_WIDTH, MARBETE_PAGE_HEIGHT, MARBETE_CICLO_TAG_URL, MARBETE_ELEMENT_DEFINITIONS, MARBETE_REPRESENTATIVE_VALUES, createDefaultMarbeteVisualDesign, normalizeMarbeteVisualDesign, compileMarbeteVisualSvg, renderMarbeteVisualValues, marbeteSvgDataUrl, marbeteElementDefinition, MarbeteElementDefinition } from '../utils/marbeteDesigner';
 export { normalizeMatricula, displayMatricula, isMatriculaLike, displayMatriculaCandidate, sameMatricula, matriculaSearchText } from '../utils/matricula';

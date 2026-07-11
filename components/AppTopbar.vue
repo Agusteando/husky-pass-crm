@@ -82,7 +82,11 @@ const sessionScopeLabel = computed(() => {
   const user = props.session?.user
   if (!user) return ''
   const admin = effectiveAdminUser(user)
-  if (admin) return admin.unidades.length ? admin.unidades.join(' · ') : 'Administración'
+  if (admin) {
+    if (admin.plantel.length) return admin.plantel.join(' · ')
+    if (admin.unidades.length) return admin.unidades.join(' · ')
+    return 'Administración'
+  }
   const daycare = user.scopes.daycare
   if (daycare) return daycareScopeLabel(daycare)
   return user.campus || user.empresa || ''

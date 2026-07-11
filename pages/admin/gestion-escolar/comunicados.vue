@@ -1,19 +1,24 @@
 <template>
   <section class="communications-publisher" data-product-area="gestion-escolar" data-product-screen="comunicados">
-    <header class="publishing-head">
-      <div>
-        <p class="eyebrow">Comunicados</p>
-        <h1>Publicar a familias</h1>
-      </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
-    </header>
+    <AdminGestionEscolarBanner
+      title="Comunicados"
+      subtitle="Mensajes institucionales para familias."
+      tone="coral"
+      ambassador="secundaria"
+    >
+      <template #stats>
+        <span>{{ data?.metrics.drafts || 0 }} borradores</span>
+        <span>{{ data?.metrics.scheduled || 0 }} programados</span>
+        <span>{{ data?.metrics.sent || 0 }} publicados</span>
+      </template>
+    </AdminGestionEscolarBanner>
 
     <section v-if="pending" class="state-panel" data-state="loading">
       <HuskyPassLoader label="Comunicados" contained />
     </section>
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h2>No disponible</h2>
+      <h2>No pudimos cargar comunicados</h2>
     </section>
 
     <section v-else class="publisher-layout">
@@ -27,9 +32,9 @@
         </div>
 
         <div class="status-steps" aria-label="Estado de publicación">
-          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>No visible</small></article>
-          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Sale por fecha</small></article>
-          <article :data-active="form.status === 'sent'"><strong>Publicado</strong><small>Visible</small></article>
+          <article :data-active="form.status === 'draft'"><strong>Borrador</strong></article>
+          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong></article>
+          <article :data-active="form.status === 'sent'"><strong>Publicado</strong></article>
         </div>
 
         <label class="field">
@@ -68,9 +73,9 @@
           <label :class="{ active: form.priority === 'urgent' }"><input v-model="form.priority" type="radio" value="urgent" /> Urgente</label>
         </div>
         <div class="status-row" aria-label="Estado">
-          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
-          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" /> Programado</label>
-          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" /> Publicado</label>
+          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" :disabled="!data?.actions.canCreate" /> Borrador</label>
+          <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!data?.actions.canPublish" /> Programado</label>
+          <label :class="{ active: form.status === 'sent' }"><input v-model="form.status" type="radio" value="sent" :disabled="!data?.actions.canPublish" /> Publicado</label>
         </div>
         <label v-if="form.status === 'scheduled'" class="field">
           <span>Publicar desde</span>
@@ -80,8 +85,8 @@
         <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
-          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
-          <button class="btn btn-primary" type="submit" :disabled="saving || !data?.actions.canCreate || !scope.plantel">
+          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm()">Limpiar</button>
+          <button class="btn btn-primary" type="submit" :disabled="saving || !canSave || !scope.plantel">
             {{ saving ? 'Guardando...' : form.status === 'sent' ? 'Publicar' : form.status === 'scheduled' ? 'Programar' : 'Guardar borrador' }}
           </button>
         </div>
@@ -100,7 +105,7 @@
               <p class="eyebrow">Comunicados</p>
               <h2>{{ data?.rows.length || 0 }}</h2>
             </div>
-            <button class="inline-action" type="button" @click="resetForm">Nuevo</button>
+            <button v-if="data?.actions.canCreate" class="inline-action" type="button" @click="resetForm()">Nuevo</button>
           </div>
 
           <article v-for="item in data?.rows" :key="item.id" class="publication-row" :data-status="item.status">
@@ -127,6 +132,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { AdminCommunicationsResponse, CommunicationAudience, CommunicationPriority, CommunicationStatus, SchoolCommunication } from '~/types/communications'
 import type { GestionEscolarScope } from '~/types/gestionEscolar'
+import { useDraftState } from '~/composables/useDraftState'
+import { usePageDraftGuard } from '~/composables/usePageDraftGuard'
 import { formatGestionScope } from '~/utils/gestionEscolar'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
@@ -138,10 +145,7 @@ const actionError = ref('')
 const hydrated = ref(false)
 const scope = ref<GestionEscolarScope>({ isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null })
 const audienceReady = computed(() => Boolean(scope.value.plantel))
-const publishReadinessLabel = computed(() => {
-  if (!audienceReady.value) return 'Falta audiencia'
-  return 'Listo'
-})
+const publishReadinessLabel = computed(() => audienceReady.value ? 'Listo' : 'Plantel')
 const form = reactive({
   id: '',
   title: '',
@@ -152,6 +156,20 @@ const form = reactive({
   scheduledFor: '',
   attachments: []
 })
+
+const draftSource = computed(() => ({
+  id: form.id,
+  title: form.title,
+  summary: form.summary,
+  body: form.body,
+  status: form.status,
+  priority: form.priority,
+  scheduledFor: form.scheduledFor,
+  scope: scope.value
+}))
+const { isDirty, resetDraft } = useDraftState(draftSource)
+const { canDiscard } = usePageDraftGuard(isDirty)
+const canSave = computed(() => form.status === 'draft' ? Boolean(data.value?.actions.canCreate) : Boolean(data.value?.actions.canPublish))
 
 function defaultSchoolScope(value = data.value): GestionEscolarScope {
   return { isGlobal: false, plantel: value?.options.planteles[0] || null, nivel: null, grado: null, grupo: null }
@@ -164,10 +182,13 @@ function ensureDefaultScope(value = data.value) {
 onMounted(() => {
   hydrated.value = true
   ensureDefaultScope()
+  resetDraft()
 })
 
 watch(data, (value) => {
-  if (hydrated.value) ensureDefaultScope(value)
+  if (!hydrated.value || isDirty.value) return
+  ensureDefaultScope(value)
+  resetDraft()
 })
 
 function buildAudience(): CommunicationAudience {
@@ -194,6 +215,7 @@ function statusLabel(status: CommunicationStatus) {
 }
 
 function edit(item: SchoolCommunication) {
+  if (!canDiscard()) return
   form.id = item.id
   form.title = item.title
   form.summary = item.summary
@@ -210,13 +232,16 @@ function edit(item: SchoolCommunication) {
   }
   actionError.value = ''
   actionNotice.value = ''
+  resetDraft()
 }
 
-function resetForm() {
+function resetForm(force = false) {
+  if (!force && !canDiscard()) return
   Object.assign(form, { id: '', title: '', summary: '', body: '', status: 'draft' as CommunicationStatus, priority: 'normal' as CommunicationPriority, scheduledFor: '', attachments: [] })
   scope.value = defaultSchoolScope()
   actionError.value = ''
   actionNotice.value = ''
+  resetDraft()
 }
 
 async function save() {
@@ -233,7 +258,7 @@ async function save() {
       }
     })
     actionNotice.value = form.status === 'sent' ? 'Publicado.' : 'Guardado.'
-    resetForm()
+    resetForm(true)
     await refresh()
   } catch (error) {
     const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }

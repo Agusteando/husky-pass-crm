@@ -1,15 +1,22 @@
 <template>
   <section class="school-console" data-product-area="gestion-escolar" data-product-screen="overview">
-    <header class="school-head">
-      <div>
-        <p class="eyebrow">Escolar</p>
-        <h1>{{ scopeLabel }}</h1>
-      </div>
-      <div class="head-actions">
-        <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Familias y pases</NuxtLink>
-        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Preparar comunicado</NuxtLink>
-      </div>
-    </header>
+    <AdminGestionEscolarBanner
+      eyebrow="Control Escolar"
+      :title="scopeLabel"
+      subtitle="Familias y comunicación escolar."
+      tone="teal"
+      ambassador="primaria"
+    >
+      <template #actions>
+        <NuxtLink v-if="hasModule('familias')" class="btn btn-primary" to="/admin/gestion-escolar/familias">Familias</NuxtLink>
+        <NuxtLink v-if="hasModule('comunicados')" class="btn btn-secondary" to="/admin/gestion-escolar/comunicados">Nuevo comunicado</NuxtLink>
+      </template>
+      <template #stats>
+        <span>{{ overview?.reach.families || 0 }} familias</span>
+        <span>{{ overview?.reach.students || 0 }} estudiantes</span>
+        <span>{{ overview?.reach.planteles.length || 0 }} planteles</span>
+      </template>
+    </AdminGestionEscolarBanner>
 
     <section v-if="pending" class="state-panel" data-state="loading">
       <HuskyPassLoader label="Escolar" contained />
@@ -26,25 +33,6 @@
       </section>
 
       <template v-else>
-        <section class="scope-strip" aria-label="Acceso escolar asignado">
-          <article>
-            <span>Familias</span>
-            <strong>{{ overview?.reach.families || 0 }}</strong>
-          </article>
-          <article>
-            <span>Estudiantes</span>
-            <strong>{{ overview?.reach.students || 0 }}</strong>
-          </article>
-          <article>
-            <span>Planteles</span>
-            <strong>{{ overview?.reach.planteles.length || 0 }}</strong>
-          </article>
-          <article>
-            <span>Grupos</span>
-            <strong>{{ overview?.reach.grupos.length || 0 }}</strong>
-          </article>
-        </section>
-
         <section class="school-layout">
           <article class="today-panel">
             <div class="section-title">
@@ -82,7 +70,7 @@
               </article>
               <article v-if="!(overview?.options.scopeTree.planteles || []).length">
                 <strong>Sin plantel</strong>
-                <small>Acceso escolar pendiente.</small>
+                <small>Sin plantel.</small>
               </article>
             </div>
           </aside>
@@ -94,16 +82,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useFetch } from 'nuxt/app'
-import type { GestionEscolarModuleKey, GestionEscolarOverviewResponse } from '~/types/gestionEscolar'
+import type { GestionEscolarModuleKey } from '~/types/gestionEscolar'
+import { useGestionEscolarOverview } from '~/composables/useGestionEscolarOverview'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
-const { data: overview, pending, error: loadError } = useFetch<GestionEscolarOverviewResponse>('/api/admin/gestion-escolar/overview', { timeout: 15000 })
+const { data: overview, pending, error: loadError } = useGestionEscolarOverview()
 const modules = computed(() => overview.value?.modules.filter((module) => module.enabled) || [])
 const scopeLabel = computed(() => {
   const planteles = overview.value?.reach.planteles || []
-  if (!planteles.length) return 'Acceso pendiente'
+  if (!planteles.length) return 'Sin plantel'
   if (planteles.length === 1) return `Plantel ${planteles[0]}`
   return `${planteles.length} planteles`
 })

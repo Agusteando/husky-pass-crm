@@ -30,6 +30,7 @@ interface _GlobalComponents {
   AdminSalasCommandCenter: typeof import("../../components/admin/AdminSalasCommandCenter.vue")['default']
   AdminSyncCue: typeof import("../../components/admin/AdminSyncCue.vue")['default']
   AdminFamilyAccountEditor: typeof import("../../components/admin/FamilyAccountEditor.vue")['default']
+  AdminGestionEscolarBanner: typeof import("../../components/admin/GestionEscolarBanner.vue")['default']
   AdminGestionModuleCard: typeof import("../../components/admin/GestionModuleCard.vue")['default']
   AdminGestionScopePicker: typeof import("../../components/admin/GestionScopePicker.vue")['default']
   AdminGestionScopedContentManager: typeof import("../../components/admin/GestionScopedContentManager.vue")['default']
@@ -95,6 +96,7 @@ interface _GlobalComponents {
   LazyAdminSalasCommandCenter: LazyComponent<typeof import("../../components/admin/AdminSalasCommandCenter.vue")['default']>
   LazyAdminSyncCue: LazyComponent<typeof import("../../components/admin/AdminSyncCue.vue")['default']>
   LazyAdminFamilyAccountEditor: LazyComponent<typeof import("../../components/admin/FamilyAccountEditor.vue")['default']>
+  LazyAdminGestionEscolarBanner: LazyComponent<typeof import("../../components/admin/GestionEscolarBanner.vue")['default']>
   LazyAdminGestionModuleCard: LazyComponent<typeof import("../../components/admin/GestionModuleCard.vue")['default']>
   LazyAdminGestionScopePicker: LazyComponent<typeof import("../../components/admin/GestionScopePicker.vue")['default']>
   LazyAdminGestionScopedContentManager: LazyComponent<typeof import("../../components/admin/GestionScopedContentManager.vue")['default']>

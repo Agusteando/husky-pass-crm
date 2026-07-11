@@ -8,6 +8,7 @@ import { parseOrBadRequest } from '~/server/utils/validation'
 
 const schema = z.object({
   search: z.string().trim().optional().default(''),
+  plantel: z.string().trim().optional().default(''),
   limit: z.coerce.number().int().min(20).max(300).optional().default(80)
 })
 

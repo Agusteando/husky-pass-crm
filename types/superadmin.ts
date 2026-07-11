@@ -1,16 +1,11 @@
 import type { FamilyProductScope } from './session'
+import type { GestionEscolarCapability } from './gestionEscolar'
 import type { MarbeteTemplateMeta, PersonasTheme } from './daycare'
 
 export type SuperAdminDirectoryScope = 'all' | 'daycare' | 'schoolFamilies' | 'internal' | 'impersonable'
 export type SuperAdminAssignableRole = 'schoolAdmin' | 'daycareAdmin' | 'marketingAdmin'
 
 export type SuperAdminRoleAssignments = Record<SuperAdminAssignableRole, boolean>
-
-export interface SuperAdminSchoolScope {
-  plantel: string
-  nivel?: string | null
-  grado?: string | null
-}
 
 export interface SuperAdminUserSummary {
   id: number
@@ -29,8 +24,7 @@ export interface SuperAdminUserSummary {
   routes: string[]
   productScopes: FamilyProductScope[]
   adminScopes: string[]
-  schoolScopes: SuperAdminSchoolScope[]
-  marketingPlanteles: string[]
+  schoolPermissions: GestionEscolarCapability[]
   audience: 'daycareFamily' | 'schoolFamily' | 'multiProductFamily' | 'internal' | 'unknown'
   canImpersonate: boolean
   canManageAdminRoles: boolean

@@ -1,20 +1,9 @@
-import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
-import { legacyQuery } from '~/server/utils/mysql'
+import { readAssignedPlantelValues } from '~/server/data/userPlantelScope'
 import { isEffectiveSuperAdmin } from '~/utils/sessionScopes'
 
 export const AURORA_ENROLLMENT_PLANTELES = ['PREEM', 'PREET', 'GM', 'PM', 'PT', 'SM', 'ST'] as const
 export type AuroraEnrollmentPlantel = typeof AURORA_ENROLLMENT_PLANTELES[number]
-
-interface AssignedPlantelRow extends RowDataPacket {
-  plantel: string | null
-  is_global: number | boolean | null
-}
-
-interface MarketingUserScopeRow extends RowDataPacket {
-  plantel: string | null
-  campus: string | null
-}
 
 const AURORA_PLANTEL_SET = new Set<string>(AURORA_ENROLLMENT_PLANTELES)
 
@@ -91,54 +80,5 @@ export function normalizeAuroraEnrollmentPlanteles(values: unknown[]) {
 
 export async function resolveMarketingEnrollmentPlanteles(user: AppSessionUser) {
   if (isEffectiveSuperAdmin(user)) return [...AURORA_ENROLLMENT_PLANTELES]
-
-  const fromSession = normalizeAuroraEnrollmentPlanteles([
-    user.plantel || [],
-    user.campus || ''
-  ])
-
-  let liveUserScope: MarketingUserScopeRow | null = null
-  try {
-    const userRows = await legacyQuery<MarketingUserScopeRow[]>(
-      `SELECT plantel, campus
-       FROM users
-       WHERE id = ?
-       LIMIT 1`,
-      [user.id]
-    )
-    liveUserScope = userRows[0] || null
-  } catch {
-    // Keep the signed session as a fallback if the legacy users source is unavailable.
-  }
-
-  let rows: AssignedPlantelRow[] = []
-  try {
-    rows = await legacyQuery<AssignedPlantelRow[]>(
-      `SELECT DISTINCT plantel, is_global
-       FROM gestion_escolar_permissions
-       WHERE user_id = ?
-         AND enabled = 1
-         AND (capability IN ('role_mkt', 'role_ctrl') OR capability IS NULL OR TRIM(CAST(capability AS CHAR)) = '')
-         AND (
-           is_global = 1 OR (
-             is_global = 0
-             AND plantel IS NOT NULL
-             AND TRIM(CAST(plantel AS CHAR)) <> ''
-           )
-         )
-       ORDER BY plantel ASC`,
-      [user.id]
-    )
-  } catch {
-    // Dedicated permission rows are optional; users.plantel remains authoritative.
-  }
-
-  if (rows.some((row) => row.is_global === true || Number(row.is_global) === 1)) return [...AURORA_ENROLLMENT_PLANTELES]
-
-  return normalizeAuroraEnrollmentPlanteles([
-    fromSession,
-    liveUserScope?.plantel || '',
-    liveUserScope?.campus || '',
-    rows.map((row) => row.plantel || '')
-  ])
+  return normalizeAuroraEnrollmentPlanteles(await readAssignedPlantelValues(user))
 }

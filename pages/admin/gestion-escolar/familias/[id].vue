@@ -1,32 +1,32 @@
 <template>
   <section class="family-profile" data-product-area="gestion-escolar" data-product-screen="familia-detalle">
-    <NuxtLink class="mini-button back-link" to="/admin/gestion-escolar/familias">Familias</NuxtLink>
-
     <section v-if="pending" class="state-card" data-state="loading"><HuskyPassLoader label="Perfil" contained /></section>
     <section v-else-if="error" class="state-card" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h1>No disponible</h1>
-      <p>Familia fuera de alcance.</p>
+      <h1>Familia no disponible</h1>
+      <p>La familia no está disponible.</p>
     </section>
 
     <template v-else-if="detail">
-      <header class="profile-hero">
-        <span class="profile-avatar">{{ initials(detail.family.studentName) }}</span>
-        <div>
-          <p class="eyebrow">Familia</p>
-          <h1>{{ detail.family.studentName }}</h1>
-          <p>{{ detail.family.email || detail.family.username || 'Contacto pendiente' }}</p>
-          <div class="scope-rail">
-            <span>{{ detail.family.plantel }}</span>
-            <span>{{ detail.family.nivel || 'Nivel' }}</span>
-            <span>{{ detail.family.grado || 'Grado' }}</span>
-            <span v-if="detail.family.grupo">{{ detail.family.grupo }}</span>
-          </div>
-        </div>
-        <button class="btn btn-primary" type="button" :disabled="!detail.family.canImpersonate || impersonating" @click="impersonate">
-          {{ impersonationLabel }}
-        </button>
-      </header>
+      <AdminGestionEscolarBanner
+        eyebrow="Familia"
+        :title="detail.family.studentName"
+        :subtitle="detail.family.email || detail.family.username || 'Contacto pendiente'"
+        tone="blue"
+        ambassador="preescolar"
+      >
+        <template #actions>
+          <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar/familias">Familias</NuxtLink>
+          <button class="btn btn-primary" type="button" :disabled="!detail.family.canImpersonate || impersonating" @click="requestImpersonation">
+            {{ impersonationLabel }}
+          </button>
+        </template>
+        <template #stats>
+          <span>{{ detail.family.plantel }}</span>
+          <span>{{ detail.family.grado || detail.family.nivel || 'Escolar' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</span>
+          <span>{{ statusLabel(detail.family.parentStatus) }}</span>
+        </template>
+      </AdminGestionEscolarBanner>
 
       <section class="metrics-grid" aria-label="Resumen familiar">
         <article><span>Estado</span><strong>{{ statusLabel(detail.family.parentStatus) }}</strong></article>
@@ -72,7 +72,7 @@
                 <FamilyPersonasIcon :name="person.hasPhoto ? 'camera' : 'alert'" />
               </span>
             </p>
-            <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
+            <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong></p>
           </div>
         </article>
 
@@ -111,9 +111,24 @@
         </article>
       </section>
 
-      <p v-if="notice" class="action-message">{{ notice }}</p>
       <p v-if="actionError" class="action-message error">{{ actionError }}</p>
     </template>
+
+    <Teleport to="body">
+      <section v-if="confirming && detail" class="support-modal" @click.self="confirming = false">
+        <article role="dialog" aria-modal="true" aria-labelledby="family-detail-preview-title">
+          <p class="eyebrow">Vista familiar</p>
+          <h2 id="family-detail-preview-title">{{ detail.family.studentName }}</h2>
+          <p>{{ detail.family.plantel }}{{ detail.family.grado ? ` · ${detail.family.grado}` : '' }}{{ detail.family.grupo ? ` · ${detail.family.grupo}` : '' }}</p>
+          <footer>
+            <button class="btn btn-secondary" type="button" @click="confirming = false">Cancelar</button>
+            <button class="btn btn-primary" type="button" :disabled="impersonating" @click="performImpersonation">
+              {{ impersonating ? 'Abriendo...' : 'Abrir vista familiar' }}
+            </button>
+          </footer>
+        </article>
+      </section>
+    </Teleport>
   </section>
 </template>
 
@@ -131,12 +146,10 @@ const familyId = computed(() => String(route.params.id || ''))
 const { data: detail, pending, error } = useFetch<GestionEscolarFamilyDetailResponse>(() => `/api/admin/gestion-escolar/familias/${familyId.value}`, { timeout: 15000 })
 const confirming = ref(false)
 const impersonating = ref(false)
-const notice = ref('')
 const actionError = ref('')
 
 const impersonationLabel = computed(() => {
   if (impersonating.value) return 'Abriendo...'
-  if (confirming.value) return 'Confirmar vista'
   return 'Vista familiar'
 })
 
@@ -150,14 +163,14 @@ function statusLabel(status: GestionEscolarFamilyRow['parentStatus']) {
   return 'Incompleta'
 }
 
-async function impersonate() {
+function requestImpersonation() {
   if (!detail.value?.family.canImpersonate) return
-  if (!confirming.value) {
-    confirming.value = true
-    notice.value = `Confirma para abrir la vista familiar de ${detail.value.family.studentName}.`
-    actionError.value = ''
-    return
-  }
+  confirming.value = true
+  actionError.value = ''
+}
+
+async function performImpersonation() {
+  if (!detail.value?.family.canImpersonate) return
   impersonating.value = true
   actionError.value = ''
   try {
@@ -459,6 +472,34 @@ h2 {
     text-align: left;
   }
 }
+
+
+.support-modal {
+  align-items: center;
+  background: rgba(15, 23, 42, .34);
+  display: grid;
+  inset: 0;
+  padding: 18px;
+  place-items: center;
+  position: fixed;
+  z-index: 90;
+}
+
+.support-modal article {
+  background: #fff;
+  border: 1px solid rgba(15, 140, 154, .2);
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, .28);
+  display: grid;
+  gap: 10px;
+  max-width: 440px;
+  padding: 22px;
+  width: min(100%, 440px);
+}
+
+.support-modal h2 { font-size: 2rem; }
+.support-modal p:not(.eyebrow) { color: #64748b; }
+.support-modal footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 
 @media (max-width: 680px) {
   .signal-grid {

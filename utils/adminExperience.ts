@@ -87,13 +87,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
   }
 
   if (hasSchoolAdminScope(admin)) {
-    return [
-      { key: 'escolar-home', label: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' },
-      { key: 'familias', label: 'Familias', to: '/admin/gestion-escolar/familias', icon: 'people' },
-      { key: 'comunicados', label: 'Comunicados', to: '/admin/gestion-escolar/comunicados', icon: 'announcement' },
-      { key: 'encuestas', label: 'Encuestas', to: '/admin/gestion-escolar/encuestas', icon: 'survey' },
-      { key: 'convenios', label: 'Convenios', to: '/admin/gestion-escolar/convenios', icon: 'handshake' }
-    ]
+    return [{ key: 'escolar-home', label: 'Control Escolar', shortLabel: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' }]
   }
 
   if (hasDaycareAdminScope(admin)) {
@@ -122,7 +116,5 @@ function daycareRouteForUser(user: AppSessionUser) {
 function summarizeSchoolContext(user: AppSessionUser) {
   const planteles = user.plantel.filter(Boolean)
   if (planteles.length) return planteles.join(' / ')
-  if (user.campus) return user.campus
-  if (user.empresa) return user.empresa
   return ''
 }

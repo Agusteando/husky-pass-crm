@@ -48,7 +48,7 @@ const normalizedGrado = computed(() => normalizeSchoolGrade(props.modelValue.gra
 const plantelNodes = computed(() => {
   const treeValues = (props.scopeTree?.planteles || []).map((node) => normalizeSchoolPlantel(node.value)).filter(Boolean) as string[]
   const optionValues = (props.options?.planteles || []).map((plantel) => normalizeSchoolPlantel(plantel)).filter(Boolean) as string[]
-  const values = sortPlanteles(Array.from(new Set([...treeValues, ...optionValues, ...SCHOOL_PLANTELES])))
+  const values = sortPlanteles(Array.from(new Set([...treeValues, ...optionValues])))
   return values.map(fallbackNode)
 })
 

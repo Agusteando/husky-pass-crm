@@ -4,6 +4,10 @@ declare global {
   const DAYCARE_ADMIN_ROLE: typeof import('../../utils/sessionScopes').DAYCARE_ADMIN_ROLE
   const DAYCARE_FAMILY_ROLE: typeof import('../../utils/sessionScopes').DAYCARE_FAMILY_ROLE
   const DAYCARE_ROSTER_SOURCE_URL: typeof import('../../utils/daycareRoster').DAYCARE_ROSTER_SOURCE_URL
+  const GESTION_ESCOLAR_BASE_CAPABILITIES: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_BASE_CAPABILITIES
+  const GESTION_ESCOLAR_CAPABILITIES: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_CAPABILITIES
+  const GESTION_ESCOLAR_OPTIONAL_CAPABILITIES: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_OPTIONAL_CAPABILITIES
+  const GESTION_ESCOLAR_PERMISSION_LABELS: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_PERMISSION_LABELS
   const MARBETE_CARD_HEIGHT: typeof import('../../utils/marbeteDesigner').MARBETE_CARD_HEIGHT
   const MARBETE_CARD_WIDTH: typeof import('../../utils/marbeteDesigner').MARBETE_CARD_WIDTH
   const MARBETE_CICLO_TAG_URL: typeof import('../../utils/marbeteDesigner').MARBETE_CICLO_TAG_URL
@@ -250,6 +254,7 @@ declare global {
   const useDraftState: typeof import('../../composables/useDraftState').useDraftState
   const useError: typeof import('../../node_modules/nuxt/dist/app/composables/error').useError
   const useFetch: typeof import('../../node_modules/nuxt/dist/app/composables/fetch').useFetch
+  const useGestionEscolarOverview: typeof import('../../composables/useGestionEscolarOverview').useGestionEscolarOverview
   const useHead: typeof import('../../node_modules/nuxt/dist/app/composables/head').useHead
   const useHeadSafe: typeof import('../../node_modules/nuxt/dist/app/composables/head').useHeadSafe
   const useHydration: typeof import('../../node_modules/nuxt/dist/app/composables/hydrate').useHydration
@@ -262,6 +267,7 @@ declare global {
   const useNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').useNuxtApp
   const useNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useNuxtData
   const useOptimisticStatus: typeof import('../../composables/useOptimisticStatus').useOptimisticStatus
+  const usePageDraftGuard: typeof import('../../composables/usePageDraftGuard').usePageDraftGuard
   const usePersonasFamilyPeople: typeof import('../../composables/usePersonasTheme').usePersonasFamilyPeople
   const usePersonasFamilyTheme: typeof import('../../composables/usePersonasTheme').usePersonasFamilyTheme
   const usePreviewMode: typeof import('../../node_modules/nuxt/dist/app/composables/preview').usePreviewMode
@@ -386,6 +392,10 @@ declare module 'vue' {
     readonly DAYCARE_ADMIN_ROLE: UnwrapRef<typeof import('../../utils/sessionScopes')['DAYCARE_ADMIN_ROLE']>
     readonly DAYCARE_FAMILY_ROLE: UnwrapRef<typeof import('../../utils/sessionScopes')['DAYCARE_FAMILY_ROLE']>
     readonly DAYCARE_ROSTER_SOURCE_URL: UnwrapRef<typeof import('../../utils/daycareRoster')['DAYCARE_ROSTER_SOURCE_URL']>
+    readonly GESTION_ESCOLAR_BASE_CAPABILITIES: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_BASE_CAPABILITIES']>
+    readonly GESTION_ESCOLAR_CAPABILITIES: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_CAPABILITIES']>
+    readonly GESTION_ESCOLAR_OPTIONAL_CAPABILITIES: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_OPTIONAL_CAPABILITIES']>
+    readonly GESTION_ESCOLAR_PERMISSION_LABELS: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_PERMISSION_LABELS']>
     readonly MARBETE_CARD_HEIGHT: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CARD_HEIGHT']>
     readonly MARBETE_CARD_WIDTH: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CARD_WIDTH']>
     readonly MARBETE_CICLO_TAG_URL: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CICLO_TAG_URL']>
@@ -632,6 +642,7 @@ declare module 'vue' {
     readonly useDraftState: UnwrapRef<typeof import('../../composables/useDraftState')['useDraftState']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
+    readonly useGestionEscolarOverview: UnwrapRef<typeof import('../../composables/useGestionEscolarOverview')['useGestionEscolarOverview']>
     readonly useHead: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useHead']>
     readonly useHeadSafe: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useHeadSafe']>
     readonly useHydration: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/hydrate')['useHydration']>
@@ -644,6 +655,7 @@ declare module 'vue' {
     readonly useNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useNuxtApp']>
     readonly useNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useNuxtData']>
     readonly useOptimisticStatus: UnwrapRef<typeof import('../../composables/useOptimisticStatus')['useOptimisticStatus']>
+    readonly usePageDraftGuard: UnwrapRef<typeof import('../../composables/usePageDraftGuard')['usePageDraftGuard']>
     readonly usePersonasFamilyPeople: UnwrapRef<typeof import('../../composables/usePersonasTheme')['usePersonasFamilyPeople']>
     readonly usePersonasFamilyTheme: UnwrapRef<typeof import('../../composables/usePersonasTheme')['usePersonasFamilyTheme']>
     readonly usePreviewMode: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preview')['usePreviewMode']>

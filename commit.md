@@ -1,1 +1,1 @@
-Corrige el alcance múltiple de planteles para usuarios de Marketing
+refactor: unifica planteles y completa Control Escolar

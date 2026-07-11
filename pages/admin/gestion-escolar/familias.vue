@@ -1,16 +1,32 @@
 <template>
   <section class="families-support" data-product-area="gestion-escolar" data-product-screen="familias">
-    <header class="support-head">
-      <div>
-        <p class="eyebrow">Familias</p>
-        <h1>Familias</h1>
-      </div>
-      <form class="support-search" @submit.prevent="refreshFamilies">
+    <AdminGestionEscolarBanner
+      title="Familias"
+      subtitle="Estudiantes, personas autorizadas y cuenta familiar."
+      tone="blue"
+      ambassador="preescolar"
+    >
+      <template #stats>
+        <span>{{ data?.metrics.families || 0 }} familias</span>
+        <span>{{ data?.metrics.students || 0 }} estudiantes</span>
+        <span>{{ data?.metrics.withAuthorizedPeople || 0 }} con autorizados</span>
+      </template>
+    </AdminGestionEscolarBanner>
+
+    <form class="support-toolbar" @submit.prevent="refreshFamilies">
+      <label class="plantel-select">
+        <FamilyPersonasIcon name="school" />
+        <select v-model="selectedPlantel" aria-label="Plantel">
+          <option value="">Todos los planteles</option>
+          <option v-for="plantel in data?.options.planteles || []" :key="plantel" :value="plantel">{{ plantel }}</option>
+        </select>
+      </label>
+      <label class="support-search">
         <FamilyPersonasIcon name="search" />
         <input v-model="search" type="search" placeholder="Familia, correo o matrícula" />
         <button type="submit" :disabled="pending">Buscar</button>
-      </form>
-    </header>
+      </label>
+    </form>
 
     <section v-if="pending" class="state-panel" data-state="loading">
       <HuskyPassLoader label="Familias" contained />
@@ -101,7 +117,7 @@
                   <FamilyPersonasIcon :name="person.hasPhoto ? 'camera' : 'alert'" />
                 </span>
               </p>
-              <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong><small>La familia aún no captura personas autorizadas.</small></p>
+              <p v-if="!detail.authorizedPeople.length"><strong>Sin personas autorizadas</strong></p>
             </article>
             <article class="content-card">
               <p class="eyebrow">Disponible</p>
@@ -147,7 +163,7 @@
 
         <div v-else-if="detailError" class="state-panel compact" data-state="error">
           <FamilyPersonasIcon name="security" />
-          <h2>Fuera de alcance</h2>
+          <h2>Familia no disponible</h2>
           <p>{{ detailError }}</p>
         </div>
         <div v-else class="state-panel compact" data-state="empty">
@@ -184,7 +200,8 @@ import { setCachedRouteSession } from '~/utils/routeSession'
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
 const search = ref('')
-const query = computed(() => ({ search: search.value, limit: 120 }))
+const selectedPlantel = ref('')
+const query = computed(() => ({ search: search.value, plantel: selectedPlantel.value, limit: 120 }))
 const { data, pending, error: loadError, refresh } = useFetch<GestionEscolarFamiliesResponse>('/api/admin/gestion-escolar/familias', { query, timeout: 15000 })
 const selected = ref<GestionEscolarFamilyRow | null>(null)
 const detail = ref<GestionEscolarFamilyDetailResponse | null>(null)
@@ -198,6 +215,11 @@ const actionError = ref('')
 
 watch(() => data.value?.rows, (rows) => {
   if (!hydrated.value) return
+  if (selected.value && !rows?.some((row) => row.userId === selected.value?.userId)) {
+    selected.value = null
+    detail.value = null
+    detailError.value = ''
+  }
   if (!selected.value && rows?.length) void selectFamily(rows[0])
 })
 
@@ -367,6 +389,43 @@ async function impersonate(family: GestionEscolarFamilyRow) {
   letter-spacing: 0.14em;
   margin: 0 0 6px;
   text-transform: uppercase;
+}
+
+
+.support-toolbar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 16px 42px rgba(14, 40, 55, 0.06);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
+  padding: 10px;
+}
+
+.plantel-select {
+  align-items: center;
+  background: #f5faf9;
+  border: 1px solid rgba(8, 135, 125, 0.14);
+  border-radius: 15px;
+  color: var(--accent-dark);
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  min-height: 54px;
+  padding: 0 13px;
+}
+
+.plantel-select select {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
 }
 
 .support-search {
@@ -827,6 +886,7 @@ async function impersonate(family: GestionEscolarFamilyRow) {
 }
 
 @media (max-width: 720px) {
+  .support-toolbar,
   .support-search,
   .family-row,
   .authorized-person {

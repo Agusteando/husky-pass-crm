@@ -1,19 +1,25 @@
 <template>
   <section class="publishing-manager" :data-kind="kind">
-    <header class="publishing-head">
-      <div>
-        <p class="eyebrow">{{ eyebrow }}</p>
-        <h1>{{ title }}</h1>
-      </div>
-      <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar">Escolar</NuxtLink>
-    </header>
+    <AdminGestionEscolarBanner
+      :eyebrow="eyebrow"
+      :title="title"
+      :subtitle="description"
+      :tone="kind === 'encuesta' ? 'amber' : 'teal'"
+      :ambassador="kind === 'encuesta' ? 'preescolar' : 'primaria'"
+    >
+      <template #stats>
+        <span>{{ response?.items.filter((item) => item.status === 'active').length || 0 }} publicados</span>
+        <span>{{ response?.items.filter((item) => item.status === 'scheduled').length || 0 }} programados</span>
+        <span>{{ response?.items.filter((item) => item.status === 'draft').length || 0 }} borradores</span>
+      </template>
+    </AdminGestionEscolarBanner>
 
     <section v-if="pending" class="state-panel" data-state="loading">
       <HuskyPassLoader :label="title" contained />
     </section>
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
-      <h2>No disponible</h2>
+      <h2>No pudimos cargar publicaciones</h2>
     </section>
 
     <section v-else class="publisher-layout">
@@ -27,9 +33,9 @@
         </div>
 
         <div class="status-steps" aria-label="Estado de publicación">
-          <article :data-active="form.status === 'draft'"><strong>Borrador</strong><small>No visible</small></article>
-          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong><small>Listo por fecha</small></article>
-          <article :data-active="form.status === 'active'"><strong>Publicado</strong><small>Visible</small></article>
+          <article :data-active="form.status === 'draft'"><strong>Borrador</strong></article>
+          <article :data-active="form.status === 'scheduled'"><strong>Programado</strong></article>
+          <article :data-active="form.status === 'active'"><strong>Publicado</strong></article>
         </div>
 
         <label class="field">
@@ -63,10 +69,10 @@
         </section>
 
         <div class="status-row">
-          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" /> Borrador</label>
+          <label :class="{ active: form.status === 'draft' }"><input v-model="form.status" type="radio" value="draft" :disabled="!response?.actions.canManage" /> Borrador</label>
           <label :class="{ active: form.status === 'scheduled' }"><input v-model="form.status" type="radio" value="scheduled" :disabled="!canActivate" /> Programado</label>
           <label :class="{ active: form.status === 'active' }"><input v-model="form.status" type="radio" value="active" :disabled="!canActivate" /> Publicado</label>
-          <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" /> Inactivo</label>
+          <label :class="{ active: form.status === 'inactive' }"><input v-model="form.status" type="radio" value="inactive" :disabled="!response?.actions.canManage" /> Inactivo</label>
         </div>
 
         <label v-if="form.status === 'scheduled'" class="field">
@@ -77,8 +83,8 @@
         <p v-if="actionError" class="surface-message error">{{ actionError }}</p>
         <p v-else-if="actionNotice" class="surface-message">{{ actionNotice }}</p>
         <div class="actions">
-          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm">Limpiar</button>
-          <button class="btn btn-primary" type="submit" :disabled="saving || !response?.actions.canManage || !form.scope.plantel">
+          <button class="btn btn-secondary" type="button" :disabled="saving" @click="resetForm()">Limpiar</button>
+          <button class="btn btn-primary" type="submit" :disabled="saving || !canSave || !form.scope.plantel">
             {{ saving ? 'Guardando...' : primaryActionLabel }}
           </button>
         </div>
@@ -107,7 +113,7 @@
               <p class="eyebrow">Publicaciones</p>
               <h2>{{ response?.items.length || 0 }}</h2>
             </div>
-            <button class="inline-action" type="button" @click="resetForm">Nueva</button>
+            <button v-if="response?.actions.canManage" class="inline-action" type="button" @click="resetForm()">Nueva</button>
           </div>
 
           <article v-for="item in response?.items" :key="item.id" class="publication-row" :data-status="item.status">
@@ -134,6 +140,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { GestionEscolarContentKind, GestionEscolarContentStatus, GestionEscolarScope, GestionEscolarScopedContentItem, GestionEscolarScopedContentResponse } from '~/types/gestionEscolar'
+import { useDraftState } from '~/composables/useDraftState'
+import { usePageDraftGuard } from '~/composables/usePageDraftGuard'
 import { formatGestionScope } from '~/utils/gestionEscolar'
 
 const props = defineProps<{
@@ -164,16 +172,17 @@ const form = reactive({
   scope: { isGlobal: false, plantel: null, nivel: null, grado: null, grupo: null } as GestionEscolarScope
 })
 
+const { isDirty, resetDraft } = useDraftState(form)
+const { canDiscard } = usePageDraftGuard(isDirty)
+
 const defaultTitle = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Convenio para familias')
 const urlPlaceholder = computed(() => props.kind === 'encuesta' ? 'https://docs.google.com/forms/...' : 'https://documento-publico...')
 const linkLabel = computed(() => props.kind === 'encuesta' ? 'Formulario' : 'Documento')
-const previewFallback = computed(() => props.kind === 'encuesta' ? 'Las familias verán esta encuesta cuando esté publicada.' : 'Las familias verán este documento cuando esté publicado.')
+const previewFallback = computed(() => props.kind === 'encuesta' ? 'Encuesta escolar' : 'Documento institucional')
 const audienceReady = computed(() => Boolean(form.scope.plantel))
-const canActivate = computed(() => audienceReady.value && (response.value?.actions.canPublish || props.kind === 'encuesta'))
-const publishReadinessLabel = computed(() => {
-  if (!audienceReady.value) return 'Elige audiencia'
-  return canActivate.value ? 'Listo' : 'Borrador'
-})
+const canActivate = computed(() => audienceReady.value && Boolean(response.value?.actions.canPublish))
+const canSave = computed(() => form.status === 'active' || form.status === 'scheduled' ? Boolean(response.value?.actions.canPublish) : Boolean(response.value?.actions.canManage))
+const publishReadinessLabel = computed(() => !audienceReady.value ? 'Plantel' : canActivate.value ? 'Listo' : 'Borrador')
 const primaryActionLabel = computed(() => {
   if (form.status === 'active') return 'Publicar'
   if (form.status === 'scheduled') return 'Programar'
@@ -193,13 +202,17 @@ function ensureDefaultScope(value = response.value) {
 onMounted(() => {
   hydrated.value = true
   ensureDefaultScope()
+  resetDraft()
 })
 
 watch(response, (value) => {
-  if (hydrated.value) ensureDefaultScope(value)
+  if (!hydrated.value || isDirty.value) return
+  ensureDefaultScope(value)
+  resetDraft()
 })
 
-function resetForm() {
+function resetForm(force = false) {
+  if (!force && !canDiscard()) return
   Object.assign(form, {
     id: '',
     title: '',
@@ -212,9 +225,11 @@ function resetForm() {
   })
   actionNotice.value = ''
   actionError.value = ''
+  resetDraft()
 }
 
 function edit(item: GestionEscolarScopedContentItem) {
+  if (!canDiscard()) return
   Object.assign(form, {
     id: item.id,
     title: item.title,
@@ -227,6 +242,7 @@ function edit(item: GestionEscolarScopedContentItem) {
   })
   actionNotice.value = ''
   actionError.value = ''
+  resetDraft()
 }
 
 function statusLabel(status: GestionEscolarContentStatus) {
@@ -253,7 +269,7 @@ async function save() {
       }
     })
     actionNotice.value = form.status === 'active' ? 'Publicado.' : form.status === 'scheduled' ? 'Programado.' : 'Guardado.'
-    resetForm()
+    resetForm(true)
     await refresh()
   } catch (error) {
     const failure = error as { data?: { statusMessage?: string; message?: string }; statusMessage?: string; message?: string }

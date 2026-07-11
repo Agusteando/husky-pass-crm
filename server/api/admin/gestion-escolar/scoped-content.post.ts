@@ -26,6 +26,6 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
   assertSchoolAdmin(user)
-  const body = parseOrBadRequest(schema, await readBody(event), 'Revisa el enlace, el estado y el alcance antes de guardar.')
+  const body = parseOrBadRequest(schema, await readBody(event), 'Revisa el enlace, el estado y el plantel.')
   return withRequestBoundary(event, 'gestion-escolar.scoped-content.save', () => saveGestionScopedContent(user, body), { userId: user.id, kind: body.kind })
 })

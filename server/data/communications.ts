@@ -294,7 +294,7 @@ async function getCommunicationAccess(user: AppSessionUser): Promise<Communicati
 
 function assertAccessConfigured(access: CommunicationAccess) {
   if (!access.isGlobal && !access.scopes.length) {
-    throw publicError(403, 'La cuenta no tiene plantel escolar asignado.')
+    throw publicError(403, 'No tienes permiso para comunicados.')
   }
 }
 
@@ -630,7 +630,7 @@ export async function saveCommunication(user: AppSessionUser, input: SaveCommuni
   const intent = status === 'sent' || status === 'scheduled' ? 'publish' : 'create'
   if (!accessCoversAudience(access, message.audience, intent)) {
     const action = intent === 'publish' ? 'enviar o programar' : 'crear'
-    throw publicError(403, `El alcance asignado por superadmin no permite ${action} comunicados para ${formatAudienceLabel(message.audience)}.`)
+    throw publicError(403, `No puedes ${action} comunicados para ${formatAudienceLabel(message.audience)}.`)
   }
 
   let comunicadoId = Number(existing?.id || 0)

@@ -87,7 +87,7 @@
               <span><FamilyPersonasIcon name="school" /></span>
               <div>
                 <strong>Admin escolar</strong>
-                <small>{{ schoolScopeLabel(selectedUser.schoolScopes) }}</small>
+                <small>{{ plantelLabel(selectedUser.plantel) }} · {{ schoolPermissionSummary(selectedUser) }}</small>
               </div>
               <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-escolar" @click="openRoleEditor('school')">{{ selectedUser.roleAssignments.schoolAdmin ? 'Editar acceso escolar' : 'Asignar acceso escolar' }}</button>
             </article>
@@ -105,7 +105,7 @@
               <span><FamilyPersonasIcon name="announcement" /></span>
               <div>
                 <strong>Mercadotecnia</strong>
-                <small>{{ marketingPlantelLabel(selectedUser.marketingPlanteles) }}</small>
+                <small>{{ plantelLabel(selectedUser.plantel) }}</small>
               </div>
               <button v-if="selectedUser.canManageAdminRoles" type="button" data-diagnostic-action="editar-admin-mkt" @click="openRoleEditor('marketing')">{{ selectedUser.roleAssignments.marketingAdmin ? 'Editar acceso MKT' : 'Asignar acceso MKT' }}</button>
             </article>
@@ -150,36 +150,31 @@
           <template v-if="selectedUser.canManageAdminRoles">
             <section v-if="editorMode === 'school'" class="editor-card active">
               <label class="toggle-row">
-                <input v-model="roleDraft.schoolAdmin" type="checkbox" @change="ensureSchoolScope" />
+                <input v-model="roleDraft.schoolAdmin" type="checkbox" />
                 <span class="switch" aria-hidden="true" />
                 <span>
                   <strong>Admin escolar</strong>
-                  <small>Plantel con grado cuando aplique</small>
+                  <small>Familias</small>
                 </span>
               </label>
 
-              <div v-if="roleDraft.schoolAdmin" class="scope-editor">
-                <div v-for="(scope, index) in schoolScopesDraft" :key="index" class="scope-row">
-                  <label>
-                    <span>Plantel</span>
-                    <select v-model="scope.plantel">
-                      <option value="">Seleccionar</option>
-                      <option v-for="plantel in schoolPlantelOptions" :key="plantel" :value="plantel">{{ plantel }}</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Grado</span>
-                    <select v-model="scope.grado">
-                      <option value="">Todos</option>
-                      <option v-for="grado in gradeOptionsForPlantel(scope.plantel)" :key="grado" :value="grado">{{ grado }}</option>
-                    </select>
-                  </label>
-                  <button class="icon-button" type="button" aria-label="Quitar plantel" @click="removeSchoolScope(index)">
-                    <FamilyPersonasIcon name="trash" />
-                  </button>
+              <template v-if="roleDraft.schoolAdmin">
+                <div class="permission-grid">
+                  <section v-for="group in schoolPermissionGroups" :key="group.title" class="permission-group">
+                    <strong>{{ group.title }}</strong>
+                    <button
+                      v-for="capability in group.items"
+                      :key="capability"
+                      type="button"
+                      :class="{ active: schoolPermissionsDraft.includes(capability) }"
+                      @click="toggleSchoolPermission(capability)"
+                    >
+                      <span class="permission-check"><FamilyPersonasIcon :name="schoolPermissionsDraft.includes(capability) ? 'check' : 'plus'" /></span>
+                      {{ schoolPermissionLabel(capability) }}
+                    </button>
+                  </section>
                 </div>
-                <button class="add-row" type="button" @click="addSchoolScope">Agregar plantel</button>
-              </div>
+              </template>
             </section>
 
             <section v-else-if="editorMode === 'daycare'" class="editor-card active">
@@ -188,7 +183,7 @@
                 <span class="switch" aria-hidden="true" />
                 <span>
                   <strong>Admin guardería</strong>
-                  <small>Unidades donde puede operar</small>
+                  <small>Unidades</small>
                 </span>
               </label>
 
@@ -207,21 +202,25 @@
 
             <section v-else class="editor-card active">
               <label class="toggle-row">
-                <input v-model="roleDraft.marketingAdmin" type="checkbox" @change="ensureMarketingPlantel" />
+                <input v-model="roleDraft.marketingAdmin" type="checkbox" />
                 <span class="switch" aria-hidden="true" />
                 <span>
                   <strong>Mercadotecnia</strong>
-                  <small>CRM, matrícula actual y consulta institucional</small>
+                  <small>CRM y matrícula actual</small>
                 </span>
               </label>
 
-              <div v-if="roleDraft.marketingAdmin" class="unit-grid marketing-plantel-grid" aria-label="Planteles de Mercadotecnia">
+            </section>
+
+            <section class="editor-card plantel-card">
+              <div class="editor-label">Planteles</div>
+              <div class="unit-grid plantel-grid" aria-label="Planteles">
                 <button
                   v-for="plantel in schoolPlantelOptions"
                   :key="plantel"
                   type="button"
-                  :class="{ active: marketingPlantelesDraft.includes(plantel) }"
-                  @click="toggleMarketingPlantel(plantel)"
+                  :class="{ active: plantelesDraft.includes(plantel) }"
+                  @click="togglePlantel(plantel)"
                 >
                   {{ plantel }}
                 </button>
@@ -229,7 +228,7 @@
             </section>
 
             <section v-if="hasChanges || saveBlocker" class="pending-panel">
-              <strong>Cambios pendientes</strong>
+              <strong>Cambios</strong>
               <ul v-if="changeLines.length">
                 <li v-for="line in changeLines" :key="line">{{ line }}</li>
               </ul>
@@ -239,7 +238,7 @@
 
           <section v-else class="editor-card">
             <strong>Cuenta familiar</strong>
-            <small>El acceso viene de alumnos, familia o sala.</small>
+            
           </section>
 
           <footer class="drawer-actions">
@@ -258,11 +257,13 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { AppSessionUser, PublicSession } from '~/types/session'
-import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminSchoolScope, SuperAdminUserSummary } from '~/types/superadmin'
+import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
+import type { GestionEscolarCapability } from '~/types/gestionEscolar'
 import { defaultFamilyRoute } from '~/utils/sessionScopes'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { displayMatricula } from '~/utils/matricula'
-import { normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel } from '~/utils/schoolCatalog'
+import { SCHOOL_PLANTELES, normalizeSchoolPlantel } from '~/utils/schoolCatalog'
+import { GESTION_ESCOLAR_PERMISSION_LABELS } from '~/utils/gestionPermissions'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
@@ -292,8 +293,8 @@ const impersonatingId = ref<number | null>(null)
 const confirmingImpersonationId = ref<number | null>(null)
 const hydrated = ref(false)
 const roleDraft = ref<SuperAdminRoleAssignments>({ schoolAdmin: false, daycareAdmin: false, marketingAdmin: false })
-const schoolScopesDraft = ref<SuperAdminSchoolScope[]>([])
-const marketingPlantelesDraft = ref<string[]>([])
+const plantelesDraft = ref<string[]>([])
+const schoolPermissionsDraft = ref<GestionEscolarCapability[]>([])
 const daycareUnitsDraft = ref<string[]>([])
 
 const query = computed(() => ({
@@ -311,10 +312,7 @@ const { data: directory, pending, error: loadError, refresh } = useFetch<SuperAd
 })
 
 const visibleUsers = computed(() => directory.value?.users || [])
-const schoolPlantelOptions = computed(() => directory.value?.planteles || [])
-function gradeOptionsForPlantel(plantel: string) {
-  return schoolGradesForPlantel(plantel)
-}
+const schoolPlantelOptions = computed(() => directory.value?.planteles || [...SCHOOL_PLANTELES])
 const unitOptions = computed(() => {
   const values = [
     ...(directory.value?.unidades || []),
@@ -324,35 +322,42 @@ const unitOptions = computed(() => {
 })
 
 const editorTitle = computed(() => editorMode.value === 'school' ? 'Admin escolar' : editorMode.value === 'daycare' ? 'Admin guardería' : 'Mercadotecnia')
+const schoolPermissionGroups: Array<{ title: string; items: GestionEscolarCapability[] }> = [
+  { title: 'Familias', items: ['familias.impersonate'] },
+  { title: 'Comunicados', items: ['comunicados.create', 'comunicados.publish'] },
+  { title: 'Encuestas', items: ['encuestas.manage'] },
+  { title: 'Convenios', items: ['convenios.manage', 'convenios.publish'] }
+]
+const validPlanteles = computed(() => normalizePlanteles(plantelesDraft.value))
 const hasChanges = computed(() => Boolean(selectedUser.value && draftSignature() !== userSignature(selectedUser.value)))
 const saveBlocker = computed(() => {
   if (!selectedUser.value || !hasChanges.value) return ''
-  if (roleDraft.value.schoolAdmin && !validSchoolScopes.value.length) return 'Falta plantel escolar.'
-  if (roleDraft.value.marketingAdmin && !marketingPlantelesDraft.value.length) return 'Falta plantel de Mercadotecnia.'
+  if ((roleDraft.value.schoolAdmin || roleDraft.value.marketingAdmin) && !validPlanteles.value.length) return 'Falta plantel.'
   if (roleDraft.value.daycareAdmin && !daycareUnitsDraft.value.length) return 'Falta unidad de guardería.'
   return ''
 })
-const validSchoolScopes = computed(() => normalizeSchoolScopes(schoolScopesDraft.value))
 const changeLines = computed(() => {
   if (!selectedUser.value) return []
   const lines: string[] = []
   const current = selectedUser.value
-  if (roleDraft.value.schoolAdmin !== current.roleAssignments.schoolAdmin || schoolScopeLabel(validSchoolScopes.value) !== schoolScopeLabel(current.schoolScopes)) {
-    lines.push(roleDraft.value.schoolAdmin ? `Admin escolar: ${schoolScopeLabel(validSchoolScopes.value)}` : 'Quitar Admin escolar')
+  if (roleDraft.value.schoolAdmin !== current.roleAssignments.schoolAdmin) {
+    lines.push(roleDraft.value.schoolAdmin ? 'Admin escolar' : 'Quitar Admin escolar')
   }
   if (roleDraft.value.daycareAdmin !== current.roleAssignments.daycareAdmin || daycareUnitsDraft.value.join('|') !== current.unidad.join('|')) {
-    lines.push(roleDraft.value.daycareAdmin ? `Admin guardería: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guardería')
+    lines.push(roleDraft.value.daycareAdmin ? `Guardería: ${daycareUnitsDraft.value.join(' / ')}` : 'Quitar Admin guardería')
   }
-  if (
-    roleDraft.value.marketingAdmin !== current.roleAssignments.marketingAdmin ||
-    [...marketingPlantelesDraft.value].sort().join('|') !== [...current.marketingPlanteles].sort().join('|')
-  ) {
-    lines.push(roleDraft.value.marketingAdmin
-      ? `Mercadotecnia: ${marketingPlantelLabel(marketingPlantelesDraft.value)}`
-      : 'Quitar Mercadotecnia')
+  if (roleDraft.value.marketingAdmin !== current.roleAssignments.marketingAdmin) {
+    lines.push(roleDraft.value.marketingAdmin ? 'Mercadotecnia' : 'Quitar Mercadotecnia')
+  }
+  if (validPlanteles.value.join('|') !== normalizePlanteles(current.plantel).join('|')) {
+    lines.push(`Planteles: ${plantelLabel(validPlanteles.value)}`)
+  }
+  if ([...schoolPermissionsDraft.value].sort().join('|') !== [...current.schoolPermissions].sort().join('|')) {
+    lines.push('Permisos escolares')
   }
   return lines
 })
+
 
 watch(directory, (value) => {
   if (!hydrated.value) return
@@ -419,9 +424,9 @@ function rowState(user: SuperAdminUserSummary) {
 
 function roleSummary(user: SuperAdminUserSummary) {
   const roles: string[] = []
-  if (user.roleAssignments.schoolAdmin) roles.push(user.schoolScopes.length ? 'Escolar' : 'Falta plantel')
+  if (user.roleAssignments.schoolAdmin) roles.push(user.plantel.length ? 'Escolar' : 'Falta plantel')
   if (user.roleAssignments.daycareAdmin) roles.push('Guardería')
-  if (user.roleAssignments.marketingAdmin) roles.push(user.marketingPlanteles.length ? 'MKT' : 'MKT sin plantel')
+  if (user.roleAssignments.marketingAdmin) roles.push(user.plantel.length ? 'MKT' : 'MKT sin plantel')
   if (roles.length) return roles.join(' + ')
   if (user.productScopes.length) return 'Familia'
   return 'Sin rol'
@@ -434,38 +439,38 @@ function familyScopeLabel(user: SuperAdminUserSummary) {
   return labels.join(' / ')
 }
 
-function schoolScopeLabel(scopes: SuperAdminSchoolScope[]) {
-  if (!scopes.length) return 'Sin plantel asignado'
-  return scopes.map((scope) => [scope.plantel, scope.grado || 'todos'].filter(Boolean).join(' / ')).join(' + ')
+function normalizePlanteles(values: string[]) {
+  const order = new Map<string, number>(SCHOOL_PLANTELES.map((plantel, index) => [plantel, index]))
+  return Array.from(new Set(values
+    .map((value) => normalizeSchoolPlantel(value))
+    .filter(Boolean) as string[]))
+    .sort((left, right) => (order.get(left) ?? 99) - (order.get(right) ?? 99))
 }
 
-function marketingPlantelLabel(planteles: string[]) {
-  if (!planteles.length) return 'Sin plantel asignado'
-  return planteles.join(' / ')
+function plantelLabel(planteles: string[]) {
+  const normalized = normalizePlanteles(planteles)
+  return normalized.length ? normalized.join(' / ') : 'Sin plantel'
+}
+
+function schoolPermissionLabel(capability: GestionEscolarCapability) {
+  return GESTION_ESCOLAR_PERMISSION_LABELS[capability]
+}
+
+function schoolPermissionSummary(user: SuperAdminUserSummary) {
+  const count = user.schoolPermissions.length
+  return count ? `${count} permiso${count === 1 ? '' : 's'}` : 'Solo familias'
 }
 
 function schoolRoleState(user: SuperAdminUserSummary) {
   if (!user.roleAssignments.schoolAdmin) return 'none'
-  return user.schoolScopes.length ? 'active' : 'incomplete'
+  return user.plantel.length ? 'active' : 'incomplete'
 }
-
-function normalizeSchoolScopes(scopes: SuperAdminSchoolScope[]) {
-  const byKey = new Map<string, SuperAdminSchoolScope>()
-  for (const scope of scopes) {
-    const plantel = normalizeSchoolPlantel(scope.plantel)
-    if (!plantel) continue
-    const grado = normalizeSchoolGrade(scope.grado, plantel)
-    byKey.set([plantel, grado || ''].join('|'), { plantel, nivel: null, grado })
-  }
-  return Array.from(byKey.values())
-}
-
 
 function userSignature(user: SuperAdminUserSummary) {
   return JSON.stringify({
     roles: user.roleAssignments,
-    schoolScopes: normalizeSchoolScopes(user.schoolScopes),
-    marketingPlanteles: [...user.marketingPlanteles].sort(),
+    planteles: normalizePlanteles(user.plantel),
+    schoolPermissions: [...user.schoolPermissions].sort(),
     unidades: user.roleAssignments.daycareAdmin ? [...user.unidad].sort() : []
   })
 }
@@ -473,8 +478,8 @@ function userSignature(user: SuperAdminUserSummary) {
 function draftSignature() {
   return JSON.stringify({
     roles: roleDraft.value,
-    schoolScopes: validSchoolScopes.value,
-    marketingPlanteles: roleDraft.value.marketingAdmin ? [...marketingPlantelesDraft.value].sort() : [],
+    planteles: validPlanteles.value,
+    schoolPermissions: roleDraft.value.schoolAdmin ? [...schoolPermissionsDraft.value].sort() : [],
     unidades: roleDraft.value.daycareAdmin ? [...daycareUnitsDraft.value].sort() : []
   })
 }
@@ -494,8 +499,8 @@ function selectUser(user: SuperAdminUserSummary, updateRoute = true) {
 
 function hydrateDraft(user: SuperAdminUserSummary) {
   roleDraft.value = { ...user.roleAssignments }
-  schoolScopesDraft.value = user.schoolScopes.length ? user.schoolScopes.map((scope) => ({ ...scope })) : []
-  marketingPlantelesDraft.value = [...user.marketingPlanteles]
+  plantelesDraft.value = normalizePlanteles(user.plantel)
+  schoolPermissionsDraft.value = [...user.schoolPermissions]
   daycareUnitsDraft.value = [...user.unidad]
 }
 
@@ -506,44 +511,29 @@ function openRoleEditor(mode: EditorMode) {
 
 function focusEditor(mode: EditorMode) {
   editorMode.value = mode
-  if (mode === 'school') {
-    roleDraft.value.schoolAdmin = true
-    ensureSchoolScope()
-  }
+  if (mode === 'school') roleDraft.value.schoolAdmin = true
   if (mode === 'daycare') {
     roleDraft.value.daycareAdmin = true
     if (!daycareUnitsDraft.value.length && unitOptions.value[0]) daycareUnitsDraft.value = [unitOptions.value[0]]
   }
-  if (mode === 'marketing') {
-    roleDraft.value.marketingAdmin = true
-    ensureMarketingPlantel()
+  if (mode === 'marketing') roleDraft.value.marketingAdmin = true
+  if ((mode === 'school' || mode === 'marketing') && !plantelesDraft.value.length && schoolPlantelOptions.value[0]) {
+    plantelesDraft.value = [schoolPlantelOptions.value[0]]
   }
 }
 
-function ensureSchoolScope() {
-  if (roleDraft.value.schoolAdmin && !schoolScopesDraft.value.length) addSchoolScope()
-}
-
-function ensureMarketingPlantel() {
-  if (roleDraft.value.marketingAdmin && !marketingPlantelesDraft.value.length && schoolPlantelOptions.value[0]) {
-    marketingPlantelesDraft.value = [schoolPlantelOptions.value[0]]
-  }
-}
-
-function toggleMarketingPlantel(plantel: string) {
-  const set = new Set(marketingPlantelesDraft.value)
+function togglePlantel(plantel: string) {
+  const set = new Set(plantelesDraft.value)
   if (set.has(plantel)) set.delete(plantel)
   else set.add(plantel)
-  marketingPlantelesDraft.value = Array.from(set).sort((left, right) => left.localeCompare(right, 'es'))
+  plantelesDraft.value = normalizePlanteles(Array.from(set))
 }
 
-function addSchoolScope() {
-  schoolScopesDraft.value.push({ plantel: schoolPlantelOptions.value[0] || '', nivel: null, grado: null })
-}
-
-function removeSchoolScope(index: number) {
-  schoolScopesDraft.value.splice(index, 1)
-  if (!schoolScopesDraft.value.length) roleDraft.value.schoolAdmin = false
+function toggleSchoolPermission(capability: GestionEscolarCapability) {
+  const set = new Set(schoolPermissionsDraft.value)
+  if (set.has(capability)) set.delete(capability)
+  else set.add(capability)
+  schoolPermissionsDraft.value = Array.from(set)
 }
 
 function toggleUnidad(unidad: string) {
@@ -582,8 +572,8 @@ async function saveRoles() {
       method: 'POST',
       body: {
         roles: roleDraft.value,
-        schoolScopes: validSchoolScopes.value,
-        marketingPlanteles: roleDraft.value.marketingAdmin ? marketingPlantelesDraft.value : [],
+        planteles: validPlanteles.value,
+        schoolPermissions: roleDraft.value.schoolAdmin ? schoolPermissionsDraft.value : [],
         unidades: roleDraft.value.daycareAdmin ? daycareUnitsDraft.value : []
       }
     })
@@ -1200,6 +1190,79 @@ function errorMessage(error: unknown, fallback: string) {
   transform: translateX(18px);
 }
 
+
+.editor-label {
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.plantel-card {
+  background: linear-gradient(135deg, #f5fbfa, #fffaf0);
+}
+
+.permission-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.permission-group {
+  align-content: start;
+  background: #fff;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+}
+
+.permission-group > strong {
+  color: var(--ink);
+  font-size: .78rem;
+  padding: 2px 3px;
+}
+
+.permission-group button {
+  align-items: center;
+  background: #f7fafb;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 850;
+  gap: 8px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  min-height: 40px;
+  padding: 6px 9px;
+  text-align: left;
+}
+
+.permission-group button.active {
+  background: #e8f8f1;
+  border-color: #bce8d0;
+  color: #126f43;
+}
+
+.permission-check {
+  align-items: center;
+  background: #fff;
+  border-radius: 9px;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.plantel-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .scope-editor,
 .unit-grid {
   display: grid;
@@ -1319,6 +1382,11 @@ function errorMessage(error: unknown, fallback: string) {
 
   .user-list {
     max-height: none;
+  }
+
+  .permission-grid,
+  .plantel-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .drawer-actions {

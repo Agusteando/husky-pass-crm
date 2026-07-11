@@ -1,13 +1,13 @@
 <template>
   <div
     class="admin-experience-root"
-    :class="{ 'daycare-admin-root': isDaycareAdmin }"
+    :class="{ 'daycare-admin-root': isDaycareAdmin, 'school-admin-root': isSchoolAdmin }"
     :style="adminVars"
     data-experience="admin"
   >
     <TopbarAdminExperienceTopbar :session="session" :persona="persona" :items="topbarItems" />
     <div class="page-shell workspace-shell full-width">
-      <main class="layout-main layout-main-wide" :class="{ 'daycare-admin-main': isDaycareAdmin }">
+      <main class="layout-main layout-main-wide" :class="{ 'daycare-admin-main': isDaycareAdmin, 'school-admin-main': isSchoolAdmin }">
         <slot />
       </main>
     </div>
@@ -28,6 +28,7 @@ const adminVars = experienceThemeVars(visualIdentityForContext({ experience: 'ad
 const persona = computed(() => adminPersonaForUser(session.value?.user))
 const topbarItems = computed(() => adminNavigationForUser(session.value?.user))
 const isDaycareAdmin = computed(() => route.path.startsWith('/admin/daycare'))
+const isSchoolAdmin = computed(() => route.path.startsWith('/admin/gestion-escolar'))
 </script>
 
 <style scoped>
@@ -85,6 +86,31 @@ const isDaycareAdmin = computed(() => route.path.startsWith('/admin/daycare'))
 .daycare-admin-main {
   margin-inline: auto;
   max-width: 1440px;
+}
+
+
+.admin-experience-root.school-admin-root {
+  --school-admin-ink: #14253a;
+  --school-admin-muted: #647488;
+  --school-admin-teal: #0a8178;
+  --school-admin-blue: #2d759e;
+  --school-admin-amber: #f2b64c;
+  --school-admin-coral: #c9685d;
+  --school-admin-line: rgba(25, 92, 105, 0.14);
+  background:
+    radial-gradient(circle at 5% 8%, rgba(24, 132, 123, 0.13), transparent 28rem),
+    radial-gradient(circle at 94% 11%, rgba(245, 185, 77, 0.16), transparent 28rem),
+    radial-gradient(circle at 50% 100%, rgba(61, 130, 165, 0.08), transparent 34rem),
+    linear-gradient(180deg, #fbfdfb 0%, #f2f7f5 54%, #f8faf7 100%);
+}
+
+.school-admin-root .workspace-shell {
+  padding: clamp(16px, 2.2vw, 28px) 0 56px;
+}
+
+.school-admin-main {
+  margin-inline: auto;
+  max-width: 1480px;
 }
 
 @media (max-width: 980px) {
