@@ -1,1 +1,1 @@
-Detecta Matrícula Actual con el estado real del bridge de Aurora
+Corrige la consulta de alumnos de Aurora en Matrícula Actual
