@@ -37,7 +37,7 @@
     <template v-else>
       <nav class="plantel-switcher" aria-label="Planteles">
         <button
-          v-for="plantel in options?.planteles || []"
+          v-for="plantel in availablePlanteles"
           :key="plantel.code"
           type="button"
           :class="{ active: selectedPlantel === plantel.code }"
@@ -288,7 +288,8 @@ interface RosterGrade {
 const {
   data: options,
   pending: optionsPending,
-  available: enrollmentAvailable
+  available: enrollmentAvailable,
+  availablePlanteles
 } = useMktEnrollmentOptions()
 
 const selectedPlantel = ref('')
@@ -313,7 +314,7 @@ let overviewRequestSequence = 0
 let studentRequestSequence = 0
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
-const activePlantel = computed(() => options.value?.planteles.find((item) => item.code === selectedPlantel.value) || null)
+const activePlantel = computed(() => availablePlanteles.value.find((item) => item.code === selectedPlantel.value) || null)
 const activePlantelCode = computed(() => activePlantel.value?.code || '—')
 const activeLevel = computed(() => activePlantel.value?.level || 'preescolar')
 const activeAmbassador = computed(() => ({
@@ -387,7 +388,7 @@ const rosterHierarchy = computed<RosterGrade[]>(() => {
 
 watch(options, (value) => {
   if (!value) return
-  if (!selectedPlantel.value || !value.planteles.some((item) => item.code === selectedPlantel.value)) selectedPlantel.value = value.defaultPlantel || value.planteles[0]?.code || ''
+  if (!selectedPlantel.value || !availablePlanteles.value.some((item) => item.code === selectedPlantel.value)) selectedPlantel.value = value.defaultPlantel || availablePlanteles.value[0]?.code || ''
   if (!selectedCiclo.value || !value.schoolYears.some((item) => item.value === selectedCiclo.value)) selectedCiclo.value = value.defaultCiclo || value.schoolYears[0]?.value || ''
 }, { immediate: true })
 

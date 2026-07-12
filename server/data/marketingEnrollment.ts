@@ -23,6 +23,20 @@ interface AuroraHealthResponse {
   scopes?: Array<{ plantel?: string; ciclo?: string; rows?: number; freshness?: string; generatedAt?: string | null }>
 }
 
+interface AuroraPlantelStatus {
+  plantel?: string
+  online?: boolean
+  status?: string
+  code?: string | null
+  httpStatus?: number | null
+  checkedAt?: string
+}
+
+interface AuroraPlantelesStatusResponse {
+  statuses?: AuroraPlantelStatus[]
+  checkedAt?: string
+}
+
 interface AuroraRequestOptions extends Record<string, any> {
   timeout?: number
   retries?: number
@@ -40,8 +54,11 @@ interface AuroraStudentPage {
 }
 
 let healthCache: { value: AuroraHealthResponse; expiresAt: number } | null = null
+const bridgeStatusCache = new Map<string, { value: AuroraPlantelStatus; expiresAt: number }>()
 const HEALTH_CACHE_TTL_MS = 60_000
 const HEALTH_TIMEOUT_MS = 6_000
+const BRIDGE_STATUS_CACHE_TTL_MS = 30_000
+const BRIDGE_STATUS_TIMEOUT_MS = 5_000
 const MAX_COLLECTION_PAGES = 120
 const COLLECTION_LIMIT = 100
 
@@ -194,6 +211,50 @@ const getAuroraHealth = async () => {
   })
   healthCache = { value, expiresAt: now + HEALTH_CACHE_TTL_MS }
   return value
+}
+
+const getAuroraBridgeStatus = async (plantelValue: unknown): Promise<AuroraPlantelStatus> => {
+  const plantel = normalizeAuroraEnrollmentPlantel(plantelValue)
+  if (!plantel) return { plantel: '', online: false, status: 'unknown' }
+
+  const now = Date.now()
+  const cached = bridgeStatusCache.get(plantel)
+  if (cached && cached.expiresAt > now) return cached.value
+
+  const response = await auroraFetch<AuroraPlantelesStatusResponse>('/api/auth/planteles-status', {
+    query: { plantel },
+    timeout: BRIDGE_STATUS_TIMEOUT_MS,
+    retries: 0
+  })
+  const status = (response.statuses || []).find((item) => normalizeAuroraEnrollmentPlantel(item.plantel) === plantel)
+  const value: AuroraPlantelStatus = {
+    plantel,
+    online: Boolean(status?.online),
+    status: clean(status?.status, 40) || (status?.online ? 'online' : 'unknown'),
+    code: clean(status?.code, 120) || null,
+    httpStatus: Number(status?.httpStatus || 0) || null,
+    checkedAt: clean(status?.checkedAt || response.checkedAt, 80) || new Date().toISOString()
+  }
+  bridgeStatusCache.set(plantel, { value, expiresAt: now + BRIDGE_STATUS_CACHE_TTL_MS })
+  return value
+}
+
+const getAuroraBridgeStatuses = async (planteles: string[]) => {
+  const results = await Promise.all(planteles.map(async (plantel) => {
+    try {
+      return await getAuroraBridgeStatus(plantel)
+    } catch (error: any) {
+      return {
+        plantel,
+        online: false,
+        status: 'unknown',
+        code: errorCode(error) || null,
+        httpStatus: errorStatusCode(error) || null,
+        checkedAt: new Date().toISOString()
+      } satisfies AuroraPlantelStatus
+    }
+  }))
+  return new Map(results.map((status) => [normalizeAuroraEnrollmentPlantel(status.plantel), status]))
 }
 
 const assertPlantelAccess = (plantelValue: unknown, supported: string[]) => {
@@ -437,14 +498,11 @@ const buildKpis = (students: MktEnrollmentStudent[], plantel = ''): MktEnrollmen
 
 export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<MktEnrollmentOptionsResponse> {
   const permitted = await resolveMarketingEnrollmentPlanteles(user)
-  let health: AuroraHealthResponse | null = null
-  let connectionMessage = ''
-
-  try {
-    health = await getAuroraHealth()
-  } catch (error: any) {
-    connectionMessage = clean(error?.message || error?.statusMessage || '', 300)
-  }
+  const [healthResult, bridgeStatuses] = await Promise.all([
+    getAuroraHealth().then((value) => ({ value, error: null as any })).catch((error) => ({ value: null, error })),
+    getAuroraBridgeStatuses(permitted)
+  ])
+  const health = healthResult.value
 
   const healthSchoolYears = (health?.schoolYears || [])
     .map((item) => ({ value: normalizeCiclo(item.value), label: clean(item.label, 40) }))
@@ -458,25 +516,34 @@ export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<Mkt
     schoolYears.unshift({ value: configuredCycle, label: `${configuredCycle}-${Number(configuredCycle) + 1}` })
   }
   const defaultCiclo = schoolYears.find((item) => item.value === configuredCycle)?.value || schoolYears[0]?.value || configuredCycle
-  const scopes = Array.isArray(health?.scopes) ? health.scopes : []
-  const planteles = permitted.map((code) => ({
-    code,
-    // Aurora only provides canonical codes. Husky must not invent institutional names.
-    label: code,
-    level: levelForPlantel(code),
-    hasData: scopes.some((scope) => normalizeAuroraEnrollmentPlantel(scope.plantel) === code && Number(scope.rows || 0) > 0)
-  }))
-  const connected = String(health?.status || '').toLowerCase() === 'ok'
+  const planteles = permitted.map((code) => {
+    const bridge = bridgeStatuses.get(code)
+    const available = Boolean(bridge?.online)
+    return {
+      code,
+      label: code,
+      level: levelForPlantel(code),
+      available,
+      availability: available ? 'online' as const : clean(bridge?.status, 40) === 'offline' ? 'offline' as const : 'unknown' as const
+    }
+  })
+  const availablePlanteles = planteles.filter((plantel) => plantel.available)
+  // Aurora's health endpoint confirms that the external Control Escolar API is deployed.
+  // Live plantel availability comes exclusively from /api/auth/planteles-status.
+  const connected = Boolean(health) && availablePlanteles.length > 0
+  const connectionMessage = connected
+    ? ''
+    : clean(healthResult.error?.message || healthResult.error?.statusMessage || '', 300)
 
   return {
     planteles,
     schoolYears,
-    defaultPlantel: planteles[0]?.code || '',
+    defaultPlantel: availablePlanteles[0]?.code || '',
     defaultCiclo,
     connected,
     connection: {
       status: connected ? 'online' : 'degraded',
-      message: connected ? '' : connectionMessage
+      message: connectionMessage
     },
     generatedAt: new Date().toISOString()
   }

@@ -7,7 +7,8 @@ export interface MktEnrollmentPlantel {
   code: string
   label: string
   level: 'daycare' | 'preescolar' | 'primaria' | 'secundaria'
-  hasData: boolean
+  available: boolean
+  availability: 'online' | 'offline' | 'unknown'
 }
 
 export interface MktEnrollmentOptionsResponse {

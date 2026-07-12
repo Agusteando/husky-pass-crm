@@ -1,1 +1,1 @@
-Oculta Matrícula Actual cuando Aurora no está disponible
+Detecta Matrícula Actual con el estado real del bridge de Aurora

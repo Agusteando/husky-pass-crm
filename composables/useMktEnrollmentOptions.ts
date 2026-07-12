@@ -10,14 +10,18 @@ export function useMktEnrollmentOptions() {
     dedupe: 'defer'
   })
 
+  const availablePlanteles = computed(() => (
+    request.data.value?.planteles.filter((plantel) => plantel.available) || []
+  ))
   const available = computed(() => Boolean(
     !request.error.value &&
     request.data.value?.connected &&
-    request.data.value.planteles.some((plantel) => plantel.hasData)
+    availablePlanteles.value.length
   ))
 
   return {
     ...request,
-    available
+    available,
+    availablePlanteles
   }
 }
