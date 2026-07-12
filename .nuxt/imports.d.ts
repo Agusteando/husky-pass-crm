@@ -33,6 +33,7 @@ export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useAppSession } from '../composables/useAppSession';
 export { draftFingerprint, useDraftState } from '../composables/useDraftState';
 export { useGestionEscolarOverview } from '../composables/useGestionEscolarOverview';
+export { useMktEnrollmentOptions } from '../composables/useMktEnrollmentOptions';
 export { useOptimisticStatus, OptimisticSyncState, OptimisticSyncStatus } from '../composables/useOptimisticStatus';
 export { usePageDraftGuard } from '../composables/usePageDraftGuard';
 export { personasFamilyThemeContextKey, usePersonasFamilyPeople, useResolvedPersonasTheme, usePersonasFamilyTheme, PersonasFamilyThemeContext } from '../composables/usePersonasTheme';

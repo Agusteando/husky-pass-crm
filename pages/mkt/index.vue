@@ -7,7 +7,7 @@
         <p>{{ heroMessage }}</p>
       </div>
       <div class="mkt-hero__actions">
-        <NuxtLink class="mkt-btn soft" to="/mkt/matricula-actual">
+        <NuxtLink v-if="enrollmentAvailable" class="mkt-btn soft" to="/mkt/matricula-actual">
           <FamilyPersonasIcon name="school" />
           Matrícula actual
         </NuxtLink>
@@ -152,11 +152,13 @@ import { computed } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { MktOverviewResponse, MktStage } from '~/types/mkt'
 import { useAppSession } from '~/composables/useAppSession'
+import { useMktEnrollmentOptions } from '~/composables/useMktEnrollmentOptions'
 
 definePageMeta({ layout: 'mkt', middleware: ['admin', 'mkt'] })
 
 const mexicoDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 const { data: session } = useAppSession()
+const { available: enrollmentAvailable } = useMktEnrollmentOptions()
 const { data: overview, pending, error: loadError, refresh } = useFetch<MktOverviewResponse>('/api/mkt/overview', { query: { today: mexicoDate } })
 const hour = Number(new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', hour12: false }).format(new Date()))
 const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches'

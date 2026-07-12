@@ -1,1 +1,1 @@
-Rediseña Matrícula Actual con estadísticas por grado y grupo
+Oculta Matrícula Actual cuando Aurora no está disponible

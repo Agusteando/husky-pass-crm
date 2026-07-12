@@ -6,7 +6,7 @@
       </NuxtLink>
 
       <nav class="mkt-topbar__nav" aria-label="Navegación de Mercadotecnia">
-        <NuxtLink v-for="item in items" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }">
+        <NuxtLink v-for="item in visibleItems" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }">
           <FamilyPersonasIcon :name="item.icon" />
           <span>{{ item.label }}</span>
         </NuxtLink>
@@ -38,15 +38,18 @@ import { computed } from 'vue'
 import { useRoute } from 'nuxt/app'
 import type { PublicSession } from '~/types/session'
 import { hasDaycareAdminScope, hasSchoolAdminScope, isEffectiveSuperAdmin } from '~/utils/sessionScopes'
+import { useMktEnrollmentOptions } from '~/composables/useMktEnrollmentOptions'
 
 const props = defineProps<{ session?: PublicSession | null }>()
 const route = useRoute()
+const { available: enrollmentAvailable } = useMktEnrollmentOptions()
 const items = [
   { label: 'Hoy', to: '/mkt', icon: 'home' },
   { label: 'Informes', to: '/mkt/informes', icon: 'people' },
   { label: 'Matrícula actual', to: '/mkt/matricula-actual', icon: 'school' },
   { label: 'Bitácora', to: '/mkt/bitacora', icon: 'clipboard' }
 ]
+const visibleItems = computed(() => items.filter((item) => item.to !== '/mkt/matricula-actual' || enrollmentAvailable.value))
 const showAdminSwitch = computed(() => {
   const user = props.session?.user
   return Boolean(user && (isEffectiveSuperAdmin(user) || hasSchoolAdminScope(user) || hasDaycareAdminScope(user)))
