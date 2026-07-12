@@ -220,6 +220,9 @@ declare module "nitropack/types" {
     '/api/mkt/enrollment/options': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/mkt/enrollment/options.get').default>>>>
     }
+    '/api/mkt/enrollment/overview': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/mkt/enrollment/overview.get').default>>>>
+    }
     '/api/mkt/enrollment/students/:matricula': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/mkt/enrollment/students/[matricula].get').default>>>>
       'patch': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/mkt/enrollment/students/[matricula].patch').default>>>>

@@ -1,1 +1,1 @@
-Rediseña Matrícula Actual con estadísticas por grado y edición completa
+Rediseña Matrícula Actual con estadísticas por grado y grupo

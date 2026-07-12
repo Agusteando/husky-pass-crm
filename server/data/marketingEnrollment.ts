@@ -1,7 +1,11 @@
 import type { AppSessionUser } from '~/types/session'
 import type {
+  MktEnrollmentCatalogs,
+  MktEnrollmentDistributionGrade,
+  MktEnrollmentKpis,
   MktEnrollmentOptionsResponse,
-  MktEnrollmentStudentPatch,
+  MktEnrollmentOverviewResponse,
+  MktEnrollmentParentPatch,
   MktEnrollmentStudent,
   MktEnrollmentStudentResponse,
   MktEnrollmentStudentsResponse
@@ -24,14 +28,29 @@ interface AuroraRequestOptions extends Record<string, any> {
   retries?: number
 }
 
+interface AuroraStudentPage {
+  data?: unknown[]
+  pagination?: {
+    limit?: number
+    nextCursor?: string | null
+    total?: number
+  }
+  catalogs?: Partial<MktEnrollmentCatalogs>
+  meta?: Record<string, any>
+}
+
 let healthCache: { value: AuroraHealthResponse; expiresAt: number } | null = null
 const HEALTH_CACHE_TTL_MS = 60_000
 const HEALTH_TIMEOUT_MS = 6_000
-
-
+const MAX_COLLECTION_PAGES = 120
+const COLLECTION_LIMIT = 100
 
 const clean = (value: unknown, max = 500) => String(value ?? '').trim().slice(0, max)
+const lower = (value: unknown, max = 500) => clean(value, max).toLocaleLowerCase('es-MX')
 const normalizeCiclo = (value: unknown) => clean(value, 20).match(/\d{4}/)?.[0] || ''
+const titleCase = (value: unknown) => clean(value).replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase('es-MX'))
+const naturalCompare = (left: string, right: string) => left.localeCompare(right, 'es-MX', { numeric: true, sensitivity: 'base' })
+
 const levelForPlantel = (plantel: string): 'daycare' | 'preescolar' | 'primaria' | 'secundaria' => {
   if (plantel === 'GM') return 'daycare'
   if (plantel === 'PM' || plantel === 'PT') return 'primaria'
@@ -123,10 +142,6 @@ const safeAuroraError = (error: any, fallback: string) => {
     statusCode = 503
     statusMessage = 'AURORA_API_NOT_DEPLOYED'
     message = 'Aurora no tiene disponible el módulo institucional de Matrícula Actual en este despliegue.'
-  } else if (code === 'AURORA_VIEW_SCHEMA_MISSING') {
-    statusCode = 503
-    statusMessage = 'AURORA_LEGACY_VIEW_UNAVAILABLE'
-    message = 'Aurora respondió con una integración anterior. Actualiza Aurora para usar la consulta directa de Control Escolar.'
   }
 
   return createError({ statusCode, statusMessage, message })
@@ -185,7 +200,7 @@ const assertPlantelAccess = (plantelValue: unknown, supported: string[]) => {
   const plantel = normalizeAuroraEnrollmentPlantel(plantelValue)
   if (!plantel) throw createError({ statusCode: 400, message: 'Selecciona un plantel.' })
   if (!supported.includes(plantel)) {
-    throw createError({ statusCode: 403, message: 'El plantel solicitado no está dentro de tu alcance de Marketing.' })
+    throw createError({ statusCode: 403, message: 'El plantel solicitado no está asignado a esta cuenta.' })
   }
   return plantel
 }
@@ -201,7 +216,223 @@ const sanitizeStudent = (value: any): MktEnrollmentStudent => {
   student.matricula = clean(student.matricula, 64).toUpperCase()
   student.fullName = clean(student.fullName || student.nombreCompleto || student.display?.nombre, 255)
   student.plantel = normalizeAuroraEnrollmentPlantel(student.plantel || student.basePlantel)
+  student.grado = clean(student.grado, 80)
+  student.group = clean(student.group || student.grupo, 80)
+  student.grupo = student.group
+  const ingresoValue = lower(student.tipoIngresoValue || student.tipoIngreso, 40)
+  student.tipoIngresoValue = ingresoValue === 'interno' ? 'interno' : 'externo'
+  student.tipoIngreso = student.tipoIngresoValue === 'interno' ? 'Interno' : 'Externo'
   return student as MktEnrollmentStudent
+}
+
+const normalizeStudentQuery = (query: Record<string, any>, plantel: string, ciclo: string, cursor = '') => ({
+  plantel,
+  ciclo,
+  search: clean(query.search, 120),
+  grado: clean(query.grado, 80),
+  grupo: clean(query.grupo, 80),
+  nivel: clean(query.nivel, 80),
+  status: clean(query.status, 80),
+  cursor: clean(cursor || query.cursor, 300),
+  limit: Math.min(500, Math.max(25, Number(query.limit || COLLECTION_LIMIT) || COLLECTION_LIMIT))
+})
+
+const fetchAllAuroraStudents = async (plantel: string, ciclo: string, query: Record<string, any> = {}) => {
+  const data: MktEnrollmentStudent[] = []
+  const seenStudents = new Set<string>()
+  const seenCursors = new Set<string>()
+  let cursor = ''
+  let meta: Record<string, any> = { plantel, ciclo, source: 'aurora' }
+  let catalogs: Partial<MktEnrollmentCatalogs> = {}
+  let reportedTotal = 0
+
+  for (let page = 0; page < MAX_COLLECTION_PAGES; page += 1) {
+    const response = await auroraFetch<AuroraStudentPage>('/api/external/v1/control-escolar/students', {
+      query: normalizeStudentQuery({ ...query, limit: COLLECTION_LIMIT }, plantel, ciclo, cursor)
+    })
+    const rows = Array.isArray(response?.data) ? response.data.map(sanitizeStudent) : []
+    for (const student of rows) {
+      const key = student.matricula || `${student.fullName}:${student.grado}:${student.group}`
+      if (seenStudents.has(key)) continue
+      seenStudents.add(key)
+      data.push(student)
+    }
+    reportedTotal = Math.max(reportedTotal, Number(response?.pagination?.total || 0))
+    meta = response?.meta || meta
+    catalogs = response?.catalogs || catalogs
+    const nextCursor = clean(response?.pagination?.nextCursor, 300)
+    if (!nextCursor || seenCursors.has(nextCursor)) break
+    seenCursors.add(nextCursor)
+    cursor = nextCursor
+  }
+
+  return { data, total: reportedTotal || data.length, meta, catalogs }
+}
+
+const gradeWords = new Map<string, number>([
+  ['primero', 1], ['primer', 1], ['uno', 1],
+  ['segundo', 2], ['dos', 2],
+  ['tercero', 3], ['tercer', 3], ['tres', 3],
+  ['cuarto', 4], ['cuatro', 4],
+  ['quinto', 5], ['cinco', 5],
+  ['sexto', 6], ['seis', 6]
+])
+
+const gradeNumber = (value: unknown) => {
+  const raw = lower(value, 80).replace(/[º°]/g, '').trim()
+  const digit = raw.match(/\d{1,2}/)?.[0]
+  if (digit) return Number(digit)
+  for (const [word, number] of gradeWords) {
+    if (raw.includes(word)) return number
+  }
+  return Number.POSITIVE_INFINITY
+}
+
+const gradeDescriptor = (value: unknown) => {
+  const rawLabel = clean(value, 80) || 'Sin grado'
+  const order = gradeNumber(rawLabel)
+  return {
+    key: Number.isFinite(order) ? `grade-${order}` : `grade-${lower(rawLabel).replace(/[^a-z0-9áéíóúñ]+/giu, '-')}`,
+    label: Number.isFinite(order) ? `${order}°` : titleCase(rawLabel),
+    rawLabel,
+    order
+  }
+}
+
+const isInscrito = (student: MktEnrollmentStudent) => lower(student.enrollmentState, 40) === 'inscrito'
+const isBaja = (student: MktEnrollmentStudent) => lower(student.status, 40) === 'baja' || ['baja', 'baja_inscrita'].includes(lower(student.enrollmentState, 40))
+const isInterno = (student: MktEnrollmentStudent) => lower(student.tipoIngresoValue || student.tipoIngreso, 40) === 'interno'
+const studentGroup = (student: MktEnrollmentStudent) => clean(student.group || student.grupo, 80) || 'Sin grupo'
+
+const hasFamilyContact = (student: MktEnrollmentStudent) => {
+  const phone = [student.telefonoPadre, student.telefonoMadre, student.phone]
+    .some((value) => clean(value, 80).replace(/\D/g, '').length >= 10)
+  const email = [student.emailPadre, student.emailMadre, student.email]
+    .some((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value, 255)))
+  return phone || email
+}
+
+const completion = (student: MktEnrollmentStudent) => Math.max(
+  0,
+  Math.min(100, Number(student.completenessTiers?.basic?.progress ?? (student.missingFields?.length ? 50 : 100)) || 0)
+)
+
+const buildCatalogs = (students: MktEnrollmentStudent[]): MktEnrollmentCatalogs => {
+  const niveles = new Set<string>()
+  const grades = new Map<string, ReturnType<typeof gradeDescriptor>>()
+  const groups = new Set<string>()
+  const groupByGrade = new Map<string, Set<string>>()
+
+  for (const student of students) {
+    const nivel = clean(student.nivel, 80)
+    if (nivel) niveles.add(nivel)
+    const grade = gradeDescriptor(student.grado)
+    grades.set(grade.key, grade)
+    const group = studentGroup(student)
+    groups.add(group)
+    if (!groupByGrade.has(grade.rawLabel)) groupByGrade.set(grade.rawLabel, new Set())
+    groupByGrade.get(grade.rawLabel)?.add(group)
+  }
+
+  const orderedGrades = [...grades.values()].sort((left, right) => left.order - right.order || naturalCompare(left.label, right.label))
+  return {
+    niveles: [...niveles].sort(naturalCompare),
+    grados: orderedGrades.map((grade) => grade.rawLabel),
+    grupos: [...groups].sort(naturalCompare),
+    gruposPorGrado: Object.fromEntries(
+      [...groupByGrade.entries()].map(([grade, values]) => [grade, [...values].sort(naturalCompare)])
+    )
+  }
+}
+
+const expectedGradeNumbers = (plantel: string) => {
+  if (plantel === 'PM' || plantel === 'PT') return [1, 2, 3, 4, 5, 6]
+  if (plantel === 'SM' || plantel === 'ST') return [1, 2, 3]
+  if (levelForPlantel(plantel) === 'preescolar') return [1, 2, 3]
+  return []
+}
+
+const buildDistribution = (students: MktEnrollmentStudent[], plantel = ''): MktEnrollmentDistributionGrade[] => {
+  const grades = new Map<string, {
+    descriptor: ReturnType<typeof gradeDescriptor>
+    internos: number
+    externos: number
+    groups: Map<string, { label: string; internos: number; externos: number }>
+  }>()
+
+  for (const gradeNumberValue of expectedGradeNumbers(plantel)) {
+    const descriptor = gradeDescriptor(String(gradeNumberValue))
+    grades.set(descriptor.key, { descriptor, internos: 0, externos: 0, groups: new Map() })
+  }
+
+  for (const student of students) {
+    if (!isInscrito(student)) continue
+    const descriptor = gradeDescriptor(student.grado)
+    const grade = grades.get(descriptor.key) || {
+      descriptor,
+      internos: 0,
+      externos: 0,
+      groups: new Map<string, { label: string; internos: number; externos: number }>()
+    }
+    const groupLabel = studentGroup(student)
+    const groupKey = lower(groupLabel, 80)
+    const group = grade.groups.get(groupKey) || { label: groupLabel, internos: 0, externos: 0 }
+    if (isInterno(student)) {
+      grade.internos += 1
+      group.internos += 1
+    } else {
+      grade.externos += 1
+      group.externos += 1
+    }
+    grade.groups.set(groupKey, group)
+    grades.set(descriptor.key, grade)
+  }
+
+  return [...grades.entries()]
+    .map(([key, grade]) => ({
+      key,
+      label: grade.descriptor.label,
+      rawLabel: grade.descriptor.rawLabel,
+      internos: grade.internos,
+      externos: grade.externos,
+      total: grade.internos + grade.externos,
+      groups: [...grade.groups.entries()]
+        .map(([groupKey, group]) => ({
+          key: `${key}:${groupKey}`,
+          label: group.label,
+          internos: group.internos,
+          externos: group.externos,
+          total: group.internos + group.externos
+        }))
+        .sort((left, right) => naturalCompare(left.label, right.label))
+    }))
+    .sort((left, right) => gradeNumber(left.rawLabel) - gradeNumber(right.rawLabel) || naturalCompare(left.label, right.label))
+}
+
+const buildKpis = (students: MktEnrollmentStudent[], plantel = ''): MktEnrollmentKpis => {
+  const distribution = buildDistribution(students, plantel)
+  const inscritos = distribution.reduce((sum, grade) => sum + grade.total, 0)
+  const internos = distribution.reduce((sum, grade) => sum + grade.internos, 0)
+  const externos = distribution.reduce((sum, grade) => sum + grade.externos, 0)
+  const inscritosStudents = students.filter(isInscrito)
+  return {
+    totalVisible: students.length,
+    totalInscritos: inscritos,
+    inscritos,
+    activos: students.filter((student) => !isBaja(student)).length,
+    bajas: students.filter(isBaja).length,
+    noInscritos: students.filter((student) => lower(student.enrollmentState, 40) === 'no_inscrito').length,
+    internos,
+    externos,
+    expedientesCompletos: inscritosStudents.filter((student) => completion(student) === 100).length,
+    expedientesIncompletos: inscritosStudents.filter((student) => completion(student) < 100).length,
+    sinContacto: inscritosStudents.filter((student) => !hasFamilyContact(student)).length,
+    sinFichaMatricula: students.filter((student) => !student.overlayExists).length,
+    porNivel: [...new Map(students.map((student) => [clean(student.nivel, 80), 0])).keys()]
+      .filter(Boolean)
+      .map((label) => ({ label, total: students.filter((student) => clean(student.nivel, 80) === label).length })),
+    porGrupo: distribution.flatMap((grade) => grade.groups.map((group) => ({ label: `${grade.label} ${group.label}`, total: group.total })))
+  }
 }
 
 export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<MktEnrollmentOptionsResponse> {
@@ -214,10 +445,6 @@ export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<Mkt
   } catch (error: any) {
     connectionMessage = clean(error?.message || error?.statusMessage || '', 300)
   }
-
-  // Aurora health is informative only. A slow, old, or partially deployed health
-  // response must never remove a plantel that Husky has already authorized.
-  const availablePlanteles = permitted
 
   const healthSchoolYears = (health?.schoolYears || [])
     .map((item) => ({ value: normalizeCiclo(item.value), label: clean(item.label, 40) }))
@@ -232,8 +459,9 @@ export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<Mkt
   }
   const defaultCiclo = schoolYears.find((item) => item.value === configuredCycle)?.value || schoolYears[0]?.value || configuredCycle
   const scopes = Array.isArray(health?.scopes) ? health.scopes : []
-  const planteles = availablePlanteles.map((code) => ({
+  const planteles = permitted.map((code) => ({
     code,
+    // Aurora only provides canonical codes. Husky must not invent institutional names.
     label: code,
     level: levelForPlantel(code),
     hasData: scopes.some((scope) => normalizeAuroraEnrollmentPlantel(scope.plantel) === code && Number(scope.rows || 0) > 0)
@@ -254,42 +482,50 @@ export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<Mkt
   }
 }
 
+export async function getMktEnrollmentOverview(user: AppSessionUser, query: Record<string, any>): Promise<MktEnrollmentOverviewResponse> {
+  const plantel = await resolvePlantelAccess(user, query.plantel)
+  const ciclo = normalizeCiclo(query.ciclo)
+  if (!ciclo) throw createError({ statusCode: 400, message: 'Selecciona un ciclo escolar.' })
+  const collection = await fetchAllAuroraStudents(plantel, ciclo)
+  const distribution = buildDistribution(collection.data, plantel)
+  const kpis = buildKpis(collection.data, plantel)
+  return {
+    distribution,
+    totals: {
+      internos: kpis.internos,
+      externos: kpis.externos,
+      inscritos: kpis.inscritos,
+      totalVisible: kpis.totalVisible,
+      noInscritos: kpis.noInscritos,
+      bajas: kpis.bajas
+    },
+    catalogs: buildCatalogs(collection.data),
+    meta: collection.meta || { plantel, ciclo, source: 'aurora' }
+  }
+}
+
 export async function listMktEnrollmentStudents(user: AppSessionUser, query: Record<string, any>): Promise<MktEnrollmentStudentsResponse> {
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)
   if (!ciclo) throw createError({ statusCode: 400, message: 'Selecciona un ciclo escolar.' })
-  const normalizedQuery = {
-    plantel,
-    ciclo,
-    search: clean(query.search, 120),
-    grado: clean(query.grado, 80),
-    grupo: clean(query.grupo, 80),
-    nivel: clean(query.nivel, 80),
-    status: clean(query.status, 80),
-    cursor: clean(query.cursor, 300),
-    limit: Math.min(500, Math.max(25, Number(query.limit || 100) || 100))
-  }
-
-  const [students, kpisResult] = await Promise.all([
-    auroraFetch<any>('/api/external/v1/control-escolar/students', { query: normalizedQuery }),
-    auroraFetch<any>('/api/external/v1/control-escolar/kpis', { query: { plantel, ciclo } }).catch(() => null)
-  ])
-
+  const normalizedQuery = normalizeStudentQuery(query, plantel, ciclo)
+  const response = await auroraFetch<AuroraStudentPage>('/api/external/v1/control-escolar/students', { query: normalizedQuery })
+  const data = Array.isArray(response?.data) ? response.data.map(sanitizeStudent) : []
   return {
-    data: Array.isArray(students?.data) ? students.data.map(sanitizeStudent) : [],
+    data,
     pagination: {
-      limit: Number(students?.pagination?.limit || normalizedQuery.limit),
-      nextCursor: clean(students?.pagination?.nextCursor, 300) || null,
-      total: Number(students?.pagination?.total || 0)
+      limit: Number(response?.pagination?.limit || normalizedQuery.limit),
+      nextCursor: clean(response?.pagination?.nextCursor, 300) || null,
+      total: Number(response?.pagination?.total || data.length)
     },
     catalogs: {
-      niveles: Array.isArray(students?.catalogs?.niveles) ? students.catalogs.niveles.map(String) : [],
-      grados: Array.isArray(students?.catalogs?.grados) ? students.catalogs.grados.map(String) : [],
-      grupos: Array.isArray(students?.catalogs?.grupos) ? students.catalogs.grupos.map(String) : [],
-      gruposPorGrado: students?.catalogs?.gruposPorGrado && typeof students.catalogs.gruposPorGrado === 'object' ? students.catalogs.gruposPorGrado : {}
+      niveles: Array.isArray(response?.catalogs?.niveles) ? response.catalogs.niveles.map(String) : [],
+      grados: Array.isArray(response?.catalogs?.grados) ? response.catalogs.grados.map(String) : [],
+      grupos: Array.isArray(response?.catalogs?.grupos) ? response.catalogs.grupos.map(String) : [],
+      gruposPorGrado: response?.catalogs?.gruposPorGrado && typeof response.catalogs.gruposPorGrado === 'object' ? response.catalogs.gruposPorGrado : {}
     },
-    kpis: kpisResult?.data || null,
-    meta: students?.meta || { plantel, ciclo, source: 'aurora' }
+    kpis: null,
+    meta: response?.meta || { plantel, ciclo, source: 'aurora' }
   }
 }
 
@@ -302,11 +538,11 @@ export async function getMktEnrollmentStudent(user: AppSessionUser, matriculaVal
   return { data: sanitizeStudent(response?.data), meta: response?.meta || {} }
 }
 
-export async function updateMktEnrollmentStudent(
+export async function updateMktEnrollmentParents(
   user: AppSessionUser,
   matriculaValue: unknown,
   query: Record<string, any>,
-  patch: MktEnrollmentStudentPatch
+  patch: MktEnrollmentParentPatch
 ): Promise<MktEnrollmentStudentResponse> {
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)
@@ -324,46 +560,132 @@ export async function updateMktEnrollmentStudent(
   return { data: sanitizeStudent(response?.data), meta: response?.meta || { plantel, ciclo } }
 }
 
+const xmlEscape = (value: unknown) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;')
+
+const worksheetName = (value: unknown, used: Set<string>) => {
+  const base = clean(value, 80).replace(/[\\/?*:]/g, ' ').replaceAll('[', ' ').replaceAll(']', ' ').replace(/\s+/g, ' ').trim().slice(0, 31) || 'Hoja'
+  let name = base
+  let suffix = 2
+  while (used.has(name)) {
+    const tail = ` ${suffix}`
+    name = `${base.slice(0, 31 - tail.length)}${tail}`
+    suffix += 1
+  }
+  used.add(name)
+  return name
+}
+
+const spreadsheetCell = (value: unknown, style = '') => {
+  const isNumber = typeof value === 'number' && Number.isFinite(value)
+  return `<Cell${style ? ` ss:StyleID="${style}"` : ''}><Data ss:Type="${isNumber ? 'Number' : 'String'}">${xmlEscape(value)}</Data></Cell>`
+}
+
+const spreadsheetRow = (values: unknown[], style = '') => `<Row>${values.map((value) => spreadsheetCell(value, style)).join('')}</Row>`
+
+const spreadsheetWorksheet = (name: string, rows: Array<{ values: unknown[]; style?: string }>) => `
+<Worksheet ss:Name="${xmlEscape(name)}">
+  <Table>
+    ${rows.map((row) => spreadsheetRow(row.values, row.style || '')).join('\n    ')}
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane></WorksheetOptions>
+</Worksheet>`
+
+const studentExportRow = (student: MktEnrollmentStudent) => [
+  student.plantel,
+  student.grado || '',
+  student.group || student.grupo || '',
+  student.tipoIngreso || (isInterno(student) ? 'Interno' : 'Externo'),
+  student.matricula,
+  student.fullName,
+  student.curp || '',
+  student.enrollmentState || student.status || '',
+  student.fatherName || '',
+  student.telefonoPadre || '',
+  student.emailPadre || '',
+  student.motherName || '',
+  student.telefonoMadre || '',
+  student.emailMadre || '',
+  student.address || student.direccion || ''
+]
+
+const buildEnrollmentSpreadsheet = (plantel: string, ciclo: string, students: MktEnrollmentStudent[]) => {
+  const distribution = buildDistribution(students, plantel)
+  const usedSheetNames = new Set<string>()
+  const sheets: string[] = []
+  const summaryRows: Array<{ values: unknown[]; style?: string }> = [
+    { values: ['Matrícula actual', plantel, `${ciclo}-${Number(ciclo) + 1}`], style: 'Title' },
+    { values: [] },
+    { values: ['Grado', 'Internos', 'Externos', 'Total'], style: 'Header' },
+    ...distribution.map((grade) => ({ values: [grade.label, grade.internos, grade.externos, grade.total] })),
+    {
+      values: [
+        'Total',
+        distribution.reduce((sum, grade) => sum + grade.internos, 0),
+        distribution.reduce((sum, grade) => sum + grade.externos, 0),
+        distribution.reduce((sum, grade) => sum + grade.total, 0)
+      ],
+      style: 'Total'
+    }
+  ]
+  sheets.push(spreadsheetWorksheet(worksheetName('Resumen', usedSheetNames), summaryRows))
+
+  const headers = ['Plantel', 'Grado', 'Grupo', 'Ingreso', 'Matrícula', 'Alumno', 'CURP', 'Estado', 'Padre / tutor', 'Teléfono padre', 'Correo padre', 'Madre / tutora', 'Teléfono madre', 'Correo madre', 'Domicilio']
+  const orderedStudents = [...students].sort((left, right) => {
+    const gradeDifference = gradeNumber(left.grado) - gradeNumber(right.grado)
+    if (gradeDifference) return gradeDifference
+    const groupDifference = naturalCompare(studentGroup(left), studentGroup(right))
+    if (groupDifference) return groupDifference
+    return naturalCompare(left.fullName, right.fullName)
+  })
+  sheets.push(spreadsheetWorksheet(worksheetName('Alumnos', usedSheetNames), [
+    { values: headers, style: 'Header' },
+    ...orderedStudents.map((student) => ({ values: studentExportRow(student) }))
+  ]))
+
+  for (const grade of distribution) {
+    for (const group of grade.groups) {
+      const groupStudents = orderedStudents.filter((student) => {
+        const descriptor = gradeDescriptor(student.grado)
+        return descriptor.key === grade.key && studentGroup(student) === group.label
+      })
+      sheets.push(spreadsheetWorksheet(worksheetName(`${grade.label} ${group.label}`, usedSheetNames), [
+        { values: headers, style: 'Header' },
+        ...groupStudents.map((student) => ({ values: studentExportRow(student) }))
+      ]))
+    }
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>Matrícula actual ${xmlEscape(plantel)}</Title><Author>Husky Pass</Author></DocumentProperties>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Montserrat" ss:Size="10"/></Style>
+  <Style ss:ID="Title"><Font ss:Bold="1" ss:Size="15" ss:Color="#0B6B61"/><Interior ss:Color="#E9F7F0" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B6B61" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>
+  <Style ss:ID="Total"><Font ss:Bold="1"/><Interior ss:Color="#F6E9A9" ss:Pattern="Solid"/></Style>
+ </Styles>
+ ${sheets.join('\n')}
+</Workbook>`
+}
+
 export async function downloadMktEnrollmentExport(user: AppSessionUser, query: Record<string, any>) {
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)
   if (!ciclo) throw createError({ statusCode: 400, message: 'Selecciona un ciclo escolar.' })
-  const aurora = assertConfigured()
-  const url = new URL('/api/external/v1/control-escolar/export', aurora.baseURL)
-  const params = { ...query, plantel, ciclo }
-  Object.entries(params).forEach(([key, value]) => {
-    const text = clean(value, 300)
-    if (text) url.searchParams.set(key, text)
-  })
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Math.max(aurora.timeout, 60_000))
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${aurora.token}`,
-        'x-aurora-token': aurora.token,
-        'x-api-key': aurora.token,
-        'x-husky-pass-client': 'marketing-enrollment-export'
-      },
-      signal: controller.signal,
-      cache: 'no-store'
-    })
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null)
-      throw createError({
-        statusCode: response.status,
-        statusMessage: clean(payload?.data?.code || payload?.code || 'AURORA_EXPORT_FAILED', 120),
-        message: clean(payload?.message || payload?.statusMessage || 'Aurora no pudo generar el Excel.', 500)
-      })
-    }
-    const disposition = response.headers.get('content-disposition') || ''
-    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `matricula-actual-${plantel}-${ciclo}.xlsx`
-    return { buffer: Buffer.from(await response.arrayBuffer()), filename }
-  } catch (error: any) {
-    if (error?.name === 'AbortError') throw createError({ statusCode: 504, message: 'Aurora tardó demasiado en generar el Excel.' })
-    if (error?.statusCode) throw safeAuroraError(error, 'Aurora no pudo generar el Excel.')
-    throw safeAuroraError(error, 'Aurora no pudo generar el Excel.')
-  } finally {
-    clearTimeout(timeout)
+  const collection = await fetchAllAuroraStudents(plantel, ciclo, query)
+  const workbook = buildEnrollmentSpreadsheet(plantel, ciclo, collection.data)
+  return {
+    buffer: Buffer.from(workbook, 'utf8'),
+    filename: `matricula-actual-${plantel}-${ciclo}.xls`,
+    contentType: 'application/vnd.ms-excel; charset=utf-8'
   }
 }

@@ -82,29 +82,6 @@ export interface MktEnrollmentStudent {
   domicilioColonia?: string
   domicilioCp?: string
   domicilioMunicipio?: string
-  lugarNacimiento?: string
-  fechaNacimiento?: string
-  sexo?: string
-  talla?: string
-  peso?: string
-  tipoSangre?: string
-  alergias?: string
-  lugarTrabajoPadre?: string
-  puestoPadre?: string
-  estadoCivilPadre?: string
-  fechaNacimientoPadre?: string
-  inePadre?: string
-  curpPadre?: string
-  lugarTrabajoMadre?: string
-  puestoMadre?: string
-  estadoCivilMadre?: string
-  fechaNacimientoMadre?: string
-  ineMadre?: string
-  curpMadre?: string
-  servicio?: string
-  servicioNotas?: string
-  tipoIngresoSource?: string
-  tipoIngresoReason?: string
   display?: {
     nombre?: string
     gradoGrupo?: string
@@ -143,21 +120,6 @@ export interface MktEnrollmentCatalogs {
   gruposPorGrado: Record<string, string[]>
 }
 
-export interface MktEnrollmentGroupSummary {
-  grupo: string
-  interno: number
-  externo: number
-  total: number
-}
-
-export interface MktEnrollmentGradeSummary {
-  grado: string
-  interno: number
-  externo: number
-  total: number
-  grupos: MktEnrollmentGroupSummary[]
-}
-
 export interface MktEnrollmentKpis {
   totalVisible: number
   totalInscritos: number
@@ -173,8 +135,46 @@ export interface MktEnrollmentKpis {
   sinFichaMatricula: number
   porNivel: Array<{ label: string; total: number }>
   porGrupo: Array<{ label: string; total: number }>
-  porGrado: MktEnrollmentGradeSummary[]
   [key: string]: unknown
+}
+
+export interface MktEnrollmentDistributionGroup {
+  key: string
+  label: string
+  internos: number
+  externos: number
+  total: number
+}
+
+export interface MktEnrollmentDistributionGrade {
+  key: string
+  label: string
+  rawLabel: string
+  internos: number
+  externos: number
+  total: number
+  groups: MktEnrollmentDistributionGroup[]
+}
+
+export interface MktEnrollmentOverviewResponse {
+  distribution: MktEnrollmentDistributionGrade[]
+  totals: {
+    internos: number
+    externos: number
+    inscritos: number
+    totalVisible: number
+    noInscritos: number
+    bajas: number
+  }
+  catalogs: MktEnrollmentCatalogs
+  meta: {
+    source?: string
+    freshness?: string
+    plantel?: string
+    ciclo?: string
+    generatedAt?: string | null
+    [key: string]: unknown
+  }
 }
 
 export interface MktEnrollmentStudentsResponse {
@@ -203,48 +203,21 @@ export interface MktEnrollmentStudentResponse {
   meta?: Record<string, unknown>
 }
 
-export interface MktEnrollmentStudentPatch {
-  nombres: string
-  apellidoPaterno: string
-  apellidoMaterno: string
-  curp: string
-  lugarNacimiento: string
-  sexo: string
-  talla: string
-  peso: string
-  tipoSangre: string
-  alergias: string
+export interface MktEnrollmentParentPatch {
   nombrePadre: string
   apellidoPaternoPadre: string
   apellidoMaternoPadre: string
   telefonoPadre: string
   emailPadre: string
-  lugarTrabajoPadre: string
-  puestoPadre: string
-  estadoCivilPadre: string
-  fechaNacimientoPadre: string
-  inePadre: string
-  curpPadre: string
   nombreMadre: string
   apellidoPaternoMadre: string
   apellidoMaternoMadre: string
   telefonoMadre: string
   emailMadre: string
-  lugarTrabajoMadre: string
-  puestoMadre: string
-  estadoCivilMadre: string
-  fechaNacimientoMadre: string
-  ineMadre: string
-  curpMadre: string
   direccion: string
   domicilioCalle: string
   domicilioNumero: string
   domicilioColonia: string
   domicilioCp: string
   domicilioMunicipio: string
-  servicio: string
-  servicioNotas: string
 }
-
-export type MktEnrollmentParentPatch = MktEnrollmentStudentPatch
-
