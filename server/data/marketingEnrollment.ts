@@ -71,17 +71,33 @@ interface AuroraStudentPage {
   meta?: Record<string, any>
 }
 
+interface AuroraStudentCollection {
+  data: MktEnrollmentStudent[]
+  total: number
+  meta: Record<string, any>
+  catalogs: Partial<MktEnrollmentCatalogs>
+  context: AuroraStudentScopeContext
+}
+
+interface CachedAuroraStudentCollection {
+  value: AuroraStudentCollection
+  expiresAt: number
+}
+
 let healthCache: { value: AuroraHealthResponse; expiresAt: number } | null = null
 const bridgeStatusCache = new Map<string, { value: AuroraPlantelStatus; expiresAt: number }>()
 const HEALTH_CACHE_TTL_MS = 60_000
 const HEALTH_TIMEOUT_MS = 8_000
 const BRIDGE_STATUS_CACHE_TTL_MS = 30_000
 const BRIDGE_STATUS_TIMEOUT_MS = 5_000
-const MAX_COLLECTION_PAGES = 120
+const MAX_COLLECTION_PAGES = 300
 const LIVE_COLLECTION_LIMIT = 100
 const WARM_COLLECTION_LIMIT = 500
 const LIVE_STUDENT_TIMEOUT_MS = 60_000
 const WARM_STUDENT_TIMEOUT_MS = 90_000
+const STUDENT_COLLECTION_CACHE_TTL_MS = 30_000
+const studentCollectionCache = new Map<string, CachedAuroraStudentCollection>()
+const studentCollectionInflight = new Map<string, Promise<AuroraStudentCollection>>()
 
 const clean = (value: unknown, max = 500) => String(value ?? '').trim().slice(0, max)
 const lower = (value: unknown, max = 500) => clean(value, max).toLocaleLowerCase('es-MX')
@@ -367,6 +383,8 @@ const normalizeStudentQuery = (
     status: clean(query.status, 80),
     cursor: clean(cursor || query.cursor, 300),
     limit: Math.min(500, Math.max(25, Number(query.limit || defaultLimit) || defaultLimit)),
+    all: clean(query.all, 20) || undefined,
+    phase: clean(query.phase, 40) || undefined,
     ...studentScopeQuery(context)
   }
 }
@@ -388,14 +406,23 @@ const requestAuroraStudentPage = async (
   return assertAuroraStudentPage(response)
 }
 
-const fetchAllAuroraStudents = async (plantel: string, ciclo: string, query: Record<string, any> = {}) => {
-  const context = await buildAuroraStudentScopeContext(plantel, ciclo)
+const studentCollectionKey = (
+  plantel: string,
+  ciclo: string,
+  context: AuroraStudentScopeContext
+) => `${plantel}:${ciclo}:${context.mode}:${context.concepts.join(',')}`
 
+const collectAuroraControlEscolarIndex = async (
+  plantel: string,
+  ciclo: string,
+  context: AuroraStudentScopeContext,
+  fullIndexMode: boolean
+): Promise<Omit<AuroraStudentCollection, 'context'>> => {
   const data: MktEnrollmentStudent[] = []
   const seenStudents = new Set<string>()
   const seenCursors = new Set<string>()
   let cursor = ''
-  let meta: Record<string, any> = { plantel, ciclo, source: 'aurora' }
+  let meta: Record<string, any> = { plantel, ciclo, source: 'aurora-control-escolar' }
   let catalogs: Partial<MktEnrollmentCatalogs> = {}
   let reportedTotal = 0
   const collectionLimit = context.mode === 'warm' ? WARM_COLLECTION_LIMIT : LIVE_COLLECTION_LIMIT
@@ -404,7 +431,11 @@ const fetchAllAuroraStudents = async (plantel: string, ciclo: string, query: Rec
     const response = await requestAuroraStudentPage(
       plantel,
       ciclo,
-      { ...query, limit: collectionLimit },
+      {
+        limit: collectionLimit,
+        all: fullIndexMode ? '1' : undefined,
+        phase: 'enriched'
+      },
       context,
       cursor
     )
@@ -425,6 +456,62 @@ const fetchAllAuroraStudents = async (plantel: string, ciclo: string, query: Rec
   }
 
   return { data, total: reportedTotal || data.length, meta, catalogs }
+}
+
+const fetchAllAuroraStudents = async (
+  plantel: string,
+  ciclo: string,
+  options: { force?: boolean } = {}
+): Promise<AuroraStudentCollection> => {
+  const context = await buildAuroraStudentScopeContext(plantel, ciclo)
+  const key = studentCollectionKey(plantel, ciclo, context)
+  const now = Date.now()
+  const cached = studentCollectionCache.get(key)
+  if (!options.force && cached && cached.expiresAt > now) return cached.value
+
+  const activeRequest = studentCollectionInflight.get(key)
+  if (!options.force && activeRequest) return await activeRequest
+
+  const request = (async () => {
+    // Aurora Control Escolar loads one enriched index and applies grade, group,
+    // status and search filters locally. The external live endpoint accepts the
+    // same `all=1` index request. Warm-view deployments remain cursor based.
+    const useFullIndexMode = context.mode === 'live'
+    let collection = await collectAuroraControlEscolarIndex(
+      plantel,
+      ciclo,
+      context,
+      useFullIndexMode
+    )
+
+    // Some older external deployments accept `all=1` but still cap the first
+    // response. Fall back to normal cursor traversal when the reported total
+    // proves that the index response was incomplete.
+    if (useFullIndexMode && collection.total > collection.data.length) {
+      collection = await collectAuroraControlEscolarIndex(plantel, ciclo, context, false)
+    }
+
+    const value: AuroraStudentCollection = { ...collection, context }
+    studentCollectionCache.set(key, {
+      value,
+      expiresAt: Date.now() + STUDENT_COLLECTION_CACHE_TTL_MS
+    })
+    return value
+  })()
+
+  studentCollectionInflight.set(key, request)
+  try {
+    return await request
+  } finally {
+    if (studentCollectionInflight.get(key) === request) studentCollectionInflight.delete(key)
+  }
+}
+
+const invalidateAuroraStudentCollections = (plantel: string, ciclo: string) => {
+  const prefix = `${plantel}:${ciclo}:`
+  for (const key of studentCollectionCache.keys()) {
+    if (key.startsWith(prefix)) studentCollectionCache.delete(key)
+  }
 }
 
 const gradeWords = new Map<string, number>([
@@ -593,6 +680,102 @@ const buildKpis = (students: MktEnrollmentStudent[], plantel = ''): MktEnrollmen
   }
 }
 
+const normalizedFilterText = (value: unknown, max = 500) => clean(value, max)
+  .normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '')
+  .toLocaleLowerCase('es-MX')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const normalizedGroup = (value: unknown) => normalizedFilterText(value, 80)
+  .replace(/["']/g, '')
+  .trim()
+
+const gradeFilterKey = (value: unknown) => {
+  const number = gradeNumber(value)
+  if (Number.isFinite(number)) return `number:${number}`
+  return `text:${normalizedFilterText(value, 80)}`
+}
+
+const studentSearchText = (student: MktEnrollmentStudent) => [
+  student.matricula,
+  student.fullName,
+  student.nombreCompleto,
+  student.nombres,
+  student.apellidoPaterno,
+  student.apellidoMaterno,
+  student.curp,
+  student.fatherName,
+  student.motherName,
+  student.nombrePadre,
+  student.nombreMadre,
+  student.telefonoPadre,
+  student.telefonoMadre,
+  student.emailPadre,
+  student.emailMadre,
+  student.phone,
+  student.email
+].map((value) => normalizedFilterText(value, 500)).filter(Boolean).join(' ')
+
+const matchesEnrollmentStatus = (student: MktEnrollmentStudent, value: unknown) => {
+  const status = normalizedFilterText(value, 80)
+  if (!status || status === 'all' || status === 'todos') return true
+  if (['activo', 'activos', 'active'].includes(status)) return !isBaja(student) && lower(student.status, 40) === 'activo'
+  if (['inscrito', 'inscritos'].includes(status)) return isInscrito(student)
+  if (['interno', 'internos'].includes(status)) return isInscrito(student) && isInterno(student)
+  if (['externo', 'externos'].includes(status)) return isInscrito(student) && !isInterno(student)
+  if (['no_inscrito', 'no_inscritos', 'no inscrito', 'no inscritos'].includes(status)) {
+    return lower(student.enrollmentState, 40) === 'no_inscrito'
+  }
+  if (['baja', 'bajas'].includes(status)) return isBaja(student)
+  return normalizedFilterText(student.enrollmentState, 80) === status || normalizedFilterText(student.status, 80) === status
+}
+
+const filterEnrollmentStudents = (
+  students: MktEnrollmentStudent[],
+  query: Record<string, any>
+) => {
+  const search = normalizedFilterText(query.search || query.q, 120)
+  const grade = clean(query.grado, 80)
+  const group = normalizedGroup(query.grupo || query.group)
+  const nivel = normalizedFilterText(query.nivel, 80)
+
+  return students.filter((student) => {
+    if (search && !studentSearchText(student).includes(search)) return false
+    if (!matchesEnrollmentStatus(student, query.status)) return false
+    if (grade && gradeFilterKey(student.grado) !== gradeFilterKey(grade)) return false
+    if (group && group !== 'all' && group !== 'todos' && normalizedGroup(student.group || student.grupo) !== group) return false
+    if (nivel && nivel !== 'all' && nivel !== 'todos' && normalizedFilterText(student.nivel, 80) !== nivel) return false
+    return true
+  })
+}
+
+const compareEnrollmentStudents = (left: MktEnrollmentStudent, right: MktEnrollmentStudent) => {
+  const leftActive = !isBaja(left) && lower(left.status, 40) === 'activo' ? 0 : 1
+  const rightActive = !isBaja(right) && lower(right.status, 40) === 'activo' ? 0 : 1
+  if (leftActive !== rightActive) return leftActive - rightActive
+  const gradeDifference = gradeNumber(left.grado) - gradeNumber(right.grado)
+  if (Number.isFinite(gradeDifference) && gradeDifference) return gradeDifference
+  const groupDifference = naturalCompare(studentGroup(left), studentGroup(right))
+  if (groupDifference) return groupDifference
+  const nameDifference = naturalCompare(clean(left.fullName, 255), clean(right.fullName, 255))
+  if (nameDifference) return nameDifference
+  return naturalCompare(clean(left.matricula, 64), clean(right.matricula, 64))
+}
+
+const encodeEnrollmentCursor = (offset: number) => Buffer.from(JSON.stringify({ offset })).toString('base64url')
+const decodeEnrollmentCursor = (value: unknown) => {
+  const cursor = clean(value, 300)
+  if (!cursor) return 0
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+    const offset = Number(parsed?.offset || 0)
+    return Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0
+  } catch {
+    return 0
+  }
+}
+
 export async function getMktEnrollmentOptions(user: AppSessionUser): Promise<MktEnrollmentOptionsResponse> {
   const permitted = await resolveMarketingEnrollmentPlanteles(user)
   const [healthResult, bridgeStatuses] = await Promise.all([
@@ -671,25 +854,35 @@ export async function listMktEnrollmentStudents(user: AppSessionUser, query: Rec
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)
   if (!ciclo) throw createError({ statusCode: 400, message: 'Selecciona un ciclo escolar.' })
-  const context = await buildAuroraStudentScopeContext(plantel, ciclo)
-  const normalizedQuery = normalizeStudentQuery(query, plantel, ciclo, context)
-  const response = await requestAuroraStudentPage(plantel, ciclo, normalizedQuery, context)
-  const data = Array.isArray(response.data) ? response.data.map(sanitizeStudent) : []
+
+  // Aurora's own Control Escolar workspace fetches one complete enriched index
+  // and performs interactive filtering against that index. Mirroring that
+  // behavior avoids discrepancies between KPI totals and filtered rosters.
+  const collection = await fetchAllAuroraStudents(plantel, ciclo)
+  const filtered = filterEnrollmentStudents(collection.data, query)
+    .sort(compareEnrollmentStudents)
+  const limit = Math.min(500, Math.max(25, Number(query.limit || 100) || 100))
+  const offset = Math.min(decodeEnrollmentCursor(query.cursor), filtered.length)
+  const data = filtered.slice(offset, offset + limit)
+  const nextOffset = offset + data.length
+
   return {
     data,
     pagination: {
-      limit: Number(response.pagination?.limit || normalizedQuery.limit),
-      nextCursor: clean(response.pagination?.nextCursor, 300) || null,
-      total: Number(response.pagination?.total || data.length)
+      limit,
+      nextCursor: nextOffset < filtered.length ? encodeEnrollmentCursor(nextOffset) : null,
+      total: filtered.length
     },
-    catalogs: {
-      niveles: Array.isArray(response.catalogs?.niveles) ? response.catalogs.niveles.map(String) : [],
-      grados: Array.isArray(response.catalogs?.grados) ? response.catalogs.grados.map(String) : [],
-      grupos: Array.isArray(response.catalogs?.grupos) ? response.catalogs.grupos.map(String) : [],
-      gruposPorGrado: response.catalogs?.gruposPorGrado && typeof response.catalogs.gruposPorGrado === 'object' ? response.catalogs.gruposPorGrado : {}
-    },
-    kpis: null,
-    meta: response.meta || { plantel, ciclo, source: 'aurora' }
+    catalogs: buildCatalogs(collection.data),
+    kpis: buildKpis(collection.data, plantel),
+    meta: {
+      ...(collection.meta || {}),
+      plantel,
+      ciclo,
+      source: clean(collection.meta?.source, 80) || 'aurora-control-escolar',
+      indexRows: collection.data.length,
+      filteredRows: filtered.length
+    }
   }
 }
 
@@ -698,7 +891,14 @@ export async function getMktEnrollmentStudent(user: AppSessionUser, matriculaVal
   const ciclo = normalizeCiclo(query.ciclo)
   const matricula = clean(matriculaValue, 64).toUpperCase()
   if (!ciclo || !matricula) throw createError({ statusCode: 400, message: 'La matrícula y el ciclo escolar son obligatorios.' })
-  const context = await buildAuroraStudentScopeContext(plantel, ciclo)
+
+  const collection = await fetchAllAuroraStudents(plantel, ciclo)
+  const indexed = collection.data.find((student) => clean(student.matricula, 64).toUpperCase() === matricula)
+  if (indexed) return { data: indexed, meta: collection.meta || { plantel, ciclo } }
+
+  // Keep Aurora's detail endpoint as a compatibility fallback for deployments
+  // where the full index intentionally omits a late-arriving record.
+  const context = collection.context
   const response = await auroraFetch<any>(`/api/external/v1/control-escolar/students/${encodeURIComponent(matricula)}`, {
     query: { plantel, ciclo, ...studentScopeQuery(context) },
     timeout: context.mode === 'warm' ? WARM_STUDENT_TIMEOUT_MS : LIVE_STUDENT_TIMEOUT_MS,
@@ -729,6 +929,7 @@ export async function updateMktEnrollmentParents(
     timeout: LIVE_STUDENT_TIMEOUT_MS,
     retries: 0
   })
+  invalidateAuroraStudentCollections(plantel, ciclo)
   return { data: sanitizeStudent(response?.data), meta: response?.meta || { plantel, ciclo } }
 }
 
@@ -853,8 +1054,9 @@ export async function downloadMktEnrollmentExport(user: AppSessionUser, query: R
   const plantel = await resolvePlantelAccess(user, query.plantel)
   const ciclo = normalizeCiclo(query.ciclo)
   if (!ciclo) throw createError({ statusCode: 400, message: 'Selecciona un ciclo escolar.' })
-  const collection = await fetchAllAuroraStudents(plantel, ciclo, query)
-  const workbook = buildEnrollmentSpreadsheet(plantel, ciclo, collection.data)
+  const collection = await fetchAllAuroraStudents(plantel, ciclo)
+  const students = filterEnrollmentStudents(collection.data, query).sort(compareEnrollmentStudents)
+  const workbook = buildEnrollmentSpreadsheet(plantel, ciclo, students)
   return {
     buffer: Buffer.from(workbook, 'utf8'),
     filename: `matricula-actual-${plantel}-${ciclo}.xls`,

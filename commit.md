@@ -1,1 +1,1 @@
-Corrige la consulta de alumnos de Aurora en Matrícula Actual
+Corrige la consulta de alumnos de Marketing con el índice completo de Control Escolar

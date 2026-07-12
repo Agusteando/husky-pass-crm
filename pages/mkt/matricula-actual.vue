@@ -202,7 +202,7 @@
           </section>
 
           <section v-else-if="!students.length" class="roster-state">
-            <img :src="activeAmbassador" alt="" aria-hidden="true" /><h3>Sin resultados</h3>
+            <img :src="activeAmbassador" alt="" aria-hidden="true" /><h3>No hay alumnos en esta selección</h3>
           </section>
 
           <div v-else class="roster-hierarchy">
@@ -440,7 +440,7 @@ function studentQuery(cursor = '') {
     grupo: filters.grupo,
     status: filters.status,
     cursor,
-    limit: 100
+    limit: 500
   }
 }
 
@@ -455,7 +455,7 @@ async function loadStudents() {
     const seen = new Set<string>()
     const seenCursors = new Set<string>()
     let cursor = ''
-    for (let page = 0; page < 40; page += 1) {
+    for (let page = 0; page < 60; page += 1) {
       const response = await $fetch<MktEnrollmentStudentsResponse>('/api/mkt/enrollment/students', { query: studentQuery(cursor) })
       if (sequence !== studentRequestSequence) return
       for (const student of response.data) {
