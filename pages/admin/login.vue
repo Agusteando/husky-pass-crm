@@ -1,7 +1,6 @@
 <template>
   <LoginPanel
     brand-to="/login"
-    eyebrow="Colaboradores"
     title="Husky Pass"
     experience="admin"
   >

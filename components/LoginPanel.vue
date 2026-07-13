@@ -1,20 +1,30 @@
 <template>
   <main class="login-page" :style="identityVars" :data-experience="identity.context.experience">
     <section class="login-shell" aria-labelledby="login-title">
-      <section class="login-hero" aria-label="Husky Pass">
-        <div class="hero-glass" />
-        <BrandMark class="hero-brand" :to="brandTo" logo="/brand/husky-pass-logo.png" alt="Husky Pass" />
-        <div class="hero-copy" :class="{ 'hero-copy--compact': !description }">
+      <section class="brand-stage" :class="{ 'brand-stage--home': isBrandHome }" aria-label="Husky Pass">
+        <div class="brand-stage__texture" aria-hidden="true" />
+        <div class="brand-stage__halo brand-stage__halo--one" aria-hidden="true" />
+        <div class="brand-stage__halo brand-stage__halo--two" aria-hidden="true" />
+
+        <BrandMark class="brand-stage__logo" :to="brandTo" logo="/brand/husky-pass-logo.png" alt="Husky Pass" />
+
+        <div class="brand-stage__copy">
           <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
-          <h1 id="login-title"><template v-for="segment in heroTitleSegments" :key="segment.text"><span :class="{ accent: segment.accent }">{{ segment.text }}</span></template></h1>
-          <p v-if="description">{{ description }}</p>
+          <h1 id="login-title">
+            <template v-for="segment in heroTitleSegments" :key="segment.text">
+              <span :class="{ accent: segment.accent }">{{ segment.text }}</span>
+            </template>
+          </h1>
+          <p v-if="description" class="brand-stage__description">{{ description }}</p>
         </div>
-        <div class="hero-partners" aria-label="IECS e IEDIS">
+
+        <div class="partner-pill" aria-label="IECS e IEDIS">
           <img src="/brand/iecs-wordmark-gradient.png" alt="IECS" />
-          <span class="partner-knot" aria-hidden="true"><span /><span /></span>
+          <span aria-hidden="true" />
           <img src="/brand/iedis-wordmark-gradient.png" alt="IEDIS" />
         </div>
       </section>
+
       <section class="login-card" aria-label="Inicio de sesión">
         <slot />
       </section>
@@ -29,15 +39,16 @@ import { experienceThemeVars, visualIdentityForContext } from '~/utils/experienc
 
 const props = withDefaults(defineProps<{
   brandTo: string
-  eyebrow: string
+  eyebrow?: string
   title: string
   description?: string
   experience?: ExperienceName
   institution?: InstitutionName
 }>(), {
+  eyebrow: '',
+  description: '',
   experience: 'escolar',
-  institution: null,
-  description: ''
+  institution: null
 })
 
 const identity = computed(() => visualIdentityForContext({
@@ -48,7 +59,15 @@ const identity = computed(() => visualIdentityForContext({
   grupo: null
 }))
 const identityVars = computed(() => experienceThemeVars(identity.value))
+const isBrandHome = computed(() => props.title.trim().toLowerCase() === 'husky pass' && !props.description)
 const heroTitleSegments = computed(() => {
+  if (props.title.trim().toLowerCase() === 'husky pass') {
+    return [
+      { text: 'Husky', accent: false },
+      { text: 'Pass', accent: true }
+    ]
+  }
+
   const marker = 'Husky Pass'
   const index = props.title.indexOf(marker)
   if (index < 0) return [{ text: props.title, accent: false }]
@@ -62,226 +81,283 @@ const heroTitleSegments = computed(() => {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 4%, rgba(255, 255, 255, 0.92), transparent 24%),
-    radial-gradient(circle at 92% 8%, rgba(221, 235, 202, 0.55), transparent 28%),
-    linear-gradient(180deg, #fbfcf9 0%, #f1f6ec 100%);
+    radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.96), transparent 28%),
+    radial-gradient(circle at 96% 5%, rgba(213, 232, 192, 0.55), transparent 30%),
+    linear-gradient(150deg, #f8faf5 0%, #edf3e8 100%);
   display: grid;
+  min-height: 100vh;
+  padding: clamp(18px, 3vw, 34px);
   place-items: center;
-  padding: clamp(18px, 3.2vw, 36px);
 }
 
 .login-shell {
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(223, 232, 215, 0.96);
-  border-radius: clamp(22px, 2.2vw, 30px);
-  box-shadow: 0 24px 72px rgba(31, 61, 20, 0.12), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+  background: #fff;
+  border: 1px solid rgba(215, 225, 208, 0.92);
+  border-radius: clamp(26px, 2.4vw, 36px);
+  box-shadow:
+    0 36px 100px rgba(32, 58, 30, 0.14),
+    0 2px 0 rgba(255, 255, 255, 0.9) inset;
   display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
-  max-width: 1380px;
-  min-height: min(82vh, 840px);
+  grid-template-columns: minmax(0, 1.12fr) minmax(410px, 0.88fr);
+  max-width: 1420px;
+  min-height: min(88vh, 880px);
   overflow: hidden;
   position: relative;
-  width: min(100%, 1380px);
+  width: min(100%, 1420px);
 }
 
-.login-hero {
+.brand-stage {
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.18)),
+    linear-gradient(105deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.16)),
     url('/brand/husky-pass-login-ambient.png') center / cover no-repeat;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 660px;
+  isolation: isolate;
+  min-height: 680px;
   overflow: hidden;
   padding: clamp(38px, 5vw, 72px);
   position: relative;
 }
 
-.hero-glass {
-  background:
-    radial-gradient(circle at 78% 66%, rgba(10, 113, 132, 0.2), transparent 26%),
-    radial-gradient(circle at 82% 88%, rgba(88, 139, 39, 0.22), transparent 30%);
+.brand-stage::after {
+  background: linear-gradient(90deg, transparent 82%, rgba(255, 255, 255, 0.52));
+  content: '';
   inset: 0;
-  opacity: 0.7;
   pointer-events: none;
   position: absolute;
+  z-index: -1;
 }
 
-.hero-brand,
-.hero-copy,
-.hero-partners {
+.brand-stage__texture {
+  background-image: radial-gradient(circle, rgba(35, 97, 136, 0.12) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+  height: 150px;
+  left: 9%;
+  mask-image: linear-gradient(90deg, #000, transparent);
+  opacity: 0.42;
+  pointer-events: none;
+  position: absolute;
+  top: 48%;
+  width: 260px;
+  z-index: -1;
+}
+
+.brand-stage__halo {
+  border: 1px solid rgba(35, 97, 136, 0.09);
+  border-radius: 999px;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.brand-stage__halo--one {
+  height: 380px;
+  left: -220px;
+  top: 26%;
+  width: 380px;
+}
+
+.brand-stage__halo--two {
+  height: 280px;
+  left: -170px;
+  top: calc(26% + 50px);
+  width: 280px;
+}
+
+.brand-stage__logo,
+.brand-stage__copy,
+.partner-pill {
   position: relative;
   z-index: 1;
 }
 
-.hero-brand :deep(.brand-logo) {
-  filter: drop-shadow(0 10px 18px rgba(29, 76, 22, 0.08));
-  width: clamp(134px, 13vw, 188px);
+.brand-stage__logo :deep(.brand-logo) {
+  filter: drop-shadow(0 12px 20px rgba(26, 50, 24, 0.09));
+  width: clamp(130px, 12vw, 178px);
 }
 
-.hero-copy {
+.brand-stage__copy {
   align-self: center;
-  max-width: 650px;
-  transform: translateY(8%);
+  max-width: 620px;
+  padding-bottom: 2vh;
 }
 
-.hero-copy--compact {
-  transform: translateY(16%);
-}
-
-.hero-copy .eyebrow {
+.brand-stage__copy .eyebrow {
   color: var(--color-blue);
-  font-size: clamp(0.78rem, 1vw, 0.9rem);
-  letter-spacing: 0.42em;
-  margin-bottom: 22px;
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 18px;
 }
 
-.hero-copy h1 {
-  color: var(--color-brand-900);
-  font-size: clamp(3.4rem, 7vw, 6.6rem);
-  line-height: 0.94;
-  letter-spacing: -0.045em;
-  margin-bottom: 22px;
+.brand-stage__copy h1 {
+  color: #203349;
+  font-family: var(--font-body);
+  font-size: clamp(4rem, 7.2vw, 7.2rem);
+  letter-spacing: -0.06em;
+  line-height: 0.82;
+  margin: 0;
   text-wrap: balance;
 }
 
-.hero-copy--compact h1 {
-  margin-bottom: 0;
-}
-
-.hero-copy h1 span {
+.brand-stage__copy h1 span {
   display: block;
 }
 
-.hero-copy h1 .accent {
+.brand-stage__copy h1 .accent {
   color: var(--color-blue);
+  margin-top: 0.1em;
 }
 
-.hero-copy p:last-child {
-  color: #526352;
-  font-size: clamp(1.05rem, 1.45vw, 1.42rem);
-  line-height: 1.38;
-  max-width: 620px;
+.brand-stage:not(.brand-stage--home) .brand-stage__copy h1 {
+  font-size: clamp(2.8rem, 5.2vw, 5.4rem);
+  line-height: 0.94;
 }
 
-.hero-partners {
-  align-items: end;
-  display: flex;
-  gap: clamp(10px, 1.6vw, 18px);
-  margin-top: 28px;
+.brand-stage__description {
+  color: #53665b;
+  font-size: clamp(1rem, 1.25vw, 1.24rem);
+  line-height: 1.52;
+  margin-top: 24px;
+  max-width: 520px;
 }
 
-.hero-partners img {
-  filter: drop-shadow(0 8px 14px rgba(16, 52, 25, 0.06));
-  height: clamp(38px, 4vw, 58px);
+.partner-pill {
+  align-items: center;
+  align-self: end;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 999px;
+  box-shadow: 0 14px 32px rgba(40, 73, 40, 0.08);
+  display: inline-flex;
+  gap: 15px;
+  justify-self: start;
+  padding: 12px 18px;
+}
+
+.partner-pill img {
+  height: clamp(25px, 2.3vw, 34px);
   object-fit: contain;
   width: auto;
 }
 
-.partner-knot {
-  display: grid;
-  height: 66px;
-  margin-inline: -2px;
-  place-items: center;
-  position: relative;
-  width: 42px;
-}
-
-.partner-knot span {
-  border-radius: 999px;
-  display: block;
-  height: 56px;
-  position: absolute;
-  transform-origin: center;
-  width: 16px;
-}
-
-.partner-knot span:first-child {
-  background: linear-gradient(180deg, var(--color-brand-700), var(--color-blue));
-  transform: rotate(42deg);
-}
-
-.partner-knot span:last-child {
-  background: linear-gradient(180deg, var(--color-blue), var(--color-brand-600));
-  transform: rotate(-42deg);
+.partner-pill > span {
+  background: rgba(64, 91, 63, 0.18);
+  height: 24px;
+  width: 1px;
 }
 
 .login-card {
   align-items: center;
   background:
-    radial-gradient(circle at 50% 10%, rgba(242, 248, 234, 0.98), transparent 25%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 254, 249, 0.98));
-  border-left: 1px solid rgba(223, 232, 215, 0.88);
+    radial-gradient(circle at 50% 0%, rgba(243, 248, 237, 0.88), transparent 31%),
+    linear-gradient(180deg, #ffffff 0%, #fbfcf9 100%);
+  border-left: 1px solid rgba(219, 228, 213, 0.9);
   display: grid;
-  padding: clamp(30px, 4.4vw, 70px);
+  padding: clamp(34px, 4.6vw, 76px);
+  position: relative;
 }
 
-@media (max-width: 960px) {
+.login-card::before {
+  background: linear-gradient(180deg, var(--color-brand-300), rgba(35, 97, 136, 0.42), transparent);
+  content: '';
+  height: 140px;
+  left: -1px;
+  opacity: 0.45;
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+
+@media (max-width: 980px) {
   .login-page {
     padding: 12px;
   }
 
   .login-shell {
     grid-template-columns: 1fr;
+    max-width: 760px;
   }
 
-  .login-hero {
-    min-height: 360px;
-    padding: 30px;
+  .brand-stage {
+    min-height: 280px;
+    padding: 28px 32px;
   }
 
-  .hero-copy,
-  .hero-copy--compact {
-    transform: none;
+  .brand-stage__copy {
+    padding: 20px 0 10px;
   }
 
-  .hero-copy h1 {
-    font-size: clamp(2.8rem, 12vw, 4.5rem);
+  .brand-stage__copy h1 {
+    font-size: clamp(3.2rem, 11vw, 5.6rem);
+  }
+
+  .brand-stage__description {
+    font-size: 1rem;
+    margin-top: 14px;
+  }
+
+  .partner-pill {
+    position: absolute;
+    bottom: 28px;
+    right: 30px;
   }
 
   .login-card {
     border-left: 0;
-    border-top: 1px solid rgba(223, 232, 215, 0.88);
-    padding: 28px;
+    border-top: 1px solid rgba(219, 228, 213, 0.9);
+    padding: 38px clamp(24px, 7vw, 64px) 46px;
+  }
+
+  .login-card::before {
+    height: 1px;
+    left: 0;
+    top: -1px;
+    width: 140px;
   }
 }
 
 @media (max-width: 560px) {
-  .login-shell {
-    border-radius: 22px;
+  .login-page {
+    padding: 0;
   }
 
-  .login-hero {
-    min-height: 310px;
+  .login-shell {
+    border: 0;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .brand-stage {
+    min-height: 214px;
     padding: 24px;
   }
 
-  .hero-copy .eyebrow {
-    letter-spacing: 0.26em;
-    margin-bottom: 12px;
+  .brand-stage__logo :deep(.brand-logo) {
+    width: 108px;
   }
 
-  .hero-copy p:last-child {
-    font-size: 0.98rem;
+  .brand-stage__copy {
+    padding: 16px 0 0;
   }
 
-  .hero-partners img {
-    height: 34px;
+  .brand-stage__copy .eyebrow {
+    display: none;
   }
 
-  .partner-knot {
-    height: 40px;
-    width: 26px;
+  .brand-stage__copy h1,
+  .brand-stage:not(.brand-stage--home) .brand-stage__copy h1 {
+    font-size: clamp(2.65rem, 15vw, 4.2rem);
   }
 
-  .partner-knot span {
-    height: 36px;
-    width: 10px;
+  .brand-stage__description,
+  .partner-pill {
+    display: none;
   }
 
   .login-card {
-    padding: 22px;
+    padding: 32px 20px 40px;
   }
 }
 </style>

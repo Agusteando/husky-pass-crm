@@ -1,7 +1,6 @@
 <template>
   <LoginPanel
     brand-to="/login"
-    eyebrow="Familias"
     title="Husky Pass"
     experience="escolar"
   >
