@@ -3,10 +3,21 @@ import { publicError } from '~/server/utils/httpError'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
-import { createSuperAdminSession, findLegacyUserByEmail, updateLegacyDisplayName } from '~/server/data/mysqlAuth'
+import {
+  createLegacyInstitutionalUser,
+  createSuperAdminSession,
+  findLegacyUserByEmail,
+  syncLegacyInstitutionalProfile
+} from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
 import { assertDaycareAdmin, assertMarketingAdmin, assertSchoolAdmin } from '~/server/utils/authz'
-import { defaultAdminRoute, hasDaycareAdminScope, hasMarketingAdminScope, hasSchoolAdminScope } from '~/utils/sessionScopes'
+import {
+  defaultAdminRoute,
+  hasDaycareAdminScope,
+  hasMarketingAdminScope,
+  hasSchoolAdminScope,
+  requiresInstitutionalOnboarding
+} from '~/utils/sessionScopes'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
 
 const schema = z.object({ credential: z.string().min(1) })
@@ -27,18 +38,22 @@ export default defineEventHandler(async (event) => {
     throw publicError(403, 'El correo no pertenece a la institución.')
   }
 
-  const legacyUser = await findLegacyUserByEmail(email)
-  let sessionUser
-
+  let legacyUser = await findLegacyUserByEmail(email)
   if (!legacyUser) {
-    throw publicError(401, 'No hay ninguna cuenta interna creada con ese correo.')
+    legacyUser = await createLegacyInstitutionalUser({
+      email,
+      displayName: payload?.name,
+      picture: payload?.picture
+    })
+  } else if (payload?.name || payload?.picture) {
+    await syncLegacyInstitutionalProfile(Number(legacyUser.raw.id), {
+      displayName: payload?.name,
+      picture: payload?.picture
+    })
+    legacyUser = await findLegacyUserByEmail(email) || legacyUser
   }
 
-  if (payload?.name && payload.name !== legacyUser.raw.displayName) {
-    await updateLegacyDisplayName(Number(legacyUser.raw.id), payload.name)
-    legacyUser.raw.displayName = payload.name
-  }
-
+  let sessionUser
   if (isConfiguredSuperAdminEmail(email)) {
     sessionUser = await createSuperAdminSession({ email, displayName: payload?.name, picture: payload?.picture }, legacyUser)
   } else {
@@ -46,14 +61,16 @@ export default defineEventHandler(async (event) => {
     if (payload?.picture && !sessionUser.picture) sessionUser.picture = payload.picture
   }
 
-  if (hasMarketingAdminScope(sessionUser)) {
-    assertMarketingAdmin(sessionUser)
-  } else if (hasSchoolAdminScope(sessionUser)) {
-    assertSchoolAdmin(sessionUser)
-  } else if (hasDaycareAdminScope(sessionUser)) {
-    assertDaycareAdmin(sessionUser)
-  } else {
-    throw publicError(403, 'Tu cuenta institucional no tiene un espacio administrativo asignado.')
+  if (!requiresInstitutionalOnboarding(sessionUser)) {
+    if (hasMarketingAdminScope(sessionUser)) {
+      assertMarketingAdmin(sessionUser)
+    } else if (hasSchoolAdminScope(sessionUser)) {
+      assertSchoolAdmin(sessionUser)
+    } else if (hasDaycareAdminScope(sessionUser)) {
+      assertDaycareAdmin(sessionUser)
+    } else {
+      throw publicError(403, 'La cuenta institucional no tiene un espacio administrativo disponible.')
+    }
   }
 
   setAppSession(event, sessionUser)

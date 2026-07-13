@@ -8,6 +8,9 @@ declare global {
   const GESTION_ESCOLAR_CAPABILITIES: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_CAPABILITIES
   const GESTION_ESCOLAR_OPTIONAL_CAPABILITIES: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_OPTIONAL_CAPABILITIES
   const GESTION_ESCOLAR_PERMISSION_LABELS: typeof import('../../utils/gestionPermissions').GESTION_ESCOLAR_PERMISSION_LABELS
+  const INSTITUTIONAL_ONBOARDING_ROUTE: typeof import('../../utils/institutionalOnboarding').INSTITUTIONAL_ONBOARDING_ROUTE
+  const INSTITUTIONAL_PLANTEL_OPTIONS: typeof import('../../utils/institutionalOnboarding').INSTITUTIONAL_PLANTEL_OPTIONS
+  const INSTITUTIONAL_ROLE_OPTIONS: typeof import('../../utils/institutionalOnboarding').INSTITUTIONAL_ROLE_OPTIONS
   const MARBETE_CARD_HEIGHT: typeof import('../../utils/marbeteDesigner').MARBETE_CARD_HEIGHT
   const MARBETE_CARD_WIDTH: typeof import('../../utils/marbeteDesigner').MARBETE_CARD_WIDTH
   const MARBETE_CICLO_TAG_URL: typeof import('../../utils/marbeteDesigner').MARBETE_CICLO_TAG_URL
@@ -108,20 +111,25 @@ declare global {
   const getRouteSession: typeof import('../../utils/routeSession').getRouteSession
   const h: typeof import('../../node_modules/vue').h
   const hasAnyAdminScope: typeof import('../../utils/sessionScopes').hasAnyAdminScope
+  const hasDaycareAdminRole: typeof import('../../utils/sessionScopes').hasDaycareAdminRole
   const hasDaycareAdminScope: typeof import('../../utils/sessionScopes').hasDaycareAdminScope
   const hasFamilyScope: typeof import('../../utils/sessionScopes').hasFamilyScope
   const hasInjectionContext: typeof import('../../node_modules/vue').hasInjectionContext
+  const hasMarketingAdminRole: typeof import('../../utils/sessionScopes').hasMarketingAdminRole
   const hasMarketingAdminScope: typeof import('../../utils/sessionScopes').hasMarketingAdminScope
   const hasRoleToken: typeof import('../../utils/sessionScopes').hasRoleToken
+  const hasSchoolAdminRole: typeof import('../../utils/sessionScopes').hasSchoolAdminRole
   const hasSchoolAdminScope: typeof import('../../utils/sessionScopes').hasSchoolAdminScope
   const identityDiagnosticsPayload: typeof import('../../utils/experienceIdentity').identityDiagnosticsPayload
   const inject: typeof import('../../node_modules/vue').inject
   const injectHead: typeof import('../../node_modules/nuxt/dist/app/composables/head').injectHead
   const institutionFromContextData: typeof import('../../utils/experienceIdentity').institutionFromContextData
+  const institutionalRoleOption: typeof import('../../utils/institutionalOnboarding').institutionalRoleOption
   const isConfiguredSuperAdminEmail: typeof import('../../utils/superAdmin').isConfiguredSuperAdminEmail
   const isEffectiveSuperAdmin: typeof import('../../utils/sessionScopes').isEffectiveSuperAdmin
   const isHiddenResource: typeof import('../../utils/daycare').isHiddenResource
   const isImageResource: typeof import('../../utils/daycare').isImageResource
+  const isInstitutionalAdminIdentity: typeof import('../../utils/sessionScopes').isInstitutionalAdminIdentity
   const isMatriculaLike: typeof import('../../utils/matricula').isMatriculaLike
   const isNuxtError: typeof import('../../node_modules/nuxt/dist/app/composables/error').isNuxtError
   const isPdfResource: typeof import('../../utils/daycare').isPdfResource
@@ -190,6 +198,7 @@ declare global {
   const personasMascot: typeof import('../../utils/personasTheme').personasMascot
   const personasThemeKeyFromMatricula: typeof import('../../utils/personasTheme').personasThemeKeyFromMatricula
   const personasThemeStyle: typeof import('../../utils/personasTheme').personasThemeStyle
+  const plantelOptionsForRole: typeof import('../../utils/institutionalOnboarding').plantelOptionsForRole
   const prefetchComponents: typeof import('../../node_modules/nuxt/dist/app/composables/preload').prefetchComponents
   const preloadComponents: typeof import('../../node_modules/nuxt/dist/app/composables/preload').preloadComponents
   const preloadPayload: typeof import('../../node_modules/nuxt/dist/app/composables/payload').preloadPayload
@@ -209,6 +218,7 @@ declare global {
   const reloadNuxtApp: typeof import('../../node_modules/nuxt/dist/app/composables/chunk').reloadNuxtApp
   const renderMarbeteVisualValues: typeof import('../../utils/marbeteDesigner').renderMarbeteVisualValues
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback').requestIdleCallback
+  const requiresInstitutionalOnboarding: typeof import('../../utils/sessionScopes').requiresInstitutionalOnboarding
   const resolveAuthorizedPersonMarbeteLevel: typeof import('../../utils/personasTheme').resolveAuthorizedPersonMarbeteLevel
   const resolveAuthorizedPersonMarbetePlantel: typeof import('../../utils/personasTheme').resolveAuthorizedPersonMarbetePlantel
   const resolveComponent: typeof import('../../node_modules/vue').resolveComponent
@@ -397,6 +407,9 @@ declare module 'vue' {
     readonly GESTION_ESCOLAR_CAPABILITIES: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_CAPABILITIES']>
     readonly GESTION_ESCOLAR_OPTIONAL_CAPABILITIES: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_OPTIONAL_CAPABILITIES']>
     readonly GESTION_ESCOLAR_PERMISSION_LABELS: UnwrapRef<typeof import('../../utils/gestionPermissions')['GESTION_ESCOLAR_PERMISSION_LABELS']>
+    readonly INSTITUTIONAL_ONBOARDING_ROUTE: UnwrapRef<typeof import('../../utils/institutionalOnboarding')['INSTITUTIONAL_ONBOARDING_ROUTE']>
+    readonly INSTITUTIONAL_PLANTEL_OPTIONS: UnwrapRef<typeof import('../../utils/institutionalOnboarding')['INSTITUTIONAL_PLANTEL_OPTIONS']>
+    readonly INSTITUTIONAL_ROLE_OPTIONS: UnwrapRef<typeof import('../../utils/institutionalOnboarding')['INSTITUTIONAL_ROLE_OPTIONS']>
     readonly MARBETE_CARD_HEIGHT: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CARD_HEIGHT']>
     readonly MARBETE_CARD_WIDTH: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CARD_WIDTH']>
     readonly MARBETE_CICLO_TAG_URL: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_CICLO_TAG_URL']>
@@ -497,20 +510,25 @@ declare module 'vue' {
     readonly getRouteSession: UnwrapRef<typeof import('../../utils/routeSession')['getRouteSession']>
     readonly h: UnwrapRef<typeof import('../../node_modules/vue')['h']>
     readonly hasAnyAdminScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasAnyAdminScope']>
+    readonly hasDaycareAdminRole: UnwrapRef<typeof import('../../utils/sessionScopes')['hasDaycareAdminRole']>
     readonly hasDaycareAdminScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasDaycareAdminScope']>
     readonly hasFamilyScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasFamilyScope']>
     readonly hasInjectionContext: UnwrapRef<typeof import('../../node_modules/vue')['hasInjectionContext']>
+    readonly hasMarketingAdminRole: UnwrapRef<typeof import('../../utils/sessionScopes')['hasMarketingAdminRole']>
     readonly hasMarketingAdminScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasMarketingAdminScope']>
     readonly hasRoleToken: UnwrapRef<typeof import('../../utils/sessionScopes')['hasRoleToken']>
+    readonly hasSchoolAdminRole: UnwrapRef<typeof import('../../utils/sessionScopes')['hasSchoolAdminRole']>
     readonly hasSchoolAdminScope: UnwrapRef<typeof import('../../utils/sessionScopes')['hasSchoolAdminScope']>
     readonly identityDiagnosticsPayload: UnwrapRef<typeof import('../../utils/experienceIdentity')['identityDiagnosticsPayload']>
     readonly inject: UnwrapRef<typeof import('../../node_modules/vue')['inject']>
     readonly injectHead: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['injectHead']>
     readonly institutionFromContextData: UnwrapRef<typeof import('../../utils/experienceIdentity')['institutionFromContextData']>
+    readonly institutionalRoleOption: UnwrapRef<typeof import('../../utils/institutionalOnboarding')['institutionalRoleOption']>
     readonly isConfiguredSuperAdminEmail: UnwrapRef<typeof import('../../utils/superAdmin')['isConfiguredSuperAdminEmail']>
     readonly isEffectiveSuperAdmin: UnwrapRef<typeof import('../../utils/sessionScopes')['isEffectiveSuperAdmin']>
     readonly isHiddenResource: UnwrapRef<typeof import('../../utils/daycare')['isHiddenResource']>
     readonly isImageResource: UnwrapRef<typeof import('../../utils/daycare')['isImageResource']>
+    readonly isInstitutionalAdminIdentity: UnwrapRef<typeof import('../../utils/sessionScopes')['isInstitutionalAdminIdentity']>
     readonly isMatriculaLike: UnwrapRef<typeof import('../../utils/matricula')['isMatriculaLike']>
     readonly isNuxtError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['isNuxtError']>
     readonly isPdfResource: UnwrapRef<typeof import('../../utils/daycare')['isPdfResource']>
@@ -579,6 +597,7 @@ declare module 'vue' {
     readonly personasMascot: UnwrapRef<typeof import('../../utils/personasTheme')['personasMascot']>
     readonly personasThemeKeyFromMatricula: UnwrapRef<typeof import('../../utils/personasTheme')['personasThemeKeyFromMatricula']>
     readonly personasThemeStyle: UnwrapRef<typeof import('../../utils/personasTheme')['personasThemeStyle']>
+    readonly plantelOptionsForRole: UnwrapRef<typeof import('../../utils/institutionalOnboarding')['plantelOptionsForRole']>
     readonly prefetchComponents: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preload')['prefetchComponents']>
     readonly preloadComponents: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preload')['preloadComponents']>
     readonly preloadPayload: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/payload')['preloadPayload']>
@@ -598,6 +617,7 @@ declare module 'vue' {
     readonly reloadNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']>
     readonly renderMarbeteVisualValues: UnwrapRef<typeof import('../../utils/marbeteDesigner')['renderMarbeteVisualValues']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
+    readonly requiresInstitutionalOnboarding: UnwrapRef<typeof import('../../utils/sessionScopes')['requiresInstitutionalOnboarding']>
     readonly resolveAuthorizedPersonMarbeteLevel: UnwrapRef<typeof import('../../utils/personasTheme')['resolveAuthorizedPersonMarbeteLevel']>
     readonly resolveAuthorizedPersonMarbetePlantel: UnwrapRef<typeof import('../../utils/personasTheme')['resolveAuthorizedPersonMarbetePlantel']>
     readonly resolveComponent: UnwrapRef<typeof import('../../node_modules/vue')['resolveComponent']>

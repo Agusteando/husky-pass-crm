@@ -1,16 +1,19 @@
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'node:crypto'
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AdminProductScope, AppSessionUser, FamilyProductScope, FamilyProductScopes, LegacyRoutePermission, SessionKind } from '~/types/session'
 import type { SuperAdminDirectoryResponse, SuperAdminDirectoryScope, SuperAdminRoleAssignments, SuperAdminUserSummary } from '~/types/superadmin'
 import type { GestionEscolarCapability } from '~/types/gestionEscolar'
+import type { CompleteInstitutionalOnboardingInput, InstitutionalAccessRole } from '~/types/institutionalOnboarding'
 import { csvToList, legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 import { SCHOOL_PLANTELES, normalizeSchoolGrade, normalizeSchoolPlantel, schoolGradesForPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { isConfiguredSuperAdminEmail, normalizeEmail } from '~/utils/superAdmin'
-import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, MARKETING_ADMIN_ROLE, SCHOOL_ADMIN_ROLE, hasRoleToken } from '~/utils/sessionScopes'
+import { DAYCARE_ADMIN_ROLE, DAYCARE_FAMILY_ROLE, MARKETING_ADMIN_ROLE, SCHOOL_ADMIN_ROLE, defaultAdminRoute, hasRoleToken, requiresInstitutionalOnboarding } from '~/utils/sessionScopes'
 import { publicError } from '~/server/utils/httpError'
 import { normalizeAssignedSchoolPlanteles } from '~/server/data/userPlantelScope'
 import { GESTION_ESCOLAR_OPTIONAL_CAPABILITIES } from '~/utils/gestionPermissions'
+import { INSTITUTIONAL_PLANTEL_OPTIONS } from '~/utils/institutionalOnboarding'
 
 interface LegacyUserRow extends RowDataPacket {
   id: number
@@ -212,8 +215,42 @@ export async function updateLegacyFamilyPassword(userId: number, password: strin
   await legacyWrite('UPDATE users SET password = ?, plaintext = NULL WHERE id = ?', [passwordHash, userId])
 }
 
-export async function updateLegacyDisplayName(userId: number, displayName: string) {
-  await legacyWrite('UPDATE users SET displayName = ? WHERE id = ?', [displayName, userId])
+export async function createLegacyInstitutionalUser(input: { email: string; displayName?: string | null; picture?: string | null }) {
+  const email = normalizeEmail(input.email)
+  if (!email.endsWith('@casitaiedis.edu.mx')) {
+    throw publicError(403, 'El correo no pertenece a la institución.')
+  }
+
+  const existing = await findLegacyUserByEmail(email)
+  if (existing) return existing
+
+  try {
+    const unavailablePassword = await hashLegacyPassword(randomUUID())
+    await legacyWrite(
+      `INSERT INTO users (username, email, password, plaintext, role, unidad, plantel, displayName, picture)
+       VALUES (?, ?, ?, '', NULL, NULL, NULL, ?, ?)`,
+      [email, email, unavailablePassword, String(input.displayName || '').trim() || null, String(input.picture || '').trim() || null]
+    )
+  } catch (error) {
+    const concurrent = await findLegacyUserByEmail(email)
+    if (concurrent) return concurrent
+    throw error
+  }
+
+  const created = await findLegacyUserByEmail(email)
+  if (!created) throw publicError(500, 'No fue posible preparar la cuenta institucional.')
+  return created
+}
+
+export async function syncLegacyInstitutionalProfile(userId: number, input: { displayName?: string | null; picture?: string | null }) {
+  const displayName = String(input.displayName || '').trim() || null
+  const picture = String(input.picture || '').trim() || null
+  await legacyWrite(
+    `UPDATE users
+     SET displayName = COALESCE(?, displayName), picture = COALESCE(NULLIF(picture, ''), ?)
+     WHERE id = ?`,
+    [displayName, picture, userId]
+  )
 }
 
 export async function getAllDaycareUnidades() {
@@ -348,13 +385,14 @@ function resolveAdminProductScopes(
   unidades: string[]
 ): AdminProductScope[] {
   const scopes: AdminProductScope[] = []
+  const planteles = normalizeAssignedSchoolPlanteles([row.plantel])
   if (hasRoleToken(roles, DAYCARE_ADMIN_ROLE) && unidades.length) {
     scopes.push('daycareAdmin')
   }
-  if (hasRoleToken(roles, SCHOOL_ADMIN_ROLE)) {
+  if (hasRoleToken(roles, SCHOOL_ADMIN_ROLE) && planteles.length) {
     scopes.push('schoolAdmin')
   }
-  if (hasRoleToken(roles, MARKETING_ADMIN_ROLE)) {
+  if (hasRoleToken(roles, MARKETING_ADMIN_ROLE) && planteles.length) {
     scopes.push('marketingAdmin')
   }
   if (isConfiguredSuperAdminEmail(normalizeEmail(row.email))) {
@@ -672,6 +710,82 @@ export async function setSuperAdminRoleAssignmentsForUser(
   const updated = await getSuperAdminUserSummaryById(userId)
   if (!updated) throw publicError(404, 'Usuario actualizado, pero no fue posible recargarlo.')
   return updated
+}
+
+
+function onboardingRoleToken(role: InstitutionalAccessRole) {
+  if (role === 'schoolAdmin') return SCHOOL_ADMIN_ROLE
+  if (role === 'marketingAdmin') return MARKETING_ADMIN_ROLE
+  return DAYCARE_ADMIN_ROLE
+}
+
+export async function completeInstitutionalOnboarding(user: AppSessionUser, input: CompleteInstitutionalOnboardingInput) {
+  const email = normalizeEmail(user.email)
+  if (user.kind !== 'admin' || !email.endsWith('@casitaiedis.edu.mx') || user.isSuperAdmin) {
+    throw publicError(403, 'Esta cuenta no puede usar el onboarding institucional.')
+  }
+
+  const target = await legacyOne<RowDataPacket & { id: number; email: string | null; role: string | null; unidad: string | null; plantel: string | null }>(
+    'SELECT id, email, role, unidad, plantel FROM users WHERE id = ? LIMIT 1',
+    [user.id]
+  )
+  if (!target || normalizeEmail(target.email) !== email) throw publicError(404, 'Cuenta institucional no encontrada.')
+
+  const current = await findLegacyUserById(user.id)
+  const currentSession = current?.toSession('admin') || user
+  if (!requiresInstitutionalOnboarding(currentSession)) {
+    return { user: currentSession, defaultPath: defaultAdminRoute(currentSession) }
+  }
+
+  const role = input.role
+  const planteles = normalizeAssignedPlanteles(input.planteles)
+  const unidades = normalizeRoleUnidadList(input.unidades)
+  const allowedPlanteles = new Set(INSTITUTIONAL_PLANTEL_OPTIONS
+    .filter((plantel) => role !== 'schoolAdmin' || plantel.level !== 'Guardería')
+    .map((plantel) => plantel.value))
+
+  if (role === 'daycareAdmin') {
+    if (!unidades.length) throw publicError(400, 'Selecciona al menos una unidad de guardería.')
+    const availableUnits = new Set(await getAllDaycareUnidades())
+    if (unidades.some((unidad) => !availableUnits.has(unidad))) {
+      throw publicError(400, 'Una de las unidades seleccionadas ya no está disponible.')
+    }
+  } else {
+    if (!planteles.length) throw publicError(400, 'Selecciona al menos un plantel.')
+    if (planteles.some((plantel) => !allowedPlanteles.has(plantel))) {
+      throw publicError(400, 'Uno de los planteles seleccionados no corresponde al área elegida.')
+    }
+  }
+
+  const currentRoles = normalizeAdminRoleTokens(csvToList(String(target.role || '')))
+  const roles = new Set(currentRoles.filter((token) => ![SCHOOL_ADMIN_ROLE, DAYCARE_ADMIN_ROLE, MARKETING_ADMIN_ROLE].includes(token)))
+  roles.add(onboardingRoleToken(role))
+
+  await legacyTransaction(async (tx) => {
+    await tx.write(
+      'UPDATE users SET role = ?, unidad = ?, plantel = ? WHERE id = ?',
+      [
+        Array.from(roles).join(','),
+        role === 'daycareAdmin' ? unidades.join(',') : null,
+        role === 'daycareAdmin' ? null : planteles.join(','),
+        user.id
+      ]
+    )
+    await replaceSchoolPermissions(
+      tx,
+      user,
+      user.id,
+      role === 'schoolAdmin',
+      role === 'schoolAdmin' ? [...GESTION_ESCOLAR_OPTIONAL_CAPABILITIES] : []
+    )
+  })
+
+  const refreshed = await findLegacyUserById(user.id)
+  if (!refreshed) throw publicError(500, 'La configuración se guardó, pero no fue posible recargar la cuenta.')
+  const sessionUser = refreshed.toSession('admin')
+  if (user.picture && !sessionUser.picture) sessionUser.picture = user.picture
+  if (user.displayName && !sessionUser.displayName) sessionUser.displayName = user.displayName
+  return { user: sessionUser, defaultPath: defaultAdminRoute(sessionUser) }
 }
 
 async function loadDirectoryRoutes(rows: DirectoryUserRow[]) {

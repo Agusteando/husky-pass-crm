@@ -2,7 +2,7 @@ import { defineEventHandler, readBody, setCookie, setHeader } from 'h3'
 import { z } from 'zod'
 import { authenticateLegacyFamily } from '~/server/data/mysqlAuth'
 import { setAppSession } from '~/server/utils/session'
-import { hasFamilyScope, hasAnyAdminScope, defaultAdminRoute, defaultFamilyRoute } from '~/utils/sessionScopes'
+import { hasFamilyScope, hasAnyAdminScope, defaultAdminRoute, defaultFamilyRoute, requiresInstitutionalOnboarding } from '~/utils/sessionScopes'
 import { defaultRouteForExperience, normalizeExperienceName } from '~/utils/experienceIdentity'
 import { normalizeEmail } from '~/utils/superAdmin'
 import { publicError } from '~/server/utils/httpError'
@@ -44,12 +44,14 @@ export default defineEventHandler(async (event) => {
   const adminSession = legacyUser.toSession('admin')
   const canUseFamily = familySession.productScopes.length > 0
   const canUseAdmin = hasAnyAdminScope(adminSession)
+  const institutionalIdentity = isInstitutionalIdentity(login, adminSession)
+  const canCompleteOnboarding = institutionalIdentity && requiresInstitutionalOnboarding(adminSession)
 
-  if (!canUseFamily && !canUseAdmin) {
+  if (!canUseFamily && !canUseAdmin && !canCompleteOnboarding) {
     throw publicError(403, 'La cuenta no tiene un acceso habilitado en Husky Pass.')
   }
 
-  const sessionUser = canUseAdmin && (!canUseFamily || isInstitutionalIdentity(login, adminSession))
+  const sessionUser = institutionalIdentity && (canUseAdmin || canCompleteOnboarding)
     ? adminSession
     : familySession
 

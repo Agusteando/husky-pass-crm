@@ -86,6 +86,10 @@ declare module "nitropack/types" {
     '/api/auth/impersonation/exit': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/impersonation/exit.post').default>>>>
     }
+    '/api/auth/institutional-onboarding': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/institutional-onboarding.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/institutional-onboarding.post').default>>>>
+    }
     '/api/auth/login': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/login.post').default>>>>
     }

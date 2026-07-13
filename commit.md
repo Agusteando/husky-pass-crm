@@ -1,1 +1,1 @@
-Alinea el login con la identidad institucional de IECS e IEDIS
+Implementa onboarding institucional autónomo con asignación de rol y plantel

@@ -29,7 +29,8 @@
     <template v-else>
       <section v-if="!modules.length" class="state-panel access-empty" data-state="empty">
         <FamilyPersonasIcon name="school" />
-        <h2>Sin plantel asignado</h2>
+        <h2>Completa tu acceso institucional</h2>
+        <NuxtLink class="btn btn-primary" to="/onboarding/institucional">Continuar configuración</NuxtLink>
       </section>
 
       <template v-else>
@@ -69,8 +70,8 @@
                 <small>{{ plantel.families }} familias · {{ plantel.students }} estudiantes</small>
               </article>
               <article v-if="!(overview?.options.scopeTree.planteles || []).length">
-                <strong>Sin plantel</strong>
-                <small>Sin plantel.</small>
+                <strong>Configuración pendiente</strong>
+                <small>Continúa desde tu onboarding institucional.</small>
               </article>
             </div>
           </aside>
@@ -91,7 +92,7 @@ const { data: overview, pending, error: loadError } = useGestionEscolarOverview(
 const modules = computed(() => overview.value?.modules.filter((module) => module.enabled) || [])
 const scopeLabel = computed(() => {
   const planteles = overview.value?.reach.planteles || []
-  if (!planteles.length) return 'Sin plantel'
+  if (!planteles.length) return 'Configura tu alcance'
   if (planteles.length === 1) return `Plantel ${planteles[0]}`
   return `${planteles.length} planteles`
 })

@@ -1,10 +1,9 @@
 import { defineNuxtRouteMiddleware, navigateTo } from 'nuxt/app'
 import { getRouteSession } from '~/utils/routeSession'
-import { hasSchoolAdminScope } from '~/utils/sessionScopes'
+import { defaultAdminRoute, hasSchoolAdminScope } from '~/utils/sessionScopes'
 
 export default defineNuxtRouteMiddleware(async () => {
   const session = await getRouteSession()
-  if (!session.user || !hasSchoolAdminScope(session.user)) {
-    return navigateTo('/login')
-  }
+  if (!session.user) return navigateTo('/login')
+  if (!hasSchoolAdminScope(session.user)) return navigateTo(defaultAdminRoute(session.user))
 })
