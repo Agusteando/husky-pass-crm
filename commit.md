@@ -1,1 +1,1 @@
-Refina el acceso con una jerarquía visual elegante para colaboradores y familias
+Alinea el login con la identidad institucional de IECS e IEDIS
