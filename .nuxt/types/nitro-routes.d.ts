@@ -288,6 +288,9 @@ declare module "nitropack/types" {
     '/login.php': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/routes/login.php').default>>>>
     }
+    '/pases': {
+      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/routes/pases').default>>>>
+    }
     '/__nuxt_error': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/handlers/renderer').default>>>>
     }
