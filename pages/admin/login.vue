@@ -1,12 +1,11 @@
 <template>
   <LoginPanel
     brand-to="/login"
-    eyebrow="Acceso interno"
-    title="Acceso Husky Pass"
-    description="El acceso administrativo se determina por la cuenta institucional y su rol."
+    eyebrow="Colaboradores"
+    title="Husky Pass"
     experience="admin"
   >
-    <UnifiedLoginForm context="admin" heading="Acceso administrativo" description="Usa tu cuenta institucional; Husky Pass abrirá la vista disponible." />
+    <UnifiedLoginForm context="admin" />
   </LoginPanel>
 </template>
 

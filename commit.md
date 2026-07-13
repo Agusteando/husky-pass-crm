@@ -1,1 +1,1 @@
-Agrega la ruta de redirección al portal de pases digitales
+Rediseña el login para diferenciar visualmente colaboradores y familias

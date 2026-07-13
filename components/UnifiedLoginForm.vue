@@ -7,56 +7,79 @@
       </svg>
     </div>
 
-    <div class="auth-copy">
-      <p class="eyebrow">{{ eyebrow }}</p>
-      <h2>{{ heading }}</h2>
-      <p>{{ description }}</p>
-    </div>
-
     <div class="auth-stack">
-      <div v-if="clientId" :id="googleTargetId" class="google-box" />
-      <p v-else-if="context === 'admin'" class="alert">GOOGLE_CLIENT_ID no está configurado.</p>
-
-      <div v-if="clientId" class="auth-divider" aria-hidden="true"><span>o</span></div>
-
-      <form class="credential-form" @submit.prevent="submitPassword">
-        <label class="field-shell">
-          <span>Correo, matrícula o usuario</span>
-          <span class="field-control">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.8h16v10.4H4z" /><path d="m5 7.5 7 5.4 7-5.4" /></svg>
-            <input v-model="form.login" autocomplete="username" required placeholder="usuario@casitaiedis.edu.mx" />
+      <section class="access-group access-group--internal" aria-label="Acceso de colaboradores">
+        <header class="access-group__header">
+          <span class="access-group__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4.5 20V9.8L12 4l7.5 5.8V20" />
+              <path d="M9.5 20v-4.8h5V20" />
+              <path d="M8 10.3h.01" />
+              <path d="M12 10.3h.01" />
+              <path d="M16 10.3h.01" />
+            </svg>
           </span>
-        </label>
+          <div class="access-group__copy">
+            <p>Colaboradores</p>
+          </div>
+        </header>
 
-        <label class="field-shell">
-          <span>Contraseña</span>
-          <span class="field-control">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" /><rect x="5" y="10" width="14" height="10" rx="2" /></svg>
-            <input v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" required placeholder="Ingresa tu contraseña" />
-            <button class="ghost-icon" type="button" :aria-pressed="showPassword" aria-label="Mostrar u ocultar contraseña" @click="showPassword = !showPassword">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 12s3.1-5.3 9.3-5.3S21.3 12 21.3 12 18.2 17.3 12 17.3 2.7 12 2.7 12Z" /><circle cx="12" cy="12" r="2.4" /></svg>
-            </button>
+        <div v-if="clientId" :id="googleTargetId" class="google-box" />
+        <p v-else class="alert">GOOGLE_CLIENT_ID no está configurado.</p>
+      </section>
+
+      <section class="access-group access-group--families" aria-label="Acceso de familias">
+        <header class="access-group__header">
+          <span class="access-group__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M7.8 11.4a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6Z" />
+              <path d="M16.6 12.6a2.1 2.1 0 1 0 0-4.2 2.1 2.1 0 0 0 0 4.2Z" />
+              <path d="M3.8 19.2c0-2.5 2.1-4.5 4.7-4.5s4.7 2 4.7 4.5" />
+              <path d="M13.2 19.2c.2-1.9 1.8-3.4 3.8-3.4 2.1 0 3.8 1.5 4 3.4" />
+            </svg>
           </span>
-        </label>
+          <div class="access-group__copy">
+            <p>{{ passwordSectionLabel }}</p>
+          </div>
+        </header>
 
-        <div class="form-link-row">
-          <NuxtLink :to="recoveryTo">Olvidaste tu contraseña</NuxtLink>
-        </div>
+        <form class="credential-form" @submit.prevent="submitPassword">
+          <label class="field-shell">
+            <span>Correo, matrícula o usuario</span>
+            <span class="field-control">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.8h16v10.4H4z" /><path d="m5 7.5 7 5.4 7-5.4" /></svg>
+              <input v-model="form.login" autocomplete="username" required placeholder="usuario@casitaiedis.edu.mx" />
+            </span>
+          </label>
 
-        <p v-if="error" class="alert">{{ error }}</p>
+          <label class="field-shell">
+            <span>Contraseña</span>
+            <span class="field-control">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" /><rect x="5" y="10" width="14" height="10" rx="2" /></svg>
+              <input v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" required placeholder="Ingresa tu contraseña" />
+              <button class="ghost-icon" type="button" :aria-pressed="showPassword" aria-label="Mostrar u ocultar contraseña" @click="showPassword = !showPassword">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 12s3.1-5.3 9.3-5.3S21.3 12 21.3 12 18.2 17.3 12 17.3 2.7 12 2.7 12Z" /><circle cx="12" cy="12" r="2.4" /></svg>
+              </button>
+            </span>
+          </label>
 
-        <button class="submit-btn" type="submit" :disabled="loading">
-          <span>{{ loading ? 'Validando' : 'Iniciar sesión' }}</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13" /><path d="m13 6 6 6-6 6" /></svg>
-        </button>
-      </form>
+          <div class="form-link-row">
+            <NuxtLink :to="recoveryTo">Olvidaste tu contraseña</NuxtLink>
+          </div>
 
-      <NuxtLink v-if="showRegistration" class="registration-link" to="/registro-guarderia">
-        Crear acceso familiar de guardería
-      </NuxtLink>
+          <p v-if="error" class="alert">{{ error }}</p>
+
+          <button class="submit-btn" type="submit" :disabled="loading">
+            <span>{{ loading ? 'Validando' : 'Entrar' }}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13" /><path d="m13 6 6 6-6 6" /></svg>
+          </button>
+        </form>
+
+        <NuxtLink v-if="showRegistration" class="registration-link" to="/registro-guarderia">
+          Crear acceso familiar de guardería
+        </NuxtLink>
+      </section>
     </div>
-
-    <p class="support-note">¿Necesitas ayuda? Contacta al equipo de soporte.</p>
   </section>
 </template>
 
@@ -70,13 +93,9 @@ import { setCachedRouteSession } from '~/utils/routeSession'
 
 const props = withDefaults(defineProps<{
   context?: Extract<ExperienceName, 'escolar' | 'guarderia' | 'admin'> | 'neutral'
-  heading?: string
-  description?: string
   showRegistration?: boolean
 }>(), {
   context: 'neutral',
-  heading: 'Acceso seguro',
-  description: 'Tu cuenta abre automaticamente el espacio disponible.',
   showRegistration: false
 })
 
@@ -87,8 +106,8 @@ const loading = ref(false)
 const error = ref('')
 const showPassword = ref(false)
 const googleTargetId = 'google-signin'
-const eyebrow = computed(() => props.context === 'admin' ? 'Acceso interno' : props.context === 'guarderia' ? 'Acceso familiar' : 'Husky Pass')
 const recoveryTo = computed(() => recoveryRouteForExperience(props.context === 'guarderia' ? 'guarderia' : 'escolar'))
+const passwordSectionLabel = computed(() => props.context === 'admin' ? 'Acceso alterno' : 'Familias')
 
 const requestedExperience = computed(() => {
   if (props.context === 'escolar' || props.context === 'guarderia') return props.context
@@ -189,7 +208,7 @@ async function submitPassword() {
 <style scoped>
 .auth-panel {
   margin: 0 auto;
-  max-width: 460px;
+  max-width: 480px;
   width: 100%;
 }
 
@@ -200,19 +219,20 @@ async function submitPassword() {
   border-radius: 999px;
   color: var(--color-brand-800);
   display: flex;
-  height: 104px;
+  height: 88px;
   justify-content: center;
-  margin: 0 auto 28px;
-  width: 104px;
+  margin: 0 auto 24px;
+  width: 88px;
 }
 
 .auth-orb svg {
-  height: 42px;
-  width: 42px;
+  height: 38px;
+  width: 38px;
 }
 
 .auth-orb path,
 .auth-orb rect,
+.access-group__badge path,
 .field-control path,
 .field-control rect,
 .field-control circle,
@@ -224,32 +244,59 @@ async function submitPassword() {
   stroke-width: 1.9;
 }
 
-.auth-copy {
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-.auth-copy .eyebrow {
-  color: var(--color-brand-700);
-  letter-spacing: 0.18em;
-  margin-bottom: 8px;
-}
-
-.auth-copy h2 {
-  color: var(--color-brand-900);
-  font-size: clamp(1.72rem, 3.2vw, 2.35rem);
-  margin-bottom: 8px;
-}
-
-.auth-copy p {
-  color: #59635b;
-  margin-inline: auto;
-  max-width: 360px;
-}
-
 .auth-stack {
   display: grid;
   gap: 18px;
+}
+
+.access-group {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(216, 226, 211, 0.96);
+  border-radius: 24px;
+  box-shadow: 0 16px 34px rgba(31, 61, 20, 0.08);
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.access-group--internal {
+  background: linear-gradient(180deg, rgba(248, 250, 246, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.access-group--families {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 245, 0.98));
+}
+
+.access-group__header {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.access-group__badge {
+  align-items: center;
+  background: rgba(242, 248, 234, 0.92);
+  border: 1px solid rgba(223, 232, 215, 0.92);
+  border-radius: 16px;
+  color: var(--color-brand-800);
+  display: flex;
+  flex: 0 0 auto;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.access-group__badge svg {
+  height: 24px;
+  width: 24px;
+}
+
+.access-group__copy p {
+  color: var(--color-brand-900);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin: 0;
 }
 
 .google-box {
@@ -265,22 +312,6 @@ async function submitPassword() {
 
 .google-box :deep(iframe) {
   max-width: 100%;
-}
-
-.auth-divider {
-  align-items: center;
-  color: var(--color-muted);
-  display: grid;
-  font-size: 0.9rem;
-  gap: 14px;
-  grid-template-columns: 1fr auto 1fr;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  background: rgba(223, 232, 215, 0.96);
-  content: '';
-  height: 1px;
 }
 
 .credential-form {
@@ -412,12 +443,6 @@ async function submitPassword() {
   padding: 0 16px;
 }
 
-.support-note {
-  color: #65705f;
-  font-size: 0.86rem;
-  margin-top: 30px;
-  text-align: center;
-}
 
 .alert {
   margin: 0;
@@ -425,9 +450,9 @@ async function submitPassword() {
 
 @media (max-width: 560px) {
   .auth-orb {
-    height: 82px;
-    margin-bottom: 20px;
-    width: 82px;
+    height: 78px;
+    margin-bottom: 18px;
+    width: 78px;
   }
 
   .auth-orb svg {
@@ -435,9 +460,15 @@ async function submitPassword() {
     width: 34px;
   }
 
+  .access-group {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
   .field-control,
   .google-box,
-  .submit-btn {
+  .submit-btn,
+  .registration-link {
     border-radius: 15px;
     min-height: 54px;
   }

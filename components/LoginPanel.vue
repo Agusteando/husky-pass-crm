@@ -4,10 +4,10 @@
       <section class="login-hero" aria-label="Husky Pass">
         <div class="hero-glass" />
         <BrandMark class="hero-brand" :to="brandTo" logo="/brand/husky-pass-logo.png" alt="Husky Pass" />
-        <div class="hero-copy">
-          <p class="eyebrow">{{ eyebrow }}</p>
+        <div class="hero-copy" :class="{ 'hero-copy--compact': !description }">
+          <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
           <h1 id="login-title"><template v-for="segment in heroTitleSegments" :key="segment.text"><span :class="{ accent: segment.accent }">{{ segment.text }}</span></template></h1>
-          <p>{{ description }}</p>
+          <p v-if="description">{{ description }}</p>
         </div>
         <div class="hero-partners" aria-label="IECS e IEDIS">
           <img src="/brand/iecs-wordmark-gradient.png" alt="IECS" />
@@ -15,7 +15,7 @@
           <img src="/brand/iedis-wordmark-gradient.png" alt="IEDIS" />
         </div>
       </section>
-      <section class="login-card" aria-label="Acceso">
+      <section class="login-card" aria-label="Inicio de sesión">
         <slot />
       </section>
     </section>
@@ -31,12 +31,13 @@ const props = withDefaults(defineProps<{
   brandTo: string
   eyebrow: string
   title: string
-  description: string
+  description?: string
   experience?: ExperienceName
   institution?: InstitutionName
 }>(), {
   experience: 'escolar',
-  institution: null
+  institution: null,
+  description: ''
 })
 
 const identity = computed(() => visualIdentityForContext({
@@ -125,6 +126,10 @@ const heroTitleSegments = computed(() => {
   transform: translateY(8%);
 }
 
+.hero-copy--compact {
+  transform: translateY(16%);
+}
+
 .hero-copy .eyebrow {
   color: var(--color-blue);
   font-size: clamp(0.78rem, 1vw, 0.9rem);
@@ -139,6 +144,10 @@ const heroTitleSegments = computed(() => {
   letter-spacing: -0.045em;
   margin-bottom: 22px;
   text-wrap: balance;
+}
+
+.hero-copy--compact h1 {
+  margin-bottom: 0;
 }
 
 .hero-copy h1 span {
@@ -222,7 +231,8 @@ const heroTitleSegments = computed(() => {
     padding: 30px;
   }
 
-  .hero-copy {
+  .hero-copy,
+  .hero-copy--compact {
     transform: none;
   }
 
