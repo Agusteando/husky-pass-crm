@@ -11,7 +11,6 @@ type DaycareAccessEmailInput = {
   password: string
   unidad?: string | null
   sala?: string | number | null
-  canChangePassword?: boolean | null
 }
 
 type EmailConfig = {
@@ -74,7 +73,6 @@ function assertGmailConfig(config: EmailConfig) {
 function buildEmail(input: DaycareAccessEmailInput, config: EmailConfig) {
   const childName = input.childName?.trim() || 'tu familia'
   const unitLine = [input.unidad, input.sala ? `Sala ${input.sala}` : null].filter(Boolean).join(' · ')
-  const canChange = input.canChangePassword !== false
   const subject = `Acceso de guardería Husky Pass`
   const text = [
     `Hola,`,
@@ -83,7 +81,6 @@ function buildEmail(input: DaycareAccessEmailInput, config: EmailConfig) {
     unitLine ? `Unidad: ${unitLine}` : '',
     `Usuario: ${input.login}`,
     `Contraseña: ${input.password}`,
-    canChange ? 'La familia puede cambiar esta contraseña desde su cuenta.' : 'La contraseña fue fijada por guardería y no puede cambiarse desde la cuenta familiar.',
     '',
     'Ingresa desde el portal de Husky Pass Guardería.'
   ].filter(Boolean).join('\n')
@@ -102,7 +99,6 @@ function buildEmail(input: DaycareAccessEmailInput, config: EmailConfig) {
             <div style="border:1px solid #dcebe7;border-radius:16px;padding:14px;background:#ffffff"><span style="display:block;color:#607086;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Usuario</span><strong style="font-size:20px">${escapeHtml(input.login)}</strong></div>
             <div style="border:1px solid #dcebe7;border-radius:16px;padding:14px;background:#ffffff"><span style="display:block;color:#607086;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Contraseña</span><strong style="font-size:20px">${escapeHtml(input.password)}</strong></div>
           </div>
-          <p style="margin:18px 0 0;color:#607086;font-weight:700">${canChange ? 'La familia puede cambiar esta contraseña desde su cuenta.' : 'La contraseña fue fijada por guardería y no puede cambiarse desde la cuenta familiar.'}</p>
         </div>
       </div>
     </div>

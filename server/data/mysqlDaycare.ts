@@ -226,88 +226,6 @@ const loggedMissingMatriculaColumns = new Set<string>()
 let usersColumnCache: Set<string> | null = null
 const loggedMissingUserColumns = new Set<string>()
 
-let daycarePasswordPolicyReady = false
-let daycarePasswordPolicyUnavailable = false
-const DAYCARE_PASSWORD_POLICY_TABLE = 'hp_daycare_password_policy'
-
-type PasswordPolicyRow = RowDataPacket & { user_id: number | string; can_change_password: number | string | boolean | null }
-
-async function ensureDaycarePasswordPolicyTable() {
-  if (daycarePasswordPolicyReady) return true
-  if (daycarePasswordPolicyUnavailable) return false
-  try {
-    const row = await legacyOne<RowDataPacket>(
-      `SELECT COUNT(*) AS total
-       FROM information_schema.tables
-       WHERE table_schema = DATABASE() AND table_name = ?`,
-      [DAYCARE_PASSWORD_POLICY_TABLE]
-    )
-    daycarePasswordPolicyReady = Number(row?.total || 0) > 0
-    daycarePasswordPolicyUnavailable = !daycarePasswordPolicyReady
-    if (!daycarePasswordPolicyReady) {
-      logPersonasDebug('daycare-password-policy-table-missing', { table: DAYCARE_PASSWORD_POLICY_TABLE })
-    }
-    return daycarePasswordPolicyReady
-  } catch (error) {
-    daycarePasswordPolicyUnavailable = true
-    logPersonasWarning('daycare-password-policy-check-unavailable', { message: error instanceof Error ? error.message : String(error) })
-    return false
-  }
-}
-
-function boolFromDb(value: unknown, fallback = true) {
-  if (value === undefined || value === null || value === '') return fallback
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value !== 0
-  const normalized = String(value).trim().toLowerCase()
-  return normalized !== '0' && normalized !== 'false' && normalized !== 'no'
-}
-
-async function getDaycarePasswordPolicyMap(userIds: Array<number | string>) {
-  const ids = Array.from(new Set(userIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)))
-  const map = new Map<number, boolean>()
-  if (!ids.length) return map
-  const ready = await ensureDaycarePasswordPolicyTable()
-  if (!ready) return map
-  const placeholders = ids.map(() => '?').join(',')
-  const rows = await legacyQuery<PasswordPolicyRow[]>(
-    `SELECT user_id, can_change_password FROM ${DAYCARE_PASSWORD_POLICY_TABLE} WHERE user_id IN (${placeholders})`,
-    ids
-  )
-  for (const row of rows) map.set(Number(row.user_id), boolFromDb(row.can_change_password))
-  return map
-}
-
-async function setDaycarePasswordPolicy(userIds: Array<number | string>, canChangePassword: boolean, updatedBy?: string | null) {
-  const ids = Array.from(new Set(userIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)))
-  if (!ids.length) return true
-  const ready = await ensureDaycarePasswordPolicyTable()
-  if (!ready) return false
-  const values = ids.map(() => '(?, ?, ?)').join(',')
-  const params = ids.flatMap((id) => [id, canChangePassword ? 1 : 0, updatedBy || null])
-  try {
-    await legacyWrite(
-      `INSERT INTO ${DAYCARE_PASSWORD_POLICY_TABLE} (user_id, can_change_password, updated_by)
-       VALUES ${values}
-       ON DUPLICATE KEY UPDATE can_change_password = VALUES(can_change_password), updated_by = VALUES(updated_by)`,
-      params
-    )
-    return true
-  } catch (error) {
-    logPersonasWarning('daycare-password-policy-write-unavailable', { message: error instanceof Error ? error.message : String(error) })
-    return false
-  }
-}
-
-async function familyAccountRowsWithPolicy(rows: (FamilyAccount & RowDataPacket)[]) {
-  const policies = await getDaycarePasswordPolicyMap(rows.map((row) => row.id).filter((id): id is number => Number.isFinite(Number(id))))
-  return rows.map((row) => ({
-    ...row,
-    id: Number(row.id),
-    passwordCanChange: policies.get(Number(row.id)) ?? true
-  }))
-}
-
 async function passwordUpdateColumns(password: string | null | undefined) {
   if (password === undefined) return { sql: '', params: [] as Array<string | null> }
   const columnSet = await getUsersColumnSet()
@@ -324,11 +242,6 @@ async function passwordUpdateColumns(password: string | null | undefined) {
   }
   return { sql: assignments.length ? `, ${assignments.join(', ')}` : '', params }
 }
-
-function adminPolicyActor(user: AppSessionUser) {
-  return user.email || user.username || String(user.id)
-}
-
 
 function quoteIdentifier(identifier: string) {
   return `\`${identifier.replace(/`/g, '``')}\``
@@ -747,19 +660,18 @@ export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {
      ORDER BY id ASC`,
     [sala.unidad, DAYCARE_FAMILY_ROLE, salaId]
   )
-  const rowsWithPolicy = await familyAccountRowsWithPolicy(rows)
-  const withRoster = await attachRosterToFamilyAccounts(sala.unidad, sala, rowsWithPolicy)
+  const normalizedRows = rows.map((row) => ({ ...row, id: Number(row.id) }))
+  const withRoster = await attachRosterToFamilyAccounts(sala.unidad, sala, normalizedRows)
   return { sala, rows: withRoster.rows, roster: withRoster.roster }
 }
 
-export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload & { passwordCanChange?: boolean | null }) {
+export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload) {
   const sala = await getSalaById(user, Number(payload.sala))
   const role = DAYCARE_FAMILY_ROLE
   const email = normalizedEmail(payload.email)
   const username = normalizedEmail(payload.username) || email
   if (!email) throw publicError(400, 'Escribe un correo familiar válido.')
   const passwordColumns = await passwordUpdateColumns(payload.plaintext)
-  const requestedPasswordCanChange = payload.passwordCanChange !== undefined && payload.passwordCanChange !== null ? Boolean(payload.passwordCanChange) : true
 
   if (payload.id) {
     const existing = await legacyOne<RowDataPacket>('SELECT id, role, unidad, sala FROM users WHERE id = ? LIMIT 1', [payload.id])
@@ -780,9 +692,7 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
        WHERE id = ?`,
       [payload.nombre_nino || null, username, email, role, sala.unidad, String(sala.id), ...passwordColumns.params, payload.id]
     )
-    const passwordPolicyPersisted = await setDaycarePasswordPolicy([payload.id], requestedPasswordCanChange, adminPolicyActor(user))
-    const passwordCanChange = passwordPolicyPersisted ? requestedPasswordCanChange : true
-    return { ...payload, username, email, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange, passwordPolicyPersisted }
+    return { ...payload, username, email, role, unidad: sala.unidad, sala: String(sala.id) }
   }
 
   const identityRows = await legacyQuery<RowDataPacket[]>(
@@ -816,8 +726,6 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
        WHERE id = ?`,
       [payload.nombre_nino || null, username, email, role, sala.unidad, String(sala.id), ...passwordColumns.params, Number(reusable.id)]
     )
-    const passwordPolicyPersisted = await setDaycarePasswordPolicy([reusable.id], requestedPasswordCanChange, adminPolicyActor(user))
-    const passwordCanChange = passwordPolicyPersisted ? requestedPasswordCanChange : true
     return {
       ...payload,
       id: Number(reusable.id),
@@ -826,8 +734,6 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
       role,
       unidad: sala.unidad,
       sala: String(sala.id),
-      passwordCanChange,
-      passwordPolicyPersisted,
       reused: true
     }
   }
@@ -843,12 +749,10 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
     `INSERT INTO users (${insertColumns.join(', ')}) VALUES (${placeholders})`,
     [payload.nombre_nino || null, username, email, ...passwordParams, role, sala.unidad, String(sala.id)]
   )
-  const passwordPolicyPersisted = await setDaycarePasswordPolicy([result.insertId], requestedPasswordCanChange, adminPolicyActor(user))
-  const passwordCanChange = passwordPolicyPersisted ? requestedPasswordCanChange : true
-  return { ...payload, id: result.insertId, username, email, role, unidad: sala.unidad, sala: String(sala.id), passwordCanChange, passwordPolicyPersisted }
+  return { ...payload, id: result.insertId, username, email, role, unidad: sala.unidad, sala: String(sala.id) }
 }
 
-export async function setSalaFamilyPassword(user: AppSessionUser, input: { sala: number; password: string; passwordCanChange: boolean }) {
+export async function setSalaFamilyPassword(user: AppSessionUser, input: { sala: number; password: string }) {
   const { sala, rows } = await getFamilyAccounts(user, input.sala)
   const ids = rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id) && id > 0)
   if (!ids.length) return { sala, rows: [], updated: 0 }
@@ -867,18 +771,11 @@ export async function setSalaFamilyPassword(user: AppSessionUser, input: { sala:
   }
   if (!assignments.length) throw publicError(500, 'No existe una columna de contraseña disponible.')
   await legacyWrite(`UPDATE users SET ${assignments.join(', ')} WHERE id IN (${placeholders})`, [...params, ...ids])
-  const passwordPolicyPersisted = await setDaycarePasswordPolicy(ids, Boolean(input.passwordCanChange), adminPolicyActor(user))
-  const effectivePasswordCanChange = passwordPolicyPersisted ? Boolean(input.passwordCanChange) : true
   const refreshed = await getFamilyAccounts(user, input.sala)
-  return {
-    sala,
-    rows: refreshed.rows.map((row) => ({ ...row, passwordCanChange: effectivePasswordCanChange })),
-    updated: ids.length,
-    passwordPolicyPersisted
-  }
+  return { sala, rows: refreshed.rows, updated: ids.length }
 }
 
-export async function setFamilyPassword(user: AppSessionUser, input: { sala: number; userId: number; password: string; passwordCanChange: boolean }) {
+export async function setFamilyPassword(user: AppSessionUser, input: { sala: number; userId: number; password: string }) {
   const { rows } = await getFamilyAccounts(user, input.sala)
   const account = rows.find((row) => Number(row.id) === Number(input.userId))
   if (!account?.id) throw publicError(404, 'Cuenta familiar no encontrada en esta sala.')
@@ -896,21 +793,9 @@ export async function setFamilyPassword(user: AppSessionUser, input: { sala: num
   }
   if (!assignments.length) throw publicError(500, 'No existe una columna de contraseña disponible.')
   await legacyWrite(`UPDATE users SET ${assignments.join(', ')} WHERE id = ?`, [...params, Number(account.id)])
-  const passwordPolicyPersisted = await setDaycarePasswordPolicy([account.id], Boolean(input.passwordCanChange), adminPolicyActor(user))
-  const effectivePasswordCanChange = passwordPolicyPersisted ? Boolean(input.passwordCanChange) : true
   const refreshed = await getFamilyAccounts(user, input.sala)
   const refreshedAccount = refreshed.rows.find((row) => Number(row.id) === Number(account.id))
-  return {
-    ...(refreshedAccount || account),
-    plaintext: input.password,
-    passwordCanChange: effectivePasswordCanChange,
-    passwordPolicyPersisted
-  }
-}
-
-export async function getDaycareFamilyPasswordChangeAllowed(userId: number) {
-  const map = await getDaycarePasswordPolicyMap([userId])
-  return map.get(Number(userId)) ?? true
+  return { ...(refreshedAccount || account), plaintext: input.password }
 }
 
 export async function getDaycareAccessEmailTargets(user: AppSessionUser, input: { sala: number; userIds?: number[] | null }) {

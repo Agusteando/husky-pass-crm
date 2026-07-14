@@ -24,10 +24,6 @@
         <input v-model="model.plaintext" class="input mono" autocomplete="new-password" placeholder="Contraseña asignada por guardería" />
         <button class="btn btn-secondary" type="button" @click="generatePassword">Generar</button>
       </div>
-      <label class="toggle-line">
-        <input v-model="model.passwordCanChange" type="checkbox" />
-        <span>La familia puede cambiar esta contraseña</span>
-      </label>
     </section>
 
     <footer class="modal-actions">
@@ -91,8 +87,7 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
     nombre_nino: account.nombre_nino || '',
     username: account.username || '',
     email: account.email || '',
-    plaintext: account.plaintext || '',
-    passwordCanChange: account.passwordCanChange !== false
+    plaintext: account.plaintext || ''
   }
 }
 </script>
@@ -140,20 +135,6 @@ function normalizeAccount(account: Partial<FamilyAccount>) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 800;
   letter-spacing: 0.03em;
-}
-
-.toggle-line {
-  align-items: center;
-  color: #475c3c;
-  display: flex;
-  font-weight: 800;
-  gap: 10px;
-}
-
-.toggle-line input {
-  accent-color: #578b26;
-  height: 18px;
-  width: 18px;
 }
 
 .modal-actions {

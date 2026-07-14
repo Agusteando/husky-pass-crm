@@ -9,7 +9,6 @@ const schema = z.object({
   sala: z.coerce.number().int().positive(),
   userId: z.coerce.number().int().positive().optional(),
   password: z.string().min(4),
-  passwordCanChange: z.boolean().default(true),
   sendEmail: z.boolean().default(false)
 })
 
@@ -18,8 +17,8 @@ export default defineEventHandler(async (event) => {
   assertDaycareAdmin(user)
   const body = schema.parse(await readBody(event))
   const result = body.userId
-    ? { rows: [await setFamilyPassword(user, { sala: body.sala, userId: body.userId, password: body.password, passwordCanChange: body.passwordCanChange })], updated: 1 }
-    : await setSalaFamilyPassword(user, { sala: body.sala, password: body.password, passwordCanChange: body.passwordCanChange })
+    ? { rows: [await setFamilyPassword(user, { sala: body.sala, userId: body.userId, password: body.password })], updated: 1 }
+    : await setSalaFamilyPassword(user, { sala: body.sala, password: body.password })
 
   let emailed = 0
   let skipped = 0
@@ -34,8 +33,7 @@ export default defineEventHandler(async (event) => {
           login: account.username || account.email,
           password: account.plaintext || body.password,
           unidad: sala.unidad,
-          sala: sala.sala,
-          canChangePassword: account.passwordCanChange
+          sala: sala.sala
         })
         emailed += 1
       } catch {

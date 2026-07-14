@@ -79,8 +79,7 @@ export default defineEventHandler(async (event) => {
       login: registration.username,
       password: registration.password,
       unidad: registration.unidad,
-      sala: registration.salaName,
-      canChangePassword: true
+      sala: registration.salaName
     })
     emailSent = true
   } catch (error) {

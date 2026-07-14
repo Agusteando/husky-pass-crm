@@ -26,8 +26,7 @@ export default defineEventHandler(async (event) => {
       login: account.username || account.email,
       password: account.plaintext || '',
       unidad: sala.unidad,
-      sala: sala.sala,
-      canChangePassword: account.passwordCanChange
+      sala: sala.sala
     })
     emailed += 1
   }

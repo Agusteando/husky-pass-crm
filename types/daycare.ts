@@ -132,7 +132,6 @@ export interface FamilyAccount {
   username: string
   email: string
   plaintext?: string | null
-  passwordCanChange?: boolean | null
   roster?: DaycareRosterSuggestion | null
   role?: string | null
   unidad: string

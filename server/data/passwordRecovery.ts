@@ -122,43 +122,25 @@ async function writeDevStore(store: DevRecoveryStore) {
   await writeFile(DEV_STORE_PATH, JSON.stringify(store, null, 2), 'utf8')
 }
 
-export async function ensurePasswordRecoverySchema() {
+export async function ensurePasswordRecoveryStorage() {
   if (schemaReady) return
   try {
-    await legacyWrite(`
-      CREATE TABLE IF NOT EXISTS password_recovery_tokens (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        user_id BIGINT NOT NULL,
-        email VARCHAR(190) NOT NULL,
-        account_kind VARCHAR(32) NOT NULL DEFAULT 'family',
-        token_hash CHAR(64) NOT NULL,
-        requested_ip_hash CHAR(64) NULL,
-        user_agent_hash CHAR(64) NULL,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        expires_at DATETIME NOT NULL,
-        used_at DATETIME NULL,
-        superseded_at DATETIME NULL,
-        PRIMARY KEY (id),
-        UNIQUE KEY uq_password_recovery_token_hash (token_hash),
-        KEY idx_password_recovery_user_active (user_id, account_kind, used_at, superseded_at, expires_at),
-        KEY idx_password_recovery_email_created (email, created_at)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `)
+    await legacyOne<RowDataPacket>('SELECT 1 AS ready FROM password_recovery_tokens LIMIT 0')
     schemaReady = true
   } catch (error) {
     if (canUseDevFileStore()) {
       devFileStore = true
       schemaReady = true
-      logSecurityWarning('password-recovery-schema-dev-file-store', { table: 'password_recovery_tokens', storePath: DEV_STORE_PATH })
+      logSecurityWarning('password-recovery-storage-dev-file-store', { table: 'password_recovery_tokens', storePath: DEV_STORE_PATH })
       return
     }
-    logSecurityDiagnostic('password-recovery-schema-init-failed', error, { table: 'password_recovery_tokens' })
-    throw publicError(500, 'No fue posible preparar la recuperación de contraseña.')
+    logSecurityDiagnostic('password-recovery-storage-unavailable', error, { table: 'password_recovery_tokens' })
+    throw publicError(503, 'La recuperación de contraseña no está configurada.')
   }
 }
 
 export async function createPasswordRecoveryToken(input: { event: H3Event; userId: number; email: string; experience: Extract<ExperienceName, 'escolar' | 'guarderia'> }) {
-  await ensurePasswordRecoverySchema()
+  await ensurePasswordRecoveryStorage()
   const expiresAt = new Date(Date.now() + tokenTtlMs())
   const token = randomBytes(TOKEN_BYTES).toString('base64url')
   const tokenHash = hashToken(token)
@@ -225,7 +207,7 @@ export async function createPasswordRecoveryToken(input: { event: H3Event; userI
 export async function validatePasswordRecoveryToken(rawToken: string): Promise<RecoveryTokenValidation> {
   const token = String(rawToken || '').trim()
   if (!isTokenShape(token)) return { status: 'invalid' }
-  await ensurePasswordRecoverySchema()
+  await ensurePasswordRecoveryStorage()
   try {
     if (devFileStore) {
       const store = await readDevStore()

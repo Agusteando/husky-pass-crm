@@ -257,7 +257,6 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
       username: String(row.username || ''),
       email: String(row.email || ''),
       plaintext: row.plaintext || null,
-      passwordCanChange: true,
       role: row.role || DAYCARE_FAMILY_ROLE,
       unidad,
       sala: salaId || '',
@@ -502,26 +501,6 @@ async function mergeSimpleReferences(tx: TransactionClient, canonicalId: number,
       `UPDATE password_recovery_tokens
        SET superseded_at = COALESCE(superseded_at, UTC_TIMESTAMP())
        WHERE user_id IN (${duplicateIds.map(() => '?').join(',')}) AND used_at IS NULL`,
-      duplicateIds
-    )
-  }
-
-  if (await hasTable('hp_daycare_password_policy')) {
-    const policyRows = await tx.query<RowDataPacket[]>(
-      `SELECT user_id, can_change_password
-       FROM hp_daycare_password_policy
-       WHERE user_id IN (${[canonicalId, ...duplicateIds].map(() => '?').join(',')})`,
-      [canonicalId, ...duplicateIds]
-    )
-    const canChange = policyRows.every((row) => Number(row.can_change_password) !== 0) ? 1 : 0
-    await tx.write(
-      `INSERT INTO hp_daycare_password_policy (user_id, can_change_password, updated_by)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE can_change_password = VALUES(can_change_password), updated_by = VALUES(updated_by)`,
-      [canonicalId, canChange, 'room-management-merge']
-    )
-    await tx.write(
-      `DELETE FROM hp_daycare_password_policy WHERE user_id IN (${duplicateIds.map(() => '?').join(',')})`,
       duplicateIds
     )
   }

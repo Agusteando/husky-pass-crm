@@ -2,8 +2,6 @@ import { defineEventHandler, readBody } from 'h3'
 import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { findLegacyFamilyById, updateLegacyFamilyPassword, validateLegacyPassword } from '~/server/data/mysqlAuth'
-import { getDaycareFamilyPasswordChangeAllowed } from '~/server/data/mysqlDaycare'
-import { hasFamilyScope } from '~/utils/sessionScopes'
 import { assertRateLimit } from '~/server/utils/antibot'
 import { assertPasswordConfirmation } from '~/server/utils/passwordPolicy'
 import { requireSession } from '~/server/utils/session'
@@ -33,10 +31,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    if (hasFamilyScope(user, 'daycare') && !(await getDaycareFamilyPasswordChangeAllowed(Number(user.id)))) {
-      throw publicError(403, 'La contraseña de guardería se administra desde la escuela.')
-    }
-
     const legacyUser = await findLegacyFamilyById(Number(user.id))
     if (!legacyUser) {
       logSecurityWarning('password-change-family-account-missing', { userId: user.id })

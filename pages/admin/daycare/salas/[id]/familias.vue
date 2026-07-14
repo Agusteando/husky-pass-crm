@@ -159,10 +159,6 @@
           </div>
         </label>
         <label class="toggle-line">
-          <input v-model="passwordForm.passwordCanChange" type="checkbox" />
-          <span>La familia puede cambiar la contraseña</span>
-        </label>
-        <label class="toggle-line">
           <input v-model="passwordForm.sendEmail" type="checkbox" />
           <span>Enviar acceso por correo al guardar</span>
         </label>
@@ -333,7 +329,6 @@
               <small>Contraseña</small>
               <strong>{{ selected.plaintext || 'Sin contraseña visible' }}</strong>
             </div>
-            <span :class="selected.passwordCanChange === false ? 'lock-pill locked' : 'lock-pill'">{{ selected.passwordCanChange === false ? 'Fijada por guardería' : 'Puede cambiarla' }}</span>
           </section>
           <div class="preview-actions">
             <button v-if="canImpersonateAccounts" class="btn btn-primary" type="button" data-diagnostic-action="vista-familiar" :disabled="impersonatingId === selected.id" :data-unavailable-reason="impersonatingId === selected.id ? 'Abriendo vista familiar' : undefined" @click="impersonate(selected.id)">{{ impersonationButtonLabel(selected.id) }}</button>
@@ -389,7 +384,7 @@ const emailingId = ref<number | null>(null)
 const passwordSaving = ref(false)
 const passwordSaveFailed = ref(false)
 const passwordDialog = ref<{ mode: 'family' | 'sala'; account?: FamilyAccount | null } | null>(null)
-const passwordForm = ref({ password: '', passwordCanChange: true, sendEmail: false })
+const passwordForm = ref({ password: '', sendEmail: false })
 const registrationDialog = ref(false)
 const registrationLoading = ref(false)
 const registrationEmail = ref('')
@@ -824,7 +819,7 @@ function openSalaPassword() {
   actionNotice.value = ''
   passwordSaveFailed.value = false
   passwordDialog.value = { mode: 'sala' }
-  passwordForm.value = { password: '', passwordCanChange: true, sendEmail: false }
+  passwordForm.value = { password: '', sendEmail: false }
   generatePassword()
   resetPasswordDraft()
 }
@@ -837,7 +832,6 @@ function openFamilyPassword(account: FamilyAccount) {
   passwordDialog.value = { mode: 'family', account }
   passwordForm.value = {
     password: account.plaintext || '',
-    passwordCanChange: account.passwordCanChange !== false,
     sendEmail: false
   }
   if (!passwordForm.value.password) generatePassword()
@@ -873,7 +867,6 @@ async function savePasswordDialog() {
   const body: Record<string, unknown> = {
     sala: salaId,
     password: passwordForm.value.password,
-    passwordCanChange: passwordForm.value.passwordCanChange,
     sendEmail: passwordForm.value.sendEmail
   }
   if (dialog.mode === 'family' && dialog.account?.id) body.userId = dialog.account.id
@@ -886,7 +879,7 @@ async function savePasswordDialog() {
     }
   }
   setFamilyRows((data.value?.rows || []).map((row) => targetIds.includes(Number(row.id))
-    ? { ...row, plaintext: passwordForm.value.password, passwordCanChange: passwordForm.value.passwordCanChange }
+    ? { ...row, plaintext: passwordForm.value.password }
     : row))
   if (selected.value?.id && targetIds.includes(Number(selected.value.id))) {
     selected.value = (data.value?.rows || []).find((row) => row.id === selected.value?.id) || selected.value
@@ -965,7 +958,6 @@ function buildOptimisticFamily(payload: Partial<FamilyAccount>, id: number): Fam
     username: String(payload.username || existing?.username || ''),
     email: String(payload.email || existing?.email || ''),
     plaintext: payload.plaintext ?? existing?.plaintext ?? null,
-    passwordCanChange: payload.passwordCanChange ?? existing?.passwordCanChange ?? true,
     role: payload.role || existing?.role || DAYCARE_FAMILY_ROLE,
     unidad: String(payload.unidad || existing?.unidad || data.value?.sala?.unidad || 'Guardería'),
     sala: String(salaId),
@@ -1002,7 +994,7 @@ function restorePasswordFields(previousRows: FamilyAccount[], targetIds: number[
     const id = Number(row.id)
     const previous = previousById.get(id)
     if (!targetIds.includes(id) || !previous) return row
-    return { ...row, plaintext: previous.plaintext, passwordCanChange: previous.passwordCanChange }
+    return { ...row, plaintext: previous.plaintext }
   }))
 }
 
@@ -1584,22 +1576,6 @@ function initials(value?: string | null) {
   font-size: 0.92rem;
 }
 
-.lock-pill {
-  background: #e8f3dc;
-  border: 1px solid rgba(87, 139, 38, 0.13);
-  border-radius: 999px;
-  color: #426831;
-  font-size: 0.66rem;
-  font-weight: 900;
-  padding: 7px 9px;
-  white-space: nowrap;
-}
-
-.lock-pill.locked {
-  background: #fff0cc;
-  border-color: rgba(246, 185, 79, 0.3);
-  color: #8a650c;
-}
 
 .preview-actions {
   display: grid;

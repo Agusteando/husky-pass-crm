@@ -1,1 +1,1 @@
-Corrige el alta de familias y agrega la gestión integral de usuarios por sala
+Elimina la política de contraseñas y el DDL en tiempo de ejecución
