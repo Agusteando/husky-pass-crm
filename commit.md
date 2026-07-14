@@ -1,1 +1,1 @@
-Rediseña la gestión de usuarios y salas con una experiencia más clara y responsiva
+Restaura la identidad visual y mejora únicamente la promoción entre salas
