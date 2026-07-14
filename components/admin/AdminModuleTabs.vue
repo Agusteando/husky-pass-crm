@@ -13,7 +13,7 @@
     <div class="tab-track">
       <NuxtLink
         v-for="item in items"
-        :key="item.to"
+        :key="item.diagnostic"
         :to="item.to"
         :exact-active-class="item.exact ? 'active' : undefined"
         :active-class="item.exact ? undefined : 'active'"
@@ -32,6 +32,7 @@ import { computed } from 'vue'
 const props = defineProps<{ salaId: number | string; unidad?: string | null; salaName?: string | null }>()
 const unitRoute = computed(() => ({ path: '/admin/daycare/salas', query: props.unidad ? { unidad: props.unidad } : {} }))
 const items = computed(() => [
+  { label: 'Usuarios', icon: 'people', to: { path: '/admin/daycare/usuarios', query: { unidad: props.unidad || '', sala: String(props.salaId) } }, diagnostic: 'tab-usuarios' },
   { label: 'Resumen', icon: 'home', to: `/admin/daycare/salas/${props.salaId}`, diagnostic: 'tab-resumen', exact: true },
   { label: 'Familias', icon: 'people', to: `/admin/daycare/salas/${props.salaId}/familias`, diagnostic: 'tab-familias' },
   { label: 'Tareas', icon: 'edit', to: `/admin/daycare/salas/${props.salaId}/tareas`, diagnostic: 'tab-tareas' },
@@ -202,7 +203,7 @@ const items = computed(() => [
   .tab-track {
     display: grid;
     gap: 3px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     overflow: visible;
   }
 

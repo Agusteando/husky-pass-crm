@@ -10,7 +10,7 @@
       </NuxtLink>
 
       <nav class="admin-nav" aria-label="Navegación administrativa">
-        <NuxtLink v-for="item in items" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
+        <NuxtLink v-for="item in displayedItems" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" :data-product-nav="item.key">
           <FamilyPersonasIcon :name="item.icon" />
           <span>{{ item.shortLabel || item.label }}</span>
         </NuxtLink>
@@ -48,13 +48,20 @@ const props = defineProps<{
 const route = useRoute()
 const search = ref('')
 const isDaycareRoute = computed(() => route.path.startsWith('/admin/daycare'))
+const displayedItems = computed<AdminNavItem[]>(() => isDaycareRoute.value
+  ? [
+      { key: 'daycare-users', label: 'Usuarios', to: '/admin/daycare/usuarios', icon: 'people' },
+      { key: 'daycare-rooms', label: 'Salas', to: '/admin/daycare/salas', icon: 'daycare' }
+    ]
+  : props.items)
 
 function isActive(to: string) {
   const targetPath = to.split('?')[0] || to
   if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
   if (targetPath === '/mkt') return route.path.startsWith('/mkt')
   if (targetPath === '/admin/gestion-escolar') return route.path.startsWith('/admin/gestion-escolar')
-  if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare')
+  if (targetPath === '/admin/daycare/usuarios') return route.path.startsWith('/admin/daycare/usuarios')
+  if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare/salas')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
 }
 

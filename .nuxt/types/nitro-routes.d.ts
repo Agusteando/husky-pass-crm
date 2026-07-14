@@ -134,6 +134,15 @@ declare module "nitropack/types" {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/resources/[id].delete').default>>>>
       'patch': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/resources/[id].patch').default>>>>
     }
+    '/api/daycare/admin/room-management': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/index.get').default>>>>
+    }
+    '/api/daycare/admin/room-management/merge': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/merge.post').default>>>>
+    }
+    '/api/daycare/admin/room-management/move': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/move.post').default>>>>
+    }
     '/api/daycare/admin/roster-apply': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/roster-apply.post').default>>>>
     }
