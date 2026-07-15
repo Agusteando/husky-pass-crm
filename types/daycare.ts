@@ -302,6 +302,7 @@ export interface MarbeteTemplateMeta {
   status?: MarbeteTemplateStatus
   cicloEscolar?: string
   visualDesign?: MarbeteVisualDesign
+  svgDesign?: MarbeteSvgDesign
   basedOnId?: string
   publishedAt?: string
   createdAt?: string
@@ -323,6 +324,8 @@ export type MarbeteVisualElementKind =
   | 'school-detail'
   | 'validity'
   | 'ciclo-tag'
+
+export type MarbeteSvgLayerKind = MarbeteVisualElementKind | 'cover' | 'static-image'
 
 export interface MarbeteVisualTextStyle {
   fontSize: number
@@ -370,6 +373,33 @@ export interface MarbeteVisualDesign {
   }
   elements: MarbeteVisualElement[]
   showInstructions: boolean
+}
+
+export interface MarbeteSvgLayer {
+  id: string
+  kind: MarbeteSvgLayerKind
+  label: string
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+  visible: boolean
+  zIndex: number
+  textStyle?: MarbeteVisualTextStyle
+  imageStyle?: MarbeteVisualImageStyle
+  fill?: string
+  opacity?: number
+  assetUrl?: string
+}
+
+export interface MarbeteSvgDesign {
+  version: 1
+  canvas: {
+    width: number
+    height: number
+  }
+  layers: MarbeteSvgLayer[]
 }
 
 export interface MarbeteTemplateSettings {

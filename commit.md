@@ -1,1 +1,1 @@
-Unifica la experiencia de Super Admin y consolida pases, plantillas y gestión escolar
+Reconstruye marbetes SVG por plantel y elimina el scope incorrecto de accesos

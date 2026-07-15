@@ -37,7 +37,7 @@ export function adminPersonaForUser(user: AppSessionUser | null | undefined): Ad
       key: 'superAdmin',
       title: 'Husky Pass',
       subtitle: 'Super Admin',
-      context: 'Plataforma completa',
+      context: 'Administración global',
       homeTo
     }
   }
@@ -98,10 +98,7 @@ export function adminNavigationForUser(user: AppSessionUser | null | undefined):
 
   const items: AdminNavItem[] = []
   if (admin.isSuperAdmin) {
-    items.push(
-      { key: 'platform', label: 'Plataforma', shortLabel: 'Global', to: '/admin/superadmin', icon: 'people' },
-      { key: 'access', label: 'Accesos', shortLabel: 'Pases', to: '/admin/superadmin/personas-autorizadas', icon: 'badge' }
-    )
+    items.push({ key: 'platform', label: 'Plataforma', shortLabel: 'Global', to: '/admin/superadmin', icon: 'people' })
   }
   if (hasSchoolAdminScope(admin)) items.push({ key: 'school', label: 'Escolar', shortLabel: 'Escolar', to: '/admin/gestion-escolar', icon: 'school' })
   if (hasDaycareAdminScope(admin)) items.push({ key: 'daycare', label: 'Guardería', shortLabel: 'Salas', to: daycareRouteForUser(admin), icon: 'daycare' })

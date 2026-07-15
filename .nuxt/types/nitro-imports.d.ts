@@ -157,6 +157,7 @@ declare global {
   const readFormData: typeof import('../../node_modules/h3').readFormData
   const readLastAccessActions: typeof import('../../server/utils/personasConfig').readLastAccessActions
   const readLatestRecoveryEmailPreview: typeof import('../../server/utils/recoveryEmail').readLatestRecoveryEmailPreview
+  const readMarbeteBaseSvg: typeof import('../../server/utils/marbeteTemplates').readMarbeteBaseSvg
   const readMarbeteTemplateSettings: typeof import('../../server/utils/marbeteSettings').readMarbeteTemplateSettings
   const readMarbeteTemplateSvg: typeof import('../../server/utils/marbeteTemplates').readMarbeteTemplateSvg
   const readMultipartFormData: typeof import('../../node_modules/h3').readMultipartFormData
@@ -167,7 +168,6 @@ declare global {
   const removeResponseHeader: typeof import('../../node_modules/h3').removeResponseHeader
   const renderMarbetePdf: typeof import('../../server/utils/marbetePdf').renderMarbetePdf
   const renderMarbeteSvg: typeof import('../../server/utils/marbeteTemplates').renderMarbeteSvg
-  const renderMarbeteSvgValues: typeof import('../../server/utils/marbeteTemplates').renderMarbeteSvgValues
   const requireSession: typeof import('../../server/utils/session').requireSession
   const resolveAuthorizedPersonMarbeteTemplateSvg: typeof import('../../server/utils/marbeteTemplates').resolveAuthorizedPersonMarbeteTemplateSvg
   const resolveEffectiveMarbeteTemplate: typeof import('../../server/utils/marbeteTemplates').resolveEffectiveMarbeteTemplate
@@ -291,7 +291,7 @@ export { adminOrigin } from 'C:/Users/hp/husky-pass-crm/server/utils/impersonati
 export { shortHash, redactContext, errorSummary, ensureRequestId, logEvent, logErrorOnce, withRequestBoundary } from 'C:/Users/hp/husky-pass-crm/server/utils/logger';
 export { prepareMarbeteSvgForPdf, assertMarbetePdfAssets, renderMarbetePdf } from 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf';
 export { readMarbeteTemplateSettings, saveMarbeteTemplateSettings } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteSettings';
-export { normalizeSchoolCycle, listBundledMarbeteTemplates, listCustomMarbeteTemplates, listMarbeteTemplates, marbeteTemplateThemes, readMarbeteTemplateSvg, authorizedPersonMarbeteSelectionInput, selectBundledMarbeteTemplate, selectCustomMarbeteTemplate, selectEffectiveMarbeteTemplate, selectMarbeteTemplate, resolveEffectiveMarbeteTemplate, resolveEffectiveMarbeteTemplateSvg, resolveAuthorizedPersonMarbeteTemplateSvg, saveMarbeteTemplate, saveVisualMarbeteTemplate, deleteMarbeteTemplate, applyMarbeteTemplateAction, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvgValues, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
+export { normalizeSchoolCycle, listBundledMarbeteTemplates, listCustomMarbeteTemplates, listMarbeteTemplates, marbeteTemplateThemes, readMarbeteBaseSvg, readMarbeteTemplateSvg, authorizedPersonMarbeteSelectionInput, selectBundledMarbeteTemplate, selectCustomMarbeteTemplate, selectEffectiveMarbeteTemplate, selectMarbeteTemplate, resolveEffectiveMarbeteTemplate, resolveEffectiveMarbeteTemplateSvg, resolveAuthorizedPersonMarbeteTemplateSvg, saveMarbeteTemplate, saveVisualMarbeteTemplate, deleteMarbeteTemplate, applyMarbeteTemplateAction, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
 export { legacyTransaction, legacyQuery, legacyOne, legacyWrite, csvToList } from 'C:/Users/hp/husky-pass-crm/server/utils/mysql';
 export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, validateFamilyPassword, assertPasswordConfirmation } from 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy';
 export { SURVEY_NIVEL_OPTIONS, normalizeGoogleFormEmbedUrl, readPersonasConfig, writePersonasConfig, savePersonasConfig, surveyNivelFromStudent, resolveSurveyForStudent, appendAccessActionLog, readLastAccessActions } from 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig';

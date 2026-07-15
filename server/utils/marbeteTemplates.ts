@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
-import type { MarbeteTemplateMeta, MarbeteTemplateSettings, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteSvgDesign, MarbeteTemplateMeta, MarbeteTemplateSettings, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
 import { allPersonasThemes, normalizeNivel, PA_COLORS, resolveAuthorizedPersonMarbeteLevel, resolveAuthorizedPersonMarbetePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
 import { normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { displayMatricula } from '~/utils/matricula'
@@ -11,8 +11,10 @@ import { runtimeDataDir } from '~/server/utils/serverlessPaths'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
 import QRCode from 'qrcode'
-import { uploadToExternalService } from '~/server/utils/externalUpload'
-import { compileMarbeteVisualSvg, normalizeMarbeteVisualDesign, renderMarbeteVisualValues } from '~/utils/marbeteDesigner'
+import { dataUrlToUploadFile, uploadToExternalService } from '~/server/utils/externalUpload'
+import { compileMarbeteVisualSvg, normalizeMarbeteVisualDesign } from '~/utils/marbeteDesigner'
+import { appendMarbeteSvgDesign, normalizeMarbeteSvgDesign } from '~/utils/marbeteSvgEditor'
+import { renderMarbeteSvgValues } from '~/utils/marbeteSvgRuntime'
 import { readMarbeteTemplateSettings } from '~/server/utils/marbeteSettings'
 
 const LEGACY_TEMPLATE_DIR = runtimeDataDir('marbete-templates')
@@ -91,6 +93,7 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>, source: 'bundled-s
     status: row.status === 'draft' ? 'draft' : 'published',
     cicloEscolar: normalizeSchoolCycle(row.cicloEscolar),
     visualDesign: mode === 'visual' ? normalizeMarbeteVisualDesign(row.visualDesign, themeKey) : undefined,
+    svgDesign: mode === 'legacy-svg' ? normalizeMarbeteSvgDesign(row.svgDesign, themeKey) : undefined,
     basedOnId: row.basedOnId ? String(row.basedOnId) : undefined,
     publishedAt: row.publishedAt ? String(row.publishedAt) : undefined,
     createdAt: row.createdAt || new Date().toISOString(),
@@ -172,7 +175,7 @@ export function marbeteTemplateThemes() {
   return allPersonasThemes().filter((theme) => VALID_THEME_KEYS.has(theme.key))
 }
 
-export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
+export async function readMarbeteBaseSvg(template: MarbeteTemplateMeta) {
   if (template.mode === 'visual') {
     return compileMarbeteVisualSvg(normalizeMarbeteVisualDesign(template.visualDesign, template.themeKey), { mode: 'print' })
   }
@@ -197,6 +200,13 @@ export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   if (!svg) throw publicError(404, `No se encontro la plantilla SVG ${template.filename}.`)
   if (!svg.includes('<svg')) throw publicError(422, 'La plantilla SVG no es valida.')
   return svg
+}
+
+export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
+  const baseSvg = await readMarbeteBaseSvg(template)
+  if (template.mode === 'visual') return baseSvg
+  if (!template.svgDesign?.layers?.some((layer) => layer.visible)) return baseSvg
+  return appendMarbeteSvgDesign(baseSvg, normalizeMarbeteSvgDesign(template.svgDesign, template.themeKey), template.themeKey)
 }
 
 export type MarbeteTemplateSelectionInput = {
@@ -249,24 +259,33 @@ export function selectBundledMarbeteTemplate(templates: MarbeteTemplateMeta[], i
 }
 
 export function selectCustomMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
-  const custom = templates.filter((template) => template.source === 'custom' && template.status !== 'draft' && template.isDefault)
-  if (!custom.length) return null
-  try {
-    return selectFromPool(custom, input)
-  } catch {
-    return null
+  const customPublished = templates.filter((template) => template.source === 'custom' && template.status !== 'draft')
+  if (!customPublished.length) return null
+  const ciclo = normalizeSchoolCycle(input.cicloEscolar)
+  if (ciclo) {
+    const sameCycle = customPublished.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo)
+    if (sameCycle.length) {
+      try {
+        return selectFromPool(sameCycle, input)
+      } catch {}
+    }
   }
+  const active = customPublished.filter((template) => template.isDefault)
+  if (active.length) {
+    try {
+      return selectFromPool(active, input)
+    } catch {}
+  }
+  return null
 }
 
 export function selectEffectiveMarbeteTemplate(
   templates: MarbeteTemplateMeta[],
-  settings: MarbeteTemplateSettings,
+  _settings: MarbeteTemplateSettings,
   input: MarbeteTemplateSelectionInput
 ) {
-  if (settings.customTemplatesEnabled) {
-    const custom = selectCustomMarbeteTemplate(templates, input)
-    if (custom) return custom
-  }
+  const custom = selectCustomMarbeteTemplate(templates, input)
+  if (custom) return custom
   return selectBundledMarbeteTemplate(templates, input)
 }
 
@@ -292,17 +311,15 @@ export async function resolveEffectiveMarbeteTemplateSvg(input: MarbeteTemplateS
     readMarbeteTemplateSettings()
   ])
 
-  if (settings.customTemplatesEnabled) {
-    const custom = selectCustomMarbeteTemplate(templates, input)
-    if (custom) {
-      try {
-        return { template: custom, templateSvg: await readMarbeteTemplateSvg(custom), settings }
-      } catch (error) {
-        logPersonasWarning('marbete-custom-template-fallback', {
-          templateId: custom.id,
-          message: error instanceof Error ? error.message : String(error)
-        })
-      }
+  const custom = selectCustomMarbeteTemplate(templates, input)
+  if (custom) {
+    try {
+      return { template: custom, templateSvg: await readMarbeteTemplateSvg(custom), settings }
+    } catch (error) {
+      logPersonasWarning('marbete-custom-template-fallback', {
+        templateId: custom.id,
+        message: error instanceof Error ? error.message : String(error)
+      })
     }
   }
 
@@ -322,6 +339,7 @@ export async function saveMarbeteTemplate(input: {
   themeKey: PersonasThemeKey
   cicloEscolar?: string | null
   file?: { filename?: string | null; data: Buffer }
+  svgDesign?: MarbeteSvgDesign | null
 }) {
   if (!VALID_THEME_KEYS.has(input.themeKey)) {
     throw publicError(400, 'Tema de plantilla invalido.')
@@ -338,7 +356,7 @@ export async function saveMarbeteTemplate(input: {
   }
 
   if (!existing && !input.file?.data?.length) {
-    throw publicError(400, 'Agrega un archivo SVG para crear la plantilla.')
+    throw publicError(400, 'Agrega un archivo SVG o duplica una versión existente para iniciar el marbete.')
   }
 
   let filename = existing?.filename || ''
@@ -360,6 +378,23 @@ export async function saveMarbeteTemplate(input: {
     url = uploaded.absoluteUrl
   }
 
+  let svgDesign = normalizeMarbeteSvgDesign(input.svgDesign, input.themeKey)
+  svgDesign = {
+    ...svgDesign,
+    layers: await Promise.all(svgDesign.layers.map(async (layer) => {
+      if (layer.kind !== 'static-image' || !layer.assetUrl || !/^data:image\//i.test(layer.assetUrl)) return layer
+      const uploaded = await uploadToExternalService(
+        dataUrlToUploadFile(layer.assetUrl, `marbete-overlay-${safeId(layer.id || baseId)}`),
+        {
+          maxBytes: 10 * 1024 * 1024,
+          accept: 'images',
+          filenamePrefix: `marbete-overlay-${safeId(layer.id || baseId)}`
+        }
+      )
+      return { ...layer, assetUrl: uploaded.absoluteUrl }
+    }))
+  }
+
   const theme = resolvePersonasTheme({ themeKey: input.themeKey })
   const next: MarbeteTemplateMeta = {
     id: existing?.id || safeId(baseId),
@@ -374,6 +409,7 @@ export async function saveMarbeteTemplate(input: {
     mode: 'legacy-svg',
     status: existing?.status || 'draft',
     cicloEscolar: normalizeSchoolCycle(input.cicloEscolar),
+    svgDesign,
     basedOnId: existing?.basedOnId,
     publishedAt: existing?.publishedAt,
     createdAt: existing?.createdAt || now,
@@ -489,6 +525,7 @@ export async function applyMarbeteTemplateAction(input: {
       basedOnId: current.id,
       publishedAt: undefined,
       visualDesign: current.visualDesign ? normalizeMarbeteVisualDesign(JSON.parse(JSON.stringify(current.visualDesign)), current.themeKey) : undefined,
+      svgDesign: current.svgDesign ? normalizeMarbeteSvgDesign(JSON.parse(JSON.stringify(current.svgDesign)), current.themeKey) : undefined,
       createdAt: now,
       updatedAt: now,
       source: 'custom'
@@ -571,22 +608,6 @@ function currentSchoolYearLabel(date = new Date()) {
   return `${year}-${year + 1}`
 }
 
-function normalizeDynamicPhotoFrames(svg: string) {
-  return svg.replace(/<image\b([^>]*\{\{\s*getTrustedUrl\(data\.(?:foto|fotoP|compressed_foto|studentPhoto|fotoA)\)\s*\}\}[^>]*?)(\s*\/?)>/g, (_match, attrs: string, close: string) => {
-    let nextAttrs = attrs.replace(/\s*\/\s*$/, '')
-    if (/\spreserveAspectRatio=/i.test(nextAttrs)) {
-      nextAttrs = nextAttrs.replace(/\spreserveAspectRatio=(["'])[^"']*\1/i, ' preserveAspectRatio="xMidYMid slice"')
-    } else {
-      nextAttrs += ' preserveAspectRatio="xMidYMid slice"'
-    }
-    if (/\soverflow=/i.test(nextAttrs)) {
-      nextAttrs = nextAttrs.replace(/\soverflow=(["'])[^"']*\1/i, ' overflow="hidden"')
-    } else {
-      nextAttrs += ' overflow="hidden"'
-    }
-    return `<image${nextAttrs}${close.includes('/') ? '/>' : '>'}`
-  })
-}
 
 export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null): MarbeteRenderValues {
   const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
@@ -695,12 +716,6 @@ export function validateMarbeteRequirements(svg: string, data: PrintableAuthoriz
   return { ok: !unique(issues).length, issues: unique(issues) }
 }
 
-export function renderMarbeteSvgValues(svg: string, values: Record<string, string>) {
-  return renderMarbeteVisualValues(normalizeDynamicPhotoFrames(svg), values)
-    .replace(/{{\s*getTrustedUrl\(data\.([A-Za-z0-9_]+)\)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
-    .replace(/{{\s*data\.([A-Za-z0-9_]+)\s*}}/g, (_match, key: string) => escapeXml(values[key]))
-    .replace(/{{\s*[^}]+\s*}}/g, '')
-}
 
 export function renderMarbeteSvg(svg: string, data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null) {
   const { values } = buildMarbeteRenderValues(data, origin, templateCycle)

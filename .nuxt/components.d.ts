@@ -34,6 +34,7 @@ export const AdminGestionEscolarBanner: typeof import("../components/admin/Gesti
 export const AdminGestionModuleCard: typeof import("../components/admin/GestionModuleCard.vue")['default']
 export const AdminGestionScopePicker: typeof import("../components/admin/GestionScopePicker.vue")['default']
 export const AdminGestionScopedContentManager: typeof import("../components/admin/GestionScopedContentManager.vue")['default']
+export const AdminMarbeteSvgTemplateEditor: typeof import("../components/admin/MarbeteSvgTemplateEditor.vue")['default']
 export const AdminMarbeteVisualEditor: typeof import("../components/admin/MarbeteVisualEditor.vue")['default']
 export const AdminResourceEditor: typeof import("../components/admin/ResourceEditor.vue")['default']
 export const FamilyAuthorizedPersonEditor: typeof import("../components/family/AuthorizedPersonEditor.vue")['default']
@@ -99,6 +100,7 @@ export const LazyAdminGestionEscolarBanner: LazyComponent<typeof import("../comp
 export const LazyAdminGestionModuleCard: LazyComponent<typeof import("../components/admin/GestionModuleCard.vue")['default']>
 export const LazyAdminGestionScopePicker: LazyComponent<typeof import("../components/admin/GestionScopePicker.vue")['default']>
 export const LazyAdminGestionScopedContentManager: LazyComponent<typeof import("../components/admin/GestionScopedContentManager.vue")['default']>
+export const LazyAdminMarbeteSvgTemplateEditor: LazyComponent<typeof import("../components/admin/MarbeteSvgTemplateEditor.vue")['default']>
 export const LazyAdminMarbeteVisualEditor: LazyComponent<typeof import("../components/admin/MarbeteVisualEditor.vue")['default']>
 export const LazyAdminResourceEditor: LazyComponent<typeof import("../components/admin/ResourceEditor.vue")['default']>
 export const LazyFamilyAuthorizedPersonEditor: LazyComponent<typeof import("../components/family/AuthorizedPersonEditor.vue")['default']>

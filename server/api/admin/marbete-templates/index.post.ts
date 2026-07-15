@@ -3,8 +3,8 @@ import { publicError } from '~/server/utils/httpError'
 import { z } from 'zod'
 import { isSuperAdmin } from '~/server/utils/authz'
 import { requireSession } from '~/server/utils/session'
-import { saveMarbeteTemplate, saveVisualMarbeteTemplate } from '~/server/utils/marbeteTemplates'
-import { normalizeMarbeteVisualDesign } from '~/utils/marbeteDesigner'
+import { saveMarbeteTemplate } from '~/server/utils/marbeteTemplates'
+import { normalizeMarbeteSvgDesign } from '~/utils/marbeteSvgEditor'
 
 const schema = z.object({
   id: z.string().optional().nullable(),
@@ -12,9 +12,8 @@ const schema = z.object({
   nivel: z.string().trim().min(1),
   planteles: z.string().optional().default(''),
   themeKey: z.enum(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis']),
-  mode: z.enum(['legacy-svg', 'visual']).optional().default('legacy-svg'),
   cicloEscolar: z.string().optional().default(''),
-  visualDesign: z.string().optional().default('')
+  svgDesign: z.string().optional().default('')
 })
 
 function field(parts: NonNullable<Awaited<ReturnType<typeof readMultipartFormData>>>, name: string) {
@@ -34,32 +33,17 @@ export default defineEventHandler(async (event) => {
     nivel: field(parts, 'nivel'),
     planteles: field(parts, 'planteles'),
     themeKey: field(parts, 'themeKey'),
-    mode: field(parts, 'mode') || 'legacy-svg',
     cicloEscolar: field(parts, 'cicloEscolar'),
-    visualDesign: field(parts, 'visualDesign')
+    svgDesign: field(parts, 'svgDesign')
   })
   const planteles = body.planteles.split(',').map((item) => item.trim()).filter(Boolean)
-
-  if (body.mode === 'visual') {
-    const visualDesign: unknown = (() => {
-      try {
-        return body.visualDesign ? JSON.parse(body.visualDesign) : null
-      } catch {
-        throw publicError(400, 'La configuración visual no es válida.')
-      }
-    })()
-    const artworkPart = parts.find((part) => part.name === 'artwork' && part.data?.length)
-    return saveVisualMarbeteTemplate({
-      id: body.id,
-      name: body.name,
-      nivel: body.nivel,
-      planteles,
-      themeKey: body.themeKey,
-      cicloEscolar: body.cicloEscolar,
-      visualDesign: normalizeMarbeteVisualDesign(visualDesign, body.themeKey),
-      artwork: artworkPart?.data?.length ? { filename: artworkPart.filename, type: artworkPart.type, data: artworkPart.data } : undefined
-    })
-  }
+  const svgDesign: unknown = (() => {
+    try {
+      return body.svgDesign ? JSON.parse(body.svgDesign) : null
+    } catch {
+      throw publicError(400, 'La configuración del marbete no es válida.')
+    }
+  })()
 
   const filePart = parts.find((part) => part.name === 'file' && part.data?.length)
 
@@ -70,6 +54,7 @@ export default defineEventHandler(async (event) => {
     planteles,
     themeKey: body.themeKey,
     cicloEscolar: body.cicloEscolar,
+    svgDesign: normalizeMarbeteSvgDesign(svgDesign, body.themeKey),
     file: filePart?.data?.length ? { filename: filePart.filename, data: filePart.data } : undefined
   })
 })

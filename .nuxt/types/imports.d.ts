@@ -18,6 +18,7 @@ declare global {
   const MARBETE_PAGE_HEIGHT: typeof import('../../utils/marbeteDesigner').MARBETE_PAGE_HEIGHT
   const MARBETE_PAGE_WIDTH: typeof import('../../utils/marbeteDesigner').MARBETE_PAGE_WIDTH
   const MARBETE_REPRESENTATIVE_VALUES: typeof import('../../utils/marbeteDesigner').MARBETE_REPRESENTATIVE_VALUES
+  const MARBETE_SVG_LAYER_DEFINITIONS: typeof import('../../utils/marbeteSvgEditor').MARBETE_SVG_LAYER_DEFINITIONS
   const MARKETING_ADMIN_ROLE: typeof import('../../utils/sessionScopes').MARKETING_ADMIN_ROLE
   const PA_COLORS: typeof import('../../utils/personasTheme').PA_COLORS
   const PERSONAS_THEMES: typeof import('../../utils/personasTheme').PERSONAS_THEMES
@@ -32,6 +33,7 @@ declare global {
   const allPersonasThemes: typeof import('../../utils/personasTheme').allPersonasThemes
   const anonymousSession: typeof import('../../utils/routeSession').anonymousSession
   const appAbsoluteUrl: typeof import('../../utils/daycare').appAbsoluteUrl
+  const appendMarbeteSvgDesign: typeof import('../../utils/marbeteSvgEditor').appendMarbeteSvgDesign
   const authorizedPersonCredentialPath: typeof import('../../utils/daycare').authorizedPersonCredentialPath
   const authorizedPersonFormIsValid: typeof import('../../utils/authorizedPersonForm').authorizedPersonFormIsValid
   const authorizedPersonLabel: typeof import('../../utils/daycare').authorizedPersonLabel
@@ -54,6 +56,7 @@ declare global {
   const compileMarbeteVisualSvg: typeof import('../../utils/marbeteDesigner').compileMarbeteVisualSvg
   const computed: typeof import('../../node_modules/vue').computed
   const createAuthorizedPersonForm: typeof import('../../utils/authorizedPersonForm').createAuthorizedPersonForm
+  const createDefaultMarbeteSvgDesign: typeof import('../../utils/marbeteSvgEditor').createDefaultMarbeteSvgDesign
   const createDefaultMarbeteVisualDesign: typeof import('../../utils/marbeteDesigner').createDefaultMarbeteVisualDesign
   const createError: typeof import('../../node_modules/nuxt/dist/app/composables/error').createError
   const currentSchoolYearStart: typeof import('../../utils/attendance').currentSchoolYearStart
@@ -146,6 +149,7 @@ declare global {
   const makeSchoolYearRange: typeof import('../../utils/attendance').makeSchoolYearRange
   const marbeteElementDefinition: typeof import('../../utils/marbeteDesigner').marbeteElementDefinition
   const marbeteSvgDataUrl: typeof import('../../utils/marbeteDesigner').marbeteSvgDataUrl
+  const marbeteSvgLayerDefinition: typeof import('../../utils/marbeteSvgEditor').marbeteSvgLayerDefinition
   const markRaw: typeof import('../../node_modules/vue').markRaw
   const markValidatedVisionPhotoUrl: typeof import('../../utils/visionFace').markValidatedVisionPhotoUrl
   const matriculaSearchText: typeof import('../../utils/matricula').matriculaSearchText
@@ -153,9 +157,11 @@ declare global {
   const nextTick: typeof import('../../node_modules/vue').nextTick
   const normalizeAttendanceText: typeof import('../../utils/attendance').normalizeAttendanceText
   const normalizeCurp: typeof import('../../utils/curp').normalizeCurp
+  const normalizeDynamicPhotoFrames: typeof import('../../utils/marbeteSvgRuntime').normalizeDynamicPhotoFrames
   const normalizeEmail: typeof import('../../utils/superAdmin').normalizeEmail
   const normalizeExperienceName: typeof import('../../utils/experienceIdentity').normalizeExperienceName
   const normalizeInstitutionName: typeof import('../../utils/experienceIdentity').normalizeInstitutionName
+  const normalizeMarbeteSvgDesign: typeof import('../../utils/marbeteSvgEditor').normalizeMarbeteSvgDesign
   const normalizeMarbeteVisualDesign: typeof import('../../utils/marbeteDesigner').normalizeMarbeteVisualDesign
   const normalizeMatricula: typeof import('../../utils/matricula').normalizeMatricula
   const normalizeNivel: typeof import('../../utils/personasTheme').normalizeNivel
@@ -191,6 +197,7 @@ declare global {
   const parseCurpBirthDate: typeof import('../../utils/curp').parseCurpBirthDate
   const parseLegacyDate: typeof import('../../utils/daycare').parseLegacyDate
   const parseSchoolYearLabel: typeof import('../../utils/attendance').parseSchoolYearLabel
+  const parseSvgCanvas: typeof import('../../utils/marbeteSvgEditor').parseSvgCanvas
   const personasFamilyThemeContextKey: typeof import('../../composables/usePersonasTheme').personasFamilyThemeContextKey
   const personasInstitutionLogo: typeof import('../../utils/personasTheme').personasInstitutionLogo
   const personasInstitutionName: typeof import('../../utils/personasTheme').personasInstitutionName
@@ -204,6 +211,7 @@ declare global {
   const preloadPayload: typeof import('../../node_modules/nuxt/dist/app/composables/payload').preloadPayload
   const preloadRouteComponents: typeof import('../../node_modules/nuxt/dist/app/composables/preload').preloadRouteComponents
   const prerenderRoutes: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').prerenderRoutes
+  const previewMarbeteSvg: typeof import('../../utils/marbeteSvgEditor').previewMarbeteSvg
   const processFaceImage: typeof import('../../utils/visionFace').processFaceImage
   const processFaceImageCached: typeof import('../../utils/visionFace').processFaceImageCached
   const provide: typeof import('../../node_modules/vue').provide
@@ -216,6 +224,7 @@ declare global {
   const refreshCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie').refreshCookie
   const refreshNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').refreshNuxtData
   const reloadNuxtApp: typeof import('../../node_modules/nuxt/dist/app/composables/chunk').reloadNuxtApp
+  const renderMarbeteSvgValues: typeof import('../../utils/marbeteSvgRuntime').renderMarbeteSvgValues
   const renderMarbeteVisualValues: typeof import('../../utils/marbeteDesigner').renderMarbeteVisualValues
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback').requestIdleCallback
   const requiresInstitutionalOnboarding: typeof import('../../utils/sessionScopes').requiresInstitutionalOnboarding
@@ -387,6 +396,9 @@ declare global {
   export type { MarbeteElementDefinition } from '../../utils/marbeteDesigner'
   import('../../utils/marbeteDesigner')
   // @ts-ignore
+  export type { MarbeteSvgLayerDefinition } from '../../utils/marbeteSvgEditor'
+  import('../../utils/marbeteSvgEditor')
+  // @ts-ignore
   export type { PersonasMascotVariant, AuthorizedPersonMarbeteLevel } from '../../utils/personasTheme'
   import('../../utils/personasTheme')
   // @ts-ignore
@@ -417,6 +429,7 @@ declare module 'vue' {
     readonly MARBETE_PAGE_HEIGHT: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_PAGE_HEIGHT']>
     readonly MARBETE_PAGE_WIDTH: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_PAGE_WIDTH']>
     readonly MARBETE_REPRESENTATIVE_VALUES: UnwrapRef<typeof import('../../utils/marbeteDesigner')['MARBETE_REPRESENTATIVE_VALUES']>
+    readonly MARBETE_SVG_LAYER_DEFINITIONS: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['MARBETE_SVG_LAYER_DEFINITIONS']>
     readonly MARKETING_ADMIN_ROLE: UnwrapRef<typeof import('../../utils/sessionScopes')['MARKETING_ADMIN_ROLE']>
     readonly PA_COLORS: UnwrapRef<typeof import('../../utils/personasTheme')['PA_COLORS']>
     readonly PERSONAS_THEMES: UnwrapRef<typeof import('../../utils/personasTheme')['PERSONAS_THEMES']>
@@ -431,6 +444,7 @@ declare module 'vue' {
     readonly allPersonasThemes: UnwrapRef<typeof import('../../utils/personasTheme')['allPersonasThemes']>
     readonly anonymousSession: UnwrapRef<typeof import('../../utils/routeSession')['anonymousSession']>
     readonly appAbsoluteUrl: UnwrapRef<typeof import('../../utils/daycare')['appAbsoluteUrl']>
+    readonly appendMarbeteSvgDesign: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['appendMarbeteSvgDesign']>
     readonly authorizedPersonCredentialPath: UnwrapRef<typeof import('../../utils/daycare')['authorizedPersonCredentialPath']>
     readonly authorizedPersonFormIsValid: UnwrapRef<typeof import('../../utils/authorizedPersonForm')['authorizedPersonFormIsValid']>
     readonly authorizedPersonLabel: UnwrapRef<typeof import('../../utils/daycare')['authorizedPersonLabel']>
@@ -453,6 +467,7 @@ declare module 'vue' {
     readonly compileMarbeteVisualSvg: UnwrapRef<typeof import('../../utils/marbeteDesigner')['compileMarbeteVisualSvg']>
     readonly computed: UnwrapRef<typeof import('../../node_modules/vue')['computed']>
     readonly createAuthorizedPersonForm: UnwrapRef<typeof import('../../utils/authorizedPersonForm')['createAuthorizedPersonForm']>
+    readonly createDefaultMarbeteSvgDesign: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['createDefaultMarbeteSvgDesign']>
     readonly createDefaultMarbeteVisualDesign: UnwrapRef<typeof import('../../utils/marbeteDesigner')['createDefaultMarbeteVisualDesign']>
     readonly createError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['createError']>
     readonly currentSchoolYearStart: UnwrapRef<typeof import('../../utils/attendance')['currentSchoolYearStart']>
@@ -545,6 +560,7 @@ declare module 'vue' {
     readonly makeSchoolYearRange: UnwrapRef<typeof import('../../utils/attendance')['makeSchoolYearRange']>
     readonly marbeteElementDefinition: UnwrapRef<typeof import('../../utils/marbeteDesigner')['marbeteElementDefinition']>
     readonly marbeteSvgDataUrl: UnwrapRef<typeof import('../../utils/marbeteDesigner')['marbeteSvgDataUrl']>
+    readonly marbeteSvgLayerDefinition: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['marbeteSvgLayerDefinition']>
     readonly markRaw: UnwrapRef<typeof import('../../node_modules/vue')['markRaw']>
     readonly markValidatedVisionPhotoUrl: UnwrapRef<typeof import('../../utils/visionFace')['markValidatedVisionPhotoUrl']>
     readonly matriculaSearchText: UnwrapRef<typeof import('../../utils/matricula')['matriculaSearchText']>
@@ -552,9 +568,11 @@ declare module 'vue' {
     readonly nextTick: UnwrapRef<typeof import('../../node_modules/vue')['nextTick']>
     readonly normalizeAttendanceText: UnwrapRef<typeof import('../../utils/attendance')['normalizeAttendanceText']>
     readonly normalizeCurp: UnwrapRef<typeof import('../../utils/curp')['normalizeCurp']>
+    readonly normalizeDynamicPhotoFrames: UnwrapRef<typeof import('../../utils/marbeteSvgRuntime')['normalizeDynamicPhotoFrames']>
     readonly normalizeEmail: UnwrapRef<typeof import('../../utils/superAdmin')['normalizeEmail']>
     readonly normalizeExperienceName: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizeExperienceName']>
     readonly normalizeInstitutionName: UnwrapRef<typeof import('../../utils/experienceIdentity')['normalizeInstitutionName']>
+    readonly normalizeMarbeteSvgDesign: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['normalizeMarbeteSvgDesign']>
     readonly normalizeMarbeteVisualDesign: UnwrapRef<typeof import('../../utils/marbeteDesigner')['normalizeMarbeteVisualDesign']>
     readonly normalizeMatricula: UnwrapRef<typeof import('../../utils/matricula')['normalizeMatricula']>
     readonly normalizeNivel: UnwrapRef<typeof import('../../utils/personasTheme')['normalizeNivel']>
@@ -590,6 +608,7 @@ declare module 'vue' {
     readonly parseCurpBirthDate: UnwrapRef<typeof import('../../utils/curp')['parseCurpBirthDate']>
     readonly parseLegacyDate: UnwrapRef<typeof import('../../utils/daycare')['parseLegacyDate']>
     readonly parseSchoolYearLabel: UnwrapRef<typeof import('../../utils/attendance')['parseSchoolYearLabel']>
+    readonly parseSvgCanvas: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['parseSvgCanvas']>
     readonly personasFamilyThemeContextKey: UnwrapRef<typeof import('../../composables/usePersonasTheme')['personasFamilyThemeContextKey']>
     readonly personasInstitutionLogo: UnwrapRef<typeof import('../../utils/personasTheme')['personasInstitutionLogo']>
     readonly personasInstitutionName: UnwrapRef<typeof import('../../utils/personasTheme')['personasInstitutionName']>
@@ -603,6 +622,7 @@ declare module 'vue' {
     readonly preloadPayload: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/payload')['preloadPayload']>
     readonly preloadRouteComponents: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preload')['preloadRouteComponents']>
     readonly prerenderRoutes: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['prerenderRoutes']>
+    readonly previewMarbeteSvg: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['previewMarbeteSvg']>
     readonly processFaceImage: UnwrapRef<typeof import('../../utils/visionFace')['processFaceImage']>
     readonly processFaceImageCached: UnwrapRef<typeof import('../../utils/visionFace')['processFaceImageCached']>
     readonly provide: UnwrapRef<typeof import('../../node_modules/vue')['provide']>
@@ -615,6 +635,7 @@ declare module 'vue' {
     readonly refreshCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['refreshCookie']>
     readonly refreshNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['refreshNuxtData']>
     readonly reloadNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']>
+    readonly renderMarbeteSvgValues: UnwrapRef<typeof import('../../utils/marbeteSvgRuntime')['renderMarbeteSvgValues']>
     readonly renderMarbeteVisualValues: UnwrapRef<typeof import('../../utils/marbeteDesigner')['renderMarbeteVisualValues']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
     readonly requiresInstitutionalOnboarding: UnwrapRef<typeof import('../../utils/sessionScopes')['requiresInstitutionalOnboarding']>

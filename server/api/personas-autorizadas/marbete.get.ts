@@ -6,9 +6,9 @@ import { getCredentialAuthorizedPersona } from '~/server/data/mysqlDaycare'
 import {
   buildMarbeteRenderValues,
   marbeteDownloadName,
-  renderMarbeteSvgValues,
   resolveAuthorizedPersonMarbeteTemplateSvg
 } from '~/server/utils/marbeteTemplates'
+import { renderMarbeteSvgValues } from '~/utils/marbeteSvgRuntime'
 import { renderMarbetePdf } from '~/server/utils/marbetePdf'
 import { withRequestBoundary } from '~/server/utils/logger'
 import type { MarbeteReadinessResponse } from '~/types/daycare'

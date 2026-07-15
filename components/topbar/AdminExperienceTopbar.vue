@@ -108,9 +108,6 @@ const enrollmentAvailable = computed(() => Boolean(
 ))
 
 const currentArea = computed(() => {
-  if (route.path.startsWith('/admin/superadmin/personas-autorizadas') || route.path.startsWith('/admin/superadmin/marbetes')) {
-    return { key: 'access', label: 'Accesos', icon: 'badge' }
-  }
   if (route.path.startsWith('/admin/superadmin')) return { key: 'platform', label: 'Plataforma', icon: 'people' }
   if (route.path.startsWith('/admin/gestion-escolar')) return { key: 'school', label: 'Escolar', icon: 'school' }
   if (route.path.startsWith('/admin/daycare')) return { key: 'daycare', label: 'Guardería', icon: 'daycare' }
@@ -129,14 +126,8 @@ const secondaryItems = computed<ContextNavItem[]>(() => {
   if (currentArea.value.key === 'platform') {
     return [
       { label: 'Usuarios', to: '/admin/superadmin', icon: 'people' },
-      { label: 'Sistema', to: '/admin/superadmin/entorno', icon: 'security' }
-    ]
-  }
-
-  if (currentArea.value.key === 'access') {
-    return [
-      { label: 'Pases', to: '/admin/superadmin/personas-autorizadas', icon: 'badge' },
-      { label: 'Plantillas', to: '/admin/superadmin/marbetes', icon: 'marbete' }
+      { label: 'Sistema', to: '/admin/superadmin/entorno', icon: 'security' },
+      { label: 'Marbetes', to: '/admin/superadmin/marbetes', icon: 'marbete' }
     ]
   }
 

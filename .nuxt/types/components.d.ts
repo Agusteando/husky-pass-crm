@@ -34,6 +34,7 @@ interface _GlobalComponents {
   AdminGestionModuleCard: typeof import("../../components/admin/GestionModuleCard.vue")['default']
   AdminGestionScopePicker: typeof import("../../components/admin/GestionScopePicker.vue")['default']
   AdminGestionScopedContentManager: typeof import("../../components/admin/GestionScopedContentManager.vue")['default']
+  AdminMarbeteSvgTemplateEditor: typeof import("../../components/admin/MarbeteSvgTemplateEditor.vue")['default']
   AdminMarbeteVisualEditor: typeof import("../../components/admin/MarbeteVisualEditor.vue")['default']
   AdminResourceEditor: typeof import("../../components/admin/ResourceEditor.vue")['default']
   FamilyAuthorizedPersonEditor: typeof import("../../components/family/AuthorizedPersonEditor.vue")['default']
@@ -99,6 +100,7 @@ interface _GlobalComponents {
   LazyAdminGestionModuleCard: LazyComponent<typeof import("../../components/admin/GestionModuleCard.vue")['default']>
   LazyAdminGestionScopePicker: LazyComponent<typeof import("../../components/admin/GestionScopePicker.vue")['default']>
   LazyAdminGestionScopedContentManager: LazyComponent<typeof import("../../components/admin/GestionScopedContentManager.vue")['default']>
+  LazyAdminMarbeteSvgTemplateEditor: LazyComponent<typeof import("../../components/admin/MarbeteSvgTemplateEditor.vue")['default']>
   LazyAdminMarbeteVisualEditor: LazyComponent<typeof import("../../components/admin/MarbeteVisualEditor.vue")['default']>
   LazyAdminResourceEditor: LazyComponent<typeof import("../../components/admin/ResourceEditor.vue")['default']>
   LazyFamilyAuthorizedPersonEditor: LazyComponent<typeof import("../../components/family/AuthorizedPersonEditor.vue")['default']>
