@@ -141,28 +141,16 @@ export interface FamilyAccount {
 
 export interface DaycareRoomMember extends FamilyAccount {
   id: number
-  salaId: number | null
-  salaName: string | null
+  salaId: number
+  salaName: string
   relatedRecords: number
   authorizedPeople: number
   linkedStudents: number
-  duplicateGroupKey?: string | null
-  duplicateCount?: number
-}
-
-export interface DaycareDuplicateGroup {
-  key: string
-  canonicalId: number
-  matchBy: Array<'email' | 'username'>
-  members: DaycareRoomMember[]
 }
 
 export interface DaycareRoomManagementStats {
   total: number
   assigned: number
-  unassigned: number
-  duplicateAccounts: number
-  duplicateGroups: number
 }
 
 export interface DaycareRoomManagementOverview {
@@ -170,7 +158,6 @@ export interface DaycareRoomManagementOverview {
   unidades: string[]
   salas: Sala[]
   members: DaycareRoomMember[]
-  duplicates: DaycareDuplicateGroup[]
   stats: DaycareRoomManagementStats
 }
 

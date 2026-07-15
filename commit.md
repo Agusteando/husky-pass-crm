@@ -1,1 +1,1 @@
-Restaura la identidad visual y mejora únicamente la promoción entre salas
+Restringe la gestión por unidad y unifica usuarios al cambiar de sala

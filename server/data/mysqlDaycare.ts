@@ -20,6 +20,10 @@ import { normalizeSchoolPlantel, schoolPlantelSqlFromMatricula } from '~/utils/s
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { hashLegacyPassword } from '~/server/data/mysqlAuth'
 import { attachRosterToFamilyAccounts } from '~/server/data/daycareRoster'
+import { getSalasForUnidad } from '~/server/data/daycareScopes'
+import { moveDaycareRoomMembers } from '~/server/data/daycareRoomManagement'
+
+export { getSalasForUnidad, listAdminDaycareUnits } from '~/server/data/daycareScopes'
 
 type AdminResourcePayload = Omit<DaycareResource, 'unidad'> & { unidad?: string }
 type FamilyAccountPayload = Omit<FamilyAccount, 'unidad'> & { unidad?: string }
@@ -309,23 +313,6 @@ function matriculaSelect(columns: Set<string>, field: string, alias = 'm') {
 function missingRequiredParentFields(row: Partial<Record<ParentNameField, unknown>> | null | undefined) {
   if (!row) return [...REQUIRED_PARENT_NAME_FIELDS]
   return REQUIRED_PARENT_NAME_FIELDS.filter((field) => !normalizeFamilyName(row[field]))
-}
-
-export async function getSalasForUnidad(user: AppSessionUser, unidad: string) {
-  assertUnidadAccess(user, unidad)
-  const rows = await legacyQuery<(Sala & RowDataPacket)[]>('SELECT id, sala, unidad FROM salas WHERE unidad = ? ORDER BY id ASC', [unidad])
-  return rows.map((row) => ({ id: Number(row.id), sala: row.sala, unidad: row.unidad }))
-}
-
-export async function listAdminDaycareUnits(user: AppSessionUser) {
-  if (!user.isSuperAdmin) return user.unidades.filter(Boolean)
-  const rows = await legacyQuery<(RowDataPacket & { unidad: string | null })[]>(
-    `SELECT DISTINCT unidad
-     FROM salas
-     WHERE unidad IS NOT NULL AND TRIM(unidad) <> ''
-     ORDER BY unidad ASC`
-  )
-  return rows.map((row) => String(row.unidad || '').trim()).filter(Boolean)
 }
 
 export async function getSalaById(user: AppSessionUser, salaId: number) {
@@ -695,21 +682,28 @@ export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyA
     return { ...payload, username, email, role, unidad: sala.unidad, sala: String(sala.id) }
   }
 
-  const identityRows = await legacyQuery<RowDataPacket[]>(
-    `SELECT id, role, unidad, sala
-     FROM users
-     WHERE FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
-       AND (LOWER(TRIM(COALESCE(email, ''))) = ? OR LOWER(TRIM(COALESCE(username, ''))) IN (?, ?))
-     ORDER BY id ASC
-     LIMIT 3`,
-    [DAYCARE_FAMILY_ROLE, email, email, username]
-  )
+  const unitSalaIds = (await getSalasForUnidad(user, sala.unidad)).map((item) => item.id)
+  const identityRows = unitSalaIds.length
+    ? await legacyQuery<RowDataPacket[]>(
+        `SELECT id, role, unidad, sala
+         FROM users
+         WHERE REPLACE(TRIM(COALESCE(role, '')), ' ', '') = ?
+           AND CAST(sala AS UNSIGNED) IN (${unitSalaIds.map(() => '?').join(',')})
+           AND LOWER(TRIM(COALESCE(email, ''))) = ?
+         ORDER BY CASE WHEN CAST(sala AS UNSIGNED) = ? THEN 0 ELSE 1 END, id ASC
+         LIMIT 20`,
+        [DAYCARE_FAMILY_ROLE, ...unitSalaIds, email, sala.id]
+      )
+    : []
 
-  if (identityRows.length > 1) {
-    throw publicError(409, 'Detectamos cuentas duplicadas. Consolídalas desde Usuarios antes de continuar.')
+  let reusable = identityRows[0]
+  if (identityRows.length > 1 && reusable) {
+    const healed = await moveDaycareRoomMembers(user, {
+      userIds: [Number(reusable.id)],
+      targetSalaId: sala.id
+    })
+    reusable = { ...reusable, id: healed.userIds[0] || Number(reusable.id), unidad: sala.unidad, sala: sala.id }
   }
-
-  const reusable = identityRows[0]
   if (reusable) {
     const existingRoles = String(reusable.role || '').split(',').map((item) => item.trim()).filter(Boolean)
     const existingUnidades = String(reusable.unidad || '').split(',').map((item) => item.trim()).filter(Boolean)

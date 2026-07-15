@@ -137,9 +137,6 @@ declare module "nitropack/types" {
     '/api/daycare/admin/room-management': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/index.get').default>>>>
     }
-    '/api/daycare/admin/room-management/merge': {
-      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/merge.post').default>>>>
-    }
     '/api/daycare/admin/room-management/move': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/move.post').default>>>>
     }

@@ -1,15 +1,14 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
 import type {
-  DaycareDuplicateGroup,
   DaycareRoomManagementOverview,
   DaycareRoomMember,
   Sala
 } from '~/types/daycare'
-import { getSalasForUnidad, listAdminDaycareUnits } from '~/server/data/mysqlDaycare'
+import { getSalasForUnidad, listAdminDaycareUnits } from '~/server/data/daycareScopes'
 import { assertUnidadAccess } from '~/server/utils/authz'
 import { publicError } from '~/server/utils/httpError'
-import { legacyOne, legacyQuery, legacyTransaction, legacyWrite } from '~/server/utils/mysql'
+import { legacyOne, legacyQuery, legacyTransaction } from '~/server/utils/mysql'
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 
 interface ManagedUserRow extends RowDataPacket {
@@ -46,29 +45,12 @@ type TransactionClient = {
   write: (sql: string, params?: Array<string | number | boolean | Date | null>) => Promise<ResultSetHeader>
 }
 
-const GENERIC_IDENTITY_VALUES = new Set([
-  'familia',
-  'usuario',
-  'user',
-  'guarderia',
-  'daycare',
-  'pendiente',
-  'sin correo',
-  'sin usuario'
-])
-
 let usersColumnCache: Set<string> | null = null
 const tableAvailability = new Map<string, boolean>()
 
 function normalizeEmail(value: unknown) {
   const email = String(value || '').trim().toLowerCase()
   return email.includes('@') && email.length >= 6 ? email : ''
-}
-
-function normalizeUsername(value: unknown) {
-  const username = String(value || '').trim().toLowerCase().replace(/\s+/g, '')
-  if (username.length < 4 || GENERIC_IDENTITY_VALUES.has(username)) return ''
-  return username
 }
 
 function normalizeName(value: unknown) {
@@ -127,101 +109,48 @@ async function relatedCountMap(table: string, ids: number[]) {
   return map
 }
 
-function buildDuplicateGroups(members: DaycareRoomMember[]) {
-  const parent = new Map<number, number>()
-  const tokenOwner = new Map<string, number>()
-  const tokenKinds = new Map<string, 'email' | 'username'>()
+function memberQualityScore(member: DaycareRoomMember) {
+  return (
+    member.relatedRecords * 100
+    + (member.plaintext ? 20 : 0)
+    + (member.nombre_nino ? 12 : 0)
+    + (member.salaId ? 8 : 0)
+    + (member.email ? 4 : 0)
+  )
+}
 
-  function find(id: number): number {
-    const current = parent.get(id) ?? id
-    if (current === id) return id
-    const root = find(current)
-    parent.set(id, root)
-    return root
-  }
-
-  function union(left: number, right: number) {
-    const leftRoot = find(left)
-    const rightRoot = find(right)
-    if (leftRoot !== rightRoot) parent.set(rightRoot, leftRoot)
-  }
+function collapseMembersByEmail(members: DaycareRoomMember[]) {
+  const grouped = new Map<string, DaycareRoomMember[]>()
 
   for (const member of members) {
-    parent.set(member.id, member.id)
-    const tokens: Array<[string, 'email' | 'username']> = []
     const email = normalizeEmail(member.email)
-    const username = normalizeUsername(member.username)
-    if (email) tokens.push([`email:${email}`, 'email'])
-    if (username) tokens.push([`username:${username}`, 'username'])
-
-    for (const [token, kind] of tokens) {
-      tokenKinds.set(token, kind)
-      const owner = tokenOwner.get(token)
-      if (owner) union(owner, member.id)
-      else tokenOwner.set(token, member.id)
-    }
-  }
-
-  const grouped = new Map<number, DaycareRoomMember[]>()
-  for (const member of members) {
-    const root = find(member.id)
-    const bucket = grouped.get(root) || []
+    const key = email ? `email:${email}` : `id:${member.id}`
+    const bucket = grouped.get(key) || []
     bucket.push(member)
-    grouped.set(root, bucket)
+    grouped.set(key, bucket)
   }
 
-  const duplicates: DaycareDuplicateGroup[] = []
-  for (const rows of grouped.values()) {
-    if (rows.length < 2) continue
-    const ids = new Set(rows.map((row) => row.id))
-    const matchBy = new Set<'email' | 'username'>()
-    for (const [token, owner] of tokenOwner.entries()) {
-      if (!ids.has(owner)) continue
-      const tokenValue = token.slice(token.indexOf(':') + 1)
-      const matches = rows.filter((row) => token.startsWith('email:')
-        ? normalizeEmail(row.email) === tokenValue
-        : normalizeUsername(row.username) === tokenValue)
-      if (matches.length > 1) matchBy.add(tokenKinds.get(token) || 'username')
-    }
-
-    const sorted = [...rows].sort((a, b) => {
-      const score = (member: DaycareRoomMember) => (
-        member.relatedRecords * 100
-        + (member.plaintext ? 20 : 0)
-        + (member.nombre_nino ? 12 : 0)
-        + (member.salaId ? 8 : 0)
-        + (member.email ? 4 : 0)
-      )
-      return score(b) - score(a) || a.id - b.id
+  return Array.from(grouped.values())
+    .map((rows) => [...rows].sort((left, right) => memberQualityScore(right) - memberQualityScore(left) || left.id - right.id)[0])
+    .sort((left, right) => {
+      const leftName = String(left.nombre_nino || left.email || left.username || '')
+      const rightName = String(right.nombre_nino || right.email || right.username || '')
+      return leftName.localeCompare(rightName, 'es', { sensitivity: 'base' }) || left.id - right.id
     })
-    const key = `dup-${sorted.map((row) => row.id).sort((a, b) => a - b).join('-')}`
-    const group: DaycareDuplicateGroup = {
-      key,
-      canonicalId: sorted[0].id,
-      matchBy: Array.from(matchBy),
-      members: sorted
-    }
-    duplicates.push(group)
-    for (const member of rows) {
-      member.duplicateGroupKey = key
-      member.duplicateCount = rows.length
-    }
-  }
-
-  return duplicates.sort((a, b) => b.members.length - a.members.length || a.members[0].id - b.members[0].id)
 }
 
 export async function getDaycareRoomManagementOverview(user: AppSessionUser, requestedUnidad?: string | null): Promise<DaycareRoomManagementOverview> {
   const unidades = await listAdminDaycareUnits(user)
-  const unidad = String(requestedUnidad || '').trim() || unidades[0] || ''
+  const requested = String(requestedUnidad || '').trim()
+  const unidad = requested && unidades.includes(requested) ? requested : unidades[0] || ''
+
   if (!unidad) {
     return {
       unidad: '',
       unidades,
       salas: [],
       members: [],
-      duplicates: [],
-      stats: { total: 0, assigned: 0, unassigned: 0, duplicateAccounts: 0, duplicateGroups: 0 }
+      stats: { total: 0, assigned: 0 }
     }
   }
 
@@ -229,14 +158,24 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
   const salas = await getSalasForUnidad(user, unidad)
   const salaIds = salas.map((sala) => sala.id)
   const salaById = new Map(salas.map((sala) => [sala.id, sala]))
-  const salaClause = salaIds.length ? ` OR CAST(sala AS UNSIGNED) IN (${salaIds.map(() => '?').join(',')})` : ''
+
+  if (!salaIds.length) {
+    return {
+      unidad,
+      unidades,
+      salas,
+      members: [],
+      stats: { total: 0, assigned: 0 }
+    }
+  }
+
   const rows = await legacyQuery<ManagedUserRow[]>(
     `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala
      FROM users
-     WHERE FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
-       AND (FIND_IN_SET(?, REPLACE(COALESCE(unidad, ''), ' ', '')) > 0${salaClause})
+     WHERE REPLACE(TRIM(COALESCE(role, '')), ' ', '') = ?
+       AND CAST(sala AS UNSIGNED) IN (${salaIds.map(() => '?').join(',')})
      ORDER BY nombre_nino ASC, email ASC, id ASC`,
-    [DAYCARE_FAMILY_ROLE, unidad, ...salaIds]
+    [DAYCARE_FAMILY_ROLE, ...salaIds]
   )
 
   const ids = rows.map((row) => Number(row.id)).filter((id) => Number.isInteger(id) && id > 0)
@@ -245,7 +184,7 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
     relatedCountMap('alumno_pa', ids)
   ])
 
-  const members: DaycareRoomMember[] = rows.map((row) => {
+  const rawMembers: DaycareRoomMember[] = rows.map((row) => {
     const id = Number(row.id)
     const salaId = Number(row.sala || 0)
     const sala = salaById.get(salaId) || null
@@ -259,84 +198,174 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
       plaintext: row.plaintext || null,
       role: row.role || DAYCARE_FAMILY_ROLE,
       unidad,
-      sala: salaId || '',
-      salaId: sala?.id || null,
-      salaName: sala?.sala || null,
+      sala: salaId,
+      salaId: sala?.id || salaId,
+      salaName: sala?.sala || '',
       relatedRecords: authorizedPeople + linkedStudents,
       authorizedPeople,
-      linkedStudents,
-      duplicateGroupKey: null,
-      duplicateCount: 0
+      linkedStudents
     }
   })
 
-  const duplicates = buildDuplicateGroups(members)
-  const duplicateAccounts = duplicates.reduce((total, group) => total + group.members.length, 0)
-  const assigned = members.filter((member) => Boolean(member.salaId)).length
+  const members = collapseMembersByEmail(rawMembers)
 
   return {
     unidad,
     unidades,
     salas,
     members,
-    duplicates,
     stats: {
       total: members.length,
-      assigned,
-      unassigned: members.length - assigned,
-      duplicateAccounts,
-      duplicateGroups: duplicates.length
+      assigned: members.length
     }
   }
 }
 
-async function fetchManagedUsers(ids: number[]) {
-  if (!ids.length) return []
-  const columns = await getUsersColumns()
-  const passwordSelect = columns.has('password') ? ', password' : ''
-  const placeholders = ids.map(() => '?').join(',')
-  return legacyQuery<ManagedUserRow[]>(
-    `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala${passwordSelect}
-     FROM users WHERE id IN (${placeholders}) ORDER BY id ASC`,
-    ids
+function managedRowQualityScore(row: ManagedUserRow) {
+  return (
+    (String(row.plaintext || '').trim() ? 20 : 0)
+    + (String(row.password || '').trim() ? 18 : 0)
+    + (String(row.nombre_nino || '').trim() ? 12 : 0)
+    + (Number(row.sala || 0) ? 8 : 0)
+    + (normalizeEmail(row.email) ? 4 : 0)
   )
 }
 
-async function assertRowsInScope(user: AppSessionUser, rows: ManagedUserRow[]) {
-  for (const row of rows) {
-    assertPureDaycareFamily(row)
-    const unidades = csvTokens(row.unidad)
-    if (unidades.length) {
-      for (const unidad of unidades) assertUnidadAccess(user, unidad)
-      continue
-    }
+function chooseCanonicalRow(rows: ManagedUserRow[], targetSalaId: number, selectedIds: Set<number>) {
+  return [...rows].sort((left, right) => {
+    const leftTarget = Number(left.sala || 0) === targetSalaId ? 1 : 0
+    const rightTarget = Number(right.sala || 0) === targetSalaId ? 1 : 0
+    if (leftTarget !== rightTarget) return rightTarget - leftTarget
 
-    const salaId = Number(row.sala || 0)
-    if (!salaId) throw publicError(409, 'La cuenta no tiene unidad ni sala asignada.')
-    const sala = await legacyOne<RowDataPacket>('SELECT unidad FROM salas WHERE id = ? LIMIT 1', [salaId])
-    if (!sala?.unidad) throw publicError(409, 'La sala actual ya no está disponible.')
-    assertUnidadAccess(user, String(sala.unidad))
-  }
+    const leftSelected = selectedIds.has(Number(left.id)) ? 1 : 0
+    const rightSelected = selectedIds.has(Number(right.id)) ? 1 : 0
+    if (leftSelected !== rightSelected) return rightSelected - leftSelected
+
+    return managedRowQualityScore(right) - managedRowQualityScore(left) || Number(left.id) - Number(right.id)
+  })[0]
 }
 
 export async function moveDaycareRoomMembers(user: AppSessionUser, input: { userIds: number[]; targetSalaId: number }) {
-  const ids = Array.from(new Set(input.userIds.map(Number).filter((id) => Number.isInteger(id) && id > 0)))
+  const ids = Array.from(new Set(input.userIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))).sort((a, b) => a - b)
   if (!ids.length) throw publicError(400, 'Selecciona al menos una cuenta.')
+
   const target = await legacyOne<(Sala & RowDataPacket)>('SELECT id, sala, unidad FROM salas WHERE id = ? LIMIT 1', [input.targetSalaId])
   if (!target) throw publicError(404, 'Sala no encontrada.')
   assertUnidadAccess(user, String(target.unidad))
 
-  const rows = await fetchManagedUsers(ids)
-  if (rows.length !== ids.length) throw publicError(404, 'Una o más cuentas ya no están disponibles.')
-  await assertRowsInScope(user, rows)
+  const unitSalas = await getSalasForUnidad(user, String(target.unidad))
+  const unitSalaIds = unitSalas.map((sala) => Number(sala.id))
+  const unitSalaSet = new Set(unitSalaIds)
+  if (!unitSalaSet.has(Number(target.id))) throw publicError(403, 'Sala fuera del alcance del usuario.')
 
-  await legacyWrite(
-    `UPDATE users SET unidad = ?, sala = ? WHERE id IN (${ids.map(() => '?').join(',')})`,
-    [String(target.unidad), String(target.id), ...ids]
-  )
+  const columns = await getUsersColumns()
+  const passwordSelect = columns.has('password') ? ', password' : ''
+  const selectedIdSet = new Set(ids)
+
+  const result = await legacyTransaction(async (tx) => {
+    const selectedRows = await tx.query<ManagedUserRow[]>(
+      `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala${passwordSelect}
+       FROM users
+       WHERE id IN (${ids.map(() => '?').join(',')})
+       ORDER BY id ASC
+       FOR UPDATE`,
+      ids
+    )
+
+    if (selectedRows.length !== ids.length) throw publicError(404, 'Una o más cuentas ya no están disponibles.')
+
+    for (const row of selectedRows) {
+      assertPureDaycareFamily(row)
+      if (!unitSalaSet.has(Number(row.sala || 0))) {
+        throw publicError(403, 'Una o más cuentas están fuera de la unidad seleccionada.')
+      }
+    }
+
+    const emails = Array.from(new Set(selectedRows.map((row) => normalizeEmail(row.email)).filter(Boolean))).sort()
+    let scopedRows = [...selectedRows]
+
+    if (emails.length) {
+      const emailRows = await tx.query<ManagedUserRow[]>(
+        `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala${passwordSelect}
+         FROM users
+         WHERE REPLACE(TRIM(COALESCE(role, '')), ' ', '') = ?
+           AND CAST(sala AS UNSIGNED) IN (${unitSalaIds.map(() => '?').join(',')})
+           AND LOWER(TRIM(COALESCE(email, ''))) IN (${emails.map(() => '?').join(',')})
+         ORDER BY id ASC
+         FOR UPDATE`,
+        [DAYCARE_FAMILY_ROLE, ...unitSalaIds, ...emails]
+      )
+      const rowsById = new Map<number, ManagedUserRow>()
+      for (const row of [...selectedRows, ...emailRows]) rowsById.set(Number(row.id), row)
+      scopedRows = Array.from(rowsById.values())
+    }
+
+    const rowsByIdentity = new Map<string, ManagedUserRow[]>()
+    for (const row of scopedRows) {
+      const email = normalizeEmail(row.email)
+      const key = email ? `email:${email}` : `id:${Number(row.id)}`
+      const bucket = rowsByIdentity.get(key) || []
+      bucket.push(row)
+      rowsByIdentity.set(key, bucket)
+    }
+
+    const processed = new Set<string>()
+    const canonicalIds: number[] = []
+
+    for (const selectedRow of selectedRows) {
+      const email = normalizeEmail(selectedRow.email)
+      const key = email ? `email:${email}` : `id:${Number(selectedRow.id)}`
+      if (processed.has(key)) continue
+      processed.add(key)
+
+      const identityRows = rowsByIdentity.get(key) || [selectedRow]
+      const canonical = chooseCanonicalRow(identityRows, Number(target.id), selectedIdSet)
+      const canonicalId = Number(canonical.id)
+      const duplicateIds = identityRows.map((row) => Number(row.id)).filter((id) => id !== canonicalId)
+
+      if (!duplicateIds.length) {
+        await tx.write('UPDATE users SET unidad = ?, sala = ? WHERE id = ?', [String(target.unidad), String(target.id), canonicalId])
+        canonicalIds.push(canonicalId)
+        continue
+      }
+
+      const bestPasswordRow = String(canonical.plaintext || '').trim() || String(canonical.password || '').trim()
+        ? canonical
+        : identityRows.find((row) => String(row.plaintext || '').trim() || String(row.password || '').trim()) || canonical
+      const finalEmail = normalizeEmail(canonical.email) || selectBestValue(identityRows, 'email') || ''
+      const finalUsername = String(canonical.username || '').trim() || finalEmail || `familia_${canonicalId}`
+      const assignments = ['nombre_nino = ?', 'username = ?', 'email = ?', 'role = ?', 'unidad = ?', 'sala = ?']
+      const params: Array<string | number | null> = [
+        String(canonical.nombre_nino || '').trim() || selectBestValue(identityRows, 'nombre_nino'),
+        finalUsername,
+        finalEmail,
+        DAYCARE_FAMILY_ROLE,
+        String(target.unidad),
+        String(target.id)
+      ]
+
+      if (columns.has('plaintext')) {
+        assignments.push('plaintext = ?')
+        params.push(bestPasswordRow.plaintext || null)
+      }
+      if (columns.has('password')) {
+        assignments.push('password = ?')
+        params.push(bestPasswordRow.password || canonical.password || null)
+      }
+
+      await tx.write(`UPDATE users SET ${assignments.join(', ')} WHERE id = ?`, [...params, canonicalId])
+      await mergeAuthorizedPeople(tx, canonicalId, duplicateIds)
+      await mergeSimpleReferences(tx, canonicalId, duplicateIds)
+      await archiveDuplicateUsers(tx, duplicateIds, columns)
+      canonicalIds.push(canonicalId)
+    }
+
+    return canonicalIds
+  })
 
   return {
-    moved: ids.length,
+    moved: result.length,
+    userIds: result,
     target: { id: Number(target.id), sala: String(target.sala), unidad: String(target.unidad) }
   }
 }
@@ -346,40 +375,6 @@ function selectBestValue(rows: ManagedUserRow[], field: 'nombre_nino' | 'email' 
   if (!values.length) return null
   if (field === 'email') return normalizeEmail(values[0]) || values[0].toLowerCase()
   return [...values].sort((a, b) => b.length - a.length)[0]
-}
-
-function duplicateIdentityMatches(rows: ManagedUserRow[]) {
-  if (rows.length < 2) return false
-  const parent = new Map<number, number>(rows.map((row) => [Number(row.id), Number(row.id)]))
-  const tokenOwner = new Map<string, number>()
-
-  function find(id: number): number {
-    const current = parent.get(id) ?? id
-    if (current === id) return id
-    const root = find(current)
-    parent.set(id, root)
-    return root
-  }
-
-  function union(left: number, right: number) {
-    const leftRoot = find(left)
-    const rightRoot = find(right)
-    if (leftRoot !== rightRoot) parent.set(rightRoot, leftRoot)
-  }
-
-  for (const row of rows) {
-    const id = Number(row.id)
-    const email = normalizeEmail(row.email)
-    const username = normalizeUsername(row.username)
-    for (const token of [email ? `email:${email}` : '', username ? `username:${username}` : ''].filter(Boolean)) {
-      const owner = tokenOwner.get(token)
-      if (owner) union(owner, id)
-      else tokenOwner.set(token, id)
-    }
-  }
-
-  const roots = new Set(rows.map((row) => find(Number(row.id))))
-  return roots.size === 1
 }
 
 async function mergeAuthorizedPeople(tx: TransactionClient, canonicalId: number, duplicateIds: number[]) {
@@ -408,7 +403,7 @@ async function mergeAuthorizedPeople(tx: TransactionClient, canonicalId: number,
     const slot = !occupied.has(preferred) && preferred >= 1 && preferred <= 4
       ? preferred
       : [1, 2, 3, 4].find((candidate) => !occupied.has(candidate))
-    if (!slot) throw publicError(409, 'La consolidación supera cuatro personas autorizadas.')
+    if (!slot) continue
     await tx.write('UPDATE personas_autorizadas SET user_id = ?, indice = ? WHERE id = ?', [canonicalId, slot, Number(row.id)])
     occupied.add(slot)
     if (identity) identities.add(identity)
@@ -522,75 +517,5 @@ async function archiveDuplicateUsers(tx: TransactionClient, duplicateIds: number
     if (columns.has('password')) assignments.push('password = NULL')
     if (columns.has('nombre_nino')) assignments.push('nombre_nino = NULL')
     await tx.write(`UPDATE users SET ${assignments.join(', ')} WHERE id = ?`, [...params, id])
-  }
-}
-
-export async function mergeDaycareRoomMembers(user: AppSessionUser, input: { canonicalId: number; duplicateIds: number[]; targetSalaId: number }) {
-  const canonicalId = Number(input.canonicalId)
-  const duplicateIds = Array.from(new Set(input.duplicateIds.map(Number).filter((id) => Number.isInteger(id) && id > 0 && id !== canonicalId)))
-  if (!Number.isInteger(canonicalId) || canonicalId <= 0 || !duplicateIds.length) {
-    throw publicError(400, 'Selecciona las cuentas a consolidar.')
-  }
-
-  const target = await legacyOne<(Sala & RowDataPacket)>('SELECT id, sala, unidad FROM salas WHERE id = ? LIMIT 1', [input.targetSalaId])
-  if (!target) throw publicError(404, 'Sala no encontrada.')
-  assertUnidadAccess(user, String(target.unidad))
-
-  const ids = [canonicalId, ...duplicateIds]
-  const rows = await fetchManagedUsers(ids)
-  if (rows.length !== ids.length) throw publicError(404, 'Una o más cuentas ya no están disponibles.')
-  await assertRowsInScope(user, rows)
-  if (!duplicateIdentityMatches(rows)) throw publicError(409, 'Las cuentas ya no coinciden como duplicadas.')
-
-  if (!rows.some((row) => Number(row.id) === canonicalId)) throw publicError(404, 'Cuenta principal no encontrada.')
-  const columns = await getUsersColumns()
-
-  await legacyTransaction(async (tx) => {
-    const lockedRows = await tx.query<ManagedUserRow[]>(
-      `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala${columns.has('password') ? ', password' : ''}
-       FROM users
-       WHERE id IN (${ids.map(() => '?').join(',')})
-       FOR UPDATE`,
-      ids
-    )
-    if (lockedRows.length !== ids.length || !duplicateIdentityMatches(lockedRows)) {
-      throw publicError(409, 'Las cuentas cambiaron durante la consolidación. Actualiza e inténtalo de nuevo.')
-    }
-    const lockedCanonical = lockedRows.find((row) => Number(row.id) === canonicalId)
-    if (!lockedCanonical) throw publicError(404, 'Cuenta principal no encontrada.')
-    const bestPasswordRow = String(lockedCanonical.plaintext || '').trim() || String(lockedCanonical.password || '').trim()
-      ? lockedCanonical
-      : lockedRows.find((row) => String(row.plaintext || '').trim() || String(row.password || '').trim()) || lockedCanonical
-    const canonicalEmail = normalizeEmail(lockedCanonical.email)
-    const finalEmail = canonicalEmail || selectBestValue(lockedRows, 'email') || ''
-    const finalUsername = String(lockedCanonical.username || '').trim() || finalEmail || `familia_${canonicalId}`
-
-    const assignments = ['nombre_nino = ?', 'username = ?', 'email = ?', 'role = ?', 'unidad = ?', 'sala = ?']
-    const params: Array<string | number | null> = [
-      String(lockedCanonical.nombre_nino || '').trim() || selectBestValue(lockedRows, 'nombre_nino'),
-      finalUsername,
-      finalEmail,
-      DAYCARE_FAMILY_ROLE,
-      String(target.unidad),
-      String(target.id)
-    ]
-    if (columns.has('plaintext')) {
-      assignments.push('plaintext = ?')
-      params.push(bestPasswordRow.plaintext || null)
-    }
-    if (columns.has('password')) {
-      assignments.push('password = ?')
-      params.push(bestPasswordRow.password || lockedCanonical.password || null)
-    }
-    await tx.write(`UPDATE users SET ${assignments.join(', ')} WHERE id = ?`, [...params, canonicalId])
-    await mergeAuthorizedPeople(tx, canonicalId, duplicateIds)
-    await mergeSimpleReferences(tx, canonicalId, duplicateIds)
-    await archiveDuplicateUsers(tx, duplicateIds, columns)
-  })
-
-  return {
-    canonicalId,
-    merged: duplicateIds.length,
-    target: { id: Number(target.id), sala: String(target.sala), unidad: String(target.unidad) }
   }
 }
