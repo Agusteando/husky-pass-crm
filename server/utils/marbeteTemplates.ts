@@ -267,14 +267,18 @@ export function selectCustomMarbeteTemplate(templates: MarbeteTemplateMeta[], in
     if (sameCycle.length) {
       try {
         return selectFromPool(sameCycle, input)
-      } catch {}
+      } catch {
+        // Continue to the active fallback when no exact-cycle template matches the requested scope.
+      }
     }
   }
   const active = customPublished.filter((template) => template.isDefault)
   if (active.length) {
     try {
       return selectFromPool(active, input)
-    } catch {}
+    } catch {
+      // Return null below when the active custom templates do not cover this scope.
+    }
   }
   return null
 }

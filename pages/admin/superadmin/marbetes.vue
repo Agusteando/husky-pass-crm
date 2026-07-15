@@ -1,5 +1,5 @@
 <template>
-  <div class="marbetes-page">
+  <div class="marbetes-page" data-product-screen="marbetes">
     <header class="page-head card-surface">
       <div>
         <p class="eyebrow">Super Admin</p>
@@ -12,7 +12,14 @@
       </div>
     </header>
 
-    <div class="workspace-grid">
+    <p v-if="actionError" class="page-message page-message-error" role="alert">{{ actionError }}</p>
+    <p v-else-if="actionNotice" class="page-message" role="status">{{ actionNotice }}</p>
+
+    <section v-if="pending && !data" class="card-surface loading-state" role="status">
+      Cargando marbetes…
+    </section>
+
+    <div v-else class="workspace-grid">
       <aside class="sidebar card-surface">
         <div class="sidebar-head">
           <div>
@@ -172,8 +179,8 @@
               <small v-if="previewLoading">Cargando…</small>
             </div>
             <div class="preview-stage">
-              <div v-if="selectedPreviewSvg" class="svg-preview" v-html="selectedPreviewSvg"></div>
-              <p v-else class="empty-copy">No fue posible cargar la vista previa.</p>
+              <img v-if="selectedPreviewUrl" class="svg-preview-image" :src="selectedPreviewUrl" alt="Vista previa del marbete seleccionado" />
+              <p v-else class="empty-copy">{{ previewError || 'No fue posible cargar la vista previa.' }}</p>
             </div>
           </section>
         </template>
@@ -187,12 +194,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useFetch, useRequestURL } from 'nuxt/app'
 import type { MarbeteSvgDesign, MarbeteTemplateMeta, PersonasThemeKey } from '~/types/daycare'
 import { createDefaultMarbeteSvgDesign, parseSvgCanvas } from '~/utils/marbeteSvgEditor'
-import { MARBETE_REPRESENTATIVE_VALUES } from '~/utils/marbeteDesigner'
+import { MARBETE_REPRESENTATIVE_VALUES, marbeteSvgDataUrl } from '~/utils/marbeteDesigner'
 import { renderMarbeteSvgValues } from '~/utils/marbeteSvgRuntime'
+
+definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
 interface ThemeOption {
   key: PersonasThemeKey
@@ -219,12 +228,15 @@ interface DraftState {
 }
 
 const requestOrigin = useRequestURL().origin
-const { data, refresh } = await useFetch<TemplateListResponse>('/api/admin/marbete-templates', {
+const { data, error: loadError, pending, refresh } = useFetch<TemplateListResponse>('/api/admin/marbete-templates', {
   key: 'superadmin-marbetes'
 })
 
 const saving = ref(false)
 const previewLoading = ref(false)
+const previewError = ref('')
+const actionError = ref('')
+const actionNotice = ref('')
 const selectedSvg = ref('')
 const selectedId = ref('')
 const draft = ref<DraftState | null>(null)
@@ -249,16 +261,25 @@ const filteredTemplates = computed(() => templates.value
     return String(right.updatedAt || '').localeCompare(String(left.updatedAt || ''))
   }))
 const selectedTemplate = computed(() => templates.value.find((template) => template.id === selectedId.value) || null)
-const selectedPreviewSvg = computed(() => {
+const selectedPreviewUrl = computed(() => {
   if (!selectedSvg.value) return ''
-  return renderMarbeteSvgValues(selectedSvg.value, {
-    ...MARBETE_REPRESENTATIVE_VALUES,
-    ciclo: selectedTemplate.value?.cicloEscolar || MARBETE_REPRESENTATIVE_VALUES.ciclo
-  }).replace(/(href|xlink:href)="\/(?!\/)/g, `$1="${requestOrigin}/`)
+  try {
+    const rendered = renderMarbeteSvgValues(selectedSvg.value, {
+      ...MARBETE_REPRESENTATIVE_VALUES,
+      ciclo: selectedTemplate.value?.cicloEscolar || MARBETE_REPRESENTATIVE_VALUES.ciclo
+    }).replace(/(href|xlink:href)="\/(?!\/)/g, `$1="${requestOrigin}/`)
+    return marbeteSvgDataUrl(rendered)
+  } catch {
+    return ''
+  }
 })
 const canSaveDraft = computed(() => Boolean(
   draft.value?.name && draft.value?.nivel && draft.value?.themeKey && draft.value?.baseSvg
 ))
+
+watch(loadError, (error) => {
+  if (error) actionError.value = errorMessage(error, 'No fue posible cargar los marbetes.')
+}, { immediate: true })
 
 watch(templates, (items) => {
   if (!items.length) return
@@ -276,15 +297,19 @@ watch(selectedId, async (id) => {
 
 async function loadPreview(id: string) {
   previewLoading.value = true
+  previewError.value = ''
   try {
-    selectedSvg.value = await $fetch<string>(`/api/admin/marbete-templates/${id}`)
+    selectedSvg.value = await $fetch<string>(`/api/admin/marbete-templates/${encodeURIComponent(id)}`)
+  } catch (error) {
+    selectedSvg.value = ''
+    previewError.value = errorMessage(error, 'No fue posible cargar la vista previa.')
   } finally {
     previewLoading.value = false
   }
 }
 
 function emptyDraft(themeKey: PersonasThemeKey = 'preescolar') {
-  return reactive<DraftState>({
+  return {
     id: null,
     name: '',
     nivel: String(themeKey),
@@ -295,7 +320,7 @@ function emptyDraft(themeKey: PersonasThemeKey = 'preescolar') {
     baseSvg: '',
     file: null,
     fileName: ''
-  })
+  } satisfies DraftState
 }
 
 function startUploadDraft() {
@@ -303,19 +328,24 @@ function startUploadDraft() {
 }
 
 async function openDraftFromTemplate(template: MarbeteTemplateMeta) {
-  const baseSvg = await $fetch<string>(`/api/admin/marbete-templates/${template.id}?base=1`)
-  draft.value = reactive<DraftState>({
-    id: template.id,
-    name: template.name,
-    nivel: template.nivel,
-    themeKey: template.themeKey,
-    planteles: [...(template.planteles || [])],
-    cicloEscolar: template.cicloEscolar || nextSchoolCycle(),
-    svgDesign: template.svgDesign || createDefaultMarbeteSvgDesign(template.themeKey, parseSvgCanvas(baseSvg)),
-    baseSvg,
-    file: null,
-    fileName: template.filename || ''
-  })
+  actionError.value = ''
+  try {
+    const baseSvg = await $fetch<string>(`/api/admin/marbete-templates/${encodeURIComponent(template.id)}?base=1`)
+    draft.value = {
+      id: template.id,
+      name: template.name,
+      nivel: template.nivel,
+      themeKey: template.themeKey,
+      planteles: [...(template.planteles || [])],
+      cicloEscolar: template.cicloEscolar || nextSchoolCycle(),
+      svgDesign: template.svgDesign || createDefaultMarbeteSvgDesign(template.themeKey, parseSvgCanvas(baseSvg)),
+      baseSvg,
+      file: null,
+      fileName: template.filename || ''
+    }
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible abrir el borrador.')
+  }
 }
 
 function cancelDraft() {
@@ -323,18 +353,31 @@ function cancelDraft() {
 }
 
 async function onSvgFileChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0] || null
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] || null
   if (!draft.value) draft.value = emptyDraft()
   if (!file || !draft.value) return
-  draft.value.file = file
-  draft.value.fileName = file.name
-  draft.value.baseSvg = await file.text()
-  draft.value.svgDesign = createDefaultMarbeteSvgDesign(draft.value.themeKey, parseSvgCanvas(draft.value.baseSvg))
+  actionError.value = ''
+  try {
+    const svg = await file.text()
+    if (!/<svg\b/i.test(svg) || !/<\/svg>\s*$/i.test(svg.trim())) {
+      throw new Error('El archivo no contiene un SVG completo y válido.')
+    }
+    draft.value.file = file
+    draft.value.fileName = file.name
+    draft.value.baseSvg = svg
+    draft.value.svgDesign = createDefaultMarbeteSvgDesign(draft.value.themeKey, parseSvgCanvas(svg))
+  } catch (error) {
+    input.value = ''
+    actionError.value = errorMessage(error, 'No fue posible leer el SVG.')
+  }
 }
 
 async function saveDraft() {
   if (!draft.value || !canSaveDraft.value) return
   saving.value = true
+  actionError.value = ''
+  actionNotice.value = ''
   try {
     const form = new FormData()
     form.append('id', draft.value.id || '')
@@ -349,6 +392,9 @@ async function saveDraft() {
     await refresh()
     selectedId.value = saved.id
     draft.value = null
+    actionNotice.value = 'Borrador guardado.'
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible guardar el borrador.')
   } finally {
     saving.value = false
   }
@@ -356,44 +402,81 @@ async function saveDraft() {
 
 async function duplicateSelected() {
   if (!selectedTemplate.value) return
-  const suggested = nextSchoolCycle(selectedTemplate.value.cicloEscolar)
+  const current = selectedTemplate.value
+  const suggested = nextSchoolCycle(current.cicloEscolar)
   const cicloEscolar = window.prompt('Nuevo ciclo escolar', suggested)
   if (!cicloEscolar) return
-  const duplicated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${selectedTemplate.value.id}`, {
-    method: 'POST',
-    body: { action: 'duplicate', cicloEscolar }
-  })
-  await refresh()
-  selectedId.value = duplicated.id
-  await openDraftFromTemplate(duplicated)
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const duplicated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${encodeURIComponent(current.id)}`, {
+      method: 'POST',
+      body: { action: 'duplicate', cicloEscolar }
+    })
+    await refresh()
+    selectedId.value = duplicated.id
+    await openDraftFromTemplate(duplicated)
+    actionNotice.value = 'Versión preparada como borrador.'
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible duplicar la versión.')
+  }
 }
 
 async function publishSelected() {
   if (!selectedTemplate.value) return
-  const updated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${selectedTemplate.value.id}`, {
-    method: 'POST',
-    body: { action: 'publish' }
-  })
-  await refresh()
-  selectedId.value = updated.id
+  const current = selectedTemplate.value
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const updated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${encodeURIComponent(current.id)}`, {
+      method: 'POST',
+      body: { action: 'publish' }
+    })
+    await refresh()
+    selectedId.value = updated.id
+    actionNotice.value = 'Versión publicada.'
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible publicar la versión.')
+  }
 }
 
 async function activateSelected() {
   if (!selectedTemplate.value) return
-  const updated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${selectedTemplate.value.id}`, {
-    method: 'POST',
-    body: { action: 'activate' }
-  })
-  await refresh()
-  selectedId.value = updated.id
+  const current = selectedTemplate.value
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    const updated = await $fetch<MarbeteTemplateMeta>(`/api/admin/marbete-templates/${encodeURIComponent(current.id)}`, {
+      method: 'POST',
+      body: { action: 'activate' }
+    })
+    await refresh()
+    selectedId.value = updated.id
+    actionNotice.value = 'Versión activada.'
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible activar la versión.')
+  }
 }
 
 async function deleteSelectedDraft() {
   if (!selectedTemplate.value) return
+  const current = selectedTemplate.value
   if (!window.confirm('¿Eliminar este borrador de marbete?')) return
-  await $fetch(`/api/admin/marbete-templates/${selectedTemplate.value.id}`, { method: 'DELETE' as any })
-  await refresh()
-  selectedId.value = templates.value[0]?.id || ''
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    await $fetch(`/api/admin/marbete-templates/${encodeURIComponent(current.id)}`, { method: 'DELETE' as any })
+    await refresh()
+    selectedId.value = templates.value[0]?.id || ''
+    actionNotice.value = 'Borrador eliminado.'
+  } catch (error) {
+    actionError.value = errorMessage(error, 'No fue posible eliminar el borrador.')
+  }
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  const candidate = error as { data?: { message?: string }; statusMessage?: string; message?: string }
+  return candidate?.data?.message || candidate?.statusMessage || candidate?.message || fallback
 }
 
 function statusLabel(template: MarbeteTemplateMeta) {
@@ -534,8 +617,33 @@ function nextSchoolCycle(from?: string | null) {
   min-height: 720px;
   padding: 18px;
 }
-.svg-preview { width: min(100%, 560px); }
-.svg-preview :deep(svg) { display: block; height: auto; width: 100%; }
+.svg-preview-image {
+  display: block;
+  height: auto;
+  max-width: 560px;
+  object-fit: contain;
+  width: 100%;
+}
+.page-message {
+  background: #edf8f5;
+  border: 1px solid #b8ded5;
+  border-radius: 14px;
+  color: #175c53;
+  margin: 0;
+  padding: 12px 15px;
+}
+.page-message-error {
+  background: #fff2f0;
+  border-color: #efc2bd;
+  color: #963f39;
+}
+.loading-state {
+  color: #5d7084;
+  min-height: 180px;
+  place-items: center;
+  display: grid;
+  font-weight: 700;
+}
 .empty-copy { align-self: center; color: #6d7d8d; }
 @media (max-width: 1180px) {
   .workspace-grid { grid-template-columns: 1fr; }

@@ -162,7 +162,7 @@ function markupForLayer(layer: MarbeteSvgLayer) {
 }
 
 function parseNumeric(value?: string | null) {
-  const number = Number(String(value || '').replace(/[^0-9.\-]/g, ''))
+  const number = Number(String(value || '').replace(/[^0-9.-]/g, ''))
   return Number.isFinite(number) && number > 0 ? number : 0
 }
 

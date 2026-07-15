@@ -1,1 +1,1 @@
-Reconstruye marbetes SVG por plantel y elimina el scope incorrecto de accesos
+Corrige la navegación y estabiliza la edición de marbetes SVG

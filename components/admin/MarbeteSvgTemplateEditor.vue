@@ -49,7 +49,8 @@
 
         <div class="stage-shell">
           <div ref="canvasRef" class="stage-canvas" :style="surfaceStyle">
-            <div class="svg-stage" role="img" aria-label="Vista previa editable" v-html="previewSvg"></div>
+            <img v-if="previewUrl" class="svg-stage-image" :src="previewUrl" alt="Vista previa editable del marbete" />
+            <div v-else class="svg-stage-error" role="alert">No fue posible renderizar este SVG.</div>
             <div
               v-for="layer in visibleLayers"
               :key="layer.id"
@@ -167,7 +168,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRequestURL } from 'nuxt/app'
 import type { MarbeteSvgDesign, MarbeteSvgLayer, MarbeteSvgLayerKind, PersonasThemeKey } from '~/types/daycare'
-import { MARBETE_REPRESENTATIVE_VALUES } from '~/utils/marbeteDesigner'
+import { MARBETE_REPRESENTATIVE_VALUES, marbeteSvgDataUrl } from '~/utils/marbeteDesigner'
 import { createDefaultMarbeteSvgDesign, marbeteSvgLayerDefinition, normalizeMarbeteSvgDesign, previewMarbeteSvg } from '~/utils/marbeteSvgEditor'
 
 const props = defineProps<{
@@ -197,8 +198,15 @@ const visibleCount = computed(() => visibleLayers.value.length)
 const selectedLayer = computed(() => orderedLayers.value.find((layer) => layer.id === selectedId.value) || orderedLayers.value[0] || null)
 const activeCycle = computed(() => /^20\d{2}-20\d{2}$/.test(props.cicloEscolar) ? props.cicloEscolar : '2026-2027')
 const surfaceStyle = computed(() => ({ aspectRatio: `${design.value.canvas.width} / ${design.value.canvas.height}` }))
-const previewSvg = computed(() => previewMarbeteSvg(props.baseSvg, design.value, props.themeKey, { ...MARBETE_REPRESENTATIVE_VALUES, ciclo: activeCycle.value })
-  .replace(/(href|xlink:href)="\/(?!\/)/g, `$1="${previewOrigin}/`))
+const previewUrl = computed(() => {
+  try {
+    const svg = previewMarbeteSvg(props.baseSvg, design.value, props.themeKey, { ...MARBETE_REPRESENTATIVE_VALUES, ciclo: activeCycle.value })
+      .replace(/(href|xlink:href)="\/(?!\/)/g, `$1="${previewOrigin}/`)
+    return marbeteSvgDataUrl(svg)
+  } catch {
+    return ''
+  }
+})
 
 function cloneDesign() {
   return JSON.parse(JSON.stringify(design.value)) as MarbeteSvgDesign
@@ -554,8 +562,30 @@ function round(value: number) {
   position: relative;
   width: min(100%, 560px);
 }
-.svg-stage { height: 100%; left: 0; position: absolute; top: 0; width: 100%; }
-.svg-stage :deep(svg) { display: block; height: 100%; width: 100%; }
+.svg-stage-image {
+  display: block;
+  height: 100%;
+  left: 0;
+  object-fit: contain;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+.svg-stage-error {
+  align-items: center;
+  color: #8e4c45;
+  display: flex;
+  font-size: .82rem;
+  font-weight: 700;
+  height: 100%;
+  justify-content: center;
+  left: 0;
+  padding: 20px;
+  position: absolute;
+  text-align: center;
+  top: 0;
+  width: 100%;
+}
 .layer-frame {
   border: 2px dashed rgba(27, 104, 155, .75);
   box-sizing: border-box;
