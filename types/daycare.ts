@@ -325,7 +325,13 @@ export type MarbeteVisualElementKind =
   | 'validity'
   | 'ciclo-tag'
 
-export type MarbeteSvgLayerKind = MarbeteVisualElementKind | 'cover' | 'static-image'
+export type MarbeteSvgLayerKind =
+  | MarbeteVisualElementKind
+  | 'authorized-surnames'
+  | 'authorized-given-name'
+  | 'hologram'
+  | 'cover'
+  | 'static-image'
 
 export interface MarbeteVisualTextStyle {
   fontSize: number
@@ -391,6 +397,9 @@ export interface MarbeteSvgLayer {
   fill?: string
   opacity?: number
   assetUrl?: string
+  origin?: 'base' | 'overlay'
+  removed?: boolean
+  aspectRatioLocked?: boolean
 }
 
 export interface MarbeteSvgDesign {

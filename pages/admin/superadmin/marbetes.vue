@@ -222,7 +222,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useFetch } from 'nuxt/app'
 import type { MarbeteSvgDesign, MarbeteTemplateMeta, PersonasThemeKey } from '~/types/daycare'
 import { SCHOOL_PLANTELES } from '~/utils/schoolCatalog'
-import { createDefaultMarbeteSvgDesign, parseSvgCanvas, resizeMarbeteSvgDesign } from '~/utils/marbeteSvgEditor'
+import { createDefaultMarbeteSvgDesign, createMarbeteSvgDesignFromBase, normalizeMarbeteSvgDesign, parseSvgCanvas, rebaseMarbeteSvgDesign } from '~/utils/marbeteSvgEditor'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
 
@@ -381,7 +381,9 @@ function syncDraftLevel() {
 async function openDraftFromTemplate(template: MarbeteTemplateMeta) {
   actionError.value = ''
   try {
-    const baseSvg = await $fetch<string>(`/api/admin/marbete-templates/${encodeURIComponent(template.id)}?base=1`)
+    const basePayload = await $fetch<unknown>(`/api/admin/marbete-templates/${encodeURIComponent(template.id)}?base=1`, { responseType: 'text' })
+    const baseSvg = normalizeSvgPayload(basePayload)
+    if (!/<svg\b/i.test(baseSvg)) throw new Error('El archivo guardado no contiene un SVG válido.')
     draft.value = {
       id: template.id,
       name: template.name,
@@ -389,7 +391,9 @@ async function openDraftFromTemplate(template: MarbeteTemplateMeta) {
       themeKey: template.themeKey,
       plantel: template.planteles?.[0] || '',
       cicloEscolar: template.cicloEscolar || currentSchoolCycle(),
-      svgDesign: template.svgDesign || createDefaultMarbeteSvgDesign(template.themeKey, parseSvgCanvas(baseSvg)),
+      svgDesign: template.svgDesign
+        ? normalizeMarbeteSvgDesign(template.svgDesign, template.themeKey, parseSvgCanvas(baseSvg), baseSvg)
+        : createMarbeteSvgDesignFromBase(baseSvg, template.themeKey),
       baseSvg,
       file: null,
       fileName: template.filename || 'SVG heredado'
@@ -412,10 +416,9 @@ async function onSvgFileChange(event: Event) {
   try {
     const svg = await file.text()
     if (!/<svg\b/i.test(svg) || !/<\/svg>\s*$/i.test(svg.trim())) throw new Error('El archivo no contiene un SVG completo.')
-    const canvas = parseSvgCanvas(svg)
     draft.value.svgDesign = draft.value.baseSvg
-      ? resizeMarbeteSvgDesign(draft.value.svgDesign, canvas, draft.value.themeKey)
-      : createDefaultMarbeteSvgDesign(draft.value.themeKey, canvas)
+      ? rebaseMarbeteSvgDesign(draft.value.svgDesign, draft.value.baseSvg, svg, draft.value.themeKey)
+      : createMarbeteSvgDesignFromBase(svg, draft.value.themeKey)
     draft.value.file = file
     draft.value.fileName = file.name
     draft.value.baseSvg = svg
@@ -490,7 +493,7 @@ async function createVersionDraft() {
     selectedId.value = duplicated.id
     versionDialog.open = false
     await openDraftFromTemplate(duplicated)
-    actionNotice.value = versionDialog.mode === 'replace' ? 'Borrador listo para reemplazar el SVG.' : 'Borrador creado.'
+    actionNotice.value = versionDialog.mode === 'replace' ? 'Selecciona el nuevo SVG.' : 'Versión creada.'
   } catch (error) {
     actionError.value = errorMessage(error, 'No fue posible crear el borrador.')
   } finally {
@@ -568,9 +571,21 @@ function retryPreview() {
   previewRevision.value += 1
 }
 
+function normalizeSvgPayload(payload: unknown) {
+  if (typeof payload === 'string') return payload
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { svg?: unknown; data?: unknown; body?: unknown }
+    for (const value of [candidate.svg, candidate.data, candidate.body]) {
+      if (typeof value === 'string') return value
+    }
+  }
+  return payload == null ? '' : String(payload)
+}
+
 function errorMessage(error: unknown, fallback: string) {
-  const candidate = error as { data?: { message?: string }; statusMessage?: string; message?: string }
-  return candidate?.data?.message || candidate?.statusMessage || candidate?.message || fallback
+  const candidate = error as { data?: { message?: unknown }; statusMessage?: unknown; message?: unknown }
+  const message = candidate?.data?.message || candidate?.statusMessage || candidate?.message
+  return typeof message === 'string' && message.trim() ? message : fallback
 }
 
 function statusLabel(template: MarbeteTemplateMeta) {

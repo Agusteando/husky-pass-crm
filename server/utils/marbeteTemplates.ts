@@ -93,7 +93,7 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>, source: 'bundled-s
     status: row.status === 'draft' ? 'draft' : 'published',
     cicloEscolar: normalizeSchoolCycle(row.cicloEscolar),
     visualDesign: mode === 'visual' ? normalizeMarbeteVisualDesign(row.visualDesign, themeKey) : undefined,
-    svgDesign: mode === 'legacy-svg' ? normalizeMarbeteSvgDesign(row.svgDesign, themeKey) : undefined,
+    svgDesign: mode === 'legacy-svg' && row.svgDesign ? normalizeMarbeteSvgDesign(row.svgDesign, themeKey) : undefined,
     basedOnId: row.basedOnId ? String(row.basedOnId) : undefined,
     publishedAt: row.publishedAt ? String(row.publishedAt) : undefined,
     createdAt: row.createdAt || new Date().toISOString(),
@@ -205,7 +205,7 @@ export async function readMarbeteBaseSvg(template: MarbeteTemplateMeta) {
 export async function readMarbeteTemplateSvg(template: MarbeteTemplateMeta) {
   const baseSvg = await readMarbeteBaseSvg(template)
   if (template.mode === 'visual') return baseSvg
-  if (!template.svgDesign?.layers?.some((layer) => layer.visible)) return baseSvg
+  if (!template.svgDesign?.layers?.length) return baseSvg
   return appendMarbeteSvgDesign(baseSvg, normalizeMarbeteSvgDesign(template.svgDesign, template.themeKey), template.themeKey)
 }
 
@@ -647,6 +647,7 @@ export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin
       qr: String(data.qr || data.id || ''),
       paternoP: String(data.paternoP || ''),
       maternoP: String(data.maternoP || ''),
+      authorizedSurnames: fullName([data.paternoP, data.maternoP]),
       nombreP: String(data.nombreP || ''),
       parenP: String(data.parenP || ''),
       parentesco: String(data.parenP || ''),

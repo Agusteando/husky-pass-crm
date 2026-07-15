@@ -39,6 +39,11 @@ const SAMPLE_QR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 
 
 export const MARBETE_REPRESENTATIVE_VALUES: Record<string, string> = {
   fullnameP: 'María José de los Ángeles De la Luz Santillán',
+  authorizedSurnames: 'De la Luz Santillán',
+  nombreP: 'María José de los Ángeles',
+  paternoP: 'De la Luz',
+  maternoP: 'Santillán',
+  parenP: 'Tutora autorizada',
   authorizedPersonName: 'María José de los Ángeles De la Luz Santillán',
   parentesco: 'Tutora autorizada',
   studentName: 'Emiliano Sebastián Álvarez de la Torre',
@@ -352,8 +357,9 @@ function fitLines(value: string, width: number, height: number, preferredSize: n
   return { lines, fontSize: 8, lineHeight }
 }
 
-export function renderMarbeteVisualValues(svg: string, values: Record<string, string>) {
-  return svg.replace(/<text\b([^>]*\bdata-husky-fit-text="([^"]+)"[^>]*)>[\s\S]*?<\/text>/g, (_match, attrs: string, key: string) => {
+export function renderMarbeteVisualValues(svg: unknown, values: Record<string, string>) {
+  const markup = typeof svg === 'string' ? svg : svg == null ? '' : String(svg)
+  return markup.replace(/<text\b([^>]*\bdata-husky-fit-text="([^"]+)"[^>]*)>[\s\S]*?<\/text>/g, (_match, attrs: string, key: string) => {
     const width = Number(attribute(attrs, 'data-husky-width', '100'))
     const height = Number(attribute(attrs, 'data-husky-height', '24'))
     const x = Number(attribute(attrs, 'data-husky-x', '0'))
@@ -379,8 +385,9 @@ export function renderMarbeteVisualValues(svg: string, values: Record<string, st
   })
 }
 
-export function marbeteSvgDataUrl(svg: string) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+export function marbeteSvgDataUrl(svg: unknown) {
+  const markup = typeof svg === 'string' ? svg : svg == null ? '' : String(svg)
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`
 }
 
 export function marbeteElementDefinition(kind: MarbeteVisualElementKind) {

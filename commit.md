@@ -1,1 +1,1 @@
-Corrige la vista previa y simplifica la gestión de marbetes SVG por plantel y ciclo
+Corrige el editor SVG de marbetes y convierte holograma y campos dinámicos en capas editables
