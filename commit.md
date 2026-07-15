@@ -1,1 +1,1 @@
-Integra la gestión de salas en Familias y elimina la sección separada de Usuarios
+Unifica la experiencia de Super Admin y consolida pases, plantillas y gestión escolar

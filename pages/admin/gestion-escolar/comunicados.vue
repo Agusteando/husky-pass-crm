@@ -19,6 +19,7 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No pudimos cargar comunicados</h2>
+      <button class="btn btn-secondary" type="button" @click="refresh()">Reintentar</button>
     </section>
 
     <section v-else class="publisher-layout">

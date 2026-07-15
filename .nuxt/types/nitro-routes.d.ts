@@ -33,6 +33,7 @@ declare module "nitropack/types" {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/gestion-escolar/scoped-content.post').default>>>>
     }
     '/api/admin/marbete-templates/:id': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/marbete-templates/[id].delete').default>>>>
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/marbete-templates/[id].get').default>>>>
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/marbete-templates/[id].post').default>>>>
     }

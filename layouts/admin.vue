@@ -38,7 +38,7 @@ const isSchoolAdmin = computed(() => route.path.startsWith('/admin/gestion-escol
     radial-gradient(circle at 92% 4%, rgba(246, 185, 79, 0.10), transparent 28%),
     linear-gradient(180deg, #fbfdf9 0%, var(--color-page) 64%, #eef5f6 100%);
   min-height: 100vh;
-  --topbar-height: 64px;
+  --topbar-height: 112px;
 }
 
 .admin-experience-root.daycare-admin-root {
@@ -114,6 +114,7 @@ const isSchoolAdmin = computed(() => route.path.startsWith('/admin/gestion-escol
 }
 
 @media (max-width: 980px) {
+  .admin-experience-root { --topbar-height: 154px; }
   .workspace-shell,
   .workspace-shell.full-width {
     grid-template-columns: 1fr;
@@ -122,6 +123,7 @@ const isSchoolAdmin = computed(() => route.path.startsWith('/admin/gestion-escol
 }
 
 @media (max-width: 720px) {
+  .admin-experience-root { --topbar-height: 146px; }
   .daycare-admin-root .workspace-shell {
     padding: 12px 0 calc(112px + env(safe-area-inset-bottom));
   }

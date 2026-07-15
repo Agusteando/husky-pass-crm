@@ -2,20 +2,17 @@
   <section class="pass-admin" data-product-area="superadmin" data-product-screen="husky-pass-desk">
     <header class="workspace-head compact-head pass-head">
       <div>
-        <p class="eyebrow">Superadmin</p>
-        <h1>Husky Pass</h1>
-        
+        <p class="eyebrow">Accesos</p>
+        <h1>Pases</h1>
+        <p>Credenciales de personas autorizadas.</p>
       </div>
-      <div class="head-actions">
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin">Cuentas</NuxtLink>
-        <NuxtLink class="btn btn-secondary" to="/admin/superadmin/marbetes">Marbetes</NuxtLink>
-      </div>
+      <span class="pass-count">{{ passRows.length }} registros</span>
     </header>
 
     <section class="pass-search-strip">
       <label class="search-box">
         <span>Buscar</span>
-        <input v-model="search" class="input" type="search" placeholder="Alumno, persona, matricula, correo o ID" data-diagnostic-filter="pass-search" />
+        <input v-model="search" class="input" type="search" placeholder="Alumno, persona, matrícula, correo o ID" data-diagnostic-filter="pass-search" />
       </label>
       <label>
         <span>Plantel</span>
@@ -49,9 +46,9 @@
           <span class="muted">{{ passStatusLabel }}</span>
         </header>
 
-        <div v-if="passPending && !passRows.length" class="loading-row" data-state="loading">Cargando Husky Pass...</div>
-        <p v-else-if="passError" class="alert">No fue posible cargar candidatos.</p>
-        <EmptyState v-else-if="!passRows.length" title="Sin resultados" description="Busca por nombre, matricula, correo o ID de persona autorizada." />
+        <div v-if="passPending && !passRows.length" class="loading-row" data-state="loading">Cargando pases...</div>
+        <p v-else-if="passError" class="alert">No fue posible cargar los pases.</p>
+        <EmptyState v-else-if="!passRows.length" title="Sin resultados" description="No hay coincidencias para los filtros actuales." />
 
         <div v-else class="result-list">
           <button
@@ -67,7 +64,7 @@
             <span class="row-status" :data-ready="row.readiness.ok"></span>
             <span class="row-main">
               <strong>{{ row.authorizedName }}</strong>
-              <small>{{ row.studentName }} / {{ displayMatriculaCandidate(row.matricula) || 'sin matricula' }}</small>
+              <small>{{ row.studentName }} / {{ displayMatriculaCandidate(row.matricula) || 'sin matrícula' }}</small>
             </span>
             <span class="row-scope">
               <strong>{{ row.plantel || 'Plantel pendiente' }}</strong>
@@ -91,15 +88,15 @@
 
           <dl class="detail-facts">
             <div><dt>Alumno</dt><dd>{{ selectedPass.studentName }}</dd></div>
-            <div><dt>Matricula</dt><dd>{{ displayMatriculaCandidate(selectedPass.matricula) || 'Pendiente' }}</dd></div>
+            <div><dt>Matrícula</dt><dd>{{ displayMatriculaCandidate(selectedPass.matricula) || 'Pendiente' }}</dd></div>
             <div><dt>Nivel / plantel</dt><dd>{{ selectedPass.nivel }} / {{ selectedPass.plantel }}</dd></div>
             <div><dt>Grupo</dt><dd>{{ [selectedPass.grado, selectedPass.grupo].filter(Boolean).join(' / ') || 'Pendiente' }}</dd></div>
-            <div><dt>Plantilla</dt><dd>{{ selectedPass.template?.name || 'No disponible' }}</dd></div>
+            <div><dt>Plantilla</dt><dd><NuxtLink v-if="selectedPass.template" class="template-link" :to="{ path: '/admin/superadmin/marbetes', query: { plantilla: selectedPass.template.id } }">{{ selectedPass.template.name }}</NuxtLink><span v-else>No disponible</span></dd></div>
           </dl>
 
           <div class="issue-list">
             <span v-for="issue in selectedPass.readiness.issues" :key="issue" class="issue-pill">{{ issue }}</span>
-            <span v-if="selectedPass.readiness.ok" class="issue-pill ok">PDF listo para generar</span>
+            <span v-if="selectedPass.readiness.ok" class="issue-pill ok">Pase listo para generar</span>
           </div>
 
           <div class="pass-actions">
@@ -126,7 +123,7 @@
               Descargar
             </a>
             <button class="btn btn-secondary" type="button" :disabled="diagnosticsPending" data-diagnostic-action="diagnose-admin-husky-pass" @click="loadDiagnostics(selectedPass)">
-              {{ diagnosticsPending ? 'Diagnosticando...' : 'Diagnostico' }}
+              {{ diagnosticsPending ? 'Diagnosticando...' : 'Diagnóstico' }}
             </button>
             <button class="btn btn-secondary" type="button" :disabled="accessPreparingId === selectedPass.userId" data-diagnostic-action="prepare-pass-access" @click="prepareAccess(selectedPass)">
               {{ accessPreparingId === selectedPass.userId ? 'Preparando...' : 'Preparar acceso' }}
@@ -134,9 +131,9 @@
           </div>
 
           <section class="preview-pair" :data-state="selectedPass.readiness.ok ? 'ready' : 'blocked'">
-            <iframe v-if="selectedPass.readiness.ok && selectedPass.personId" :key="previewKey" :src="adminSvgUrl(selectedPass)" title="Vista SVG Husky Pass"></iframe>
+            <iframe v-if="selectedPass.readiness.ok && selectedPass.personId" :key="previewKey" :src="adminSvgUrl(selectedPass)" title="Vista del pase"></iframe>
             <div v-if="selectedPass.readiness.ok" class="pdf-preview">
-              <iframe :key="pdfPreviewKey" :src="adminPdfUrl(selectedPass, false)" title="PDF Husky Pass"></iframe>
+              <iframe :key="pdfPreviewKey" :src="adminPdfUrl(selectedPass, false)" title="PDF del pase"></iframe>
             </div>
             <div v-else class="blocked-preview">
               <strong>PDF no disponible</strong>
@@ -146,56 +143,16 @@
 
           <pre v-if="diagnostics" class="diagnostics">{{ diagnostics }}</pre>
         </template>
-        <EmptyState v-else title="Selecciona un registro" description="Veras la plantilla, faltantes y acciones de PDF." />
+        <EmptyState v-else title="Selecciona un registro" description="No hay un pase seleccionado." />
       </aside>
     </section>
 
-    <section class="admin-config">
-      <article class="config-panel">
-        <header class="section-head">
-          <div>
-            <p class="eyebrow">Encuestas</p>
-            <h2>Por nivel</h2>
-          </div>
-          <button class="btn btn-primary compact" type="button" :disabled="configSaving" data-diagnostic-action="guardar-config-pa" @click="saveConfig">
-            {{ configSaving ? 'Guardando...' : 'Guardar' }}
-          </button>
-        </header>
-        <div class="survey-list">
-          <article v-for="option in surveyLevelOptions" :key="option.key" class="survey-row">
-            <label class="switch-line">
-              <input v-model="configForm.surveysByNivel[option.key].enabled" type="checkbox" />
-              <span>{{ option.label }}</span>
-            </label>
-            <input v-model="configForm.surveysByNivel[option.key].title" class="input" :aria-label="`Titulo ${option.label}`" />
-            <input v-model="configForm.surveysByNivel[option.key].embedUrl" class="input" placeholder="https://docs.google.com/forms/..." :data-diagnostic-field="`survey-url-${option.key}`" />
-          </article>
-        </div>
-      </article>
-
-      <article class="config-panel">
-        <header class="section-head">
-          <div>
-            <p class="eyebrow">Convenios</p>
-            <h2>Archivo familiar</h2>
-          </div>
-          <a v-if="configForm.conveniosUrl" class="btn btn-secondary compact" :href="configForm.conveniosUrl" target="_blank" rel="noopener">Abrir</a>
-        </header>
-        <div class="upload-row">
-          <input type="file" accept="image/*,application/pdf,.doc,.docx,.txt" data-diagnostic-field="convenios-file" @change="selectConveniosFile" />
-          <button class="btn btn-secondary" type="button" :disabled="!conveniosFile || conveniosUploading" data-diagnostic-action="subir-convenios" @click="uploadConveniosFile">
-            {{ conveniosUploading ? 'Subiendo...' : configForm.conveniosUrl && !conveniosFile ? 'Archivo listo' : 'Subir archivo' }}
-          </button>
-        </div>
-      </article>
-    </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useFetch, useRoute, useRouter } from 'nuxt/app'
-import type { PersonasAutorizadasConfig, PersonasSurveyNivelKey } from '~/types/daycare'
 import type { SuperAdminPassCandidate, SuperAdminPassSearchResponse } from '~/types/superadmin'
 import { displayMatriculaCandidate } from '~/utils/matricula'
 
@@ -214,26 +171,6 @@ const diagnostics = ref('')
 const diagnosticsPending = ref(false)
 const accessPreparingId = ref<number | null>(null)
 const previewBump = ref(0)
-const configSaving = ref(false)
-const conveniosUploading = ref(false)
-const conveniosFile = ref<File | null>(null)
-const surveyLevelOptions: Array<{ key: PersonasSurveyNivelKey; label: string; defaultTitle: string }> = [
-  { key: 'preescolar', label: 'Preescolar', defaultTitle: 'Encuesta Preescolar' },
-  { key: 'primaria', label: 'Primaria', defaultTitle: 'Encuesta Primaria' },
-  { key: 'secundaria', label: 'Secundaria', defaultTitle: 'Encuesta Secundaria' },
-  { key: 'daycare', label: 'IECS', defaultTitle: 'Encuesta IECS' }
-]
-const configForm = reactive({
-  surveyEnabled: false,
-  surveyTitle: 'Encuesta Husky Pass',
-  surveyEmbedUrl: '',
-  surveysByNivel: surveyLevelOptions.reduce((acc, option) => {
-    acc[option.key] = { enabled: false, title: option.defaultTitle, embedUrl: '' }
-    return acc
-  }, {} as Record<PersonasSurveyNivelKey, { enabled: boolean; title: string; embedUrl: string }>),
-  conveniosUrl: '',
-  helpUrl: ''
-})
 
 const passQuery = computed(() => ({
   search: search.value,
@@ -248,28 +185,12 @@ const { data: passSearch, pending: passPending, error: passError, refresh: refre
   timeout: 20000,
   dedupe: 'cancel'
 })
-const { data: config, refresh: refreshConfig } = useFetch<PersonasAutorizadasConfig>('/api/admin/personas-autorizadas/config', { timeout: 15000 })
 const passRows = computed(() => passSearch.value?.rows || [])
 const passState = computed(() => passPending.value && !passRows.value.length ? 'loading' : passError.value ? 'error' : passRows.value.length ? 'content' : 'empty')
 const passFixtureMode = computed(() => route.query.fixture === '1')
-const passStatusLabel = computed(() => passPending.value ? 'Consultando...' : passFixtureMode.value ? 'Fixtures dev' : 'Datos reales PA')
+const passStatusLabel = computed(() => passPending.value ? 'Consultando...' : passFixtureMode.value ? 'Fixtures dev' : 'Datos reales')
 const previewKey = computed(() => `svg-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
 const pdfPreviewKey = computed(() => `pdf-${selectedPass.value?.personId || 'none'}-${previewBump.value}`)
-
-watch(config, (value) => {
-  if (!value) return
-  configForm.surveyEnabled = Boolean(value.survey.enabled)
-  configForm.surveyTitle = value.survey.title || 'Encuesta Husky Pass'
-  configForm.surveyEmbedUrl = value.survey.embedUrl || ''
-  for (const option of surveyLevelOptions) {
-    const survey = value.surveysByNivel?.[option.key]
-    configForm.surveysByNivel[option.key].enabled = Boolean(survey?.enabled)
-    configForm.surveysByNivel[option.key].title = survey?.title || option.defaultTitle
-    configForm.surveysByNivel[option.key].embedUrl = survey?.embedUrl || ''
-  }
-  configForm.conveniosUrl = value.conveniosUrl || ''
-  configForm.helpUrl = value.helpUrl || ''
-}, { immediate: true })
 
 function syncSelectedPass(rows: SuperAdminPassCandidate[]) {
   if (!rows.length) {
@@ -297,7 +218,7 @@ watch(passRows, (rows) => {
   syncSelectedPass(rows)
 }, { immediate: true })
 
-watch([search, selectedPlantel, selectedNivel], () => {
+watch([search, selectedPlantel, selectedNivel, () => selectedPass.value?.personId], () => {
   if (!import.meta.client) return
   const query: Record<string, string> = {}
   if (search.value.trim()) query.buscar = search.value.trim()
@@ -321,7 +242,7 @@ async function refreshPassSearch() {
   actionNotice.value = ''
   diagnostics.value = ''
   await refreshPass()
-  actionNotice.value = passError.value ? '' : 'Busqueda actualizada.'
+  actionNotice.value = passError.value ? '' : 'Resultados actualizados.'
 }
 
 function adminPdfUrl(row: SuperAdminPassCandidate, download: boolean) {
@@ -337,7 +258,7 @@ function adminSvgUrl(row: SuperAdminPassCandidate) {
 function guardUnavailable(event: MouseEvent, row: SuperAdminPassCandidate) {
   if (row.readiness.ok) return
   event.preventDefault()
-  actionError.value = row.readiness.issues[0] || 'Faltan datos para generar el Husky Pass.'
+  actionError.value = row.readiness.issues[0] || 'Faltan datos para generar el pase.'
 }
 
 async function loadDiagnostics(row: SuperAdminPassCandidate) {
@@ -350,7 +271,7 @@ async function loadDiagnostics(row: SuperAdminPassCandidate) {
     diagnostics.value = JSON.stringify(result, null, 2)
   } catch (err: unknown) {
     const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible diagnosticar el PDF.'
+    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible diagnosticar el pase.'
   } finally {
     diagnosticsPending.value = false
   }
@@ -373,52 +294,6 @@ async function prepareAccess(row: SuperAdminPassCandidate) {
     accessPreparingId.value = null
   }
 }
-
-function selectConveniosFile(event: Event) {
-  const input = event.target as HTMLInputElement
-  conveniosFile.value = input.files?.[0] || null
-  actionError.value = ''
-  actionNotice.value = ''
-}
-
-async function uploadConveniosFile() {
-  if (!conveniosFile.value) return
-  conveniosUploading.value = true
-  actionError.value = ''
-  actionNotice.value = ''
-  try {
-    const body = new FormData()
-    body.append('file', conveniosFile.value)
-    const response = await $fetch<{ url: string }>('/api/admin/personas-autorizadas/uploads', { method: 'POST', body })
-    configForm.conveniosUrl = response.url
-    conveniosFile.value = null
-    actionNotice.value = 'Archivo cargado. Guarda para publicarlo.'
-  } catch (err: unknown) {
-    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible subir convenios.'
-  } finally {
-    conveniosUploading.value = false
-  }
-}
-
-async function saveConfig() {
-  configSaving.value = true
-  actionError.value = ''
-  actionNotice.value = ''
-  try {
-    await $fetch('/api/admin/personas-autorizadas/config', {
-      method: 'POST',
-      body: { ...configForm }
-    })
-    await refreshConfig()
-    actionNotice.value = 'Configuracion guardada.'
-  } catch (err: unknown) {
-    const failure = err as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
-    actionError.value = failure?.data?.statusMessage || failure?.statusMessage || failure?.message || 'No fue posible guardar configuracion.'
-  } finally {
-    configSaving.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -429,12 +304,20 @@ async function saveConfig() {
 }
 
 .pass-head {
+  align-items: center;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.head-actions,
-.pass-actions,
-.upload-row {
+.pass-count {
+  background: #eef7f4;
+  border: 1px solid #d3e8e1;
+  border-radius: 999px;
+  color: #0b7067;
+  font-size: 0.78rem;
+  padding: 8px 11px;
+}
+
+.pass-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -616,6 +499,13 @@ dd {
   word-break: break-word;
 }
 
+.template-link {
+  color: #0b7168;
+  text-decoration: underline;
+  text-decoration-color: rgba(11, 113, 104, 0.3);
+  text-underline-offset: 3px;
+}
+
 .issue-list {
   display: flex;
   flex-wrap: wrap;
@@ -677,48 +567,16 @@ dd {
   padding: 10px 12px;
 }
 
-.admin-config {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, .5fr);
-}
 
-.survey-list {
-  display: grid;
-  gap: 8px;
-}
 
-.survey-row {
-  align-items: center;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(130px, .4fr) minmax(160px, .55fr) minmax(240px, 1fr);
-}
 
-.switch-line {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  font-weight: 700;
-}
 
-.switch-line input {
-  accent-color: var(--color-brand-700);
-  height: 18px;
-  width: 18px;
-}
 
-.compact {
-  min-height: 34px;
-  padding-inline: 10px;
-}
 
 @media (max-width: 1180px) {
   .pass-head,
   .pass-search-strip,
-  .pass-layout,
-  .admin-config,
-  .survey-row {
+  .pass-layout {
     grid-template-columns: 1fr;
   }
 
@@ -728,9 +586,7 @@ dd {
 }
 
 @media (max-width: 720px) {
-  .head-actions,
-  .pass-actions,
-  .upload-row {
+  .pass-actions {
     display: grid;
     grid-template-columns: 1fr;
   }

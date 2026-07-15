@@ -3,8 +3,7 @@
     <header class="editor-topbar">
       <div>
         <p class="eyebrow">Editor visual</p>
-        <h2>Diseña el gafete, no el SVG</h2>
-        <p>Trabaja solo con los elementos que usa Husky Pass. La hoja de impresión se genera automáticamente.</p>
+        <h2>Diseño del gafete</h2>
       </div>
       <div class="preview-switch" aria-label="Tipo de vista">
         <button type="button" :class="{ active: previewMode === 'card' }" @click="previewMode = 'card'">Gafete</button>
@@ -13,7 +12,7 @@
     </header>
 
     <div class="editor-grid">
-      <aside class="element-rail" aria-label="Elementos del marbete">
+      <aside class="element-rail" aria-label="Elementos del gafete">
         <div class="rail-heading">
           <div>
             <span>Paso 1</span>
@@ -59,12 +58,12 @@
               <option value="regular">Datos habituales</option>
             </select>
           </label>
-          <p><span class="live-dot"></span> El texto del ciclo se genera en vivo: <strong>{{ activeCycle }}</strong></p>
+          <p class="cycle-status"><span class="live-dot"></span><span>Ciclo</span><strong>{{ activeCycle }}</strong></p>
         </div>
 
         <div class="canvas-stage" :class="`mode-${previewMode}`">
           <div v-if="previewMode === 'card'" ref="canvasRef" class="card-canvas" data-diagnostic-preview="marbete-card">
-            <div class="svg-surface" role="img" aria-label="Vista previa editable del marbete" v-html="previewSvg"></div>
+            <div class="svg-surface" role="img" aria-label="Vista previa editable del gafete" v-html="previewSvg"></div>
             <div
               v-for="element in visibleElements"
               :key="element.id"
@@ -84,7 +83,6 @@
           </div>
           <div v-else class="print-preview svg-surface" role="img" aria-label="Vista previa exacta en hoja carta" data-diagnostic-preview="marbete-print" v-html="previewSvg"></div>
         </div>
-        <p class="canvas-hint">{{ previewMode === 'card' ? 'Arrastra un elemento para moverlo. Usa el punto inferior para cambiar su tamaño.' : 'Esta es la composición exacta que se exportará a SVG y PDF.' }}</p>
       </main>
 
       <aside class="property-panel" aria-label="Propiedades del elemento">
@@ -444,12 +442,6 @@ function round(value: number) {
   font-size: 1.2rem;
 }
 
-.editor-topbar > div > p:last-child {
-  color: #697789;
-  font-size: .85rem;
-  margin-top: 4px;
-}
-
 .preview-switch,
 .segmented {
   background: #edf2f7;
@@ -761,13 +753,6 @@ function round(value: number) {
   position: absolute;
   right: -7px;
   width: 13px;
-}
-
-.canvas-hint {
-  color: #718096;
-  font-size: .75rem;
-  margin: 9px 0 0;
-  text-align: center;
 }
 
 .property-heading button {

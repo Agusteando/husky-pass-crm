@@ -491,7 +491,7 @@ async function adminSuite(browser, baseUrl, dirs, evidence, options = {}) {
       shots.push(await captureCurrentPage(page, dirs, 'admin', 'admin-access-editor-daycare', { selectors: ['[data-product-panel="access-editor"]'] }))
       await page.locator('[data-product-panel="access-editor"] button').filter({ hasText: 'Cancelar' }).first().click()
     }
-    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-legacy-redirect', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="directory"]'], timeout: 60000 }))
+    shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-superadmin-legacy-redirect', '/admin/superadmin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-workbench', '/admin/gestion-escolar', { selectors: ['[data-product-screen="overview"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-families', '/admin/gestion-escolar/familias', { selectors: ['[data-product-screen="familias"]'], timeout: 60000 }))
     shots.push(await capturePage(page, baseUrl, dirs, 'admin', 'admin-escolar-comunicados', '/admin/gestion-escolar/comunicados', { selectors: ['[data-product-screen="comunicados"]'], timeout: 60000 }))

@@ -2,7 +2,7 @@
 import { navigateTo } from 'nuxt/app'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'superadmin'] })
-await navigateTo('/admin/superadmin', { replace: true })
+await navigateTo('/admin/gestion-escolar', { replace: true })
 </script>
 
 <template>

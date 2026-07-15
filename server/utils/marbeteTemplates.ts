@@ -446,6 +446,21 @@ export async function saveVisualMarbeteTemplate(input: {
   return next
 }
 
+export async function deleteMarbeteTemplate(id: string) {
+  const templates = await listCustomMarbeteTemplates()
+  const index = templates.findIndex((template) => template.id === id)
+  if (index < 0) throw publicError(404, 'Plantilla no encontrada.')
+
+  const current = templates[index]
+  if (!current) throw publicError(404, 'Plantilla no encontrada.')
+  if (current.status !== 'draft') throw publicError(409, 'Solo se pueden eliminar borradores.')
+  if (current.isDefault) throw publicError(409, 'La plantilla activa no se puede eliminar.')
+
+  templates.splice(index, 1)
+  await writeTemplateIndex(templates)
+  return { id: current.id, deleted: true }
+}
+
 export async function applyMarbeteTemplateAction(input: {
   id: string
   action: 'duplicate' | 'publish' | 'activate'

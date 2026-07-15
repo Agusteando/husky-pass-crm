@@ -146,7 +146,7 @@ function assertRenderableImageMime(mime: string) {
   throw diagnosticError(422, FRIENDLY_IMAGE_MESSAGE, 'unsupported-image-mime', { mime })
 }
 
-function normalizeLoadedImage(bytes: Buffer, declaredMime: string, source: string): LoadedImage {
+function normalizeLoadedImage(bytes: Buffer, declaredMime: string, _source: string): LoadedImage {
   const mime = assertRenderableImageMime(sniffImageMime(bytes, declaredMime))
   return { bytes, mime }
 }

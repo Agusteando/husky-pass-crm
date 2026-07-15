@@ -138,7 +138,7 @@ function signLinkPayload(payload: string) {
   return createHmac('sha256', registrationLinkSecret()).update(payload).digest('base64url')
 }
 
-function verifyLinkSignature(payload: string, signature: string) {
+function _verifyLinkSignature(payload: string, signature: string) {
   const expected = signLinkPayload(payload)
   const a = Buffer.from(signature)
   const b = Buffer.from(expected)

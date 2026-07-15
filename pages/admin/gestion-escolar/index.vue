@@ -24,6 +24,7 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No pudimos cargar Escolar</h2>
+      <button class="btn btn-secondary" type="button" @click="refresh()">Reintentar</button>
     </section>
 
     <template v-else>
@@ -88,11 +89,11 @@ import { useGestionEscolarOverview } from '~/composables/useGestionEscolarOvervi
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
-const { data: overview, pending, error: loadError } = useGestionEscolarOverview()
+const { data: overview, pending, error: loadError, refresh } = useGestionEscolarOverview()
 const modules = computed(() => overview.value?.modules.filter((module) => module.enabled) || [])
 const scopeLabel = computed(() => {
   const planteles = overview.value?.reach.planteles || []
-  if (!planteles.length) return 'Configura tu alcance'
+  if (!planteles.length) return 'Resumen escolar'
   if (planteles.length === 1) return `Plantel ${planteles[0]}`
   return `${planteles.length} planteles`
 })

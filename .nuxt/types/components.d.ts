@@ -53,7 +53,6 @@ interface _GlobalComponents {
   MktEnrollmentStudentModal: typeof import("../../components/mkt/MktEnrollmentStudentModal.vue")['default']
   MktLeadDrawer: typeof import("../../components/mkt/MktLeadDrawer.vue")['default']
   MktLeadFormModal: typeof import("../../components/mkt/MktLeadFormModal.vue")['default']
-  MktTopbar: typeof import("../../components/mkt/MktTopbar.vue")['default']
   TopbarAccountMenu: typeof import("../../components/topbar/AccountMenu.vue")['default']
   TopbarAdminExperienceTopbar: typeof import("../../components/topbar/AdminExperienceTopbar.vue")['default']
   TopbarFamilyExperienceTopbar: typeof import("../../components/topbar/FamilyExperienceTopbar.vue")['default']
@@ -119,7 +118,6 @@ interface _GlobalComponents {
   LazyMktEnrollmentStudentModal: LazyComponent<typeof import("../../components/mkt/MktEnrollmentStudentModal.vue")['default']>
   LazyMktLeadDrawer: LazyComponent<typeof import("../../components/mkt/MktLeadDrawer.vue")['default']>
   LazyMktLeadFormModal: LazyComponent<typeof import("../../components/mkt/MktLeadFormModal.vue")['default']>
-  LazyMktTopbar: LazyComponent<typeof import("../../components/mkt/MktTopbar.vue")['default']>
   LazyTopbarAccountMenu: LazyComponent<typeof import("../../components/topbar/AccountMenu.vue")['default']>
   LazyTopbarAdminExperienceTopbar: LazyComponent<typeof import("../../components/topbar/AdminExperienceTopbar.vue")['default']>
   LazyTopbarFamilyExperienceTopbar: LazyComponent<typeof import("../../components/topbar/FamilyExperienceTopbar.vue")['default']>

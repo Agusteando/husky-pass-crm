@@ -53,7 +53,6 @@ export const FamilyPersonasTutorialVideo: typeof import("../components/family/Pe
 export const MktEnrollmentStudentModal: typeof import("../components/mkt/MktEnrollmentStudentModal.vue")['default']
 export const MktLeadDrawer: typeof import("../components/mkt/MktLeadDrawer.vue")['default']
 export const MktLeadFormModal: typeof import("../components/mkt/MktLeadFormModal.vue")['default']
-export const MktTopbar: typeof import("../components/mkt/MktTopbar.vue")['default']
 export const TopbarAccountMenu: typeof import("../components/topbar/AccountMenu.vue")['default']
 export const TopbarAdminExperienceTopbar: typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']
 export const TopbarFamilyExperienceTopbar: typeof import("../components/topbar/FamilyExperienceTopbar.vue")['default']
@@ -119,7 +118,6 @@ export const LazyFamilyPersonasTutorialVideo: LazyComponent<typeof import("../co
 export const LazyMktEnrollmentStudentModal: LazyComponent<typeof import("../components/mkt/MktEnrollmentStudentModal.vue")['default']>
 export const LazyMktLeadDrawer: LazyComponent<typeof import("../components/mkt/MktLeadDrawer.vue")['default']>
 export const LazyMktLeadFormModal: LazyComponent<typeof import("../components/mkt/MktLeadFormModal.vue")['default']>
-export const LazyMktTopbar: LazyComponent<typeof import("../components/mkt/MktTopbar.vue")['default']>
 export const LazyTopbarAccountMenu: LazyComponent<typeof import("../components/topbar/AccountMenu.vue")['default']>
 export const LazyTopbarAdminExperienceTopbar: LazyComponent<typeof import("../components/topbar/AdminExperienceTopbar.vue")['default']>
 export const LazyTopbarFamilyExperienceTopbar: LazyComponent<typeof import("../components/topbar/FamilyExperienceTopbar.vue")['default']>

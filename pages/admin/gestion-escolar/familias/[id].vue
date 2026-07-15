@@ -5,6 +5,7 @@
       <FamilyPersonasIcon name="security" />
       <h1>Familia no disponible</h1>
       <p>La familia no está disponible.</p>
+      <NuxtLink class="btn btn-secondary" :to="familyListRoute">Volver a familias</NuxtLink>
     </section>
 
     <template v-else-if="detail">
@@ -16,7 +17,7 @@
         ambassador="preescolar"
       >
         <template #actions>
-          <NuxtLink class="btn btn-secondary" to="/admin/gestion-escolar/familias">Familias</NuxtLink>
+          <NuxtLink class="btn btn-secondary" :to="familyListRoute">Familias</NuxtLink>
           <button class="btn btn-primary" type="button" :disabled="!detail.family.canImpersonate || impersonating" @click="requestImpersonation">
             {{ impersonationLabel }}
           </button>
@@ -143,6 +144,15 @@ definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin']
 
 const route = useRoute()
 const familyId = computed(() => String(route.params.id || ''))
+const familyListRoute = computed(() => {
+  const query: Record<string, string> = {}
+  for (const key of ['buscar', 'plantel', 'familia']) {
+    const value = route.query[key]
+    const normalized = Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim()
+    if (normalized) query[key] = normalized
+  }
+  return { path: '/admin/gestion-escolar/familias', query }
+})
 const { data: detail, pending, error } = useFetch<GestionEscolarFamilyDetailResponse>(() => `/api/admin/gestion-escolar/familias/${familyId.value}`, { timeout: 15000 })
 const confirming = ref(false)
 const impersonating = ref(false)

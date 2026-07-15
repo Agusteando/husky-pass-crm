@@ -71,6 +71,7 @@ declare global {
   const defineWebSocket: typeof import('../../node_modules/h3').defineWebSocket
   const defineWebSocketHandler: typeof import('../../node_modules/h3').defineWebSocketHandler
   const deleteCookie: typeof import('../../node_modules/h3').deleteCookie
+  const deleteMarbeteTemplate: typeof import('../../server/utils/marbeteTemplates').deleteMarbeteTemplate
   const deriveSipaePlantelFromStudent: typeof import('../../server/utils/sipaePlantel').deriveSipaePlantelFromStudent
   const devHuskyPassPhotoUrl: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassPhotoUrl
   const devHuskyPassScenario: typeof import('../../server/utils/devHuskyPassFixtures').devHuskyPassScenario
@@ -290,7 +291,7 @@ export { adminOrigin } from 'C:/Users/hp/husky-pass-crm/server/utils/impersonati
 export { shortHash, redactContext, errorSummary, ensureRequestId, logEvent, logErrorOnce, withRequestBoundary } from 'C:/Users/hp/husky-pass-crm/server/utils/logger';
 export { prepareMarbeteSvgForPdf, assertMarbetePdfAssets, renderMarbetePdf } from 'C:/Users/hp/husky-pass-crm/server/utils/marbetePdf';
 export { readMarbeteTemplateSettings, saveMarbeteTemplateSettings } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteSettings';
-export { normalizeSchoolCycle, listBundledMarbeteTemplates, listCustomMarbeteTemplates, listMarbeteTemplates, marbeteTemplateThemes, readMarbeteTemplateSvg, authorizedPersonMarbeteSelectionInput, selectBundledMarbeteTemplate, selectCustomMarbeteTemplate, selectEffectiveMarbeteTemplate, selectMarbeteTemplate, resolveEffectiveMarbeteTemplate, resolveEffectiveMarbeteTemplateSvg, resolveAuthorizedPersonMarbeteTemplateSvg, saveMarbeteTemplate, saveVisualMarbeteTemplate, applyMarbeteTemplateAction, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvgValues, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
+export { normalizeSchoolCycle, listBundledMarbeteTemplates, listCustomMarbeteTemplates, listMarbeteTemplates, marbeteTemplateThemes, readMarbeteTemplateSvg, authorizedPersonMarbeteSelectionInput, selectBundledMarbeteTemplate, selectCustomMarbeteTemplate, selectEffectiveMarbeteTemplate, selectMarbeteTemplate, resolveEffectiveMarbeteTemplate, resolveEffectiveMarbeteTemplateSvg, resolveAuthorizedPersonMarbeteTemplateSvg, saveMarbeteTemplate, saveVisualMarbeteTemplate, deleteMarbeteTemplate, applyMarbeteTemplateAction, buildMarbeteRenderValues, validateMarbeteRequirements, renderMarbeteSvgValues, renderMarbeteSvg, marbeteDownloadName, fallbackTemplateColor } from 'C:/Users/hp/husky-pass-crm/server/utils/marbeteTemplates';
 export { legacyTransaction, legacyQuery, legacyOne, legacyWrite, csvToList } from 'C:/Users/hp/husky-pass-crm/server/utils/mysql';
 export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, validateFamilyPassword, assertPasswordConfirmation } from 'C:/Users/hp/husky-pass-crm/server/utils/passwordPolicy';
 export { SURVEY_NIVEL_OPTIONS, normalizeGoogleFormEmbedUrl, readPersonasConfig, writePersonasConfig, savePersonasConfig, surveyNivelFromStudent, resolveSurveyForStudent, appendAccessActionLog, readLastAccessActions } from 'C:/Users/hp/husky-pass-crm/server/utils/personasConfig';

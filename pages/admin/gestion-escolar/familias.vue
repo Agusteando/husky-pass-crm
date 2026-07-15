@@ -34,6 +34,7 @@
     <section v-else-if="loadError" class="state-panel" data-state="error">
       <FamilyPersonasIcon name="security" />
       <h2>No pudimos cargar familias</h2>
+      <button class="btn btn-secondary" type="button" @click="refreshFamilies">Reintentar</button>
     </section>
 
     <section v-else class="support-layout">
@@ -83,7 +84,7 @@
               <p>{{ detail.family.email || detail.family.username || 'Contacto pendiente' }}</p>
             </div>
             <div class="detail-actions">
-              <NuxtLink class="inline-action" :to="`/admin/gestion-escolar/familias/${detail.family.userId}`">Ficha</NuxtLink>
+              <NuxtLink class="inline-action" :to="familyDetailRoute(detail.family.userId)">Ficha</NuxtLink>
               <button class="btn btn-primary" type="button" :disabled="!detail.family.canImpersonate || impersonating" @click="impersonate(detail.family)">
                 {{ impersonationLabel(detail.family.userId) }}
               </button>
@@ -192,15 +193,17 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { navigateTo, useFetch } from 'nuxt/app'
+import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import type { GestionEscolarFamiliesResponse, GestionEscolarFamilyDetailResponse, GestionEscolarFamilyRow } from '~/types/gestionEscolar'
 import type { PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'gestion-escolar-admin'] })
 
-const search = ref('')
-const selectedPlantel = ref('')
+const route = useRoute()
+const router = useRouter()
+const search = ref(queryValue(route.query.buscar))
+const selectedPlantel = ref(queryValue(route.query.plantel))
 const query = computed(() => ({ search: search.value, plantel: selectedPlantel.value, limit: 120 }))
 const { data, pending, error: loadError, refresh } = useFetch<GestionEscolarFamiliesResponse>('/api/admin/gestion-escolar/familias', { query, timeout: 15000 })
 const selected = ref<GestionEscolarFamilyRow | null>(null)
@@ -215,19 +218,54 @@ const actionError = ref('')
 
 watch(() => data.value?.rows, (rows) => {
   if (!hydrated.value) return
-  if (selected.value && !rows?.some((row) => row.userId === selected.value?.userId)) {
-    selected.value = null
-    detail.value = null
-    detailError.value = ''
-  }
-  if (!selected.value && rows?.length) void selectFamily(rows[0])
+  syncSelectedFamily(rows || [])
+})
+
+watch([search, selectedPlantel], () => {
+  selected.value = null
+  detail.value = null
+  syncRoute()
 })
 
 onMounted(() => {
   hydrated.value = true
-  const rows = data.value?.rows
-  if (!selected.value && rows?.length) void selectFamily(rows[0])
+  syncSelectedFamily(data.value?.rows || [])
 })
+
+function queryValue(value: unknown) {
+  if (Array.isArray(value)) return String(value[0] || '').trim()
+  return String(value || '').trim()
+}
+
+function syncSelectedFamily(rows: GestionEscolarFamilyRow[]) {
+  if (!rows.length) {
+    selected.value = null
+    detail.value = null
+    return
+  }
+  const requestedId = Number(route.query.familia || 0)
+  const next = rows.find((row) => row.userId === requestedId)
+    || (selected.value && rows.find((row) => row.userId === selected.value?.userId))
+    || rows[0]
+  if (next && next.userId !== selected.value?.userId) void selectFamily(next, false)
+}
+
+function syncRoute(familyId?: number) {
+  if (!import.meta.client) return
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.buscar = search.value.trim()
+  if (selectedPlantel.value) query.plantel = selectedPlantel.value
+  if (familyId) query.familia = String(familyId)
+  router.replace({ path: route.path, query })
+}
+
+function familyDetailRoute(userId: number) {
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.buscar = search.value.trim()
+  if (selectedPlantel.value) query.plantel = selectedPlantel.value
+  query.familia = String(userId)
+  return { path: `/admin/gestion-escolar/familias/${userId}`, query }
+}
 
 function initials(value: string) {
   return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'HP'
@@ -272,7 +310,7 @@ async function refreshFamilies() {
   await refresh()
 }
 
-async function selectFamily(family: GestionEscolarFamilyRow) {
+async function selectFamily(family: GestionEscolarFamilyRow, updateRoute = true) {
   selected.value = family
   detail.value = null
   detailError.value = ''
@@ -280,6 +318,7 @@ async function selectFamily(family: GestionEscolarFamilyRow) {
   actionError.value = ''
   actionNotice.value = ''
   confirmingId.value = null
+  if (updateRoute) syncRoute(family.userId)
   try {
     detail.value = await $fetch<GestionEscolarFamilyDetailResponse>(`/api/admin/gestion-escolar/familias/${family.userId}`)
   } catch (error) {
