@@ -140,6 +140,9 @@ declare module "nitropack/types" {
     '/api/daycare/admin/room-management/move': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/move.post').default>>>>
     }
+    '/api/daycare/admin/room-management/revoke': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/room-management/revoke.post').default>>>>
+    }
     '/api/daycare/admin/roster-apply': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/daycare/admin/roster-apply.post').default>>>>
     }

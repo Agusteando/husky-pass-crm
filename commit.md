@@ -1,1 +1,1 @@
-Restringe la gestión por unidad y unifica usuarios al cambiar de sala
+Integra la gestión de salas en Familias y elimina la sección separada de Usuarios

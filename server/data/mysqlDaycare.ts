@@ -19,9 +19,9 @@ import { normalizeMatricula } from '~/utils/matricula'
 import { normalizeSchoolPlantel, schoolPlantelSqlFromMatricula } from '~/utils/schoolCatalog'
 import { DAYCARE_FAMILY_ROLE, hasRoleToken } from '~/utils/sessionScopes'
 import { hashLegacyPassword } from '~/server/data/mysqlAuth'
-import { attachRosterToFamilyAccounts } from '~/server/data/daycareRoster'
+import { buildDaycareRosterOverlay } from '~/server/data/daycareRoster'
 import { getSalasForUnidad } from '~/server/data/daycareScopes'
-import { moveDaycareRoomMembers } from '~/server/data/daycareRoomManagement'
+import { getDaycareRoomManagementOverview, moveDaycareRoomMembers } from '~/server/data/daycareRoomManagement'
 
 export { getSalasForUnidad, listAdminDaycareUnits } from '~/server/data/daycareScopes'
 
@@ -638,18 +638,18 @@ export async function deleteAdminResource(user: AppSessionUser, id: number) {
 
 export async function getFamilyAccounts(user: AppSessionUser, salaId: number) {
   const sala = await getSalaById(user, salaId)
-  const rows = await legacyQuery<(FamilyAccount & RowDataPacket)[]>(
-    `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala
-     FROM users
-     WHERE FIND_IN_SET(?, REPLACE(COALESCE(unidad, ''), ' ', '')) > 0
-       AND FIND_IN_SET(?, REPLACE(COALESCE(role, ''), ' ', '')) > 0
-       AND CAST(sala AS CHAR) = CAST(? AS CHAR)
-     ORDER BY id ASC`,
-    [sala.unidad, DAYCARE_FAMILY_ROLE, salaId]
-  )
-  const normalizedRows = rows.map((row) => ({ ...row, id: Number(row.id) }))
-  const withRoster = await attachRosterToFamilyAccounts(sala.unidad, sala, normalizedRows)
-  return { sala, rows: withRoster.rows, roster: withRoster.roster }
+  const roomManagement = await getDaycareRoomManagementOverview(user, sala.unidad)
+  const rows = roomManagement.members.filter((member) => Number(member.salaId) === Number(sala.id))
+  const roster = await buildDaycareRosterOverlay(sala.unidad, sala, rows)
+  return {
+    sala,
+    rows,
+    roster,
+    roomManagement: {
+      salas: roomManagement.salas,
+      roster: roomManagement.roster
+    }
+  }
 }
 
 export async function upsertFamilyAccount(user: AppSessionUser, payload: FamilyAccountPayload) {
@@ -1008,10 +1008,20 @@ async function getSalaMetrics(sala: Sala) {
 
 export async function getSalasOverviewForUnidad(user: AppSessionUser, unidad: string) {
   const salas = await getSalasForUnidad(user, unidad)
-  return Promise.all(salas.map(async (sala) => ({
-    ...sala,
-    metrics: await getSalaMetrics(sala)
-  })))
+  const roomManagement = await getDaycareRoomManagementOverview(user, unidad)
+  const confirmationBySala = new Map(roomManagement.roster.rooms.map((room) => [room.salaId, room]))
+  return Promise.all(salas.map(async (sala) => {
+    const confirmation = confirmationBySala.get(Number(sala.id))
+    return {
+      ...sala,
+      metrics: await getSalaMetrics(sala),
+      confirmation: {
+        available: roomManagement.roster.available,
+        confirmed: confirmation?.confirmed || 0,
+        total: confirmation?.total || 0
+      }
+    }
+  }))
 }
 
 export async function getSalaOperationalOverview(user: AppSessionUser, salaId: number) {

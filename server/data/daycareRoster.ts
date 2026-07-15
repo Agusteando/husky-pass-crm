@@ -1,6 +1,6 @@
 import type { RowDataPacket } from 'mysql2/promise'
 import type { AppSessionUser } from '~/types/session'
-import type { FamilyAccount, Sala, DaycareRosterDiagnostics, DaycareRosterEntry, DaycareRosterOverlay, DaycareRosterSuggestion } from '~/types/daycare'
+import type { FamilyAccount, Sala, DaycareRoomMember, DaycareRosterDiagnostics, DaycareRosterEntry, DaycareRosterOverlay, DaycareRosterSuggestion } from '~/types/daycare'
 import { assertUnidadAccess } from '~/server/utils/authz'
 import { publicError } from '~/server/utils/httpError'
 import { legacyOne, legacyQuery, legacyWrite } from '~/server/utils/mysql'
@@ -28,7 +28,7 @@ type CachedRoster = {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000
-const FETCH_TIMEOUT_MS = Number(process.env.DAYCARE_ROSTER_TIMEOUT_MS || 7000)
+const FETCH_TIMEOUT_MS = Number(process.env.DAYCARE_ROSTER_TIMEOUT_MS || 20000)
 let rosterCache: CachedRoster | null = null
 
 const REQUIRED_ROSTER_COLUMNS = [
@@ -217,6 +217,27 @@ function rowEmail(account: Pick<FamilyAccount, 'email' | 'username'>) {
   return normalizeRosterEmail(account.email || account.username)
 }
 
+function groupEntriesByEmail(entries: DaycareRosterEntry[]) {
+  const grouped = new Map<string, DaycareRosterEntry[]>()
+  for (const entry of entries) {
+    if (!entry.normalizedEmail) continue
+    const bucket = grouped.get(entry.normalizedEmail) || []
+    bucket.push(entry)
+    grouped.set(entry.normalizedEmail, bucket)
+  }
+  return grouped
+}
+
+function pickRosterEntry(entries: DaycareRosterEntry[] | undefined, salaName?: string | null) {
+  if (!entries?.length) return undefined
+  const normalizedSala = normalizeRosterSala(salaName)
+  if (normalizedSala) {
+    const roomMatch = entries.find((entry) => entry.normalizedSala === normalizedSala)
+    if (roomMatch) return roomMatch
+  }
+  return entries[0]
+}
+
 function suggestionForAccount(account: FamilyAccount, entry: DaycareRosterEntry | undefined, currentSala: Sala, salaMap: Map<string, { id: number; sala: string; unidad: string }>): DaycareRosterSuggestion {
   if (!entry) return { state: 'not-found' }
   const target = entry.normalizedSala ? salaMap.get(entry.normalizedSala) : undefined
@@ -241,24 +262,26 @@ function suggestionForAccount(account: FamilyAccount, entry: DaycareRosterEntry 
 export async function buildDaycareRosterOverlay(unidad: string, currentSala: Sala, accounts: FamilyAccount[]): Promise<DaycareRosterOverlay> {
   const source = await fetchRosterEntries()
   if (!source.sourceAvailable) {
-    return { available: false, sourceState: 'unavailable', sourceMessage: 'La lista externa no respondió. La plataforma sigue usando las cuentas guardadas.', summary: { inSala: 0, linked: 0, pending: 0, moved: 0 }, sourceOnly: [], diagnostics: source.diagnostics }
+    return { available: false, sourceState: 'unavailable', sourceMessage: 'La lista externa no respondió. La plataforma sigue usando las cuentas guardadas.', summary: { inSala: 0, confirmed: 0, linked: 0, pending: 0, moved: 0 }, sourceOnly: [], diagnostics: source.diagnostics }
   }
 
   const entriesForUnidad = source.entries.filter((entry) => rosterSheetMatchesUnidad(entry.sourceSheet, unidad))
   const salas = await salasForUnidad(unidad)
   const salaMap = mapSalas(salas)
   const currentSalaName = normalizeRosterSala(currentSala.sala)
-  const entriesByEmail = new Map(entriesForUnidad.filter((entry) => entry.normalizedEmail).map((entry) => [entry.normalizedEmail, entry]))
+  const entriesByEmail = groupEntriesByEmail(entriesForUnidad)
   const accountEmails = new Set(accounts.map(rowEmail).filter(Boolean))
 
-  const sourceOnly = entriesForUnidad
-    .filter((entry) => entry.normalizedSala === currentSalaName && entry.normalizedEmail && !accountEmails.has(entry.normalizedEmail))
+  const entriesInCurrentSala = entriesForUnidad.filter((entry) => entry.normalizedSala === currentSalaName)
+  const confirmed = entriesInCurrentSala.filter((entry) => entry.normalizedEmail && accountEmails.has(entry.normalizedEmail)).length
+  const sourceOnly = entriesInCurrentSala
+    .filter((entry) => entry.normalizedEmail && !accountEmails.has(entry.normalizedEmail))
     .map((entry) => ({ ...entry, targetSalaId: Number(currentSala.id), targetSalaName: currentSala.sala }))
 
   let linked = 0
   let moved = 0
   for (const account of accounts) {
-    const entry = entriesByEmail.get(rowEmail(account))
+    const entry = pickRosterEntry(entriesByEmail.get(rowEmail(account)), currentSala.sala)
     if (!entry) continue
     linked += 1
     const target = entry.normalizedSala ? salaMap.get(entry.normalizedSala) : undefined
@@ -273,7 +296,8 @@ export async function buildDaycareRosterOverlay(unidad: string, currentSala: Sal
     sourceState: 'connected',
     sourceMessage: null,
     summary: {
-      inSala: entriesForUnidad.filter((entry) => entry.normalizedSala === currentSalaName).length,
+      inSala: entriesInCurrentSala.length,
+      confirmed,
       linked,
       pending: sourceOnly.length,
       moved
@@ -290,13 +314,90 @@ export async function attachRosterToFamilyAccounts(unidad: string, currentSala: 
 
   const source = await fetchRosterEntries()
   const entriesForUnidad = source.entries.filter((entry) => rosterSheetMatchesUnidad(entry.sourceSheet, unidad))
-  const entriesByEmail = new Map(entriesForUnidad.filter((entry) => entry.normalizedEmail).map((entry) => [entry.normalizedEmail, entry]))
+  const entriesByEmail = groupEntriesByEmail(entriesForUnidad)
   const salaMap = mapSalas(await salasForUnidad(unidad))
   const rows = accounts.map((account) => ({
     ...account,
-    roster: suggestionForAccount(account, entriesByEmail.get(rowEmail(account)), currentSala, salaMap)
+    roster: suggestionForAccount(account, pickRosterEntry(entriesByEmail.get(rowEmail(account)), currentSala.sala), currentSala, salaMap)
   }))
   return { rows, roster: overlay }
+}
+
+export async function attachRosterToRoomMembers(unidad: string, salas: Sala[], members: DaycareRoomMember[]) {
+  const localCounts = new Map<number, number>()
+  const localEmailsBySala = new Map<number, Set<string>>()
+  for (const member of members) {
+    const salaId = Number(member.salaId)
+    localCounts.set(salaId, (localCounts.get(salaId) || 0) + 1)
+    const email = rowEmail(member)
+    if (!email) continue
+    const emails = localEmailsBySala.get(salaId) || new Set<string>()
+    emails.add(email)
+    localEmailsBySala.set(salaId, emails)
+  }
+
+  const source = await fetchRosterEntries()
+  if (!source.sourceAvailable) {
+    return {
+      members: members.map((member) => ({ ...member, roster: null })),
+      roster: {
+        available: false,
+        confirmed: 0,
+        total: 0,
+        rooms: salas.map((sala) => ({
+          salaId: Number(sala.id),
+          salaName: String(sala.sala),
+          local: localCounts.get(Number(sala.id)) || 0,
+          confirmed: 0,
+          total: 0
+        })),
+        sourceUpdatedAt: null
+      }
+    }
+  }
+
+  const entriesForUnidad = source.entries.filter((entry) => rosterSheetMatchesUnidad(entry.sourceSheet, unidad))
+  const entriesByEmail = groupEntriesByEmail(entriesForUnidad)
+  const salaMap = mapSalas(salas.map((sala) => ({ ...sala } as SalaRow)))
+  const salaById = new Map(salas.map((sala) => [Number(sala.id), sala]))
+
+  const rows = members.map((member) => {
+    const currentSala = salaById.get(Number(member.salaId)) || {
+      id: Number(member.salaId),
+      sala: member.salaName,
+      unidad
+    }
+    const entry = pickRosterEntry(entriesByEmail.get(rowEmail(member)), currentSala.sala)
+    return {
+      ...member,
+      roster: suggestionForAccount(member, entry, currentSala, salaMap)
+    }
+  })
+
+  const rooms = salas.map((sala) => {
+    const salaId = Number(sala.id)
+    const normalizedSala = normalizeRosterSala(sala.sala)
+    const sourceRows = entriesForUnidad.filter((entry) => entry.normalizedSala === normalizedSala)
+    const localEmails = localEmailsBySala.get(salaId) || new Set<string>()
+    return {
+      salaId,
+      salaName: String(sala.sala),
+      local: localCounts.get(salaId) || 0,
+      confirmed: sourceRows.filter((entry) => entry.normalizedEmail && localEmails.has(entry.normalizedEmail)).length,
+      total: sourceRows.length
+    }
+  })
+
+  return {
+    members: rows,
+    roster: {
+      available: true,
+      confirmed: rooms.reduce((sum, room) => sum + room.confirmed, 0),
+      total: rooms.reduce((sum, room) => sum + room.total, 0),
+      rooms,
+      sourceUpdatedAt: entriesForUnidad.map((entry) => entry.lastUpdatedAt).filter(Boolean).sort().at(-1) || null
+    }
+  }
 }
 
 export async function findDaycareRosterMatch(input: { email: string; unidad: string; salaId?: number | string | null; salaName?: string | null }) {
@@ -305,7 +406,9 @@ export async function findDaycareRosterMatch(input: { email: string; unidad: str
   const email = normalizeRosterEmail(input.email)
   if (!email) return { available: true as const, match: null, diagnostics: source.diagnostics }
   const entriesForUnidad = source.entries.filter((entry) => rosterSheetMatchesUnidad(entry.sourceSheet, input.unidad))
-  const entry = entriesForUnidad.find((item) => item.normalizedEmail === email) || null
+  const entriesByEmail = groupEntriesByEmail(entriesForUnidad)
+  const requestedSalaName = input.salaName || null
+  const entry = pickRosterEntry(entriesByEmail.get(email), requestedSalaName) || null
   logPersonasDebug('daycare-roster-email-match', {
     ...source.diagnostics,
     unidad: input.unidad,

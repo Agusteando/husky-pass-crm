@@ -10,7 +10,7 @@
         <div class="hero-stats">
           <span><strong>{{ familyStats.total }}</strong> cuentas</span>
           <span><strong>{{ familyStats.active }}</strong> activas</span>
-          <span v-if="rosterAvailable"><strong>{{ rosterSummary.pending }}</strong> por activar</span>
+          <span v-if="currentRoomConfirmation?.total"><strong>{{ currentRoomConfirmation.confirmed }}/{{ currentRoomConfirmation.total }}</strong> Usuarios confirmados</span>
         </div>
         <button class="hero-action" type="button" data-diagnostic-action="crear-familia" :disabled="saving" @click="startCreate">
           <FamilyPersonasIcon name="plus" />Nueva familia
@@ -32,87 +32,36 @@
       <button v-if="canPreviewSala" class="toolbar-action" type="button" data-diagnostic-action="preview-sala" :disabled="previewing" @click="previewSala"><span><FamilyPersonasIcon name="sparkles" /></span><strong>Vista familiar</strong><small>{{ previewing ? 'Abriendo…' : 'Previsualizar' }}</small></button>
     </section>
 
-    <section v-if="rosterAvailable" class="roster-strip" aria-label="Lista de sala">
-      <article>
-        <span class="roster-dot good">✓</span>
-        <strong>{{ rosterSummary.linked }}</strong>
-        <small>con ficha</small>
-      </article>
-      <article>
-        <span class="roster-dot warm">+</span>
-        <strong>{{ rosterSummary.pending }}</strong>
-        <small>por activar</small>
-      </article>
-      <article>
-        <span class="roster-dot move">↗</span>
-        <strong>{{ rosterSummary.moved }}</strong>
-        <small>cambio de sala</small>
-      </article>
-      <article>
-        <span class="roster-dot neutral">{{ rosterSummary.inSala }}</span>
-        <small>lista de sala</small>
-      </article>
-      <button class="roster-diagnostics-trigger" type="button" @click="rosterDiagnosticsDialog = true">Diagnóstico</button>
-    </section>
-    <section v-else-if="data?.roster" class="roster-strip muted-roster" aria-label="Lista de sala no disponible">
-      <article>
-        <span class="roster-dot warm">!</span>
-        <strong>Lista externa sin conexión</strong>
-        <small>{{ data.roster.sourceMessage || 'Las familias guardadas siguen disponibles.' }}</small>
-      </article>
-      <button class="roster-diagnostics-trigger" type="button" @click="rosterDiagnosticsDialog = true">Diagnóstico</button>
+    <section v-if="roomNavigation.length" class="family-room-switcher" aria-label="Salas de la unidad">
+      <button
+        v-for="(room, index) in roomNavigation"
+        :key="room.id"
+        type="button"
+        :class="{ active: room.id === salaId }"
+        :aria-current="room.id === salaId ? 'page' : undefined"
+        @click="openRoom(room.id)"
+      >
+        <span class="room-switch-mark" :data-index="index % 4">{{ initials(room.sala) }}</span>
+        <span class="room-switch-copy">
+          <strong>{{ room.sala }}</strong>
+          <small>{{ room.local }} familias</small>
+        </span>
+        <span v-if="room.confirmationAvailable && room.total" class="room-switch-count">{{ room.confirmed }}/{{ room.total }}</span>
+      </button>
     </section>
 
-    <AdminModal
-      v-if="rosterDiagnosticsDialog"
-      title="Diagnóstico de lista"
-      eyebrow="Guardería"
-      :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
-      @close="rosterDiagnosticsDialog = false"
-    >
-      <section class="roster-diagnostics-modal">
-        <div class="diagnostics-grid">
-          <article>
-            <span>Fuente</span>
-            <strong>{{ rosterDiagnostics?.sourceUrl || 'Sin fuente' }}</strong>
-          </article>
-          <article>
-            <span>Hojas</span>
-            <strong>{{ rosterDiagnostics?.sheetCount ?? 0 }}</strong>
-          </article>
-          <article>
-            <span>Filas externas</span>
-            <strong>{{ rosterDiagnostics?.totalRows ?? 0 }}</strong>
-          </article>
-          <article>
-            <span>Empates por correo</span>
-            <strong>{{ rosterDiagnostics?.accounts?.matchedByEmail ?? 0 }}</strong>
-          </article>
-        </div>
-        <div class="diagnostics-block">
-          <span>Hojas usadas para esta unidad</span>
-          <strong>{{ rosterDiagnostics?.unidad?.matchedSheets?.join(', ') || 'Ninguna' }}</strong>
-        </div>
-        <div class="diagnostics-block">
-          <span>Salas externas sin empate local</span>
-          <strong>{{ rosterDiagnostics?.sala?.unmatchedSourceSalas?.join(', ') || 'Ninguna' }}</strong>
-        </div>
-        <div class="diagnostics-block" v-if="rosterDiagnostics?.missingColumnsBySheet?.length">
-          <span>Columnas faltantes</span>
-          <strong>{{ rosterDiagnostics.missingColumnsBySheet.map((item) => `${item.sheet}: ${item.missing.join(', ')}`).join(' · ') }}</strong>
-        </div>
-        <div class="diagnostics-block">
-          <span>Supuestos validados</span>
-          <ul>
-            <li v-for="item in rosterDiagnostics?.assumptions || []" :key="item">{{ item }}</li>
-          </ul>
-        </div>
-        <footer class="modal-actions">
-          <button class="btn btn-secondary" type="button" @click="copyRosterDiagnostics">Copiar diagnóstico</button>
-          <button class="btn btn-primary" type="button" @click="rosterDiagnosticsDialog = false">Listo</button>
-        </footer>
-      </section>
-    </AdminModal>
+    <section class="family-viewbar" aria-label="Vista de familias">
+      <div class="family-view-filters">
+        <button type="button" :class="{ active: rosterView === 'all' }" @click="setRosterView('all')">Todas</button>
+        <button v-if="rosterAvailable" type="button" :class="{ active: rosterView === 'confirmed' }" @click="setRosterView('confirmed')">Confirmadas</button>
+        <button v-if="rosterAvailable" type="button" :class="{ active: rosterView === 'review' }" @click="setRosterView('review')">Revisar</button>
+      </div>
+      <span v-if="currentRoomConfirmation?.total" class="family-confirmation-kpi">
+        <FamilyPersonasIcon name="check" />
+        <small>Usuarios confirmados</small>
+        <strong>{{ currentRoomConfirmation.confirmed }}/{{ currentRoomConfirmation.total }}</strong>
+      </span>
+    </section>
 
     <AdminModal
       v-if="editing"
@@ -172,17 +121,17 @@
 
     <AdminModal
       v-if="rosterDialog"
-      :title="rosterDialog.applySala ? 'Mover familia' : 'Actualizar nombre'"
-      eyebrow="Lista de sala"
+      title="Actualizar nombre"
+      eyebrow="Familia"
       :description="rosterDialog.account.email || rosterDialog.account.username"
       :close-disabled="rosterSaving"
       @close="rosterDialog = null"
     >
       <section class="roster-confirm-modal">
-        <div class="roster-confirm-icon">{{ rosterDialog.applySala ? '↗' : '✓' }}</div>
+        <div class="roster-confirm-icon">✓</div>
         <div>
-          <strong>{{ rosterDialog.applySala ? selectedRosterTitle : rosterDialog.account.roster?.childName }}</strong>
-          <small>{{ rosterDialog.applySala ? selectedRosterDetail : 'Se guardará como nombre del niño o niña.' }}</small>
+          <strong>{{ rosterDialog.account.roster?.childName }}</strong>
+          <small>{{ data?.sala?.sala }}</small>
         </div>
         <footer class="modal-actions">
           <button class="btn btn-secondary" type="button" @click="rosterDialog = null">Cancelar</button>
@@ -248,30 +197,48 @@
           <span class="list-scope">{{ data?.sala?.sala }}</span>
         </div>
 
-        <div v-if="filteredAccounts.length || rosterSourceOnly.length" class="family-list">
-          <button
+        <section v-if="selectedFamilyIds.length" class="family-bulk-bar">
+          <span>{{ selectedFamilyIds.length }}</span>
+          <strong>{{ selectedFamilyIds.length === 1 ? 'familia' : 'familias' }}</strong>
+          <select v-model.number="bulkTargetSalaId" aria-label="Sala destino">
+            <option :value="0" disabled>Sala destino</option>
+            <option v-for="room in roomNavigation" :key="room.id" :value="room.id">{{ room.sala }}</option>
+          </select>
+          <button type="button" :disabled="!bulkTargetSalaId || roomActionBusy" @click="moveSelectedFamilies"><FamilyPersonasIcon name="arrow" /></button>
+          <button type="button" class="bulk-clear" aria-label="Limpiar selección" @click="clearFamilySelection"><FamilyPersonasIcon name="close" /></button>
+        </section>
+
+        <div v-if="filteredAccounts.length || visibleRosterSourceOnly.length" class="family-list">
+          <article
             v-for="account in filteredAccounts"
             :key="account.id"
-            class="family-row"
+            class="family-row-shell"
             :class="{ active: selected?.id === account.id, syncing: familyStatus(account.id)?.state === 'pending', failed: familyStatus(account.id)?.state === 'error' }"
-            type="button"
-            data-diagnostic-action="seleccionar-familia"
-            :aria-pressed="selected?.id === account.id"
-            @click="selectAccount(account)"
           >
-            <span class="family-avatar">{{ initials(account.nombre_nino || accountLabel(account.username)) }}</span>
-            <span class="family-copy">
-              <strong>{{ account.nombre_nino || account.roster?.childName || 'Sin nombre de niño/a' }}</strong>
-              <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
-            </span>
-            <span class="family-row-tail">
-              <AdminSyncCue v-if="familyStatus(account.id)" :status="familyStatus(account.id)" compact />
-              <span class="source-pill" :data-state="accountRosterState(account)">{{ accountRosterMark(account) }}</span>
-            </span>
-          </button>
-          <div v-if="rosterSourceOnly.length" class="source-only-list">
+            <label class="family-select-control" @click.stop>
+              <input type="checkbox" :checked="selectedFamilyIds.includes(Number(account.id))" @change="toggleFamilySelection(Number(account.id))" />
+            </label>
+            <button
+              class="family-row"
+              type="button"
+              data-diagnostic-action="seleccionar-familia"
+              :aria-pressed="selected?.id === account.id"
+              @click="selectAccount(account)"
+            >
+              <span class="family-avatar">{{ initials(familyDisplayName(account)) }}</span>
+              <span class="family-copy">
+                <strong>{{ familyDisplayName(account) }}</strong>
+                <small>{{ [accountLabel(account.username) || 'Sin usuario', account.email || 'Sin correo'].join(' · ') }}</small>
+              </span>
+              <span class="family-row-tail">
+                <AdminSyncCue v-if="familyStatus(account.id)" :status="familyStatus(account.id)" compact />
+                <span class="source-pill" :data-state="accountRosterState(account)">{{ accountRosterMark(account) }}</span>
+              </span>
+            </button>
+          </article>
+          <div v-if="visibleRosterSourceOnly.length" class="source-only-list">
             <p>Por activar</p>
-            <button v-for="entry in rosterSourceOnly" :key="[entry.sourceSheet, entry.normalizedEmail, entry.childName].join('-')" class="source-only-row" type="button" @click="startCreateFromRoster(entry)">
+            <button v-for="entry in visibleRosterSourceOnly" :key="[entry.sourceSheet, entry.normalizedEmail, entry.childName].join('-')" class="source-only-row" type="button" @click="startCreateFromRoster(entry)">
               <span class="family-avatar soft">{{ initials(entry.childName || entry.tutorEmail) }}</span>
               <span>
                 <strong>{{ entry.childName || 'Familia sin nombre' }}</strong>
@@ -287,13 +254,26 @@
       <aside class="card family-preview-card" data-product-panel="familia-preview" :data-state="selected ? 'content' : 'empty'">
         <template v-if="selected">
           <header class="family-profile-hero">
-            <span class="selected-family-avatar">{{ initials(selected.nombre_nino || accountLabel(selected.username)) }}</span>
+            <span class="selected-family-avatar">{{ initials(familyDisplayName(selected)) }}</span>
             <div>
               <p class="eyebrow">Detalle familiar</p>
-              <h2>{{ selected.nombre_nino || accountLabel(selected.username) }}</h2>
+              <h2>{{ familyDisplayName(selected) }}</h2>
               <span class="account-state">{{ accountStatusLabel(selected) }}</span>
             </div>
-            <AdminSyncCue v-if="familyStatus(selected.id)" :status="familyStatus(selected.id)" />
+            <div class="profile-head-actions">
+              <AdminSyncCue v-if="familyStatus(selected.id)" :status="familyStatus(selected.id)" />
+              <button
+                v-if="canRevokeSelected"
+                type="button"
+                class="profile-revoke"
+                :disabled="revokingId === selected.id"
+                aria-label="Revocar acceso"
+                title="Revocar acceso"
+                @click="revokeAccess(selected)"
+              >
+                <FamilyPersonasIcon :name="revokingId === selected.id ? 'replace' : 'exit'" />
+              </button>
+            </div>
           </header>
           <section class="family-profile-lines" aria-label="Resumen familiar">
             <article>
@@ -318,12 +298,69 @@
             <div>
               <strong>{{ selectedRosterTitle }}</strong>
               <small>{{ selectedRosterDetail }}</small>
+              <span v-if="selected?.roster?.state === 'room-changed'" class="roster-room-route">
+                <b>{{ data?.sala?.sala }}</b>
+                <FamilyPersonasIcon name="arrow" />
+                <b>{{ selected.roster.targetSalaName }}</b>
+              </span>
             </div>
             <div class="roster-sync-actions">
               <button v-if="selected?.roster?.childDifferent" class="btn btn-secondary" type="button" :disabled="rosterSaving || isFamilyPending(selected.id)" @click="openRosterDialog(selected, { applyChildName: true })">Aplicar nombre</button>
-              <button v-if="selected?.roster?.state === 'room-changed' && selected?.roster?.targetSalaId" class="btn btn-primary" type="button" :disabled="rosterSaving || isFamilyPending(selected.id)" @click="openRosterDialog(selected, { applySala: true, applyChildName: true })">{{ selectedRosterMoveCta }}</button>
+              <button v-if="selected?.roster?.state === 'room-changed' && selected?.roster?.targetSalaId" class="btn btn-primary" type="button" :disabled="roomActionBusy || isFamilyPending(selected.id)" @click="moveFamilyTo(selected.roster.targetSalaId)">{{ selectedRosterMoveCta }}</button>
             </div>
           </section>
+
+          <section v-if="roomNavigation.length" class="family-room-flow" aria-label="Cambio de sala">
+            <header>
+              <div>
+                <small>Sala actual</small>
+                <strong>{{ data?.sala?.sala }}</strong>
+              </div>
+              <span>{{ currentRoomPosition }}</span>
+            </header>
+
+            <div class="family-room-path" role="list">
+              <button
+                v-for="(room, index) in roomNavigation"
+                :key="room.id"
+                type="button"
+                role="listitem"
+                :class="{
+                  current: room.id === salaId,
+                  selected: room.id === roomTargetSalaId && room.id !== salaId,
+                  suggested: room.id === selected?.roster?.targetSalaId && room.id !== salaId,
+                  completed: currentRoomIndex >= 0 && index < currentRoomIndex
+                }"
+                :aria-current="room.id === salaId ? 'step' : undefined"
+                :disabled="roomActionBusy"
+                @click="selectRoomTarget(room.id)"
+              >
+                <span><FamilyPersonasIcon :name="room.id === salaId ? 'check' : room.id === selected?.roster?.targetSalaId ? 'sparkles' : 'daycare'" /></span>
+                <strong>{{ room.sala }}</strong>
+              </button>
+            </div>
+
+            <div class="family-room-directions">
+              <button type="button" :disabled="!previousRoom || roomActionBusy" @click="moveFamilyTo(previousRoom?.id)">
+                <FamilyPersonasIcon name="arrow" />
+                <span><small>Regresar</small><strong>{{ previousRoom?.sala || '—' }}</strong></span>
+              </button>
+              <button type="button" class="forward" :disabled="!nextRoom || roomActionBusy" @click="moveFamilyTo(nextRoom?.id)">
+                <span><small>Promover</small><strong>{{ nextRoom?.sala || '—' }}</strong></span>
+                <FamilyPersonasIcon name="arrow" />
+              </button>
+            </div>
+
+            <Transition name="family-room-transfer">
+              <div v-if="roomTarget && roomTarget.id !== salaId" class="family-room-transfer">
+                <span>{{ data?.sala?.sala }}</span>
+                <FamilyPersonasIcon name="arrow" />
+                <strong>{{ roomTarget.sala }}</strong>
+                <button type="button" :disabled="roomActionBusy" :aria-label="`Mover a ${roomTarget.sala}`" @click="moveFamilyTo(roomTarget.id)"><FamilyPersonasIcon name="check" /></button>
+              </div>
+            </Transition>
+          </section>
+
           <section class="access-panel" aria-label="Acceso familiar">
             <div>
               <small>Contraseña</small>
@@ -350,7 +387,7 @@ import { navigateTo, useFetch, useRoute, useRouter } from 'nuxt/app'
 import { useAppSession } from '~/composables/useAppSession'
 import { useDraftState } from '~/composables/useDraftState'
 import { useOptimisticStatus } from '~/composables/useOptimisticStatus'
-import type { DaycareRosterEntry, DaycareRosterOverlay, FamilyAccount, Sala } from '~/types/daycare'
+import type { DaycareRoomManagementRosterStatus, DaycareRosterEntry, DaycareRosterOverlay, FamilyAccount, Sala } from '~/types/daycare'
 import type { AppSessionUser, PublicSession } from '~/types/session'
 import { setCachedRouteSession } from '~/utils/routeSession'
 import { DAYCARE_FAMILY_ROLE, defaultFamilyRoute, hasDaycareAdminScope } from '~/utils/sessionScopes'
@@ -365,6 +402,14 @@ import FamilyAccountEditor from '~/components/admin/FamilyAccountEditor.vue'
 import FamilyPersonasIcon from '~/components/family/PersonasIcon.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin', 'daycare-admin'] })
+
+type RosterView = 'all' | 'confirmed' | 'review'
+type FamilyAccountsResponse = {
+  sala: Sala
+  rows: FamilyAccount[]
+  roster?: DaycareRosterOverlay
+  roomManagement?: { salas: Sala[]; roster: DaycareRoomManagementRosterStatus }
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -389,9 +434,14 @@ const registrationDialog = ref(false)
 const registrationLoading = ref(false)
 const registrationEmail = ref('')
 const registrationLink = ref<{ token: string; url: string; qrUrl: string; sala: string; unidad: string } | null>(null)
-const rosterDiagnosticsDialog = ref(false)
 const rosterSaving = ref(false)
-const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean; applySala?: boolean } | null>(null)
+const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean } | null>(null)
+const rosterView = ref<RosterView>(route.query.vista === 'confirmed' || route.query.vista === 'review' ? route.query.vista : 'all')
+const selectedFamilyIds = ref<number[]>([])
+const bulkTargetSalaId = ref(0)
+const roomTargetSalaId = ref(salaId)
+const roomActionBusy = ref(false)
+const revokingId = ref<number | null>(null)
 const bulkStatusKeyByFamily = ref<Record<number, string>>({})
 let optimisticFamilyId = -1
 let familyRevision = 0
@@ -414,34 +464,49 @@ const daycareTheme = resolvePersonasTheme({ themeKey: 'daycare' })
 const sunnyMascot = personasMascot(daycareTheme, 'help')
 const canPreviewSala = computed(() => hasDaycareAdminScope(session.value?.user))
 const canImpersonateAccounts = computed(() => hasDaycareAdminScope(session.value?.user))
-const { data, pending, error } = useFetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
+const { data, pending, error } = useFetch<FamilyAccountsResponse>('/api/daycare/admin/family-accounts', {
   query: { sala: salaId },
-  timeout: 15000
+  timeout: 30000
 })
 
 const rosterAvailable = computed(() => Boolean(data.value?.roster?.available))
-const rosterSummary = computed(() => data.value?.roster?.summary || { inSala: 0, linked: 0, pending: 0, moved: 0 })
+const rosterSummary = computed(() => data.value?.roster?.summary || { inSala: 0, confirmed: 0, linked: 0, pending: 0, moved: 0 })
 const rosterSourceOnly = computed(() => data.value?.roster?.sourceOnly || [])
-const rosterDiagnostics = computed(() => data.value?.roster?.diagnostics || null)
+const roomRoster = computed(() => data.value?.roomManagement?.roster || null)
+const roomConfirmationById = computed(() => new Map((roomRoster.value?.rooms || []).map((room) => [room.salaId, room])))
+const roomNavigation = computed(() => (data.value?.roomManagement?.salas || [data.value?.sala].filter(Boolean) as Sala[]).map((room) => {
+  const confirmation = roomConfirmationById.value.get(Number(room.id))
+  return {
+    ...room,
+    local: confirmation?.local || (Number(room.id) === salaId ? familyStats.value.total : 0),
+    confirmed: confirmation?.confirmed || 0,
+    total: confirmation?.total || 0,
+    confirmationAvailable: Boolean(roomRoster.value?.available)
+  }
+}))
+const currentRoomConfirmation = computed(() => roomConfirmationById.value.get(salaId) || (rosterAvailable.value
+  ? { salaId, salaName: data.value?.sala?.sala || '', local: familyStats.value.total, confirmed: rosterSummary.value.confirmed, total: rosterSummary.value.inSala }
+  : null))
+const currentRoomIndex = computed(() => roomNavigation.value.findIndex((room) => room.id === salaId))
+const previousRoom = computed(() => currentRoomIndex.value > 0 ? roomNavigation.value[currentRoomIndex.value - 1] || null : null)
+const nextRoom = computed(() => currentRoomIndex.value >= 0 ? roomNavigation.value[currentRoomIndex.value + 1] || null : null)
+const currentRoomPosition = computed(() => currentRoomIndex.value >= 0 ? `${currentRoomIndex.value + 1}/${roomNavigation.value.length}` : '—')
+const roomTarget = computed(() => roomNavigation.value.find((room) => room.id === roomTargetSalaId.value) || null)
+const visibleRosterSourceOnly = computed(() => rosterView.value === 'confirmed' ? [] : rosterSourceOnly.value)
 const registrationShortPath = computed(() => registrationLink.value?.token ? `/r/${registrationLink.value.token}` : '')
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
 const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
-const selectedRosterVisible = computed(() => Boolean(selected.value?.roster && selected.value.roster.state !== 'not-found'))
+const selectedRosterVisible = computed(() => Boolean(selected.value?.roster && (selected.value.roster.state === 'room-changed' || selected.value.roster.childDifferent)))
 const selectedRosterIcon = computed(() => selected.value?.roster?.state === 'room-changed' ? '↗' : '✓')
 const selectedRosterTitle = computed(() => {
   const roster = selected.value?.roster
   if (!roster) return ''
-  if (roster.state === 'room-changed') return roster.movement === 'forward' ? 'Subió de sala' : 'Cambió de sala'
-  if (roster.childDifferent) return 'Nombre sugerido'
-  return 'En lista de sala'
+  if (roster.state === 'room-changed') return roster.movement === 'forward' ? 'Promoción disponible' : 'Cambio disponible'
+  return 'Nombre actualizado'
 })
-const selectedRosterDetail = computed(() => {
-  const roster = selected.value?.roster
-  if (!roster) return ''
-  if (roster.state === 'room-changed') return [roster.targetSalaName, roster.childName].filter(Boolean).join(' · ')
-  return [roster.childName, roster.targetSalaName || roster.salaName].filter(Boolean).join(' · ')
-})
-const selectedRosterMoveCta = computed(() => selected.value?.roster?.movement === 'forward' ? 'Promover a sala' : 'Mover a sala')
+const selectedRosterDetail = computed(() => selected.value?.roster?.childName || '')
+const selectedRosterMoveCta = computed(() => selected.value?.roster?.movement === 'forward' ? 'Promover' : 'Mover')
+const canRevokeSelected = computed(() => Boolean(rosterAvailable.value && selected.value?.id && selected.value.roster?.state === 'not-found'))
 
 const familyStats = computed(() => {
   const rows = data.value?.rows || []
@@ -452,17 +517,34 @@ const familyStats = computed(() => {
 })
 
 const filteredAccounts = computed(() => {
-  const rows = data.value?.rows || []
   const needle = search.value.trim().toLowerCase()
-  if (!needle) return rows
-  return rows.filter((account) => `${account.nombre_nino || ''} ${account.username || ''} ${accountLabel(account.username) || ''} ${account.email || ''}`.toLowerCase().includes(needle))
+  return (data.value?.rows || []).filter((account) => {
+    if (rosterView.value === 'confirmed' && !isAccountConfirmed(account)) return false
+    if (rosterView.value === 'review' && isAccountConfirmed(account)) return false
+    if (!needle) return true
+    return `${familyDisplayName(account)} ${account.nombre_nino || ''} ${account.username || ''} ${accountLabel(account.username) || ''} ${account.email || ''}`.toLowerCase().includes(needle)
+  })
 })
 
 watch(search, () => syncQuery())
+watch(rosterView, () => syncQuery())
+watch(selected, () => {
+  roomTargetSalaId.value = salaId
+})
+watch(data, (value) => {
+  const ids = new Set((value?.rows || []).map((row) => Number(row.id)))
+  selectedFamilyIds.value = selectedFamilyIds.value.filter((id) => ids.has(id))
+  if (!value?.roster?.available && rosterView.value !== 'all') rosterView.value = 'all'
+})
 
 watch(() => route.query.buscar, (value) => {
   const next = typeof value === 'string' ? value : ''
   if (next !== search.value) search.value = next
+})
+
+watch(() => route.query.vista, (value) => {
+  const next: RosterView = value === 'confirmed' || value === 'review' ? value : 'all'
+  if (next !== rosterView.value) rosterView.value = next
 })
 
 watch(() => route.query.familia, (value) => {
@@ -496,6 +578,120 @@ function accountStatusLabel(account: Pick<FamilyAccount, 'username' | 'email' | 
   if (!account.username && !account.email) return 'Incompleta'
   if (!account.role) return 'Pendiente'
   return 'Activa'
+}
+
+function isAccountConfirmed(account: FamilyAccount) {
+  return account.roster?.state === 'matched'
+}
+
+function setRosterView(value: RosterView) {
+  rosterView.value = value
+  clearFamilySelection()
+}
+
+async function openRoom(id: number) {
+  if (id === salaId) return
+  await navigateTo({
+    path: `/admin/daycare/salas/${id}/familias`,
+    query: data.value?.sala?.unidad ? { unidad: data.value.sala.unidad } : {}
+  })
+}
+
+function toggleFamilySelection(id: number) {
+  if (!id) return
+  selectedFamilyIds.value = selectedFamilyIds.value.includes(id)
+    ? selectedFamilyIds.value.filter((selectedId) => selectedId !== id)
+    : [...selectedFamilyIds.value, id]
+}
+
+function clearFamilySelection() {
+  selectedFamilyIds.value = []
+  bulkTargetSalaId.value = 0
+}
+
+async function moveSelectedFamilies() {
+  if (!selectedFamilyIds.value.length || !bulkTargetSalaId.value) return
+  await moveFamilies(selectedFamilyIds.value, bulkTargetSalaId.value)
+  clearFamilySelection()
+}
+
+function selectRoomTarget(targetSalaId: number) {
+  if (roomActionBusy.value) return
+  if (targetSalaId === salaId) {
+    void moveFamilyTo(targetSalaId, true)
+    return
+  }
+  roomTargetSalaId.value = targetSalaId
+}
+
+async function moveFamilyTo(targetSalaId?: number | null, force = false) {
+  if (!selected.value?.id || !targetSalaId || roomActionBusy.value) return
+  if (!force && targetSalaId === salaId) return
+  await moveFamilies([Number(selected.value.id)], targetSalaId)
+}
+
+async function moveFamilies(userIds: number[], targetSalaId: number) {
+  const ids = Array.from(new Set(userIds.filter((id) => Number.isInteger(id) && id > 0)))
+  if (!ids.length || !targetSalaId || roomActionBusy.value) return
+
+  roomActionBusy.value = true
+  actionError.value = ''
+  actionNotice.value = ''
+  const previousRows = cloneFamilyRows()
+  const previousSelectedId = selected.value?.id
+  const target = roomNavigation.value.find((room) => room.id === targetSalaId)
+  const key = `room-move:${Date.now()}`
+  const label = ids.length === 1
+    ? familyDisplayName(previousRows.find((row) => Number(row.id) === ids[0]) || selected.value || {})
+    : `${ids.length} familias`
+
+  if (targetSalaId !== salaId) {
+    setFamilyRows((data.value?.rows || []).filter((row) => !ids.includes(Number(row.id))))
+    selected.value = filteredAccounts.value[0] || null
+    syncQuery(selected.value?.id)
+  }
+  markPending(key, label, { detail: targetSalaId === salaId ? 'Confirmando la sala.' : `Moviendo a ${target?.sala || 'la sala seleccionada'}.` })
+
+  try {
+    const result = await $fetch<{ moved: number; userIds: number[]; target: Sala }>('/api/daycare/admin/room-management/move', {
+      method: 'POST',
+      body: { userIds: ids, targetSalaId }
+    })
+    markDone(key, label, { detail: targetSalaId === salaId ? 'Sala confirmada.' : `Cambio confirmado · ${result.target.sala}.` })
+    actionNotice.value = targetSalaId === salaId
+      ? 'Sala confirmada.'
+      : `${result.moved} ${result.moved === 1 ? 'familia movida' : 'familias movidas'} · ${result.target.sala}`
+    await reloadFamilies(targetSalaId === salaId ? result.userIds[0] || previousSelectedId : undefined)
+  } catch (err: any) {
+    setFamilyRows(previousRows)
+    selected.value = previousSelectedId ? previousRows.find((row) => row.id === previousSelectedId) || previousRows[0] || null : previousRows[0] || null
+    syncQuery(selected.value?.id)
+    markError(key, label, { detail: 'No se aplicó el cambio.' })
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible cambiar la sala.'
+  } finally {
+    roomTargetSalaId.value = salaId
+    roomActionBusy.value = false
+  }
+}
+
+async function revokeAccess(account: FamilyAccount) {
+  if (!account.id || revokingId.value || !rosterAvailable.value || account.roster?.state !== 'not-found') return
+  revokingId.value = Number(account.id)
+  actionError.value = ''
+  actionNotice.value = ''
+  try {
+    await $fetch('/api/daycare/admin/room-management/revoke', { method: 'POST', body: { userId: account.id } })
+    setFamilyRows((data.value?.rows || []).filter((row) => row.id !== account.id))
+    selectedFamilyIds.value = selectedFamilyIds.value.filter((id) => id !== account.id)
+    selected.value = filteredAccounts.value[0] || null
+    syncQuery(selected.value?.id)
+    actionNotice.value = 'Acceso revocado.'
+    await reloadFamilies(selected.value?.id)
+  } catch (err: any) {
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible revocar el acceso.'
+  } finally {
+    revokingId.value = null
+  }
 }
 
 function startCreate() {
@@ -566,67 +762,54 @@ function accountRosterState(account: FamilyAccount) {
 function accountRosterMark(account: FamilyAccount) {
   if (account.roster?.state === 'room-changed') return '↗'
   if (account.roster?.state === 'matched') return '✓'
-  return '!'
+  return '•'
 }
 
-function openRosterDialog(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
+function openRosterDialog(account: FamilyAccount | null, options: { applyChildName?: boolean }) {
   if (!account || isFamilyPending(account.id)) return
   rosterDialog.value = { account, ...options }
 }
 
 function confirmRosterDialog() {
   if (!rosterDialog.value) return
-  void applyRoster(rosterDialog.value.account, {
-    applyChildName: rosterDialog.value.applyChildName,
-    applySala: rosterDialog.value.applySala
-  })
+  void applyRosterName(rosterDialog.value.account)
 }
 
-async function applyRoster(account: FamilyAccount | null, options: { applyChildName?: boolean; applySala?: boolean }) {
-  if (!account?.id || rosterSaving.value || isFamilyPending(account.id)) return
+async function applyRosterName(account: FamilyAccount | null) {
+  if (!account?.id || !account.roster?.childName || rosterSaving.value || isFamilyPending(account.id)) return
   rosterSaving.value = true
   actionError.value = ''
   actionNotice.value = ''
   const previousRows = cloneFamilyRows()
-  const originalIndex = previousRows.findIndex((row) => row.id === account.id)
-  const previousSelectedId = selected.value?.id
+  const previousAccount = previousRows.find((row) => row.id === account.id) || account
   const previousDialog = rosterDialog.value ? { ...rosterDialog.value } : null
   const key = familyKey(account.id)
   const label = familyDisplayName(account)
-  familyRevision += 1
+  const optimistic = {
+    ...account,
+    nombre_nino: account.roster.childName,
+    roster: { ...account.roster, childDifferent: false }
+  }
 
   rosterDialog.value = null
-  if (options.applySala) {
-    setFamilyRows((data.value?.rows || []).filter((row) => row.id !== account.id))
-    if (previousSelectedId === account.id) selected.value = filteredAccounts.value[0] || null
-  } else {
-    const optimistic = {
-      ...account,
-      nombre_nino: options.applyChildName ? account.roster?.childName || account.nombre_nino : account.nombre_nino,
-      roster: account.roster ? { ...account.roster, childDifferent: false } : account.roster
-    }
-    replaceLocalFamily(account.id, optimistic)
-    if (previousSelectedId === account.id) selected.value = optimistic
-  }
-  syncQuery(selected.value?.id)
-  markPending(key, label, {
-    detail: options.applySala ? 'Moviendo la familia a la sala sugerida.' : 'Aplicando la información de la lista.'
-  })
+  replaceLocalFamily(Number(account.id), optimistic)
+  if (selected.value?.id === account.id) selected.value = optimistic
+  markPending(key, label, { detail: 'Actualizando el nombre familiar.' })
 
   try {
-    await $fetch('/api/daycare/admin/roster-apply', { method: 'POST', body: { sala: salaId, userId: account.id, ...options } })
-    markDone(key, label, { detail: options.applySala ? 'La familia quedó movida.' : 'Los datos quedaron actualizados.' })
-    actionNotice.value = options.applySala ? 'Familia movida a su sala.' : 'Datos familiares actualizados.'
-    refreshFamiliesInBackground(options.applySala ? undefined : account.id)
+    await $fetch('/api/daycare/admin/roster-apply', {
+      method: 'POST',
+      body: { sala: salaId, userId: account.id, applyChildName: true }
+    })
+    markDone(key, familyDisplayName(optimistic), { detail: 'Nombre actualizado.' })
+    actionNotice.value = 'Nombre familiar actualizado.'
+    refreshFamiliesInBackground(account.id)
   } catch (err: any) {
-    const previousAccount = previousRows.find((row) => row.id === account.id) || account
-    if (options.applySala) restoreLocalFamily(previousAccount, originalIndex)
-    else replaceLocalFamily(Number(account.id), previousAccount)
-    if (!selected.value || selected.value.id === account.id) selected.value = previousAccount
+    replaceLocalFamily(Number(account.id), previousAccount)
+    if (selected.value?.id === account.id) selected.value = previousAccount
     rosterDialog.value = previousDialog
-    syncQuery(selected.value?.id)
-    markError(key, label, { detail: 'No se aplicó el cambio; restauramos la cuenta.' })
-    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible aplicar la sugerencia.'
+    markError(key, label, { detail: 'No se aplicó el cambio.' })
+    actionError.value = err?.data?.statusMessage || err?.message || 'No fue posible actualizar el nombre.'
   } finally {
     rosterSaving.value = false
   }
@@ -645,6 +828,7 @@ function syncQuery(selectedId = selected.value?.id) {
   const unidadQuery = typeof route.query.unidad === 'string' ? route.query.unidad : data.value?.sala?.unidad
   if (unidadQuery) query.unidad = unidadQuery
   if (search.value.trim()) query.buscar = search.value.trim()
+  if (rosterView.value !== 'all') query.vista = rosterView.value
   if (selectedId && selectedId > 0) query.familia = String(selectedId)
   replaceQueryIfChanged(query)
 }
@@ -719,16 +903,6 @@ async function save(payload: Partial<FamilyAccount>) {
     actionError.value = err?.data?.statusMessage || err?.statusMessage || err?.message || 'No fue posible guardar la cuenta familiar.'
   } finally {
     saving.value = false
-  }
-}
-
-async function copyRosterDiagnostics() {
-  if (!rosterDiagnostics.value) return
-  try {
-    await navigator.clipboard?.writeText(JSON.stringify(rosterDiagnostics.value, null, 2))
-    actionNotice.value = 'Diagnóstico copiado.'
-  } catch {
-    actionError.value = 'No fue posible copiar el diagnóstico automáticamente.'
   }
 }
 
@@ -982,12 +1156,6 @@ function removeLocalFamily(id: number) {
   setFamilyRows((data.value?.rows || []).filter((row) => row.id !== id))
 }
 
-function restoreLocalFamily(account: FamilyAccount, index: number) {
-  const rows = (data.value?.rows || []).filter((row) => row.id !== account.id)
-  const targetIndex = Math.max(0, Math.min(index, rows.length))
-  setFamilyRows([...rows.slice(0, targetIndex), account, ...rows.slice(targetIndex)])
-}
-
 function restorePasswordFields(previousRows: FamilyAccount[], targetIds: number[]) {
   const previousById = new Map(previousRows.map((row) => [Number(row.id), row]))
   setFamilyRows((data.value?.rows || []).map((row) => {
@@ -998,24 +1166,41 @@ function restorePasswordFields(previousRows: FamilyAccount[], targetIds: number[
   }))
 }
 
+async function reloadFamilies(selectedId?: number) {
+  const response = await $fetch<FamilyAccountsResponse>('/api/daycare/admin/family-accounts', {
+    query: { sala: salaId },
+    timeout: 30000
+  })
+  data.value = response
+  const currentSelectedId = selected.value?.id
+  const nextSelectedId = selectedId || (currentSelectedId && currentSelectedId > 0 ? currentSelectedId : undefined)
+  selected.value = nextSelectedId
+    ? response.rows.find((row) => row.id === nextSelectedId) || response.rows[0] || null
+    : response.rows[0] || null
+  syncQuery(selected.value?.id)
+  return response
+}
+
 function refreshFamiliesInBackground(selectedId?: number) {
   const revision = familyRevision
-  void $fetch<{ sala: Sala; rows: FamilyAccount[]; roster?: DaycareRosterOverlay }>('/api/daycare/admin/family-accounts', {
+  void $fetch<FamilyAccountsResponse>('/api/daycare/admin/family-accounts', {
     query: { sala: salaId },
-    timeout: 15000
+    timeout: 30000
   }).then((response) => {
     if (revision !== familyRevision) return
-    const currentSelectedId = selected.value?.id
     data.value = response
-    const nextSelectedId = currentSelectedId && currentSelectedId > 0 ? currentSelectedId : selectedId
+    const currentSelectedId = selected.value?.id
+    const nextSelectedId = selectedId || (currentSelectedId && currentSelectedId > 0 ? currentSelectedId : undefined)
     selected.value = nextSelectedId
       ? response.rows.find((row) => row.id === nextSelectedId) || response.rows[0] || null
       : response.rows[0] || null
+    syncQuery(selected.value?.id)
   }).catch(() => undefined)
 }
 
 function familyDisplayName(account: Partial<FamilyAccount>) {
-  return account.nombre_nino || accountLabel(account.username) || account.email || 'Cuenta familiar'
+  const rosterName = account.roster?.state !== 'not-found' ? account.roster?.childName : null
+  return rosterName || account.nombre_nino || accountLabel(account.username) || account.email || 'Cuenta familiar'
 }
 
 function familyKey(id?: number) {
@@ -1312,6 +1497,143 @@ function initials(value?: string | null) {
   font-size: 0.65rem;
 }
 
+.family-room-switcher {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 2px 1px 5px;
+  scrollbar-width: none;
+}
+
+.family-room-switcher::-webkit-scrollbar { display: none; }
+
+.family-room-switcher > button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--family-line);
+  border-radius: 19px;
+  box-shadow: 0 12px 30px rgba(51, 82, 37, 0.06);
+  cursor: pointer;
+  display: grid;
+  flex: 0 0 205px;
+  gap: 9px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  min-height: 62px;
+  padding: 9px;
+  text-align: left;
+  transition: 160ms ease;
+}
+
+.family-room-switcher > button:hover,
+.family-room-switcher > button.active {
+  background: linear-gradient(135deg, #edf6e4, #fff6e4);
+  border-color: rgba(87, 139, 38, 0.18);
+  box-shadow: 0 14px 30px rgba(51, 82, 37, 0.09);
+  transform: translateY(-1px);
+}
+
+.family-room-switcher > button.active {
+  box-shadow: inset 3px 0 0 #6f971a, 0 14px 30px rgba(51, 82, 37, 0.09);
+}
+
+.room-switch-mark {
+  align-items: center;
+  background: #eaf3df;
+  border-radius: 13px;
+  color: #4b7b2a;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 950;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.room-switch-mark[data-index='1'] { background: #fff0d2; color: #a86b05; }
+.room-switch-mark[data-index='2'] { background: #e3f1f6; color: #3b7e9f; }
+.room-switch-mark[data-index='3'] { background: #fbe7e1; color: #b45f52; }
+
+.room-switch-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.room-switch-copy strong,
+.room-switch-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-switch-copy strong { color: var(--family-ink); font-size: 0.78rem; }
+.room-switch-copy small { color: #7a8473; font-size: 0.64rem; }
+
+.room-switch-count {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(87, 139, 38, 0.12);
+  border-radius: 999px;
+  color: #4d772e;
+  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 950;
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.family-viewbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.family-view-filters {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--family-line);
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(51, 82, 37, 0.055);
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+}
+
+.family-view-filters button {
+  background: transparent;
+  border: 0;
+  border-radius: 13px;
+  color: #717b6b;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 13px;
+}
+
+.family-view-filters button.active {
+  background: linear-gradient(135deg, #edf6e4, #fff6e4);
+  box-shadow: 0 7px 16px rgba(51, 82, 37, 0.08);
+  color: #355f24;
+}
+
+.family-confirmation-kpi {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--family-line);
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(51, 82, 37, 0.055);
+  color: #578b26;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 46px;
+  padding: 0 13px;
+}
+
+.family-confirmation-kpi small { color: #6f7968; font-size: 0.66rem; font-weight: 850; }
+.family-confirmation-kpi strong { color: #355f24; font-size: 0.78rem; }
+.family-confirmation-kpi :deep(.pa-icon) { height: 0.95rem; width: 0.95rem; }
+
 .eyebrow {
   color: #578b26;
   font-size: 0.68rem;
@@ -1378,32 +1700,107 @@ function initials(value?: string | null) {
   gap: 8px;
 }
 
-.family-row {
+.family-row-shell {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 22px;
-  cursor: pointer;
   display: grid;
-  gap: 11px;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
-  min-height: 76px;
-  padding: 10px;
-  text-align: left;
+  gap: 4px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 3px 5px 3px 3px;
   transition: 160ms ease;
-  width: 100%;
 }
 
-.family-row:hover,
-.family-row.active {
+.family-row-shell:hover,
+.family-row-shell.active {
   background: linear-gradient(135deg, #edf6e4, #fff6e4);
   border-color: rgba(87, 139, 38, 0.16);
   transform: translateY(-1px);
 }
 
-.family-row.active {
+.family-row-shell.active {
   box-shadow: inset 3px 0 0 #6f971a, 0 12px 28px rgba(51, 82, 37, 0.08);
 }
+
+.family-select-control {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+}
+
+.family-select-control input {
+  accent-color: #578b26;
+  height: 16px;
+  width: 16px;
+}
+
+.family-row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 19px;
+  cursor: pointer;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  min-height: 70px;
+  padding: 7px;
+  text-align: left;
+  width: 100%;
+}
+
+.family-bulk-bar {
+  align-items: center;
+  background: linear-gradient(135deg, #314f24, #5f8737);
+  border-radius: 18px;
+  box-shadow: 0 14px 28px rgba(49, 79, 36, 0.18);
+  color: #fff;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 32px auto minmax(130px, 1fr) 40px 40px;
+  padding: 9px;
+}
+
+.family-bulk-bar > span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 950;
+  height: 32px;
+  justify-content: center;
+}
+
+.family-bulk-bar > strong { font-size: 0.72rem; }
+
+.family-bulk-bar select {
+  background: rgba(255, 255, 255, 0.96);
+  border: 0;
+  border-radius: 12px;
+  color: #355f24;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.family-bulk-bar > button {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 12px;
+  color: #416a28;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.family-bulk-bar > button.bulk-clear { background: rgba(255, 255, 255, 0.13); color: #fff; }
+.family-bulk-bar > button:disabled { opacity: 0.45; }
 
 .family-avatar,
 .selected-family-avatar {
@@ -1603,78 +2000,18 @@ function initials(value?: string | null) {
   padding: 22px;
 }
 
-.roster-strip {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-}
-
-.roster-strip article {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid var(--family-line);
-  border-radius: 22px;
-  display: flex;
-  gap: 10px;
-  min-height: 68px;
-  padding: 12px 14px;
-}
-
-.roster-strip strong {
-  color: var(--family-ink);
-  font-size: 1.08rem;
-}
-
-.roster-strip small {
-  color: #747e6d;
-  font-size: 0.7rem;
-}
-
-.roster-dot,
 .roster-sync-icon {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
   font-weight: 900;
+  height: 34px;
   justify-content: center;
+  width: 34px;
 }
 
-.roster-dot {
-  height: 30px;
-  min-width: 30px;
-  padding: 0 7px;
-}
-
-.roster-dot.good,
 .roster-sync-card[data-state='matched'] .roster-sync-icon { background: #578b26; color: #fff; }
-.roster-dot.warm { background: #fff0cc; color: #9a5e05; }
-.roster-dot.move,
 .roster-sync-card[data-state='room-changed'] .roster-sync-icon { background: #f4b64a; color: #372505; }
-.roster-dot.neutral { background: #edf6e4; color: #355f24; }
-
-.muted-roster {
-  background: rgba(255, 247, 237, 0.85);
-  border: 1px solid rgba(249, 115, 22, 0.2);
-  border-radius: 24px;
-  grid-template-columns: 1fr auto;
-  padding: 9px;
-}
-
-.muted-roster article {
-  background: transparent;
-  border: 0;
-}
-
-.roster-diagnostics-trigger {
-  align-self: stretch;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px dashed rgba(87, 139, 38, 0.3);
-  border-radius: 18px;
-  color: #355f24;
-  cursor: pointer;
-  font-weight: 900;
-  padding: 10px 14px;
-}
 
 .source-only-list {
   border-top: 1px solid rgba(66, 104, 49, 0.1);
@@ -1758,9 +2095,251 @@ function initials(value?: string | null) {
   justify-content: flex-end;
 }
 
+.profile-head-actions {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.profile-revoke {
+  align-items: center;
+  background: #f6f3ee;
+  border: 1px solid rgba(139, 110, 86, 0.12);
+  border-radius: 13px;
+  color: #8b6e56;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  transition: 160ms ease;
+  width: 38px;
+}
+
+.profile-revoke:hover:not(:disabled) {
+  background: #f5e9df;
+  color: #925a35;
+  transform: translateY(-1px);
+}
+
+.profile-revoke:disabled { opacity: 0.5; }
+.profile-revoke:disabled :deep(.pa-icon) { animation: family-spin 0.8s linear infinite; }
+
+.roster-room-route {
+  align-items: center;
+  color: #7b6c4d;
+  display: flex;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.roster-room-route b {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(244, 182, 74, 0.18);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  max-width: 135px;
+  overflow: hidden;
+  padding: 5px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-room-route :deep(.pa-icon) { height: 0.82rem; opacity: 0.7; width: 0.82rem; }
+
+.family-room-flow {
+  background: #fff;
+  border: 1px solid rgba(66, 104, 49, 0.1);
+  border-radius: 22px;
+  display: grid;
+  gap: 13px;
+  padding: 14px;
+}
+
+.family-room-flow > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.family-room-flow > header div { min-width: 0; }
+.family-room-flow > header small { color: #7b8475; display: block; font-size: 0.62rem; font-weight: 850; }
+.family-room-flow > header strong { color: var(--family-ink); display: block; font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.family-room-flow > header > span {
+  align-items: center;
+  background: #edf5e4;
+  border-radius: 999px;
+  color: #4d772e;
+  display: inline-flex;
+  font-size: 0.63rem;
+  font-weight: 950;
+  min-height: 30px;
+  padding: 0 9px;
+}
+
+.family-room-path {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+
+.family-room-path button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #7b8676;
+  display: grid;
+  flex: 0 0 78px;
+  gap: 7px;
+  justify-items: center;
+  min-width: 0;
+  padding: 0;
+  position: relative;
+}
+
+.family-room-path button::after {
+  background: #e2e8dd;
+  content: '';
+  height: 2px;
+  left: calc(50% + 18px);
+  position: absolute;
+  top: 17px;
+  width: calc(100% - 36px);
+}
+
+.family-room-path button:last-child::after { display: none; }
+.family-room-path button.completed::after,
+.family-room-path button.current::after { background: linear-gradient(90deg, #75a43c, #a9bf5c); }
+
+.family-room-path button > span {
+  align-items: center;
+  background: #f0f3ed;
+  border: 2px solid #dce3d6;
+  border-radius: 13px;
+  color: #819079;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  position: relative;
+  transition: 160ms ease;
+  width: 36px;
+  z-index: 1;
+}
+
+.family-room-path button strong {
+  color: #7a8575;
+  font-size: 0.58rem;
+  line-height: 1.15;
+  max-width: 74px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.family-room-path button.current > span {
+  background: linear-gradient(135deg, #4b7b2e, #8cab3e);
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgba(74, 119, 44, 0.25);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.family-room-path button.current strong { color: #345322; font-weight: 950; }
+.family-room-path button.selected > span {
+  background: #fff3d9;
+  border-color: #efb44b;
+  box-shadow: 0 8px 18px rgba(221, 154, 39, 0.18);
+  color: #a66c0c;
+  transform: translateY(-2px);
+}
+.family-room-path button.selected strong { color: #9d680d; font-weight: 950; }
+.family-room-path button.suggested:not(.current):not(.selected) > span {
+  background: #fff8e8;
+  border-color: rgba(239, 180, 75, 0.55);
+  color: #a66c0c;
+}
+.family-room-path button:hover:not(:disabled) > span { transform: translateY(-2px); }
+.family-room-path button:disabled { opacity: 0.55; }
+
+.family-room-directions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.family-room-directions button {
+  align-items: center;
+  background: linear-gradient(135deg, #f5f8f1, #fbfcf9);
+  border: 1px solid rgba(66, 104, 49, 0.11);
+  border-radius: 15px;
+  color: #456d2d;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  min-height: 60px;
+  padding: 9px 10px;
+  text-align: left;
+  transition: 160ms ease;
+}
+
+.family-room-directions button.forward { grid-template-columns: minmax(0, 1fr) 18px; text-align: right; }
+.family-room-directions button:first-child > :deep(.pa-icon) { transform: rotate(180deg); }
+.family-room-directions button:hover:not(:disabled) { border-color: rgba(87, 139, 38, 0.28); box-shadow: 0 10px 22px rgba(51, 82, 37, 0.09); transform: translateY(-1px); }
+.family-room-directions button:disabled { opacity: 0.4; }
+.family-room-directions button span { display: grid; min-width: 0; }
+.family-room-directions small { color: #899384; font-size: 0.57rem; font-weight: 850; }
+.family-room-directions strong { color: #3f632b; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.family-room-transfer {
+  align-items: center;
+  background: linear-gradient(135deg, #314f24, #5f8737);
+  border-radius: 16px;
+  box-shadow: 0 12px 26px rgba(49, 79, 36, 0.19);
+  color: #fff;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) 38px;
+  padding: 8px;
+}
+
+.family-room-transfer > span,
+.family-room-transfer > strong {
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  overflow: hidden;
+  padding: 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.family-room-transfer > strong { background: rgba(255, 255, 255, 0.18); }
+.family-room-transfer > :deep(.pa-icon) { height: 0.9rem; opacity: 0.74; width: 0.9rem; }
+.family-room-transfer button {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 13px;
+  color: #416a28;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.family-room-transfer-enter-active,
+.family-room-transfer-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.family-room-transfer-enter-from,
+.family-room-transfer-leave-to { opacity: 0; transform: translateY(-5px); }
+
+@keyframes family-spin { to { transform: rotate(360deg); } }
+
 .password-modal,
-.registration-link-copy,
-.roster-diagnostics-modal {
+.registration-link-copy {
   display: grid;
   gap: 14px;
 }
@@ -1891,9 +2470,7 @@ function initials(value?: string | null) {
   padding: 12px 14px;
 }
 
-.friendly-code span,
-.diagnostics-grid span,
-.diagnostics-block span {
+.friendly-code span {
   color: #747e6d;
   font-size: 0.68rem;
   font-weight: 900;
@@ -1907,66 +2484,9 @@ function initials(value?: string | null) {
   font-size: 1.24rem;
 }
 
-.roster-confirm-modal {
-  align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: auto 1fr;
-}
-
-.roster-confirm-icon {
-  align-items: center;
-  background: #578b26;
-  border-radius: 999px;
-  color: white;
-  display: inline-flex;
-  font-size: 1.1rem;
-  font-weight: 900;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
-}
-
-.roster-confirm-modal strong,
-.roster-confirm-modal small { display: block; }
-.roster-confirm-modal strong { color: var(--family-ink); }
-.roster-confirm-modal small { color: #747e6d; }
-.roster-confirm-modal .modal-actions { grid-column: 1 / -1; }
-
-.diagnostics-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.diagnostics-grid article,
-.diagnostics-block {
-  background: #f8faf4;
-  border: 1px solid rgba(66, 104, 49, 0.1);
-  border-radius: 18px;
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-}
-
-.diagnostics-grid strong,
-.diagnostics-block strong,
-.diagnostics-block li {
-  color: var(--family-ink);
-  font-size: 0.82rem;
-  font-weight: 800;
-  line-height: 1.45;
-  word-break: break-word;
-}
-
-.diagnostics-block ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
 .compact-alert { margin: 0 0 12px; }
-.family-row.syncing { background: #f2f8fb; border-color: rgba(78, 145, 182, 0.2); }
-.family-row.failed { background: #fff4f2; border-color: rgba(193, 94, 80, 0.2); }
+.family-row-shell.syncing { background: #f2f8fb; border-color: rgba(78, 145, 182, 0.2); }
+.family-row-shell.failed { background: #fff4f2; border-color: rgba(193, 94, 80, 0.2); }
 
 @media (max-width: 1180px) {
   .family-toolbar {
@@ -2000,12 +2520,13 @@ function initials(value?: string | null) {
     grid-column: 1 / -1;
   }
 
-  .roster-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .family-viewbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .roster-diagnostics-trigger {
-    grid-column: 1 / -1;
+  .family-confirmation-kpi {
+    align-self: flex-start;
   }
 }
 
@@ -2025,15 +2546,12 @@ function initials(value?: string | null) {
   }
 
   .family-toolbar,
-  .roster-strip,
   .family-profile-lines,
-  .preview-actions,
-  .diagnostics-grid {
+  .preview-actions {
     grid-template-columns: 1fr;
   }
 
-  .search-field,
-  .roster-diagnostics-trigger {
+  .search-field {
     grid-column: auto;
   }
 
@@ -2041,9 +2559,19 @@ function initials(value?: string | null) {
     min-height: 58px;
   }
 
+  .family-row-shell {
+    align-items: start;
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
   .family-row {
     align-items: start;
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .family-avatar {
+    height: 48px;
+    width: 48px;
   }
 
   .family-row-tail {
@@ -2052,6 +2580,25 @@ function initials(value?: string | null) {
     grid-column: 1 / -1;
     justify-content: space-between;
     width: 100%;
+  }
+
+  .family-bulk-bar {
+    grid-template-columns: 32px minmax(0, 1fr) 40px;
+  }
+
+  .family-bulk-bar select {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .family-bulk-bar > button:not(.bulk-clear) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .family-bulk-bar > button.bulk-clear {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .family-copy strong,
@@ -2074,14 +2621,38 @@ function initials(value?: string | null) {
     width: 58px;
   }
 
-  .family-profile-hero > :deep(.sync-cue) {
+  .profile-head-actions {
     grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 
   .access-panel,
   .roster-sync-card {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .family-room-directions {
+    grid-template-columns: 1fr;
+  }
+
+  .family-room-transfer {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) 38px;
+  }
+
+  .family-view-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .family-view-filters button {
+    padding-inline: 8px;
+  }
+
+  .family-confirmation-kpi {
+    align-self: stretch;
+    justify-content: center;
   }
 
   .access-panel {

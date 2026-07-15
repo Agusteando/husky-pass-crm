@@ -69,7 +69,7 @@
               <span class="room-avatar">{{ roomInitials(sala.sala) }}</span>
               <span class="room-copy">
                 <strong>{{ sala.sala }}</strong>
-                <small>{{ sala.metrics.familias }} familias</small>
+                <small><span>{{ sala.metrics.familias }} familias</span><i v-if="sala.confirmation?.available && sala.confirmation.total">{{ sala.confirmation.confirmed }}/{{ sala.confirmation.total }}</i></small>
               </span>
               <span class="room-publications">{{ sala.metrics.totalRecursos }}</span>
             </button>
@@ -88,6 +88,7 @@
                 <div>
                   <p class="eyebrow">{{ selectedSala.unidad }}</p>
                   <h2>{{ selectedSala.sala }}</h2>
+                  <span v-if="selectedSala.confirmation?.available && selectedSala.confirmation.total" class="room-confirmation">Usuarios confirmados <strong>{{ selectedSala.confirmation.confirmed }}/{{ selectedSala.confirmation.total }}</strong></span>
                 </div>
               </div>
               <button v-if="canPreviewAsFamily" class="preview-family" type="button" data-diagnostic-action="preview-sala" @click="previewSala(selectedSala.id)">
@@ -213,7 +214,7 @@ watch(search, () => syncQuery())
 const { data: salas, pending, error } = useFetch<SalaSummary[]>('/api/daycare/admin/salas/overview', {
   query: computed(() => ({ unidad: selectedUnidad.value })),
   watch: [selectedUnidad],
-  timeout: 15000,
+  timeout: 30000,
   dedupe: 'cancel'
 })
 
@@ -234,7 +235,7 @@ const actionItems = computed<Array<{ section: DaycareSalaSection; diagnostic: st
   const sala = selectedSala.value
   if (!sala) return []
   return [
-    { section: 'familias', diagnostic: 'abrir-familias', icon: 'people', label: 'Familias', description: 'Cuentas y acceso', count: sala.metrics.familias },
+    { section: 'familias', diagnostic: 'abrir-familias', icon: 'people', label: 'Familias', description: 'Cuentas y salas', count: sala.metrics.familias },
     { section: 'tareas', diagnostic: 'abrir-tareas', icon: 'edit', label: 'Nueva tarea', description: 'Trabajo en casa', count: sala.metrics.tareas, create: true },
     { section: 'avisos', diagnostic: 'abrir-avisos', icon: 'announcement', label: 'Avisos', description: 'Mensajes de sala', count: sala.metrics.avisos },
     { section: 'calendario', diagnostic: 'abrir-calendario', icon: 'calendar', label: 'Agenda', description: 'Fechas y eventos', count: sala.metrics.calendario }
@@ -650,8 +651,21 @@ function roomInitials(value?: string | null) {
 }
 
 .room-copy small {
+  align-items: center;
   color: #76806f;
+  display: flex;
   font-size: 0.75rem;
+  gap: 6px;
+}
+
+.room-copy small i {
+  background: #edf5e4;
+  border-radius: 999px;
+  color: #4d772e;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 3px 6px;
 }
 
 .room-publications {
@@ -684,6 +698,25 @@ function roomInitials(value?: string | null) {
   font-size: clamp(2rem, 4vw, 3.4rem);
   letter-spacing: -0.03em;
   line-height: 0.92;
+}
+
+.room-confirmation {
+  align-items: center;
+  background: #edf5e4;
+  border: 1px solid rgba(87, 139, 38, 0.12);
+  border-radius: 999px;
+  color: #5d6d55;
+  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 800;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 6px 9px;
+}
+
+.room-confirmation strong {
+  color: #416729;
+  font-size: 0.72rem;
 }
 
 .preview-family {

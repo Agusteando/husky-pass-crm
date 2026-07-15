@@ -117,6 +117,7 @@ export interface DaycareRosterOverlay {
   sourceMessage?: string | null
   summary: {
     inSala: number
+    confirmed: number
     linked: number
     pending: number
     moved: number
@@ -153,12 +154,29 @@ export interface DaycareRoomManagementStats {
   assigned: number
 }
 
+export interface DaycareRoomConfirmationStatus {
+  salaId: number
+  salaName: string
+  local: number
+  confirmed: number
+  total: number
+}
+
+export interface DaycareRoomManagementRosterStatus {
+  available: boolean
+  confirmed: number
+  total: number
+  rooms: DaycareRoomConfirmationStatus[]
+  sourceUpdatedAt?: string | null
+}
+
 export interface DaycareRoomManagementOverview {
   unidad: string
   unidades: string[]
   salas: Sala[]
   members: DaycareRoomMember[]
   stats: DaycareRoomManagementStats
+  roster: DaycareRoomManagementRosterStatus
 }
 
 export interface AuthorizedChild {
@@ -234,6 +252,11 @@ export interface SalaMetrics {
 
 export interface SalaSummary extends Sala {
   metrics: SalaMetrics
+  confirmation?: {
+    available: boolean
+    confirmed: number
+    total: number
+  }
 }
 
 export interface SalaOverview {

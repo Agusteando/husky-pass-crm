@@ -49,10 +49,7 @@ const route = useRoute()
 const search = ref('')
 const isDaycareRoute = computed(() => route.path.startsWith('/admin/daycare'))
 const displayedItems = computed<AdminNavItem[]>(() => isDaycareRoute.value
-  ? [
-      { key: 'daycare-users', label: 'Usuarios', to: '/admin/daycare/usuarios', icon: 'people' },
-      { key: 'daycare-rooms', label: 'Salas', to: '/admin/daycare/salas', icon: 'daycare' }
-    ]
+  ? [{ key: 'daycare-rooms', label: 'Salas', to: '/admin/daycare/salas', icon: 'daycare' }]
   : props.items)
 
 function isActive(to: string) {
@@ -60,7 +57,6 @@ function isActive(to: string) {
   if (targetPath === '/admin/superadmin') return route.path === '/admin/superadmin'
   if (targetPath === '/mkt') return route.path.startsWith('/mkt')
   if (targetPath === '/admin/gestion-escolar') return route.path.startsWith('/admin/gestion-escolar')
-  if (targetPath === '/admin/daycare/usuarios') return route.path.startsWith('/admin/daycare/usuarios')
   if (targetPath === '/admin/daycare/salas') return route.path.startsWith('/admin/daycare/salas')
   return route.path === targetPath || route.path.startsWith(`${targetPath}/`)
 }

@@ -10,7 +10,7 @@ export function normalizeRosterText(value: unknown) {
 }
 
 export function normalizeRosterEmail(value: unknown) {
-  return normalizeRosterText(value).toLowerCase()
+  return normalizeRosterText(value).toLowerCase().replace(/\s+/g, '')
 }
 
 export function normalizeRosterName(value: unknown) {

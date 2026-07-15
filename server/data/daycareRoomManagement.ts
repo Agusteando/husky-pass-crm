@@ -6,6 +6,7 @@ import type {
   Sala
 } from '~/types/daycare'
 import { getSalasForUnidad, listAdminDaycareUnits } from '~/server/data/daycareScopes'
+import { attachRosterToRoomMembers, findDaycareRosterMatch } from '~/server/data/daycareRoster'
 import { assertUnidadAccess } from '~/server/utils/authz'
 import { publicError } from '~/server/utils/httpError'
 import { legacyOne, legacyQuery, legacyTransaction } from '~/server/utils/mysql'
@@ -150,7 +151,8 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
       unidades,
       salas: [],
       members: [],
-      stats: { total: 0, assigned: 0 }
+      stats: { total: 0, assigned: 0 },
+      roster: { available: false, confirmed: 0, total: 0, rooms: [], sourceUpdatedAt: null }
     }
   }
 
@@ -165,7 +167,8 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
       unidades,
       salas,
       members: [],
-      stats: { total: 0, assigned: 0 }
+      stats: { total: 0, assigned: 0 },
+      roster: { available: false, confirmed: 0, total: 0, rooms: [], sourceUpdatedAt: null }
     }
   }
 
@@ -208,17 +211,67 @@ export async function getDaycareRoomManagementOverview(user: AppSessionUser, req
   })
 
   const members = collapseMembersByEmail(rawMembers)
+  const rosterState = await attachRosterToRoomMembers(unidad, salas, members)
 
   return {
     unidad,
     unidades,
     salas,
-    members,
+    members: rosterState.members,
     stats: {
       total: members.length,
       assigned: members.length
-    }
+    },
+    roster: rosterState.roster
   }
+}
+
+export async function revokeUnconfirmedDaycareAccess(user: AppSessionUser, input: { userId: number }) {
+  const userId = Number(input.userId)
+  if (!Number.isInteger(userId) || userId <= 0) throw publicError(400, 'Usuario no válido.')
+
+  const columns = await getUsersColumns()
+  const passwordSelect = columns.has('password') ? ', password' : ''
+  const row = await legacyOne<ManagedUserRow>(
+    `SELECT id, nombre_nino, username, email, plaintext, role, unidad, sala${passwordSelect}
+     FROM users
+     WHERE id = ?
+     LIMIT 1`,
+    [userId]
+  )
+  if (!row) throw publicError(404, 'Usuario no encontrado.')
+  assertPureDaycareFamily(row)
+
+  const salaId = Number(row.sala || 0)
+  if (!Number.isInteger(salaId) || salaId <= 0) throw publicError(409, 'El usuario ya no tiene acceso activo.')
+  const sala = await legacyOne<(Sala & RowDataPacket)>('SELECT id, sala, unidad FROM salas WHERE id = ? LIMIT 1', [salaId])
+  if (!sala) throw publicError(404, 'Sala no encontrada.')
+  assertUnidadAccess(user, String(sala.unidad))
+
+  const roster = await findDaycareRosterMatch({
+    email: row.email || row.username || '',
+    unidad: String(sala.unidad),
+    salaId: Number(sala.id),
+    salaName: String(sala.sala)
+  })
+  if (!roster.available) throw publicError(503, 'La confirmación de usuarios no está disponible.')
+  if (roster.match) throw publicError(409, 'El usuario está confirmado en la lista.')
+
+  const assignments = ['role = NULL', 'unidad = NULL', 'sala = NULL']
+  if (columns.has('plaintext')) assignments.push('plaintext = NULL')
+  if (columns.has('password')) assignments.push('password = NULL')
+  await legacyTransaction(async (tx) => {
+    const locked = await tx.one<ManagedUserRow>(
+      `SELECT id, role, sala FROM users WHERE id = ? FOR UPDATE`,
+      [userId]
+    )
+    if (!locked) throw publicError(404, 'Usuario no encontrado.')
+    assertPureDaycareFamily({ ...row, role: locked.role, sala: locked.sala })
+    if (Number(locked.sala || 0) !== salaId) throw publicError(409, 'El usuario cambió de sala. Actualiza la vista.')
+    await tx.write(`UPDATE users SET ${assignments.join(', ')} WHERE id = ?`, [userId])
+  })
+
+  return { ok: true, userId }
 }
 
 function managedRowQualityScore(row: ManagedUserRow) {
