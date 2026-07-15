@@ -2,12 +2,12 @@
   <section class="svg-editor" data-product-panel="marbete-svg-editor">
     <header class="editor-topbar">
       <div>
-        <p class="eyebrow">Editor sobre SVG</p>
-        <h2>Base existente + capas dinámicas</h2>
+        <p class="eyebrow">Edición</p>
+        <h2>Campos dinámicos</h2>
       </div>
       <div class="editor-actions">
-        <button class="mini-btn" type="button" @click="addLayer('cover')">Añadir cubierta</button>
-        <button class="mini-btn" type="button" @click="addLayer('static-image')">Añadir imagen</button>
+        <button class="mini-btn" type="button" @click="addLayer('cover')">Tapar zona</button>
+        <button class="mini-btn" type="button" @click="addLayer('static-image')">Agregar imagen</button>
       </div>
     </header>
 
@@ -42,7 +42,7 @@
         <div class="preview-meta">
           <p>
             <span class="live-dot"></span>
-            SVG base listo
+            Vista previa
           </p>
           <strong>{{ activeCycle }}</strong>
         </div>
@@ -50,7 +50,7 @@
         <div class="stage-shell">
           <div ref="canvasRef" class="stage-canvas" :style="surfaceStyle">
             <img v-if="previewUrl" class="svg-stage-image" :src="previewUrl" alt="Vista previa editable del marbete" />
-            <div v-else class="svg-stage-error" role="alert">No fue posible renderizar este SVG.</div>
+            <div v-else class="svg-stage-error" role="alert">{{ previewError || 'No se pudo mostrar el SVG.' }}</div>
             <div
               v-for="layer in visibleLayers"
               :key="layer.id"
@@ -107,13 +107,13 @@
           </fieldset>
 
           <fieldset v-if="selectedLayer.kind === 'cover'">
-            <legend>Cubierta</legend>
+            <legend>Zona cubierta</legend>
             <label class="color-field">Color <input type="color" :value="selectedLayer.fill || '#ffffff'" @input="stringField('fill', $event)" /></label>
             <label class="range-field"><span>Opacidad <strong>{{ round((selectedLayer.opacity ?? 1) * 100) }}%</strong></span><input type="range" min="0" max="1" step="0.01" :value="selectedLayer.opacity ?? 1" @input="numberField('opacity', $event)" /></label>
           </fieldset>
 
           <fieldset v-if="selectedLayer.kind === 'static-image'">
-            <legend>Imagen fija</legend>
+            <legend>Imagen</legend>
             <label class="background-upload">
               <strong>{{ selectedLayer.assetUrl ? 'Reemplazar imagen' : 'Subir imagen' }}</strong>
               <small>PNG, JPG o WebP.</small>
@@ -165,10 +165,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRequestURL } from 'nuxt/app'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { MarbeteSvgDesign, MarbeteSvgLayer, MarbeteSvgLayerKind, PersonasThemeKey } from '~/types/daycare'
-import { MARBETE_REPRESENTATIVE_VALUES, marbeteSvgDataUrl } from '~/utils/marbeteDesigner'
+import { MARBETE_REPRESENTATIVE_VALUES } from '~/utils/marbeteDesigner'
 import { createDefaultMarbeteSvgDesign, marbeteSvgLayerDefinition, normalizeMarbeteSvgDesign, previewMarbeteSvg } from '~/utils/marbeteSvgEditor'
 
 const props = defineProps<{
@@ -182,7 +181,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: MarbeteSvgDesign]
 }>()
 
-const previewOrigin = useRequestURL().origin
 const canvasRef = ref<HTMLElement | null>(null)
 const selectedId = ref('ciclo-tag')
 const textAlignments = [
@@ -198,15 +196,43 @@ const visibleCount = computed(() => visibleLayers.value.length)
 const selectedLayer = computed(() => orderedLayers.value.find((layer) => layer.id === selectedId.value) || orderedLayers.value[0] || null)
 const activeCycle = computed(() => /^20\d{2}-20\d{2}$/.test(props.cicloEscolar) ? props.cicloEscolar : '2026-2027')
 const surfaceStyle = computed(() => ({ aspectRatio: `${design.value.canvas.width} / ${design.value.canvas.height}` }))
-const previewUrl = computed(() => {
-  try {
-    const svg = previewMarbeteSvg(props.baseSvg, design.value, props.themeKey, { ...MARBETE_REPRESENTATIVE_VALUES, ciclo: activeCycle.value })
-      .replace(/(href|xlink:href)="\/(?!\/)/g, `$1="${previewOrigin}/`)
-    return marbeteSvgDataUrl(svg)
-  } catch {
-    return ''
-  }
-})
+const previewUrl = ref('')
+const previewError = ref('')
+let previewObjectUrl = ''
+let previewTimer: ReturnType<typeof setTimeout> | null = null
+
+function revokePreviewUrl() {
+  if (!previewObjectUrl) return
+  URL.revokeObjectURL(previewObjectUrl)
+  previewObjectUrl = ''
+}
+
+function renderPreview() {
+  if (previewTimer) clearTimeout(previewTimer)
+  previewTimer = setTimeout(() => {
+    try {
+      const svg = previewMarbeteSvg(props.baseSvg, design.value, props.themeKey, {
+        ...MARBETE_REPRESENTATIVE_VALUES,
+        ciclo: activeCycle.value
+      })
+      const nextUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }))
+      revokePreviewUrl()
+      previewObjectUrl = nextUrl
+      previewUrl.value = nextUrl
+      previewError.value = ''
+    } catch (error) {
+      revokePreviewUrl()
+      previewUrl.value = ''
+      previewError.value = error instanceof Error ? error.message : 'No se pudo mostrar el SVG.'
+    }
+  }, 70)
+}
+
+watch(
+  [() => props.baseSvg, () => props.cicloEscolar, () => props.themeKey, () => props.modelValue],
+  renderPreview,
+  { deep: true, immediate: true }
+)
 
 function cloneDesign() {
   return JSON.parse(JSON.stringify(design.value)) as MarbeteSvgDesign
@@ -345,6 +371,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('pointermove', pointerMove)
   window.removeEventListener('pointerup', pointerUp)
+  if (previewTimer) clearTimeout(previewTimer)
+  revokePreviewUrl()
 })
 
 function nudgeLayer(event: KeyboardEvent, id: string) {

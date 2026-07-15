@@ -7,7 +7,6 @@ import type {
   PersonasThemeKey
 } from '~/types/daycare'
 import {
-  MARBETE_CICLO_TAG_URL,
   MARBETE_ELEMENT_DEFINITIONS,
   MARBETE_PAGE_HEIGHT,
   MARBETE_PAGE_WIDTH,
@@ -30,8 +29,8 @@ export const MARBETE_SVG_LAYER_DEFINITIONS: MarbeteSvgLayerDefinition[] = [
     help: item.help,
     category: item.category === 'image' ? 'dynamic-image' as const : item.category === 'text' ? 'dynamic-text' as const : 'ciclo' as const
   })),
-  { kind: 'cover', label: 'Cubierta', help: 'Oculta el diseño anterior con un bloque de color.', category: 'cover' },
-  { kind: 'static-image', label: 'Imagen superpuesta', help: 'Logotipo, holograma o recurso fijo.', category: 'static-image' }
+  { kind: 'cover', label: 'Zona cubierta', help: 'Tapa una parte del SVG antes de colocar un elemento nuevo.', category: 'cover' },
+  { kind: 'static-image', label: 'Imagen', help: 'Coloca un logotipo, holograma o imagen fija.', category: 'static-image' }
 ]
 
 const tokenValueKey: Partial<Record<MarbeteSvgLayerKind, string>> = {
@@ -124,21 +123,21 @@ function fitTextTemplate(layer: MarbeteSvgLayer, valueKey: string, box?: {
 function cicloLayer(layer: MarbeteSvgLayer) {
   const x = -layer.width / 2
   const y = -layer.height / 2
-  const labelY = y + layer.height * 0.28
   const style = layer.textStyle || defaultTextStyle(14)
-  return `<image x="${x}" y="${y}" width="${layer.width}" height="${layer.height}" href="${MARBETE_CICLO_TAG_URL}" xlink:href="${MARBETE_CICLO_TAG_URL}" preserveAspectRatio="none"/>
-    <text x="0" y="${labelY}" text-anchor="middle" fill="#111111" font-family="Montserrat, Arial, sans-serif" font-size="${Math.max(7, style.fontSize * 0.47)}" font-weight="700" letter-spacing="0.15">CICLO ESCOLAR</text>
+  const radius = Math.max(8, Math.min(layer.height / 2, 18))
+  return `<rect x="${x}" y="${y}" width="${layer.width}" height="${layer.height}" rx="${radius}" fill="#142B4A" opacity=".96"/>
+    <rect x="${x + 3}" y="${y + 3}" width="${Math.max(0, layer.width - 6)}" height="${Math.max(0, layer.height - 6)}" rx="${Math.max(5, radius - 3)}" fill="none" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="1.5"/>
+    <text x="0" y="${y + layer.height * 0.3}" text-anchor="middle" fill="#FFFFFF" font-family="Montserrat, Arial, sans-serif" font-size="${Math.max(7, style.fontSize * 0.45)}" font-weight="700" letter-spacing=".6">CICLO ESCOLAR</text>
     ${fitTextTemplate(layer, 'ciclo', {
-      x: x + layer.width * 0.1,
-      y: y + layer.height * 0.27,
-      width: layer.width * 0.8,
-      height: layer.height * 0.34,
+      x: x + layer.width * 0.08,
+      y: y + layer.height * 0.28,
+      width: layer.width * 0.84,
+      height: layer.height * 0.56,
       fontSize: style.fontSize,
       color: '#FFFFFF',
       fontWeight: 800,
       align: 'center',
-      lineHeight: 1,
-      shadowColor: '#5B6670'
+      lineHeight: 1
     })}`
 }
 
@@ -197,7 +196,7 @@ function baseDynamicLayers(themeKey: PersonasThemeKey): MarbeteSvgLayer[] {
     { id: 'student-name', kind: 'student-name', label: 'Nombre del alumno', x: 82, y: 446, width: 342, height: 42, rotation: 0, visible: false, zIndex: 22, textStyle: defaultTextStyle(16) },
     { id: 'school-detail', kind: 'school-detail', label: 'Detalle escolar', x: 82, y: 490, width: 212, height: 42, rotation: 0, visible: false, zIndex: 23, textStyle: defaultTextStyle(13, '#44546A') },
     { id: 'validity', kind: 'validity', label: 'Vigencia', x: 82, y: 536, width: 210, height: 30, rotation: 0, visible: false, zIndex: 24, textStyle: defaultTextStyle(12, '#44546A') },
-    { id: 'ciclo-tag', kind: 'ciclo-tag', label: 'Ciclo escolar', x: 278, y: 76, width: 132, height: 66, rotation: 0, visible: false, zIndex: 30, textStyle: defaultTextStyle(14) }
+    { id: 'ciclo-tag', kind: 'ciclo-tag', label: 'Ciclo escolar', x: 278, y: 76, width: 132, height: 66, rotation: 0, visible: true, zIndex: 30, textStyle: defaultTextStyle(14) }
   ]
 }
 
@@ -286,6 +285,25 @@ export function normalizeMarbeteSvgDesign(value: unknown, themeKey: PersonasThem
     },
     layers: layers.sort((left, right) => left.zIndex - right.zIndex)
   }
+}
+
+export function resizeMarbeteSvgDesign(input: MarbeteSvgDesign, canvas: { width: number; height: number }, themeKey: PersonasThemeKey = 'preescolar') {
+  const current = normalizeMarbeteSvgDesign(input, themeKey)
+  const nextWidth = Math.max(1, Number(canvas.width) || current.canvas.width)
+  const nextHeight = Math.max(1, Number(canvas.height) || current.canvas.height)
+  const scaleX = nextWidth / Math.max(1, current.canvas.width)
+  const scaleY = nextHeight / Math.max(1, current.canvas.height)
+  return normalizeMarbeteSvgDesign({
+    ...current,
+    canvas: { width: nextWidth, height: nextHeight },
+    layers: current.layers.map((layer) => ({
+      ...layer,
+      x: layer.x * scaleX,
+      y: layer.y * scaleY,
+      width: layer.width * scaleX,
+      height: layer.height * scaleY
+    }))
+  }, themeKey, { width: nextWidth, height: nextHeight })
 }
 
 export function appendMarbeteSvgDesign(baseSvg: string, input: MarbeteSvgDesign, themeKey: PersonasThemeKey = 'preescolar') {

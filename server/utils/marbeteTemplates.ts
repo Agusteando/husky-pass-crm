@@ -505,6 +505,8 @@ export async function applyMarbeteTemplateAction(input: {
   id: string
   action: 'duplicate' | 'publish' | 'activate'
   cicloEscolar?: string | null
+  plantel?: string | null
+  name?: string | null
 }) {
   const [allTemplates, customTemplates] = await Promise.all([
     listMarbeteTemplates(),
@@ -518,11 +520,13 @@ export async function applyMarbeteTemplateAction(input: {
   if (input.action === 'duplicate') {
     const cicloEscolar = normalizeSchoolCycle(input.cicloEscolar)
     if (!cicloEscolar) throw publicError(400, 'Indica el nuevo ciclo escolar, por ejemplo 2027-2028.')
-    const id = safeId(`${current.themeKey}-${current.nivel}-${cicloEscolar}-${Date.now()}`)
+    const plantel = normalizeSchoolPlantel(input.plantel)
+    const id = safeId(`${current.themeKey}-${plantel || current.nivel}-${cicloEscolar}-${Date.now()}`)
     const duplicate: MarbeteTemplateMeta = {
       ...current,
       id,
-      name: `${current.name.replace(/\s+[·-]\s+20\d{2}-20\d{2}$/i, '')} · ${cicloEscolar}`,
+      name: String(input.name || '').trim() || `${current.name.replace(/\s+[·-]\s+20\d{2}-20\d{2}$/i, '')} · ${cicloEscolar}`,
+      planteles: plantel ? [plantel] : current.planteles,
       cicloEscolar,
       isDefault: false,
       status: 'draft',

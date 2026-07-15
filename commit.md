@@ -1,1 +1,1 @@
-Corrige la navegación y estabiliza la edición de marbetes SVG
+Corrige la vista previa y simplifica la gestión de marbetes SVG por plantel y ciclo

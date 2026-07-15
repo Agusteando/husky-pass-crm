@@ -228,6 +228,7 @@ declare global {
   const renderMarbeteVisualValues: typeof import('../../utils/marbeteDesigner').renderMarbeteVisualValues
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback').requestIdleCallback
   const requiresInstitutionalOnboarding: typeof import('../../utils/sessionScopes').requiresInstitutionalOnboarding
+  const resizeMarbeteSvgDesign: typeof import('../../utils/marbeteSvgEditor').resizeMarbeteSvgDesign
   const resolveAuthorizedPersonMarbeteLevel: typeof import('../../utils/personasTheme').resolveAuthorizedPersonMarbeteLevel
   const resolveAuthorizedPersonMarbetePlantel: typeof import('../../utils/personasTheme').resolveAuthorizedPersonMarbetePlantel
   const resolveComponent: typeof import('../../node_modules/vue').resolveComponent
@@ -639,6 +640,7 @@ declare module 'vue' {
     readonly renderMarbeteVisualValues: UnwrapRef<typeof import('../../utils/marbeteDesigner')['renderMarbeteVisualValues']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
     readonly requiresInstitutionalOnboarding: UnwrapRef<typeof import('../../utils/sessionScopes')['requiresInstitutionalOnboarding']>
+    readonly resizeMarbeteSvgDesign: UnwrapRef<typeof import('../../utils/marbeteSvgEditor')['resizeMarbeteSvgDesign']>
     readonly resolveAuthorizedPersonMarbeteLevel: UnwrapRef<typeof import('../../utils/personasTheme')['resolveAuthorizedPersonMarbeteLevel']>
     readonly resolveAuthorizedPersonMarbetePlantel: UnwrapRef<typeof import('../../utils/personasTheme')['resolveAuthorizedPersonMarbetePlantel']>
     readonly resolveComponent: UnwrapRef<typeof import('../../node_modules/vue')['resolveComponent']>

@@ -33,6 +33,10 @@ export const MARBETE_ELEMENT_DEFINITIONS: MarbeteElementDefinition[] = [
   { kind: 'ciclo-tag', label: 'Etiqueta de ciclo escolar', help: 'Badge reutilizable con texto generado por la plataforma.', category: 'ciclo' }
 ]
 
+const SAMPLE_PERSON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300"><defs><linearGradient id="person-bg" x2="1" y2="1"><stop stop-color="#d9f2f7"/><stop offset="1" stop-color="#8bc3d3"/></linearGradient></defs><rect width="240" height="300" fill="url(#person-bg)"/><circle cx="120" cy="92" r="50" fill="#286f86" opacity=".84"/><path d="M42 285c8-78 48-116 78-116s70 38 78 116" fill="#286f86" opacity=".84"/><text x="120" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#fff">PERSONA</text></svg>`
+const SAMPLE_STUDENT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 190"><defs><linearGradient id="student-bg" x2="1" y2="1"><stop stop-color="#fff0cf"/><stop offset="1" stop-color="#f3b982"/></linearGradient></defs><rect width="320" height="190" fill="url(#student-bg)"/><circle cx="160" cy="65" r="40" fill="#b75e32" opacity=".83"/><path d="M88 190c8-60 43-90 72-90s64 30 72 90" fill="#b75e32" opacity=".83"/><text x="160" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#fff">ALUMNO</text></svg>`
+const SAMPLE_QR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/><g fill="#101820"><path d="M7 7h32v32H7zM14 14v18h18V14zM61 7h32v32H61zM68 14v18h18V14zM7 61h32v32H7zM14 68v18h18V68z" fill-rule="evenodd"/><path d="M47 8h7v7h-7zM44 20h9v8h-9zM48 34h7v10h-7zM60 47h9v8h-9zM75 44h7v9h-7zM88 47h6v11h-6zM44 60h10v8H44zM58 60h7v7h-7zM70 61h8v11h-8zM84 64h10v7H84zM45 75h8v8h-8zM58 74h11v7H58zM72 80h8v13h-8zM86 77h8v8h-8zM44 88h16v6H44zM86 88h8v6h-8z"/></g></svg>`
+
 export const MARBETE_REPRESENTATIVE_VALUES: Record<string, string> = {
   fullnameP: 'María José de los Ángeles De la Luz Santillán',
   authorizedPersonName: 'María José de los Ángeles De la Luz Santillán',
@@ -41,9 +45,9 @@ export const MARBETE_REPRESENTATIVE_VALUES: Record<string, string> = {
   schoolDetail: '4° C · Plantel PM',
   validityLabel: 'Vigente desde 2026-08-19',
   ciclo: '2026-2027',
-  foto: '/marbete/sample-person.svg',
-  studentPhoto: '/marbete/sample-student.svg',
-  qrImage: '/marbete/sample-qr.svg'
+  foto: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SAMPLE_PERSON_SVG)}`,
+  studentPhoto: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SAMPLE_STUDENT_SVG)}`,
+  qrImage: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SAMPLE_QR_SVG)}`
 }
 
 const defaultTextStyle = (fontSize: number, color = '#102A43'): MarbeteVisualTextStyle => ({
@@ -248,21 +252,21 @@ function fitTextTemplate(element: MarbeteVisualElement, valueKey: string, box?: 
 function cicloElement(element: MarbeteVisualElement) {
   const x = -element.width / 2
   const y = -element.height / 2
-  const labelY = y + element.height * 0.28
   const style = element.textStyle || defaultTextStyle(14)
-  return `<image x="${x}" y="${y}" width="${element.width}" height="${element.height}" href="${MARBETE_CICLO_TAG_URL}" xlink:href="${MARBETE_CICLO_TAG_URL}" preserveAspectRatio="none"/>
-    <text x="0" y="${labelY}" text-anchor="middle" fill="#111111" font-family="Montserrat, Arial, sans-serif" font-size="${Math.max(7, style.fontSize * 0.47)}" font-weight="700" letter-spacing="0.15">CICLO ESCOLAR</text>
+  const radius = Math.max(8, Math.min(element.height / 2, 18))
+  return `<rect x="${x}" y="${y}" width="${element.width}" height="${element.height}" rx="${radius}" fill="#142B4A" opacity=".96"/>
+    <rect x="${x + 3}" y="${y + 3}" width="${Math.max(0, element.width - 6)}" height="${Math.max(0, element.height - 6)}" rx="${Math.max(5, radius - 3)}" fill="none" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="1.5"/>
+    <text x="0" y="${y + element.height * 0.3}" text-anchor="middle" fill="#FFFFFF" font-family="Montserrat, Arial, sans-serif" font-size="${Math.max(7, style.fontSize * 0.45)}" font-weight="700" letter-spacing=".6">CICLO ESCOLAR</text>
     ${fitTextTemplate(element, 'ciclo', {
-      x: x + element.width * 0.10,
-      y: y + element.height * 0.27,
-      width: element.width * 0.80,
-      height: element.height * 0.34,
+      x: x + element.width * 0.08,
+      y: y + element.height * 0.28,
+      width: element.width * 0.84,
+      height: element.height * 0.56,
       fontSize: style.fontSize,
       color: '#FFFFFF',
       fontWeight: 800,
       align: 'center',
-      lineHeight: 1,
-      shadowColor: '#5B6670'
+      lineHeight: 1
     })}`
 }
 

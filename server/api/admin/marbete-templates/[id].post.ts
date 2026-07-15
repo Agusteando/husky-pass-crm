@@ -7,7 +7,9 @@ import { applyMarbeteTemplateAction } from '~/server/utils/marbeteTemplates'
 
 const schema = z.object({
   action: z.enum(['duplicate', 'publish', 'activate']),
-  cicloEscolar: z.string().optional().nullable()
+  cicloEscolar: z.string().optional().nullable(),
+  plantel: z.string().optional().nullable(),
+  name: z.string().trim().optional().nullable()
 })
 
 export default defineEventHandler(async (event) => {
@@ -16,5 +18,5 @@ export default defineEventHandler(async (event) => {
   const id = String(getRouterParam(event, 'id') || '').trim()
   if (!id) throw publicError(400, 'Diseño de marbete inválido.')
   const body = schema.parse(await readBody(event))
-  return applyMarbeteTemplateAction({ id, action: body.action, cicloEscolar: body.cicloEscolar })
+  return applyMarbeteTemplateAction({ id, action: body.action, cicloEscolar: body.cicloEscolar, plantel: body.plantel, name: body.name })
 })
