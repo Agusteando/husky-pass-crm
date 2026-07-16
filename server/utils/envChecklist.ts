@@ -40,8 +40,74 @@ function validEmailLike(env: EnvMap, key: string) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value(env, key))
 }
 
+function serviceAccountDocument(env: EnvMap) {
+  const candidates = [
+    'GOOGLE_SERVICE_ACCOUNT_JSON',
+    'GOOGLE_SERVICE_ACCOUNT_JSON_BASE64',
+    'GOOGLE_SERVICE_ACCOUNT_CREDENTIALS',
+    'GOOGLE_SERVICE_ACCOUNT',
+    'GOOGLE_CREDENTIALS',
+    'GOOGLE_CREDENTIALS_JSON',
+    'GOOGLE_CREDENTIALS_BASE64',
+    'GOOGLE_APPLICATION_CREDENTIALS_JSON',
+    'GOOGLE_APPLICATION_CREDENTIALS_BASE64',
+    'GCP_SERVICE_ACCOUNT_JSON',
+    'GCP_SERVICE_ACCOUNT_CREDENTIALS',
+    'GOOGLE_SERVICE_ACCOUNT_KEY'
+  ]
+  for (const key of candidates) {
+    const raw = value(env, key)
+    if (!raw) continue
+    const attempts = [raw]
+    try { attempts.push(Buffer.from(raw, 'base64').toString('utf8')) } catch {}
+    for (const candidate of attempts) {
+      try {
+        const parsed = JSON.parse(candidate) as { client_email?: unknown; private_key?: unknown }
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch {}
+    }
+  }
+
+  const privateKeyValue = value(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY')
+  if (privateKeyValue.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(privateKeyValue) as { client_email?: unknown; private_key?: unknown }
+      if (parsed && typeof parsed === 'object') return parsed
+    } catch {}
+  }
+  return null
+}
+
+function serviceAccountEmailShape(env: EnvMap) {
+  const aliases = ['GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL', 'GOOGLE_CLIENT_EMAIL', 'GOOGLE_CLOUD_SERVICE_ACCOUNT_EMAIL', 'GCP_SERVICE_ACCOUNT_EMAIL', 'GCLOUD_SERVICE_ACCOUNT_EMAIL']
+  if (aliases.some((key) => validEmailLike(env, key))) return true
+  const document = serviceAccountDocument(env)
+  return /^[^@\s]+@[^@\s]+\.gserviceaccount\.com$/i.test(String(document?.client_email || '').trim())
+}
+
+
+function decodePrivateKeyBase64(env: EnvMap) {
+  for (const key of ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', 'GOOGLE_PRIVATE_KEY_BASE64', 'GCP_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64']) {
+    const raw = value(env, key)
+    if (!raw) continue
+    try {
+      const decoded = Buffer.from(raw, 'base64').toString('utf8')
+      if (decoded.includes('-----BEGIN PRIVATE KEY-----')) return decoded
+    } catch {}
+  }
+  return ''
+}
+
 function privateKeyShape(env: EnvMap) {
-  const normalized = value(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY').replace(/\\n/g, '\n')
+  const document = serviceAccountDocument(env)
+  const normalized = String(
+    document?.private_key
+      || value(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY')
+      || value(env, 'GOOGLE_PRIVATE_KEY')
+      || value(env, 'GOOGLE_CLOUD_PRIVATE_KEY')
+      || value(env, 'GCP_SERVICE_ACCOUNT_PRIVATE_KEY')
+      || decodePrivateKeyBase64(env)
+  ).replace(/\\n/g, '\n')
   return Boolean(
     normalized
     && normalized.includes('-----BEGIN PRIVATE KEY-----')
@@ -90,14 +156,14 @@ export function buildEnvChecklist(env: EnvMap = process.env): SuperAdminEnvCheck
     item(env, 'PASSWORD_RECOVERY_EMAIL_MODE', 'Modo de correo', ['gmail', 'preview', ''].includes(value(env, 'PASSWORD_RECOVERY_EMAIL_MODE').toLowerCase()), 'Modo valido.', 'Usa gmail o preview.', 'warning'),
     item(env, 'PASSWORD_RECOVERY_FROM_EMAIL', 'Remitente', validEmailLike(env, 'PASSWORD_RECOVERY_FROM_EMAIL'), 'Correo valido.', 'Falta remitente o no parece correo.'),
     item(env, 'PASSWORD_RECOVERY_FROM_NAME', 'Nombre remitente', hasValue(env, 'PASSWORD_RECOVERY_FROM_NAME'), 'Configurado.', 'Falta PASSWORD_RECOVERY_FROM_NAME.', 'warning'),
-    item(env, 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'Service account', validEmailLike(env, 'GOOGLE_SERVICE_ACCOUNT_EMAIL'), 'Correo valido.', 'Falta service account o no parece correo.'),
-    item(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', 'Private key directa', privateKeyShape(env), 'PEM directo valido.', 'Usa GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY con saltos \\n; no uses _BASE64.'),
+    item(env, 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'Service account', serviceAccountEmailShape(env), 'Cuenta de servicio identificada.', 'Falta client_email de la cuenta de servicio.'),
+    item(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', 'Private key', privateKeyShape(env), 'Credencial privada valida.', 'Falta private_key o no tiene formato PEM.'),
     item(env, 'GOOGLE_WORKSPACE_DELEGATED_USER', 'Usuario delegado', validEmailLike(env, 'GOOGLE_WORKSPACE_DELEGATED_USER') || validEmailLike(env, 'GOOGLE_GMAIL_DELEGATED_USER'), 'Delegacion configurada.', 'Falta GOOGLE_WORKSPACE_DELEGATED_USER o GOOGLE_GMAIL_DELEGATED_USER.')
   ]
 
   if (hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64')) {
     recoveryItems.push(
-      item(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', 'Base64 obsoleto', false, '', 'No se usa: reemplazalo por GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY.', 'warning')
+      item(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', 'Private key base64', Boolean(decodePrivateKeyBase64(env)), 'Credencial base64 valida.', 'La credencial base64 no contiene una private_key PEM valida.')
     )
   }
 

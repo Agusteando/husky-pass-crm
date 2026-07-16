@@ -56,6 +56,57 @@ function hasRequiredValue(env, key, options) {
   return hasValue(env, key) || (options.allowSensitivePlaceholders && Object.prototype.hasOwnProperty.call(env, key))
 }
 
+function parseServiceAccountDocument(env) {
+  const candidates = [
+    'GOOGLE_SERVICE_ACCOUNT_JSON',
+    'GOOGLE_SERVICE_ACCOUNT_JSON_BASE64',
+    'GOOGLE_SERVICE_ACCOUNT_CREDENTIALS',
+    'GOOGLE_SERVICE_ACCOUNT',
+    'GOOGLE_CREDENTIALS',
+    'GOOGLE_CREDENTIALS_JSON',
+    'GOOGLE_CREDENTIALS_BASE64',
+    'GOOGLE_APPLICATION_CREDENTIALS_JSON',
+    'GOOGLE_APPLICATION_CREDENTIALS_BASE64',
+    'GCP_SERVICE_ACCOUNT_JSON',
+    'GCP_SERVICE_ACCOUNT_CREDENTIALS',
+    'GOOGLE_SERVICE_ACCOUNT_KEY'
+  ]
+  for (const key of candidates) {
+    const raw = String(env[key] || '').trim()
+    if (!raw) continue
+    const attempts = [raw]
+    try { attempts.push(Buffer.from(raw, 'base64').toString('utf8')) } catch {}
+    for (const candidate of attempts) {
+      try {
+        const parsed = JSON.parse(candidate)
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch {}
+    }
+  }
+  const privateKeyValue = String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').trim()
+  if (privateKeyValue.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(privateKeyValue)
+      if (parsed && typeof parsed === 'object') return parsed
+    } catch {}
+  }
+  return null
+}
+
+function serviceAccountEmailConfigured(env, options) {
+  const aliases = [
+    'GOOGLE_SERVICE_ACCOUNT_EMAIL',
+    'GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL',
+    'GOOGLE_CLIENT_EMAIL',
+    'GOOGLE_CLOUD_SERVICE_ACCOUNT_EMAIL',
+    'GCP_SERVICE_ACCOUNT_EMAIL',
+    'GCLOUD_SERVICE_ACCOUNT_EMAIL'
+  ]
+  if (aliases.some((key) => hasRequiredValue(env, key, options))) return true
+  const document = parseServiceAccountDocument(env)
+  return Boolean(String(document?.client_email || '').trim())
+}
+
 function numberIsValid(env, key, fallback) {
   if (String(env[key] ?? '') === '') return true
   const raw = hasValue(env, key) ? env[key] : fallback
@@ -64,7 +115,11 @@ function numberIsValid(env, key, fallback) {
 }
 
 function privateKeyConfigured(env, options) {
-  return hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', options)
+  if (hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', options)) return true
+  if (hasRequiredValue(env, 'GOOGLE_PRIVATE_KEY', options) || hasRequiredValue(env, 'GOOGLE_CLOUD_PRIVATE_KEY', options) || hasRequiredValue(env, 'GCP_SERVICE_ACCOUNT_PRIVATE_KEY', options)) return true
+  if (hasRequiredValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', options) || hasRequiredValue(env, 'GOOGLE_PRIVATE_KEY_BASE64', options) || hasRequiredValue(env, 'GCP_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64', options)) return true
+  const document = parseServiceAccountDocument(env)
+  return Boolean(String(document?.private_key || '').trim())
 }
 
 function validate(env, options) {
@@ -103,21 +158,26 @@ function validate(env, options) {
 
   const emailMode = String(env.PASSWORD_RECOVERY_EMAIL_MODE || '').trim().toLowerCase()
   if (options.strictEmail || emailMode === 'gmail') {
-    for (const key of ['PASSWORD_RECOVERY_BASE_URL', 'PASSWORD_RECOVERY_FROM_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_EMAIL']) {
+    for (const key of ['PASSWORD_RECOVERY_BASE_URL', 'PASSWORD_RECOVERY_FROM_EMAIL']) {
       if (!hasRequiredValue(env, key, options)) errors.push(`${key} falta para envio real de recuperacion de contrasena.`)
     }
-    if (!privateKeyConfigured(env, options)) errors.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY falta para envio real.')
+    if (!serviceAccountEmailConfigured(env, options)) errors.push('Falta client_email de la cuenta de servicio de Google.')
+    if (!privateKeyConfigured(env, options)) errors.push('Falta private_key de la cuenta de servicio de Google.')
     if (!hasRequiredValue(env, 'GOOGLE_WORKSPACE_DELEGATED_USER', options) && !hasRequiredValue(env, 'GOOGLE_GMAIL_DELEGATED_USER', options)) {
       errors.push('GOOGLE_WORKSPACE_DELEGATED_USER falta para envio Gmail delegado.')
     }
   }
 
-  if (hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY') && !String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY).includes('\\n') && !String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY).includes('\n')) {
-    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY no contiene saltos de linea escapados; usa \\n en el valor directo.')
+  const directPrivateKey = String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '')
+  if (directPrivateKey && !directPrivateKey.trim().startsWith('{') && !directPrivateKey.includes('\\n') && !directPrivateKey.includes('\n')) {
+    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY no contiene saltos de linea escapados; usa \\n en el valor directo o configura el JSON completo.')
   }
 
   if (hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64')) {
-    warnings.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 ya no se usa; configura GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY como texto directo.')
+    const decoded = Buffer.from(String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64), 'base64').toString('utf8')
+    if (!decoded.includes('-----BEGIN PRIVATE KEY-----') || !decoded.includes('-----END PRIVATE KEY-----')) {
+      errors.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 no contiene una private_key PEM valida.')
+    }
   }
 
   return {

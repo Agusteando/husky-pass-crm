@@ -1,1 +1,1 @@
-Permite copiar el enlace completo de registro familiar y aclara cómo abrirlo
+Corrige el envío del registro familiar con la cuenta de servicio configurada

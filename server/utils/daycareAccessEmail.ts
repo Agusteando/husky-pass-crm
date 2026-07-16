@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { JWT } from 'google-auth-library'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
+import { assertGoogleServiceAccountCredentials, resolveGoogleServiceAccountCredentials } from '~/server/utils/googleServiceAccountCredentials'
 
 type DaycareAccessEmailInput = {
   to: string
@@ -22,20 +23,17 @@ type EmailConfig = {
   delegatedUser: string
 }
 
-function decodePrivateKey(raw?: string | null) {
-  return String(raw || '').trim().replace(/\\n/g, '\n')
-}
-
 function getEmailConfig(): EmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
   const modeValue = process.env.DAYCARE_ACCESS_EMAIL_MODE || process.env.PASSWORD_RECOVERY_EMAIL_MODE || recovery.emailMode || 'gmail'
+  const credentials = resolveGoogleServiceAccountCredentials()
   return {
     mode: String(modeValue).trim().toLowerCase() === 'preview' ? 'preview' : 'gmail',
     fromEmail: String(process.env.DAYCARE_ACCESS_FROM_EMAIL || process.env.PASSWORD_RECOVERY_FROM_EMAIL || recovery.fromEmail || '').trim(),
     fromName: String(process.env.DAYCARE_ACCESS_FROM_NAME || process.env.PASSWORD_RECOVERY_FROM_NAME || recovery.fromName || 'Husky Pass').trim(),
-    serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
-    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey),
+    serviceAccountEmail: credentials.email,
+    privateKey: credentials.privateKey,
     delegatedUser: String(process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || recovery.googleDelegatedUser || '').trim()
   }
 }
@@ -60,14 +58,10 @@ function base64url(input: string) {
 function assertGmailConfig(config: EmailConfig) {
   const missing = [
     ['DAYCARE_ACCESS_FROM_EMAIL or PASSWORD_RECOVERY_FROM_EMAIL', config.fromEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_EMAIL', config.serviceAccountEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey],
     ['GOOGLE_WORKSPACE_DELEGATED_USER or GOOGLE_GMAIL_DELEGATED_USER', config.delegatedUser]
   ].filter(([, value]) => !value).map(([key]) => key)
   if (missing.length) throw new Error(`Missing daycare access email configuration: ${missing.join(', ')}`)
-  if (!/-----BEGIN PRIVATE KEY-----/.test(config.privateKey) || !/-----END PRIVATE KEY-----/.test(config.privateKey)) {
-    throw new Error('Google service-account private key is malformed.')
-  }
+  assertGoogleServiceAccountCredentials({ email: config.serviceAccountEmail, privateKey: config.privateKey, source: 'resolved' })
 }
 
 function buildEmail(input: DaycareAccessEmailInput, config: EmailConfig) {

@@ -71,8 +71,8 @@ export default defineNuxtConfig({
       emailMode: process.env.PASSWORD_RECOVERY_EMAIL_MODE || 'gmail',
       fromEmail: process.env.PASSWORD_RECOVERY_FROM_EMAIL || '',
       fromName: process.env.PASSWORD_RECOVERY_FROM_NAME || 'Husky Pass',
-      googleServiceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
-      googleServiceAccountPrivateKey: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '',
+      googleServiceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL || process.env.GCP_SERVICE_ACCOUNT_EMAIL || '',
+      googleServiceAccountPrivateKey: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY || process.env.GCP_SERVICE_ACCOUNT_PRIVATE_KEY || '',
       googleDelegatedUser: process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || ''
     },
     sessionSecret: process.env.SESSION_SECRET || 'change-me-before-production',

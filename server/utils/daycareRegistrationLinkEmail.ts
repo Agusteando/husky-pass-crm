@@ -3,6 +3,11 @@ import { join } from 'node:path'
 import { JWT } from 'google-auth-library'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
+import {
+  assertGoogleServiceAccountCredentials,
+  GoogleServiceAccountConfigurationError,
+  resolveGoogleServiceAccountCredentials
+} from '~/server/utils/googleServiceAccountCredentials'
 
 const DAYCARE_REGISTRATION_ORIGIN = 'https://admin.casitaiedis.edu.mx'
 const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
@@ -22,6 +27,7 @@ type EmailConfig = {
   mode: 'gmail' | 'preview'
   serviceAccountEmail: string
   privateKey: string
+  credentialSource: string
   delegatedUser: string
 }
 
@@ -54,24 +60,6 @@ class GmailDeliveryError extends Error {
   }
 }
 
-function decodePrivateKey(raw?: string | null) {
-  const value = String(raw || '').trim()
-  if (!value) return ''
-
-  // Vercel values are sometimes pasted as a JSON string. Parse only a quoted
-  // scalar; never attempt to interpret arbitrary key content as JSON.
-  if (value.startsWith('"') && value.endsWith('"')) {
-    try {
-      const parsed = JSON.parse(value)
-      if (typeof parsed === 'string') return parsed.trim().replace(/\\n/g, '\n')
-    } catch {
-      // Fall through to the normal escaped-newline representation.
-    }
-  }
-
-  return value.replace(/\\n/g, '\n')
-}
-
 function getEmailConfig(): EmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
@@ -89,10 +77,12 @@ function getEmailConfig(): EmailConfig {
     ? 'gmail'
     : requestedMode === 'preview' ? 'preview' : 'gmail'
 
+  const credentials = resolveGoogleServiceAccountCredentials()
   return {
     mode,
-    serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
-    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey),
+    serviceAccountEmail: credentials.email,
+    privateKey: credentials.privateKey,
+    credentialSource: credentials.source,
     delegatedUser: normalizeEmail(
       process.env.GOOGLE_WORKSPACE_DELEGATED_USER
         || process.env.GOOGLE_GMAIL_DELEGATED_USER
@@ -147,14 +137,11 @@ function base64url(input: string) {
 }
 
 function assertGmailConfig(config: EmailConfig) {
-  const missing = [
-    ['GOOGLE_SERVICE_ACCOUNT_EMAIL', config.serviceAccountEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey]
-  ].filter(([, value]) => !value).map(([key]) => key)
-  if (missing.length) throw new Error(`Missing daycare registration email configuration: ${missing.join(', ')}`)
-  if (!/-----BEGIN PRIVATE KEY-----/.test(config.privateKey) || !/-----END PRIVATE KEY-----/.test(config.privateKey)) {
-    throw new Error('Google service-account private key is malformed.')
-  }
+  assertGoogleServiceAccountCredentials({
+    email: config.serviceAccountEmail,
+    privateKey: config.privateKey,
+    source: config.credentialSource
+  })
 }
 
 function buildRegistrationEmail(input: RegistrationLinkEmailInput, identity: DeliveryIdentity): BuiltRegistrationEmail {
@@ -356,6 +343,11 @@ function configuredFallbackIdentity(config: EmailConfig, senderEmail: string): D
   }
 }
 
+function canRetryWithConfiguredMailbox(error: GmailDeliveryError) {
+  if (error.stage === 'authorize') return true
+  return error.status === 400 || error.status === 401 || error.status === 403
+}
+
 export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
   const config = getEmailConfig()
   const senderEmail = normalizeEmail(input.senderEmail)
@@ -370,6 +362,7 @@ export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEm
     logSecurityWarning('daycare-registration-link-email-delivered', {
       mode: config.mode,
       strategy: primaryIdentity.strategy,
+      credentialSource: config.credentialSource,
       toHash: securityHash(input.to),
       senderHash: securityHash(senderEmail)
     })
@@ -377,20 +370,40 @@ export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEm
   }
 
   try {
+    assertGmailConfig(config)
+  } catch (configurationError) {
+    logSecurityDiagnostic('daycare-registration-link-email-config-failed', configurationError, {
+      mode: config.mode,
+      credentialSource: config.credentialSource,
+      missing: configurationError instanceof GoogleServiceAccountConfigurationError ? configurationError.missing : [],
+      toHash: securityHash(input.to),
+      senderHash: securityHash(senderEmail)
+    })
+    throw configurationError
+  }
+
+  try {
     await sendWithGmail(primaryEmail.raw, config, primaryIdentity)
     logSecurityWarning('daycare-registration-link-email-delivered', {
       mode: config.mode,
       strategy: primaryIdentity.strategy,
+      credentialSource: config.credentialSource,
       toHash: securityHash(input.to),
       senderHash: securityHash(senderEmail)
     })
     return
   } catch (primaryError) {
-    const fallbackIdentity = configuredFallbackIdentity(config, senderEmail)
+    if (!(primaryError instanceof GmailDeliveryError)) throw primaryError
+    const fallbackIdentity = canRetryWithConfiguredMailbox(primaryError)
+      ? configuredFallbackIdentity(config, senderEmail)
+      : null
     if (!fallbackIdentity) {
       logSecurityDiagnostic('daycare-registration-link-email-failed', primaryError, {
         mode: config.mode,
         strategy: primaryIdentity.strategy,
+        credentialSource: config.credentialSource,
+        primaryStage: primaryError.stage,
+        primaryStatus: primaryError.status,
         toHash: securityHash(input.to),
         senderHash: securityHash(senderEmail)
       })
@@ -400,7 +413,8 @@ export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEm
     logSecurityWarning('daycare-registration-link-email-using-fallback', {
       mode: config.mode,
       primaryStage: primaryError instanceof GmailDeliveryError ? primaryError.stage : 'unknown',
-      primaryStatus: primaryError instanceof GmailDeliveryError ? primaryError.status : null,
+      primaryStatus: primaryError.status,
+      credentialSource: config.credentialSource,
       toHash: securityHash(input.to),
       senderHash: securityHash(senderEmail),
       delegatedHash: securityHash(fallbackIdentity.delegatedUser)
@@ -412,6 +426,7 @@ export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEm
       logSecurityWarning('daycare-registration-link-email-delivered', {
         mode: config.mode,
         strategy: fallbackIdentity.strategy,
+        credentialSource: config.credentialSource,
         toHash: securityHash(input.to),
         senderHash: securityHash(senderEmail),
         delegatedHash: securityHash(fallbackIdentity.delegatedUser)
@@ -422,7 +437,8 @@ export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEm
         mode: config.mode,
         strategy: fallbackIdentity.strategy,
         primaryStage: primaryError instanceof GmailDeliveryError ? primaryError.stage : 'unknown',
-        primaryStatus: primaryError instanceof GmailDeliveryError ? primaryError.status : null,
+        primaryStatus: primaryError.status,
+        credentialSource: config.credentialSource,
         toHash: securityHash(input.to),
         senderHash: securityHash(senderEmail),
         delegatedHash: securityHash(fallbackIdentity.delegatedUser)

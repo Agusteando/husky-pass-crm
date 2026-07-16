@@ -5,6 +5,7 @@ import { assertDaycareAdmin } from '~/server/utils/authz'
 import { getOrCreateDaycareRegistrationLink } from '~/server/data/daycareRegistration'
 import { sendDaycareRegistrationLinkEmail } from '~/server/utils/daycareRegistrationLinkEmail'
 import { publicError } from '~/server/utils/httpError'
+import { GoogleServiceAccountConfigurationError } from '~/server/utils/googleServiceAccountCredentials'
 
 const schema = z.object({
   sala: z.coerce.number().int().positive(),
@@ -39,7 +40,10 @@ export default defineEventHandler(async (event) => {
       senderEmail: sender.email,
       senderName: sender.name
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof GoogleServiceAccountConfigurationError) {
+      throw publicError(503, 'El servicio de correo institucional no está configurado en este despliegue.')
+    }
     throw publicError(502, 'No fue posible enviar el correo de registro con tu cuenta institucional.')
   }
 

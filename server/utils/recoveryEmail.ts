@@ -5,6 +5,7 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import type { PersonasTheme } from '~/types/daycare'
 import { personasInstitutionName } from '~/utils/personasTheme'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
+import { assertGoogleServiceAccountCredentials, resolveGoogleServiceAccountCredentials } from '~/server/utils/googleServiceAccountCredentials'
 
 interface RecoveryEmailInput {
   to: string
@@ -25,24 +26,18 @@ interface RecoveryEmailConfig {
   delegatedUser: string
 }
 
-function decodePrivateKey(raw?: string | null) {
-  const fromText = String(raw || '').trim()
-  if (fromText) return fromText.replace(/\\n/g, '\n')
-  return ''
-}
-
 function getRecoveryEmailConfig(): RecoveryEmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
   const modeValue = process.env.PASSWORD_RECOVERY_EMAIL_MODE || recovery.emailMode || 'gmail'
   const mode = String(modeValue).trim().toLowerCase() === 'preview' ? 'preview' : 'gmail'
-  const privateKey = decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey)
+  const credentials = resolveGoogleServiceAccountCredentials()
   return {
     mode,
     fromEmail: String(process.env.PASSWORD_RECOVERY_FROM_EMAIL || recovery.fromEmail || '').trim(),
     fromName: String(process.env.PASSWORD_RECOVERY_FROM_NAME || recovery.fromName || 'Husky Pass').trim(),
-    serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
-    privateKey,
+    serviceAccountEmail: credentials.email,
+    privateKey: credentials.privateKey,
     delegatedUser: String(process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || recovery.googleDelegatedUser || '').trim()
   }
 }
@@ -50,8 +45,6 @@ function getRecoveryEmailConfig(): RecoveryEmailConfig {
 function assertGmailConfig(config: RecoveryEmailConfig) {
   const missing = [
     ['PASSWORD_RECOVERY_FROM_EMAIL', config.fromEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_EMAIL', config.serviceAccountEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey],
     ['GOOGLE_WORKSPACE_DELEGATED_USER or GOOGLE_GMAIL_DELEGATED_USER', config.delegatedUser]
   ].filter(([, value]) => !value).map(([key]) => key)
 
@@ -61,9 +54,10 @@ function assertGmailConfig(config: RecoveryEmailConfig) {
     throw error
   }
 
-  if (!/-----BEGIN PRIVATE KEY-----/.test(config.privateKey) || !/-----END PRIVATE KEY-----/.test(config.privateKey)) {
-    const error = new Error('Google service-account private key is malformed.')
-    logSecurityDiagnostic('password-recovery-email-config-malformed', error, { keyShape: 'invalid-private-key' })
+  try {
+    assertGoogleServiceAccountCredentials({ email: config.serviceAccountEmail, privateKey: config.privateKey, source: 'resolved' })
+  } catch (error) {
+    logSecurityDiagnostic('password-recovery-email-config-malformed', error, { keyShape: 'invalid-service-account-credentials' })
     throw error
   }
 }
