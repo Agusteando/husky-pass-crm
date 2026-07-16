@@ -13,6 +13,18 @@ export default defineNuxtConfig({
     '#app-manifest': appManifestStub
   },
   modules: ['@nuxtjs/google-fonts'],
+  routeRules: {
+    '/admin/**': {
+      headers: {
+        'cache-control': 'private, no-store, max-age=0, must-revalidate'
+      }
+    },
+    '/api/daycare/admin/**': {
+      headers: {
+        'cache-control': 'private, no-store, max-age=0, must-revalidate'
+      }
+    }
+  },
   css: ['~/assets/css/main.css', '~/assets/css/mkt.css'],
   googleFonts: {
     families: {

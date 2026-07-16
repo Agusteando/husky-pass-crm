@@ -1,1 +1,1 @@
-Corrige el envío institucional del registro familiar por correo
+Corrige la compatibilidad del envío de registro familiar por correo
