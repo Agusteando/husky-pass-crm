@@ -1,1 +1,1 @@
-Garantiza el QR en la descarga familiar de marbetes y unifica el flujo
+Corrige el QR del marbete familiar y elimina el lockfile interno
