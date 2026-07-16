@@ -10,9 +10,9 @@ const schema = z.object({
   id: z.string().optional().nullable(),
   name: z.string().trim().min(1),
   nivel: z.string().trim().min(1),
-  planteles: z.string().optional().default(''),
   themeKey: z.enum(['daycare', 'preescolar', 'primaria', 'secundaria', 'iedis']),
-  cicloEscolar: z.string().optional().default(''),
+  basedOnId: z.string().optional().nullable(),
+  publish: z.enum(['0', '1']).optional().default('1'),
   svgDesign: z.string().optional().default('')
 })
 
@@ -22,21 +22,20 @@ function field(parts: NonNullable<Awaited<ReturnType<typeof readMultipartFormDat
 
 export default defineEventHandler(async (event) => {
   const user = requireSession(event, 'admin')
-  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede gestionar plantillas.')
+  if (!isSuperAdmin(user)) throw publicError(403, 'Solo superadmin puede gestionar marbetes.')
 
   const parts = await readMultipartFormData(event)
-  if (!parts?.length) throw publicError(400, 'Formulario de plantilla vacio.')
+  if (!parts?.length) throw publicError(400, 'Formulario vacío.')
 
   const body = schema.parse({
     id: field(parts, 'id') || null,
     name: field(parts, 'name'),
     nivel: field(parts, 'nivel'),
-    planteles: field(parts, 'planteles'),
     themeKey: field(parts, 'themeKey'),
-    cicloEscolar: field(parts, 'cicloEscolar'),
+    basedOnId: field(parts, 'basedOnId') || null,
+    publish: field(parts, 'publish') || '1',
     svgDesign: field(parts, 'svgDesign')
   })
-  const planteles = body.planteles.split(',').map((item) => item.trim()).filter(Boolean)
   const svgDesign: unknown = (() => {
     try {
       return body.svgDesign ? JSON.parse(body.svgDesign) : null
@@ -44,16 +43,15 @@ export default defineEventHandler(async (event) => {
       throw publicError(400, 'La configuración del marbete no es válida.')
     }
   })()
-
   const filePart = parts.find((part) => part.name === 'file' && part.data?.length)
 
   return saveMarbeteTemplate({
     id: body.id,
     name: body.name,
     nivel: body.nivel,
-    planteles,
     themeKey: body.themeKey,
-    cicloEscolar: body.cicloEscolar,
+    basedOnId: body.basedOnId,
+    publish: body.publish === '1',
     svgDesign: normalizeMarbeteSvgDesign(svgDesign, body.themeKey),
     file: filePart?.data?.length ? { filename: filePart.filename, data: filePart.data } : undefined
   })

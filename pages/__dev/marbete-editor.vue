@@ -16,7 +16,7 @@
       v-model="design"
       :base-svg="baseSvg"
       theme-key="primaria"
-      :ciclo-escolar="cycle"
+      :preview-cycle="cycle"
     />
   </main>
 </template>

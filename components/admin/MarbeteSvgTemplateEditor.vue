@@ -30,24 +30,17 @@
               <span class="layer-icon" aria-hidden="true">{{ layerIcon(layer.kind) }}</span>
               <span class="layer-name">
                 <strong>{{ layer.label }}</strong>
-                <small>{{ layerSubtitle(layer) }}</small>
               </span>
             </button>
-            <div class="layer-actions">
+            <div v-if="layer.kind !== 'qr'" class="layer-actions">
               <button type="button" @click="toggleVisible(layer.id)">{{ layer.visible ? 'Ocultar' : 'Mostrar' }}</button>
               <button type="button" class="danger" @click="removeLayer(layer.id)">Quitar</button>
             </div>
           </article>
-          <p v-if="!orderedLayers.length" class="empty-layers">Agrega un elemento.</p>
         </div>
       </aside>
 
       <main class="preview-column">
-        <div class="preview-meta">
-          <p><span class="live-dot"></span>Edición</p>
-          <strong>{{ activeCycle }}</strong>
-        </div>
-
         <div class="stage-shell">
           <div ref="canvasRef" class="stage-canvas" :style="surfaceStyle">
             <img v-if="basePreviewUrl" class="svg-stage-image" :src="basePreviewUrl" alt="SVG base del marbete" />
@@ -116,7 +109,7 @@
             <button type="button" @click="resetSelected">Restablecer</button>
           </div>
 
-          <label class="visibility-check">
+          <label v-if="selectedLayer.kind !== 'qr'" class="visibility-check">
             <input type="checkbox" :checked="selectedLayer.visible" @change="toggleVisible(selectedLayer.id)" />
             Visible
           </label>
@@ -206,7 +199,7 @@
             <label class="color-field">Color de borde <input type="color" :value="selectedLayer.imageStyle.borderColor" @input="imageStringField('borderColor', $event)" /></label>
           </fieldset>
 
-          <button class="remove-button" type="button" @click="removeLayer(selectedLayer.id)">Quitar elemento</button>
+          <button v-if="selectedLayer.kind !== 'qr'" class="remove-button" type="button" @click="removeLayer(selectedLayer.id)">Quitar elemento</button>
         </template>
       </aside>
     </div>
@@ -229,7 +222,7 @@ import {
 const props = defineProps<{
   modelValue: MarbeteSvgDesign
   baseSvg: string
-  cicloEscolar: string
+  previewCycle: string
   themeKey: PersonasThemeKey
 }>()
 
@@ -274,7 +267,7 @@ const activeLayers = computed(() => design.value.layers.filter((layer) => !layer
 const orderedLayers = computed(() => [...activeLayers.value].sort((left, right) => right.zIndex - left.zIndex))
 const visibleLayers = computed(() => [...activeLayers.value].filter((layer) => layer.visible).sort((left, right) => left.zIndex - right.zIndex))
 const selectedLayer = computed(() => activeLayers.value.find((layer) => layer.id === selectedId.value) || activeLayers.value[0] || null)
-const activeCycle = computed(() => /^20\d{2}-20\d{2}$/.test(String(props.cicloEscolar)) ? props.cicloEscolar : '2026-2027')
+const activeCycle = computed(() => /^20\d{2}-20\d{2}$/.test(String(props.previewCycle)) ? props.previewCycle : '2026-2027')
 const surfaceStyle = computed(() => ({ aspectRatio: `${design.value.canvas.width} / ${design.value.canvas.height}` }))
 const baseLayerSignature = computed(() => design.value.layers.filter((layer) => layer.origin === 'base').map((layer) => `${layer.id}:${layer.kind}`).sort().join('|'))
 const availableAddOptions = computed(() => addableKinds
@@ -417,13 +410,17 @@ function addLayer(kind: MarbeteSvgLayerKind) {
 
 function removeLayer(id: string) {
   mutateLayer(id, (layer) => {
+    if (layer.kind === 'qr') return
     layer.visible = false
     layer.removed = true
   })
 }
 
 function toggleVisible(id: string) {
-  mutateLayer(id, (layer) => { layer.visible = !layer.visible })
+  mutateLayer(id, (layer) => {
+    if (layer.kind === 'qr') return
+    layer.visible = !layer.visible
+  })
 }
 
 function supportsAspectLock(layer: MarbeteSvgLayer) {
@@ -505,10 +502,6 @@ function layerIcon(kind: MarbeteSvgLayerKind) {
   return 'T'
 }
 
-function layerSubtitle(layer: MarbeteSvgLayer) {
-  if (layer.origin === 'base') return 'Original del SVG'
-  return marbeteSvgLayerDefinition(layer.kind).help
-}
 
 type PointerState = {
   id: string
@@ -776,8 +769,7 @@ function round(value: number) {
 .layer-rail { border-right: 1px solid #e4eaf1; }
 .property-panel { border-left: 1px solid #e4eaf1; }
 .rail-heading,
-.property-heading,
-.preview-meta {
+.property-heading {
   align-items: center;
   display: flex;
   gap: 12px;
@@ -803,17 +795,11 @@ function round(value: number) {
 }
 .layer-name { min-width: 0; }
 .layer-name strong { color: #23303f; display: block; font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.layer-name small { color: #7b8794; font-size: .65rem; line-height: 1.3; }
 .layer-icon { align-items: center; background: #eef4f8; border-radius: 8px; color: #315f7f; display: flex; font-weight: 800; height: 28px; justify-content: center; width: 28px; }
 .layer-actions { background: #edf1f5; display: flex; gap: 1px; }
 .layer-actions button { background: #f8fafc; border: 0; color: #607084; cursor: pointer; flex: 1; font-size: .64rem; font-weight: 800; padding: 6px 8px; }
 .layer-actions button.danger { color: #a14343; }
-.empty-layers { color: #7b8794; font-size: .78rem; text-align: center; }
-.preview-column { display: grid; gap: 12px; grid-template-rows: auto 1fr; padding: 18px; }
-.preview-meta p,
-.preview-meta strong { margin: 0; }
-.preview-meta p { align-items: center; color: #607084; display: inline-flex; gap: 8px; font-size: .82rem; font-weight: 700; }
-.live-dot { background: #1fa87a; border-radius: 999px; height: 8px; width: 8px; }
+.preview-column { display: grid; padding: 18px; }
 .stage-shell {
   align-items: center;
   background: linear-gradient(180deg, #f6f9fc 0%, #edf3f8 100%);

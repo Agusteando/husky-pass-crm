@@ -1,16 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { useStorage } from 'nitropack/runtime'
-import type { MarbeteSvgDesign, MarbeteTemplateMeta, MarbeteTemplateSettings, MarbeteVisualDesign, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
+import type { MarbeteSvgDesign, MarbeteTemplateMeta, MarbeteTemplateSettings, PersonasThemeKey, PrintableAuthorizedPerson } from '~/types/daycare'
 import { allPersonasThemes, normalizeNivel, PA_COLORS, resolveAuthorizedPersonMarbeteLevel, resolveAuthorizedPersonMarbetePlantel, resolvePersonasTheme } from '~/utils/personasTheme'
-import { normalizeSchoolPlantel } from '~/utils/schoolCatalog'
 import { displayMatricula } from '~/utils/matricula'
 import { normalizeVirtualAssetUrl } from '~/utils/daycare'
 import { isValidatedVisionPhotoUrl } from '~/utils/visionFace'
 import { runtimeDataDir } from '~/server/utils/serverlessPaths'
 import { logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
-import QRCode from 'qrcode'
+import { marbeteQrDataUrl, marbeteValidationUrl } from '~/server/utils/marbeteQr'
 import { dataUrlToUploadFile, uploadToExternalService } from '~/server/utils/externalUpload'
 import { compileMarbeteVisualSvg, normalizeMarbeteVisualDesign } from '~/utils/marbeteDesigner'
 import { appendMarbeteSvgDesign, normalizeMarbeteSvgDesign } from '~/utils/marbeteSvgEditor'
@@ -61,16 +60,6 @@ function escapeXml(value?: string | number | null) {
     .replace(/'/g, '&apos;')
 }
 
-function normalizeTemplatePlanteles(values?: unknown[] | null): string[] {
-  if (!Array.isArray(values)) return []
-  const planteles: string[] = []
-  for (const item of values) {
-    const plantel = normalizeSchoolPlantel(String(item || ''))
-    if (plantel) planteles.push(plantel)
-  }
-  return planteles
-}
-
 function normalizeTemplate(row: Partial<MarbeteTemplateMeta>, source: 'bundled-svg' | 'custom' = 'custom'): MarbeteTemplateMeta | null {
   if (!row.id) return null
   if (!VALID_THEME_KEYS.has(row.themeKey as PersonasThemeKey)) return null
@@ -86,12 +75,12 @@ function normalizeTemplate(row: Partial<MarbeteTemplateMeta>, source: 'bundled-s
     url: /^https?:\/\//i.test(String(row.url || '')) ? String(row.url) : undefined,
     themeKey,
     nivel: String(row.nivel || ''),
-    planteles: normalizeTemplatePlanteles(row.planteles),
+    planteles: [],
     color: String(row.color || theme.primary),
     isDefault: row.status === 'draft' ? false : Boolean(row.isDefault),
     mode,
     status: row.status === 'draft' ? 'draft' : 'published',
-    cicloEscolar: normalizeSchoolCycle(row.cicloEscolar),
+    cicloEscolar: '',
     visualDesign: mode === 'visual' ? normalizeMarbeteVisualDesign(row.visualDesign, themeKey) : undefined,
     svgDesign: mode === 'legacy-svg' && row.svgDesign ? normalizeMarbeteSvgDesign(row.svgDesign, themeKey) : undefined,
     basedOnId: row.basedOnId ? String(row.basedOnId) : undefined,
@@ -219,27 +208,25 @@ export type MarbeteTemplateSelectionInput = {
 
 function selectFromPool(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
   const theme = resolvePersonasTheme(input)
-  const plantel = normalizeSchoolPlantel(input.plantel) || normalizeSchoolPlantel(input.matricula) || ''
   const nivel = normalizeNivel(input.nivelEdu)
-  const ciclo = normalizeSchoolCycle(input.cicloEscolar)
-  const sameCycle = ciclo ? templates.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo) : []
-  const pool = (sameCycle.length ? sameCycle : templates).sort((left, right) => {
-    const active = Number(Boolean(right.isDefault)) - Number(Boolean(left.isDefault))
-    if (active) return active
-    return String(right.updatedAt || '').localeCompare(String(left.updatedAt || ''))
-  })
-  const themedPool = pool.filter((template) => template.themeKey === theme.key)
+  const published = templates
+    .filter((template) => template.status !== 'draft')
+    .sort((left, right) => {
+      const active = Number(Boolean(right.isDefault)) - Number(Boolean(left.isDefault))
+      if (active) return active
+      return String(right.updatedAt || '').localeCompare(String(left.updatedAt || ''))
+    })
 
-  const byPlantel = themedPool.find((template) => template.planteles.includes(plantel))
-  if (byPlantel) return byPlantel
-
-  const byNivel = themedPool.find((template) => normalizeNivel(template.nivel) && nivel.includes(normalizeNivel(template.nivel)))
-  if (byNivel) return byNivel
-
-  const byTheme = themedPool[0]
+  const byTheme = published.find((template) => template.themeKey === theme.key)
   if (byTheme) return byTheme
 
-  throw publicError(422, `No hay una plantilla SVG compatible con nivel ${input.nivelEdu || 'sin nivel'} y plantel ${input.plantel || 'sin plantel'}.`)
+  const byNivel = published.find((template) => {
+    const templateNivel = normalizeNivel(template.nivel)
+    return templateNivel && nivel.includes(templateNivel)
+  })
+  if (byNivel) return byNivel
+
+  throw publicError(422, `No hay un SVG compatible con el nivel ${input.nivelEdu || theme.label || theme.key}.`)
 }
 
 export function authorizedPersonMarbeteSelectionInput(input: MarbeteTemplateSelectionInput): MarbeteTemplateSelectionInput {
@@ -259,28 +246,18 @@ export function selectBundledMarbeteTemplate(templates: MarbeteTemplateMeta[], i
 }
 
 export function selectCustomMarbeteTemplate(templates: MarbeteTemplateMeta[], input: MarbeteTemplateSelectionInput) {
-  const customPublished = templates.filter((template) => template.source === 'custom' && template.status !== 'draft')
-  if (!customPublished.length) return null
-  const ciclo = normalizeSchoolCycle(input.cicloEscolar)
-  if (ciclo) {
-    const sameCycle = customPublished.filter((template) => normalizeSchoolCycle(template.cicloEscolar) === ciclo)
-    if (sameCycle.length) {
-      try {
-        return selectFromPool(sameCycle, input)
-      } catch {
-        // Continue to the active fallback when no exact-cycle template matches the requested scope.
-      }
-    }
-  }
-  const active = customPublished.filter((template) => template.isDefault)
-  if (active.length) {
-    try {
-      return selectFromPool(active, input)
-    } catch {
-      // Return null below when the active custom templates do not cover this scope.
-    }
-  }
-  return null
+  const theme = resolvePersonasTheme(input)
+  const nivel = normalizeNivel(input.nivelEdu)
+  const active = templates
+    .filter((template) => template.source === 'custom' && template.status === 'published' && template.isDefault)
+    .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))
+
+  return active.find((template) => template.themeKey === theme.key)
+    || active.find((template) => {
+      const templateNivel = normalizeNivel(template.nivel)
+      return templateNivel && nivel.includes(templateNivel)
+    })
+    || null
 }
 
 export function selectEffectiveMarbeteTemplate(
@@ -339,44 +316,38 @@ export async function saveMarbeteTemplate(input: {
   id?: string | null
   name: string
   nivel: string
-  planteles: string[]
   themeKey: PersonasThemeKey
-  cicloEscolar?: string | null
+  basedOnId?: string | null
+  publish?: boolean
   file?: { filename?: string | null; data: Buffer }
   svgDesign?: MarbeteSvgDesign | null
 }) {
-  if (!VALID_THEME_KEYS.has(input.themeKey)) {
-    throw publicError(400, 'Tema de plantilla invalido.')
-  }
+  if (!VALID_THEME_KEYS.has(input.themeKey)) throw publicError(400, 'Nivel de marbete inválido.')
 
-  const templates = await listCustomMarbeteTemplates()
-  const existingIndex = input.id ? templates.findIndex((template) => template.id === input.id) : -1
+  const [allTemplates, customTemplates] = await Promise.all([
+    listMarbeteTemplates(),
+    listCustomMarbeteTemplates()
+  ])
+  const existingIndex = input.id ? customTemplates.findIndex((template) => template.id === input.id) : -1
+  const existing = existingIndex >= 0 ? customTemplates[existingIndex] : null
+  const baseTemplate = input.basedOnId ? allTemplates.find((template) => template.id === input.basedOnId) : null
   const now = new Date().toISOString()
-  const baseId = input.id || safeId(input.name || `${input.themeKey}-${input.nivel}`) || `template-${Date.now()}`
-  const existing = existingIndex >= 0 ? templates[existingIndex] : null
+  const stableId = existing?.id || `marbete-personalizado-${safeId(input.themeKey)}`
 
-  if (existing?.status === 'published') {
-    throw publicError(409, 'Duplica la versión publicada para preparar un reemplazo sin afectar a las familias.')
+  if (!existing && !baseTemplate && !input.file?.data?.length) {
+    throw publicError(400, 'Selecciona un SVG base.')
   }
 
-  if (!existing && !input.file?.data?.length) {
-    throw publicError(400, 'Agrega un archivo SVG o duplica una versión existente para iniciar el marbete.')
-  }
-
-  let filename = existing?.filename || ''
-  let url = existing?.url
+  let filename = existing?.filename || baseTemplate?.filename || ''
+  let url = existing?.url || baseTemplate?.url
   if (input.file?.data?.length) {
     const sourceName = String(input.file.filename || '')
-    if (!sourceName.toLowerCase().endsWith('.svg')) throw publicError(415, 'La plantilla debe ser SVG.')
+    if (!sourceName.toLowerCase().endsWith('.svg')) throw publicError(415, 'El archivo debe ser SVG.')
     const text = input.file.data.toString('utf8')
-    if (!text.includes('<svg')) throw publicError(422, 'El archivo no parece ser una plantilla SVG valida.')
+    if (!/<svg\b/i.test(text)) throw publicError(422, 'El archivo SVG no es válido.')
     const uploaded = await uploadToExternalService(
       { data: input.file.data, filename: sourceName, type: 'image/svg+xml' },
-      {
-        maxBytes: 5 * 1024 * 1024,
-        accept: 'svg',
-        filenamePrefix: `marbete-${safeId(baseId)}`
-      }
+      { maxBytes: 5 * 1024 * 1024, accept: 'svg', filenamePrefix: `marbete-${safeId(input.themeKey)}` }
     )
     filename = uploaded.storedFilename
     url = uploaded.absoluteUrl
@@ -388,12 +359,8 @@ export async function saveMarbeteTemplate(input: {
     layers: await Promise.all(svgDesign.layers.map(async (layer) => {
       if (layer.kind !== 'static-image' || !layer.assetUrl || !/^data:image\//i.test(layer.assetUrl)) return layer
       const uploaded = await uploadToExternalService(
-        dataUrlToUploadFile(layer.assetUrl, `marbete-overlay-${safeId(layer.id || baseId)}`),
-        {
-          maxBytes: 10 * 1024 * 1024,
-          accept: 'images',
-          filenamePrefix: `marbete-overlay-${safeId(layer.id || baseId)}`
-        }
+        dataUrlToUploadFile(layer.assetUrl, `marbete-overlay-${safeId(layer.id || stableId)}`),
+        { maxBytes: 10 * 1024 * 1024, accept: 'images', filenamePrefix: `marbete-overlay-${safeId(layer.id || stableId)}` }
       )
       return { ...layer, assetUrl: uploaded.absoluteUrl }
     }))
@@ -401,88 +368,33 @@ export async function saveMarbeteTemplate(input: {
 
   const theme = resolvePersonasTheme({ themeKey: input.themeKey })
   const next: MarbeteTemplateMeta = {
-    id: existing?.id || safeId(baseId),
-    name: input.name.trim(),
+    id: stableId,
+    name: input.name.trim() || theme.label,
     filename,
     url,
     themeKey: input.themeKey,
     nivel: input.nivel.trim(),
-    planteles: normalizeTemplatePlanteles(input.planteles),
+    planteles: [],
     color: theme.primary,
-    isDefault: existing?.isDefault || false,
+    isDefault: Boolean(input.publish),
     mode: 'legacy-svg',
-    status: existing?.status || 'draft',
-    cicloEscolar: normalizeSchoolCycle(input.cicloEscolar),
+    status: input.publish ? 'published' : 'draft',
+    cicloEscolar: '',
     svgDesign,
-    basedOnId: existing?.basedOnId,
-    publishedAt: existing?.publishedAt,
+    basedOnId: baseTemplate?.id || existing?.basedOnId,
+    publishedAt: input.publish ? now : existing?.publishedAt,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     source: 'custom'
   }
 
-  if (existingIndex >= 0) templates.splice(existingIndex, 1, next)
-  else templates.push(next)
-  await writeTemplateIndex(templates)
-  return next
-}
-
-export async function saveVisualMarbeteTemplate(input: {
-  id?: string | null
-  name: string
-  nivel: string
-  planteles: string[]
-  themeKey: PersonasThemeKey
-  cicloEscolar: string
-  visualDesign: MarbeteVisualDesign
-  artwork?: { filename?: string | null; type?: string | null; data: Buffer }
-}) {
-  if (!VALID_THEME_KEYS.has(input.themeKey)) throw publicError(400, 'Tema de plantilla inválido.')
-  const cicloEscolar = normalizeSchoolCycle(input.cicloEscolar)
-  if (!cicloEscolar) throw publicError(400, 'Usa un ciclo escolar válido, por ejemplo 2026-2027.')
-
-  const templates = await listCustomMarbeteTemplates()
-  const existingIndex = input.id ? templates.findIndex((template) => template.id === input.id) : -1
-  const existing = existingIndex >= 0 ? templates[existingIndex] : null
-  if (existing?.status === 'published') {
-    throw publicError(409, 'Duplica la versión publicada para preparar un reemplazo sin afectar a las familias.')
-  }
-  if (existing && existing.mode !== 'visual') throw publicError(409, 'Esta versión usa SVG completo. Crea una versión visual nueva.')
-
-  const now = new Date().toISOString()
-  const baseId = input.id || safeId(`${input.themeKey}-${input.nivel}-${cicloEscolar}-${Date.now()}`)
-  const visualDesign = normalizeMarbeteVisualDesign(input.visualDesign, input.themeKey)
-  if (input.artwork?.data?.length) {
-    const uploaded = await uploadToExternalService(
-      { data: input.artwork.data, filename: input.artwork.filename, type: input.artwork.type },
-      { maxBytes: 10 * 1024 * 1024, accept: 'images', filenamePrefix: `marbete-fondo-${safeId(baseId)}` }
-    )
-    visualDesign.background.url = uploaded.absoluteUrl
-  }
-
-  const theme = resolvePersonasTheme({ themeKey: input.themeKey })
-  const next: MarbeteTemplateMeta = {
-    id: existing?.id || baseId,
-    name: input.name.trim(),
-    filename: '',
-    themeKey: input.themeKey,
-    nivel: input.nivel.trim(),
-    planteles: normalizeTemplatePlanteles(input.planteles),
-    color: theme.primary,
-    isDefault: false,
-    mode: 'visual',
-    status: 'draft',
-    cicloEscolar,
-    visualDesign,
-    basedOnId: existing?.basedOnId,
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-    source: 'custom'
-  }
-
-  if (existingIndex >= 0) templates.splice(existingIndex, 1, next)
-  else templates.push(next)
-  await writeTemplateIndex(templates)
+  const targetNivel = normalizeNivel(next.nivel)
+  const withoutLevelDuplicates = customTemplates.filter((template, index) => {
+    if (index === existingIndex) return false
+    return !(template.themeKey === next.themeKey || (targetNivel && normalizeNivel(template.nivel) === targetNivel))
+  })
+  withoutLevelDuplicates.push(next)
+  await writeTemplateIndex(withoutLevelDuplicates)
   return next
 }
 
@@ -503,76 +415,45 @@ export async function deleteMarbeteTemplate(id: string) {
 
 export async function applyMarbeteTemplateAction(input: {
   id: string
-  action: 'duplicate' | 'publish' | 'activate'
-  cicloEscolar?: string | null
-  plantel?: string | null
-  name?: string | null
+  action: 'publish' | 'unpublish'
 }) {
-  const [allTemplates, customTemplates] = await Promise.all([
-    listMarbeteTemplates(),
-    listCustomMarbeteTemplates()
-  ])
-  const current = allTemplates.find((template) => template.id === input.id)
-  if (!current) throw publicError(404, 'Diseño de marbete no encontrado.')
+  const customTemplates = await listCustomMarbeteTemplates()
   const index = customTemplates.findIndex((template) => template.id === input.id)
+  if (index < 0) throw publicError(404, 'Diseño personalizado no encontrado.')
+  const current = customTemplates[index]
+  if (!current) throw publicError(404, 'Diseño personalizado no encontrado.')
   const now = new Date().toISOString()
 
-  if (input.action === 'duplicate') {
-    const cicloEscolar = normalizeSchoolCycle(input.cicloEscolar)
-    if (!cicloEscolar) throw publicError(400, 'Indica el nuevo ciclo escolar, por ejemplo 2027-2028.')
-    const plantel = normalizeSchoolPlantel(input.plantel)
-    const id = safeId(`${current.themeKey}-${plantel || current.nivel}-${cicloEscolar}-${Date.now()}`)
-    const duplicate: MarbeteTemplateMeta = {
+  if (input.action === 'unpublish') {
+    const targetNivel = normalizeNivel(current.nivel)
+    const unpublished: MarbeteTemplateMeta = {
       ...current,
-      id,
-      name: String(input.name || '').trim() || `${current.name.replace(/\s+[·-]\s+20\d{2}-20\d{2}$/i, '')} · ${cicloEscolar}`,
-      planteles: plantel ? [plantel] : current.planteles,
-      cicloEscolar,
-      isDefault: false,
       status: 'draft',
-      basedOnId: current.id,
-      publishedAt: undefined,
-      visualDesign: current.visualDesign ? normalizeMarbeteVisualDesign(JSON.parse(JSON.stringify(current.visualDesign)), current.themeKey) : undefined,
-      svgDesign: current.svgDesign ? normalizeMarbeteSvgDesign(JSON.parse(JSON.stringify(current.svgDesign)), current.themeKey) : undefined,
-      createdAt: now,
-      updatedAt: now,
-      source: 'custom'
+      isDefault: false,
+      updatedAt: now
     }
-    customTemplates.push(duplicate)
-    await writeTemplateIndex(customTemplates)
-    return duplicate
+    const next = customTemplates
+      .filter((template, templateIndex) => templateIndex === index || !(template.themeKey === current.themeKey || (targetNivel && normalizeNivel(template.nivel) === targetNivel)))
+      .map((template) => template.id === current.id ? unpublished : template)
+    await writeTemplateIndex(next)
+    return unpublished
   }
 
-  if (input.action === 'publish') {
-    if (current.status === 'published') return current
-    if (!normalizeSchoolCycle(current.cicloEscolar)) throw publicError(422, 'Completa el ciclo escolar antes de publicar.')
-    if (current.mode === 'visual') {
-      const design = normalizeMarbeteVisualDesign(current.visualDesign, current.themeKey)
-      if (!design.background.url) throw publicError(422, 'Sube el arte de fondo antes de publicar.')
-      const requiredKinds = new Set(['person-photo', 'qr', 'authorized-name', 'relationship', 'ciclo-tag'])
-      const visibleKinds = new Set(design.elements.filter((element) => element.visible).map((element) => element.kind))
-      const missing = [...requiredKinds].filter((kind) => !visibleKinds.has(kind as never))
-      if (missing.length) throw publicError(422, 'Muestra foto, QR, nombre, parentesco y ciclo escolar antes de publicar.')
-    }
-    const published: MarbeteTemplateMeta = { ...current, status: 'published', publishedAt: now, updatedAt: now, isDefault: false }
-    if (index < 0) throw publicError(409, 'La plantilla SVG institucional no se publica; duplícala para crear una personalizada.')
-    customTemplates.splice(index, 1, { ...published, source: 'custom' })
-    await writeTemplateIndex(customTemplates)
-    return published
-  }
-
-  if (current.status !== 'published') throw publicError(409, 'Publica el diseño antes de activarlo.')
   const targetNivel = normalizeNivel(current.nivel)
-  if (current.source === 'bundled-svg' || index < 0) throw publicError(409, 'La plantilla SVG institucional ya es la base predeterminada.')
-  const activated = customTemplates.map((template) => {
-    if (template.id === current.id) return { ...template, isDefault: true, updatedAt: now }
-    if (template.status !== 'draft' && template.themeKey === current.themeKey && normalizeNivel(template.nivel) === targetNivel && template.isDefault) {
-      return { ...template, isDefault: false, updatedAt: now }
-    }
-    return template
-  })
-  await writeTemplateIndex(activated)
-  return activated.find((template) => template.id === current.id) as MarbeteTemplateMeta
+  const published: MarbeteTemplateMeta = {
+    ...current,
+    status: 'published',
+    isDefault: true,
+    planteles: [],
+    cicloEscolar: '',
+    publishedAt: now,
+    updatedAt: now
+  }
+  const next = customTemplates
+    .filter((template, templateIndex) => templateIndex === index || !(template.themeKey === current.themeKey || (targetNivel && normalizeNivel(template.nivel) === targetNivel)))
+    .map((template) => template.id === current.id ? published : template)
+  await writeTemplateIndex(next)
+  return published
 }
 
 function absoluteAssetUrl(value: string, origin: string) {
@@ -592,21 +473,6 @@ function svgDataUrl(svg: string) {
   return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`
 }
 
-function qrDataUrl(value: string) {
-  const qr = QRCode.create(value, { errorCorrectionLevel: 'M' })
-  const size = qr.modules.size
-  const matrix = qr.modules.data as unknown as ArrayLike<number | boolean>
-  const margin = 2
-  const paths: string[] = []
-  for (let row = 0; row < size; row += 1) {
-    for (let column = 0; column < size; column += 1) {
-      if (matrix[row * size + column]) paths.push(`M${column + margin} ${row + margin}h1v1h-1z`)
-    }
-  }
-  const total = size + margin * 2
-  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges"><rect width="${total}" height="${total}" fill="#fff"/><path d="${paths.join('')}" fill="#111"/></svg>`)
-}
-
 function initialsDataUrl(name: string, color: string) {
   const initials = String(name || 'PA').trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'PA'
   return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 720"><rect width="600" height="720" fill="#F3F7EF"/><circle cx="300" cy="265" r="138" fill="${escapeXml(color)}" opacity=".18"/><circle cx="300" cy="220" r="84" fill="${escapeXml(color)}" opacity=".42"/><path d="M122 650c18-160 106-250 178-250s160 90 178 250" fill="${escapeXml(color)}" opacity=".42"/><text x="300" y="696" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="${escapeXml(color)}">${escapeXml(initials)}</text></svg>`)
@@ -618,7 +484,7 @@ function currentSchoolYearLabel(date = new Date()) {
 
 
 export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin: string, templateCycle?: string | null): MarbeteRenderValues {
-  const validationUrl = `${origin.replace(/\/$/, '')}/validar/persona-autorizada/${data.id}`
+  const validationUrl = marbeteValidationUrl(origin, data.id)
   const trustedProcessedPhoto = isValidatedVisionPhotoUrl(data.compressed_foto) ? data.compressed_foto : ''
   const personPhotoSource = absoluteAssetUrl(String(trustedProcessedPhoto || data.foto || ''), origin)
   const studentPhotoSource = absoluteAssetUrl(String(data.fotoA || data.child?.foto || ''), origin)
@@ -638,7 +504,7 @@ export function buildMarbeteRenderValues(data: PrintableAuthorizedPerson, origin
   const theme = resolvePersonasTheme({ matricula: data.matricula || data.child?.matricula, plantel, nivelEdu: nivel })
   const personPhoto = personPhotoSource || initialsDataUrl(authorizedName, theme.primary)
   const studentPhoto = studentPhotoSource || initialsDataUrl(studentName || 'Alumno', theme.primary)
-  const qrImage = qrDataUrl(validationUrl)
+  const qrImage = marbeteQrDataUrl(validationUrl)
 
   return {
     validationUrl,

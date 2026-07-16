@@ -9,6 +9,7 @@ import SVGtoPDF from 'svg-to-pdfkit'
 import { useStorage } from 'nitropack/runtime'
 import { logPersonasDebug, logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
+import { marbeteQrDataUrl } from '~/server/utils/marbeteQr'
 
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
 const FRIENDLY_IMAGE_MESSAGE = 'Para descargar el Husky Pass, actualiza la foto de la persona autorizada o solicita apoyo a la escuela.'
@@ -698,7 +699,7 @@ async function renderSvgToPdfKit(input: MarbetePdfInput) {
   return pdf
 }
 
-async function renderEmergencyMarbetePdf(input: MarbetePdfInput) {
+export async function renderEmergencyMarbetePdf(input: MarbetePdfInput) {
   const doc = new PDFDocument({ size: 'LETTER', margin: 0, compress: true, info: { Title: 'Husky Pass', Creator: 'Husky Pass CRM' } })
   const values = input.values
   const name = String(values.fullnameP || values.authorizedPersonName || values.nombreP || 'Persona autorizada').trim()
@@ -716,8 +717,14 @@ async function renderEmergencyMarbetePdf(input: MarbetePdfInput) {
   if (photo) {
     try {
       const image = await loadImage(photo, input.origin, 'foto')
-      doc.save().roundedRect(194, 190, 224, 250, 20).clip().image(image.bytes, 194, 190, { fit: [224, 250], align: 'center', valign: 'center' }).restore()
-      portraitDrawn = true
+      doc.save()
+      try {
+        doc.roundedRect(194, 190, 224, 250, 20).clip()
+        doc.image(image.bytes, 194, 190, { fit: [224, 250], align: 'center', valign: 'center' })
+        portraitDrawn = true
+      } finally {
+        doc.restore()
+      }
     } catch {
       portraitDrawn = false
     }
@@ -729,10 +736,17 @@ async function renderEmergencyMarbetePdf(input: MarbetePdfInput) {
   }
 
   doc.fillColor('#132238').font('Helvetica-Bold').fontSize(20).text(name, 126, 468, { width: 360, align: 'center' })
-  doc.fillColor(primary).font('Helvetica-Bold').fontSize(13).text(relationship, 126, 524, { width: 360, align: 'center' })
-  doc.fillColor('#5F6B7A').font('Helvetica').fontSize(10).text(student, 126, 558, { width: 360, align: 'center' })
-  if (validity) doc.text(validity, 126, 578, { width: 360, align: 'center' })
-  doc.fillColor('#7B8794').fontSize(8).text('Archivo generado por Husky Pass', 126, 642, { width: 360, align: 'center' })
+  doc.fillColor(primary).font('Helvetica-Bold').fontSize(13).text(relationship, 126, 520, { width: 360, align: 'center' })
+  doc.fillColor('#5F6B7A').font('Helvetica').fontSize(10).text(student, 126, 548, { width: 360, align: 'center' })
+  if (validity) doc.text(validity, 126, 566, { width: 360, align: 'center' })
+
+  const qrSource = String(values.qrImage || '').trim() || marbeteQrDataUrl(String(values.validationUrl || '').trim())
+  if (!qrSource) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'missing-required-image', { fields: ['qrImage'] })
+  }
+  const qr = await loadImage(qrSource, input.origin, 'qrImage')
+  doc.image(qr.bytes, 258, 590, { fit: [96, 96], align: 'center', valign: 'center' })
+  doc.fillColor('#7B8794').fontSize(8).text('Husky Pass', 126, 692, { width: 360, align: 'center' })
 
   return collectPdfBuffer(doc)
 }

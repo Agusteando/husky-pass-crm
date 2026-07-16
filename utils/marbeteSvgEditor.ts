@@ -330,7 +330,7 @@ function optionalLayerPresets(themeKey: PersonasThemeKey, canvas: { width: numbe
   return [
     { id: 'person-photo', kind: 'person-photo', label: 'Foto de persona autorizada', ...scaleBox(110, 112, 170, 210), rotation: 0, visible: false, zIndex: 10, imageStyle: { ...defaultImageStyle(16), borderColor, borderWidth: 3 }, origin: 'overlay', removed: true, aspectRatioLocked: true },
     { id: 'student-photo', kind: 'student-photo', label: 'Foto del alumno', ...scaleBox(325, 146, 96, 116), rotation: 0, visible: false, zIndex: 11, imageStyle: { ...defaultImageStyle(12), borderColor: '#FFFFFF', borderWidth: 2 }, origin: 'overlay', removed: true, aspectRatioLocked: true },
-    { id: 'qr', kind: 'qr', label: 'Código QR', ...scaleBox(318, 493, 116, 116), rotation: 0, visible: false, zIndex: 30, imageStyle: { ...defaultImageStyle(0), fit: 'contain' }, origin: 'overlay', removed: true, aspectRatioLocked: true },
+    { id: 'qr', kind: 'qr', label: 'Código QR', ...scaleBox(318, 493, 116, 116), rotation: 0, visible: true, zIndex: 30, imageStyle: { ...defaultImageStyle(0), fit: 'contain' }, origin: 'overlay', removed: false, aspectRatioLocked: true },
     { id: 'authorized-surnames', kind: 'authorized-surnames', label: 'Apellidos', ...scaleBox(82, 330, 250, 30), rotation: 0, visible: false, zIndex: 20, textStyle: defaultTextStyle(15), origin: 'overlay', removed: true, aspectRatioLocked: false },
     { id: 'authorized-given-name', kind: 'authorized-given-name', label: 'Nombre', ...scaleBox(82, 362, 250, 30), rotation: 0, visible: false, zIndex: 21, textStyle: defaultTextStyle(15), origin: 'overlay', removed: true, aspectRatioLocked: false },
     { id: 'authorized-name', kind: 'authorized-name', label: 'Nombre completo', ...scaleBox(82, 348, 360, 52), rotation: 0, visible: false, zIndex: 20, textStyle: defaultTextStyle(19), origin: 'overlay', removed: true, aspectRatioLocked: false },
@@ -417,7 +417,7 @@ function normalizeLayer(input: Partial<MarbeteSvgLayer>, fallback: MarbeteSvgLay
     width: clamp(input.width, 12, canvas.width * 2, fallback.width),
     height: clamp(input.height, 12, canvas.height * 2, fallback.height),
     rotation: clamp(input.rotation, -360, 360, fallback.rotation),
-    visible: migratedLegacyHologram ? false : input.visible == null ? fallback.visible : Boolean(input.visible),
+    visible: kind === 'qr' ? true : migratedLegacyHologram ? false : input.visible == null ? fallback.visible : Boolean(input.visible),
     zIndex: clamp(input.zIndex, 0, 999, fallback.zIndex),
     textStyle: textFallback ? {
       fontSize: clamp(input.textStyle?.fontSize, 6, 120, textFallback.fontSize),
@@ -439,7 +439,7 @@ function normalizeLayer(input: Partial<MarbeteSvgLayer>, fallback: MarbeteSvgLay
     opacity: clamp(input.opacity, 0, 1, typeof fallback.opacity === 'number' ? fallback.opacity : 1),
     assetUrl: safeString(input.assetUrl || fallback.assetUrl || ''),
     origin: input.origin === 'base' || fallback.origin === 'base' ? 'base' : 'overlay',
-    removed: migratedLegacyHologram ? true : input.removed == null ? Boolean(fallback.removed) : Boolean(input.removed),
+    removed: kind === 'qr' ? false : migratedLegacyHologram ? true : input.removed == null ? Boolean(fallback.removed) : Boolean(input.removed),
     aspectRatioLocked: input.aspectRatioLocked == null ? Boolean(fallback.aspectRatioLocked) : Boolean(input.aspectRatioLocked)
   }
 }

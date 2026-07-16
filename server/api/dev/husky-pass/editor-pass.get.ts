@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { assertDevOnly } from '~/server/utils/devOnly'
 import { buildDevPrintableAuthorizedPerson } from '~/server/utils/devHuskyPassFixtures'
 import { buildMarbeteRenderValues, renderMarbeteSvg, validateMarbeteRequirements } from '~/server/utils/marbeteTemplates'
-import { assertMarbetePdfAssets, renderMarbetePdf } from '~/server/utils/marbetePdf'
+import { assertMarbetePdfAssets, renderEmergencyMarbetePdf, renderMarbetePdf } from '~/server/utils/marbetePdf'
 import { compileMarbeteVisualSvg, createDefaultMarbeteVisualDesign } from '~/utils/marbeteDesigner'
 
 const schema = z.object({
@@ -12,7 +12,8 @@ const schema = z.object({
   scenario: z.string().optional().default('long-name'),
   ciclo: z.string().optional().default('2026-2027'),
   preset: z.enum(['default', 'rotated', 'wide-crop', 'minimal']).optional().default('default'),
-  format: z.enum(['svg-preview', 'pdf', 'diagnostics']).optional().default('svg-preview')
+  format: z.enum(['svg-preview', 'pdf', 'diagnostics']).optional().default('svg-preview'),
+  renderer: z.enum(['auto', 'emergency']).optional().default('auto')
 })
 
 export default defineEventHandler(async (event) => {
@@ -70,7 +71,9 @@ export default defineEventHandler(async (event) => {
   }
 
   await assertMarbetePdfAssets(pdfInput)
-  const pdf = await renderMarbetePdf(pdfInput)
+  const pdf = query.renderer === 'emergency'
+    ? await renderEmergencyMarbetePdf(pdfInput)
+    : await renderMarbetePdf(pdfInput)
   setHeader(event, 'Content-Type', 'application/pdf')
   setHeader(event, 'Cache-Control', 'no-store')
   setHeader(event, 'Content-Disposition', 'inline; filename="marbete-editor-dev.pdf"')

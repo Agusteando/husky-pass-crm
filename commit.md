@@ -1,1 +1,1 @@
-Corrige el editor SVG de marbetes y convierte holograma y campos dinámicos en capas editables
+Garantiza el código QR en todos los PDF de Husky Pass
