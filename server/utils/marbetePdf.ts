@@ -9,7 +9,8 @@ import SVGtoPDF from 'svg-to-pdfkit'
 import { useStorage } from 'nitropack/runtime'
 import { logPersonasDebug, logPersonasWarning } from '~/server/utils/personasDiagnostics'
 import { publicError } from '~/server/utils/httpError'
-import { marbeteQrDataUrl } from '~/server/utils/marbeteQr'
+import { marbeteQrDataUrl, renderMarbeteQrVector } from '~/server/utils/marbeteQr'
+import { renderMarbeteSvgValues } from '~/utils/marbeteSvgRuntime'
 
 const FRIENDLY_TEXT_MESSAGE = 'Necesitamos completar algunos datos antes de descargar el Husky Pass.'
 const FRIENDLY_IMAGE_MESSAGE = 'Para descargar el Husky Pass, actualiza la foto de la persona autorizada o solicita apoyo a la escuela.'
@@ -778,9 +779,25 @@ export async function assertMarbetePdfAssets(input: string | MarbetePdfInput) {
 }
 
 export async function renderMarbetePdf(input: string | MarbetePdfInput) {
-  const pdfInput: MarbetePdfInput = typeof input === 'string'
+  const sourceInput: MarbetePdfInput = typeof input === 'string'
     ? { templateSvg: input, renderedSvg: input, values: {}, origin: '' }
     : input
+  const validationUrl = String(sourceInput.values.validationUrl || '').trim()
+  const templateSvg = validationUrl
+    ? renderMarbeteQrVector(sourceInput.templateSvg, validationUrl)
+    : sourceInput.templateSvg
+  const pdfInput: MarbetePdfInput = {
+    ...sourceInput,
+    templateSvg,
+    renderedSvg: validationUrl ? renderMarbeteSvgValues(templateSvg, sourceInput.values) : sourceInput.renderedSvg
+  }
+
+  if (sourceInput.values.id && !validationUrl) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'missing-required-field', { fields: ['validationUrl'] })
+  }
+  if (validationUrl && !/data-husky-qr-vector=["']1["']/i.test(templateSvg)) {
+    throw diagnosticError(503, FRIENDLY_RENDER_MESSAGE, 'missing-required-image', { fields: ['qrImage'], reason: 'qr-vector-not-rendered' })
+  }
 
   await assertMarbetePdfAssets(pdfInput)
 

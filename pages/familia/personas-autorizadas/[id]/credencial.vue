@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { navigateTo, useRoute } from 'nuxt/app'
+import { navigateTo } from 'nuxt/app'
 
 definePageMeta({ layout: false, middleware: ['family', 'personas-autorizadas'] })
-
-const route = useRoute()
-await navigateTo(`/familia/personas-autorizadas/${route.params.id}/marbete`, { replace: true })
+await navigateTo('/familia/personas-autorizadas', { replace: true })
 </script>

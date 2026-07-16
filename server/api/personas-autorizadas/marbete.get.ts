@@ -12,6 +12,8 @@ import { renderMarbeteSvgValues } from '~/utils/marbeteSvgRuntime'
 import { renderMarbetePdf } from '~/server/utils/marbetePdf'
 import { withRequestBoundary } from '~/server/utils/logger'
 import type { MarbeteReadinessResponse } from '~/types/daycare'
+import { renderMarbeteQrVector } from '~/server/utils/marbeteQr'
+import { publicError } from '~/server/utils/httpError'
 
 const schema = z.object({
   id: z.coerce.number().int().positive(),
@@ -38,9 +40,13 @@ export default defineEventHandler(async (event) => {
     const { template, templateSvg } = await resolveTemplate(data)
     const origin = getRequestURL(event).origin
     const renderValues = buildMarbeteRenderValues(data, origin, template.cicloEscolar)
-    const svg = renderMarbeteSvgValues(templateSvg, renderValues.values)
+    const qrTemplateSvg = renderMarbeteQrVector(templateSvg, renderValues.validationUrl)
+    if (!/data-husky-qr-vector=["']1["']/i.test(qrTemplateSvg)) {
+      throw publicError(503, 'No pudimos preparar el Husky Pass en este momento.')
+    }
+    const svg = renderMarbeteSvgValues(qrTemplateSvg, renderValues.values)
     const pdfInput = {
-      templateSvg,
+      templateSvg: qrTemplateSvg,
       renderedSvg: svg,
       values: renderValues.values,
       origin,

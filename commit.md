@@ -1,1 +1,1 @@
-Garantiza el código QR en todos los PDF de Husky Pass
+Garantiza el QR en la descarga familiar de marbetes y unifica el flujo
