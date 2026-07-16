@@ -27,7 +27,7 @@
         <FamilyPersonasIcon name="search" />
         <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
       </label>
-      <button class="toolbar-action" type="button" data-diagnostic-action="registro-sala" @click="openRegistrationLink"><span><FamilyPersonasIcon name="send" /></span><strong>Registro</strong><small>Link de sala</small></button>
+      <button class="toolbar-action" type="button" data-diagnostic-action="enviar-registro-sala" @click="openRegistrationEmail"><span><FamilyPersonasIcon name="send" /></span><strong>Enviar registro</strong><small>Por correo</small></button>
       <button class="toolbar-action" type="button" data-diagnostic-action="password-sala" :disabled="passwordSaving" @click="openSalaPassword"><span><FamilyPersonasIcon name="security" /></span><strong>Contraseña</strong><small>Toda la sala</small></button>
       <button v-if="canPreviewSala" class="toolbar-action" type="button" data-diagnostic-action="preview-sala" :disabled="previewing" @click="previewSala"><span><FamilyPersonasIcon name="sparkles" /></span><strong>Vista familiar</strong><small>{{ previewing ? 'Abriendo…' : 'Previsualizar' }}</small></button>
     </section>
@@ -142,43 +142,40 @@
 
     <AdminModal
       v-if="registrationDialog"
-      title="Registro familiar"
-      eyebrow="Link de sala"
+      title="Enviar registro familiar"
+      eyebrow="Guardería"
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="registrationLoading"
       :dirty="registrationDraftDirty"
       @close="closeRegistrationDialog"
     >
       <template #default="{ requestClose }">
-      <section class="registration-link-modal">
-        <div class="registration-qr-card">
-          <img v-if="registrationLink?.qrUrl" :src="registrationLink.qrUrl" alt="QR de registro" />
-          <span v-else>QR</span>
-        </div>
-        <div class="registration-link-copy">
-          <p>Comparte este acceso con familias de la sala para que creen su cuenta.</p>
-          <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
-          <div class="friendly-code">
-            <span>Código</span>
-            <strong>{{ registrationLink?.token || 'preparando' }}</strong>
+        <form class="registration-email-modal" @submit.prevent="sendRegistrationLink">
+          <div class="registration-email-mark" aria-hidden="true">
+            <FamilyPersonasIcon name="send" />
           </div>
-          <div class="link-box">
-            <span>{{ registrationShortPath || registrationLink?.url || 'Generando enlace…' }}</span>
-            <button class="btn btn-secondary" type="button" :disabled="!registrationLink?.url" @click="copyRegistrationLink">Copiar</button>
-          </div>
-          <label class="label">
-            Enviar link a correo
-            <div class="password-input-row">
-              <input v-model="registrationEmail" class="input" type="email" placeholder="correo@familia.com" />
-              <button class="btn btn-secondary" type="button" :disabled="registrationLoading || !registrationEmail" @click="sendRegistrationLink">Enviar</button>
-            </div>
+          <label class="label registration-email-field">
+            Correo de la familia
+            <input
+              v-model="registrationEmail"
+              class="input"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="familia@correo.com"
+              required
+              maxlength="180"
+              autofocus
+            />
           </label>
+          <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
           <footer class="modal-actions">
-            <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="regenerateRegistrationLink">Regenerar link</button>
-            <button class="btn btn-primary" type="button" @click="requestClose">Listo</button>
+            <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="requestClose">Cancelar</button>
+            <button class="btn btn-primary" type="submit" :disabled="registrationLoading || !registrationEmail.trim()">
+              {{ registrationLoading ? 'Enviando…' : 'Enviar enlace' }}
+            </button>
           </footer>
-        </div>
-      </section>
+        </form>
       </template>
     </AdminModal>
 
@@ -433,7 +430,6 @@ const passwordForm = ref({ password: '', sendEmail: false })
 const registrationDialog = ref(false)
 const registrationLoading = ref(false)
 const registrationEmail = ref('')
-const registrationLink = ref<{ token: string; url: string; qrUrl: string; sala: string; unidad: string } | null>(null)
 const rosterSaving = ref(false)
 const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean } | null>(null)
 const rosterView = ref<RosterView>(route.query.vista === 'confirmed' || route.query.vista === 'review' ? route.query.vista : 'all')
@@ -493,7 +489,6 @@ const nextRoom = computed(() => currentRoomIndex.value >= 0 ? roomNavigation.val
 const currentRoomPosition = computed(() => currentRoomIndex.value >= 0 ? `${currentRoomIndex.value + 1}/${roomNavigation.value.length}` : '—')
 const roomTarget = computed(() => roomNavigation.value.find((room) => room.id === roomTargetSalaId.value) || null)
 const visibleRosterSourceOnly = computed(() => rosterView.value === 'confirmed' ? [] : rosterSourceOnly.value)
-const registrationShortPath = computed(() => registrationLink.value?.token ? `/r/${registrationLink.value.token}` : '')
 const selectedAccountId = computed(() => Number(route.query.familia || 0))
 const selectedPasswordDescription = computed(() => passwordDialog.value?.account?.nombre_nino || passwordDialog.value?.account?.email || 'Cuenta familiar')
 const selectedRosterVisible = computed(() => Boolean(selected.value?.roster && (selected.value.roster.state === 'room-changed' || selected.value.roster.childDifferent)))
@@ -906,13 +901,13 @@ async function save(payload: Partial<FamilyAccount>) {
   }
 }
 
-async function openRegistrationLink() {
+function openRegistrationEmail() {
   if (registrationLoading.value) return
   registrationDialog.value = true
+  registrationEmail.value = ''
   actionError.value = ''
   actionNotice.value = ''
   resetRegistrationDraft()
-  if (!registrationLink.value) await loadRegistrationLink(false)
 }
 
 function closeRegistrationDialog() {
@@ -922,66 +917,28 @@ function closeRegistrationDialog() {
   resetRegistrationDraft()
 }
 
-async function loadRegistrationLink(regenerate = false) {
-  registrationLoading.value = true
-  actionError.value = ''
-  try {
-    const endpoint = '/api/daycare/admin/registration-link'
-    const response = regenerate
-      ? await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { method: 'POST', body: { sala: salaId, regenerate: true } })
-      : await $fetch<{ link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>(endpoint, { query: { sala: salaId } })
-    registrationLink.value = response.link
-    return true
-  } catch (err: any) {
-    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible preparar el link de registro.'
-    return false
-  } finally {
-    registrationLoading.value = false
-  }
-}
-
-async function copyRegistrationLink() {
-  if (!registrationLink.value?.url) return
-  try {
-    await navigator.clipboard?.writeText(registrationLink.value.url)
-    actionNotice.value = 'Link de registro copiado.'
-  } catch {
-    actionError.value = 'No fue posible copiar el link automáticamente.'
-  }
-}
-
-async function regenerateRegistrationLink() {
-  const key = `registration:${salaId}`
-  markPending(key, 'Link de registro', { detail: 'Regenerando el acceso de la sala.' })
-  const ok = await loadRegistrationLink(true)
-  if (ok) {
-    markDone(key, 'Link de registro', { detail: 'El nuevo link quedó listo.' })
-    actionNotice.value = 'Link de registro regenerado.'
-  } else {
-    markError(key, 'Link de registro', { detail: 'No fue posible regenerar el link.' })
-  }
-}
-
 async function sendRegistrationLink() {
-  if (!registrationEmail.value || registrationLoading.value) return
+  const recipient = registrationEmail.value.trim().toLowerCase()
+  if (!recipient || registrationLoading.value) return
   registrationLoading.value = true
   actionError.value = ''
   actionNotice.value = ''
   const key = `registration-email:${salaId}`
-  markPending(key, 'Link de registro', { detail: 'Enviando el acceso por correo.' })
+  markPending(key, 'Registro familiar', { detail: 'Enviando el enlace por correo.' })
   try {
-    const response = await $fetch<{ emailed: number; link: { token: string; url: string; qrUrl: string; sala: string; unidad: string } }>('/api/daycare/admin/registration-link-email', {
+    const response = await $fetch<{ emailed: number }>('/api/daycare/admin/registration-link-email', {
       method: 'POST',
-      body: { sala: salaId, to: registrationEmail.value }
+      body: { sala: salaId, to: recipient }
     })
-    registrationLink.value = response.link
-    actionNotice.value = response.emailed ? 'Link de registro enviado.' : 'No se envió ningún correo.'
+    if (!response.emailed) throw new Error('El servidor no confirmó el envío.')
+    registrationDialog.value = false
     registrationEmail.value = ''
     resetRegistrationDraft()
-    markDone(key, 'Link de registro', { detail: response.emailed ? 'El correo fue enviado.' : 'El servidor terminó sin enviar correos.' })
+    actionNotice.value = 'Registro familiar enviado por correo.'
+    markDone(key, 'Registro familiar', { detail: 'El correo fue enviado.' })
   } catch (err: any) {
-    markError(key, 'Link de registro', { detail: 'No se pudo enviar el correo.' })
-    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible enviar el link.'
+    markError(key, 'Registro familiar', { detail: 'No se pudo enviar el correo.' })
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible enviar el registro familiar.'
   } finally {
     registrationLoading.value = false
   }
@@ -2339,7 +2296,7 @@ function initials(value?: string | null) {
 @keyframes family-spin { to { transform: rotate(360deg); } }
 
 .password-modal,
-.registration-link-copy {
+.registration-email-modal {
   display: grid;
   gap: 14px;
 }
@@ -2403,85 +2360,37 @@ function initials(value?: string | null) {
   justify-content: flex-end;
 }
 
-.registration-link-modal {
-  align-items: start;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: 180px minmax(0, 1fr);
+.registration-email-modal {
+  position: relative;
 }
 
-.registration-qr-card {
+.registration-email-mark {
   align-items: center;
-  background: linear-gradient(135deg, #edf6e4, #fff6e4);
-  border: 1px solid rgba(87, 139, 38, 0.15);
-  border-radius: 24px;
-  display: grid;
-  justify-items: center;
-  min-height: 180px;
-  padding: 14px;
+  background: linear-gradient(135deg, #dff4e8, #fff1c9);
+  border: 1px solid rgba(87, 139, 38, 0.16);
+  border-radius: 22px;
+  color: #416a28;
+  display: inline-flex;
+  height: 70px;
+  justify-content: center;
+  width: 70px;
 }
 
-.registration-qr-card img {
-  background: #fff;
+.registration-email-mark :deep(.pa-icon) {
+  height: 30px;
+  width: 30px;
+}
+
+.registration-email-field {
+  background: #f9fcf7;
+  border: 1px solid rgba(87, 139, 38, 0.14);
   border-radius: 18px;
-  display: block;
-  height: 150px;
-  width: 150px;
+  padding: 16px;
 }
 
-.registration-qr-card span {
-  color: #355f24;
-  font-weight: 950;
-  letter-spacing: .12em;
-}
-
-.registration-link-copy p {
-  color: #747e6d;
-  font-weight: 700;
-  margin: 0;
-}
-
-.link-box {
-  align-items: center;
+.registration-email-field .input {
   background: #fff;
-  border: 1px solid rgba(87, 139, 38, 0.15);
-  border-radius: 16px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px;
-}
-
-.link-box span {
-  color: var(--family-ink);
-  font-size: .8rem;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.friendly-code {
-  background: linear-gradient(135deg, #fff6e4, #edf6e4);
-  border: 1px solid rgba(244, 182, 74, 0.26);
-  border-radius: 18px;
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-}
-
-.friendly-code span {
-  color: #747e6d;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.friendly-code strong {
-  color: var(--family-ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.24rem;
+  margin-top: 8px;
 }
 
 .compact-alert { margin: 0 0 12px; }
@@ -2663,9 +2572,7 @@ function initials(value?: string | null) {
     justify-content: stretch;
   }
 
-  .password-input-row,
-  .registration-link-modal,
-  .link-box {
+  .password-input-row {
     grid-template-columns: 1fr;
   }
 

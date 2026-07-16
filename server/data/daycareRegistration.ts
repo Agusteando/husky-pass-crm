@@ -60,6 +60,7 @@ export interface DaycareRegistrationLink {
 
 const REGISTRATION_LINK_TABLE = 'hp_daycare_registration_links'
 const SIGNED_LINK_PREFIX = 'g-'
+const DAYCARE_REGISTRATION_ORIGIN = 'https://admin.casitaiedis.edu.mx'
 
 function clean(value: unknown) {
   return String(value || '').trim()
@@ -176,28 +177,16 @@ async function signedRegistrationLinkFor(event: H3Event, salaId: number) {
   }
 }
 
-function publicBaseUrl(event: H3Event) {
-  const requestUrl = new URL(event.node.req.url || '/', `http://${event.node.req.headers.host || 'localhost'}`)
-  const forwardedProto = String(event.node.req.headers['x-forwarded-proto'] || '').split(',')[0]?.trim()
-  const forwardedHost = String(event.node.req.headers['x-forwarded-host'] || '').split(',')[0]?.trim()
-  const proto = forwardedProto || requestUrl.protocol.replace(':', '')
-  const host = forwardedHost || event.node.req.headers.host || requestUrl.host
-  return `${proto}://${host}`
+export function daycareRegistrationUrl(_event: H3Event, token: string) {
+  return `${DAYCARE_REGISTRATION_ORIGIN}/r/${encodeURIComponent(token)}`
 }
 
-export function daycareRegistrationUrl(event: H3Event, token: string) {
-  const base = publicBaseUrl(event)
-  return `${base}/r/${encodeURIComponent(token)}`
+export function daycareRegistrationFormUrl(_event: H3Event, token: string) {
+  return `${DAYCARE_REGISTRATION_ORIGIN}/registro-guarderia?codigo=${encodeURIComponent(token)}`
 }
 
-export function daycareRegistrationFormUrl(event: H3Event, token: string) {
-  const base = publicBaseUrl(event)
-  return `${base}/registro-guarderia?codigo=${encodeURIComponent(token)}`
-}
-
-export function daycareRegistrationQrUrl(event: H3Event, token: string) {
-  const base = publicBaseUrl(event)
-  return `${base}/api/daycare/registration/qr?codigo=${encodeURIComponent(token)}`
+export function daycareRegistrationQrUrl(_event: H3Event, token: string) {
+  return `${DAYCARE_REGISTRATION_ORIGIN}/api/daycare/registration/qr?codigo=${encodeURIComponent(token)}`
 }
 
 async function assertRegistrationLinkStoreAvailable() {

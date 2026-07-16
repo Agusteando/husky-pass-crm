@@ -4,21 +4,21 @@ import { JWT } from 'google-auth-library'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
 
+const DAYCARE_REGISTRATION_ORIGIN = 'https://admin.casitaiedis.edu.mx'
+
 type RegistrationLinkEmailInput = {
   to: string
   unidad: string
   sala: string
   url: string
-  qrUrl?: string | null
+  senderEmail: string
+  senderName?: string | null
 }
 
 type EmailConfig = {
   mode: 'gmail' | 'preview'
-  fromEmail: string
-  fromName: string
   serviceAccountEmail: string
   privateKey: string
-  delegatedUser: string
 }
 
 function decodePrivateKey(raw?: string | null) {
@@ -31,11 +31,34 @@ function getEmailConfig(): EmailConfig {
   const modeValue = process.env.DAYCARE_REGISTRATION_EMAIL_MODE || process.env.DAYCARE_ACCESS_EMAIL_MODE || process.env.PASSWORD_RECOVERY_EMAIL_MODE || recovery.emailMode || 'gmail'
   return {
     mode: String(modeValue).trim().toLowerCase() === 'preview' ? 'preview' : 'gmail',
-    fromEmail: String(process.env.DAYCARE_ACCESS_FROM_EMAIL || process.env.PASSWORD_RECOVERY_FROM_EMAIL || recovery.fromEmail || '').trim(),
-    fromName: String(process.env.DAYCARE_ACCESS_FROM_NAME || process.env.PASSWORD_RECOVERY_FROM_NAME || recovery.fromName || 'Husky Pass').trim(),
     serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
-    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey),
-    delegatedUser: String(process.env.GOOGLE_WORKSPACE_DELEGATED_USER || process.env.GOOGLE_GMAIL_DELEGATED_USER || recovery.googleDelegatedUser || '').trim()
+    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey)
+  }
+}
+
+function normalizeEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function headerText(value: unknown) {
+  return String(value || '').replace(/[\r\n]+/g, ' ').trim()
+}
+
+function assertInstitutionalSender(senderEmail: string) {
+  if (!/^[^@\s]+@casitaiedis\.edu\.mx$/i.test(senderEmail)) {
+    throw new Error('The current user does not have a valid institutional email for Google Workspace impersonation.')
+  }
+}
+
+function assertCanonicalRegistrationUrl(value: string) {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('The daycare registration URL is invalid.')
+  }
+  if (parsed.origin !== DAYCARE_REGISTRATION_ORIGIN || !parsed.pathname.startsWith('/r/')) {
+    throw new Error('The daycare registration URL does not use the canonical Husky Pass domain.')
   }
 }
 
@@ -58,47 +81,83 @@ function base64url(input: string) {
 
 function assertGmailConfig(config: EmailConfig) {
   const missing = [
-    ['DAYCARE_ACCESS_FROM_EMAIL or PASSWORD_RECOVERY_FROM_EMAIL', config.fromEmail],
     ['GOOGLE_SERVICE_ACCOUNT_EMAIL', config.serviceAccountEmail],
-    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey],
-    ['GOOGLE_WORKSPACE_DELEGATED_USER or GOOGLE_GMAIL_DELEGATED_USER', config.delegatedUser]
+    ['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', config.privateKey]
   ].filter(([, value]) => !value).map(([key]) => key)
   if (missing.length) throw new Error(`Missing daycare registration email configuration: ${missing.join(', ')}`)
+  if (!/-----BEGIN PRIVATE KEY-----/.test(config.privateKey) || !/-----END PRIVATE KEY-----/.test(config.privateKey)) {
+    throw new Error('Google service-account private key is malformed.')
+  }
 }
 
-function buildEmail(input: RegistrationLinkEmailInput, config: EmailConfig) {
-  const subject = `Registro familiar de guardería`
+export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
+  const senderEmail = normalizeEmail(input.senderEmail)
+  const senderName = headerText(input.senderName) || 'Equipo de Guardería'
   const location = `${input.unidad} · ${input.sala}`
+  const subject = `Completa tu registro en Husky Pass Guardería`
   const text = [
     'Hola,',
     '',
-    `Comparte este enlace para que las familias de ${location} creen su acceso de guardería:`,
+    `Ya puedes crear el acceso familiar de ${location}.`,
+    '',
     input.url,
     '',
-    'El formulario valida el correo y enviará las credenciales al terminar el registro.'
+    'Abre el enlace para registrar el correo familiar y crear la contraseña de acceso.',
+    '',
+    `Enviado por ${senderName}`
   ].join('\n')
 
-  const qr = input.qrUrl ? `<img src="${escapeHtml(input.qrUrl)}" alt="QR de registro" width="170" height="170" style="display:block;border:1px solid #d8ebe6;border-radius:18px;padding:10px;background:#fff" />` : ''
   const html = `
-    <div style="font-family:Montserrat,Arial,sans-serif;color:#102235;line-height:1.5;max-width:620px;margin:0 auto;padding:26px;background:#fbfdf6">
-      <div style="background:#ffffff;border:1px solid #d8ebe6;border-radius:24px;overflow:hidden;box-shadow:0 18px 52px rgba(14,40,55,.10)">
-        <div style="background:linear-gradient(135deg,#eefaf7,#fff6df);padding:24px 26px;border-bottom:1px solid #d8ebe6">
-          <p style="margin:0 0 8px;color:#075f58;font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px">Husky Pass Guardería</p>
-          <h1 style="margin:0;font-size:28px;line-height:1.05">Registro familiar</h1>
-          <p style="margin:8px 0 0;color:#607086;font-weight:700">${escapeHtml(location)}</p>
-        </div>
-        <div style="padding:24px 26px;display:grid;gap:18px">
-          <p style="margin:0">Comparte este acceso con las familias de la sala. Cada familia captura su correo, crea su contraseña y recibe el acceso por email.</p>
-          <a href="${escapeHtml(input.url)}" style="display:inline-block;background:#21324a;color:white;text-decoration:none;border-radius:14px;padding:13px 18px;font-weight:800">Abrir registro</a>
-          <div>${qr}</div>
-          <p style="word-break:break-all;color:#607086;margin:0">${escapeHtml(input.url)}</p>
-        </div>
-      </div>
-    </div>
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Registro familiar</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f5fbf8;color:#173042;font-family:Montserrat,Arial,sans-serif">
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0">Crea el acceso familiar de guardería en Husky Pass.</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f5fbf8">
+          <tr>
+            <td align="center" style="padding:30px 14px">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;border-collapse:separate;background:#ffffff;border:1px solid #d6ebe4;border-radius:26px;overflow:hidden;box-shadow:0 18px 48px rgba(23,48,66,.10)">
+                <tr>
+                  <td style="padding:28px 30px;background:linear-gradient(135deg,#dff5ee 0%,#fff4cc 100%);border-bottom:1px solid #d6ebe4">
+                    <div style="font-size:12px;line-height:1.2;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#087268">Husky Pass · Guardería</div>
+                    <h1 style="margin:10px 0 8px;font-size:30px;line-height:1.08;color:#173042">Registro familiar</h1>
+                    <div style="font-size:16px;font-weight:700;color:#557184">${escapeHtml(location)}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:30px">
+                    <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#354f60">Ya puedes crear tu cuenta familiar para acceder a la información de guardería.</p>
+                    <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:separate">
+                      <tr>
+                        <td style="border-radius:14px;background:#087268">
+                          <a href="${escapeHtml(input.url)}" style="display:inline-block;padding:14px 22px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:800">Crear cuenta familiar</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <div style="height:24px"></div>
+                    <div style="padding:16px 18px;border:1px solid #dcece7;border-radius:16px;background:#f9fcfb">
+                      <div style="margin-bottom:7px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#688191">Enlace de registro</div>
+                      <a href="${escapeHtml(input.url)}" style="word-break:break-all;color:#087268;text-decoration:underline;font-size:14px;line-height:1.55">${escapeHtml(input.url)}</a>
+                    </div>
+                    <p style="margin:24px 0 0;font-size:14px;line-height:1.55;color:#688191">Este correo fue enviado por <strong style="color:#354f60">${escapeHtml(senderName)}</strong> desde Husky Pass Guardería.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
   `.trim()
+
   const boundary = `hpc-daycare-registration-${Date.now().toString(36)}`
   const raw = [
-    `From: ${encodeMimeWord(config.fromName)} <${config.fromEmail}>`,
+    `From: ${encodeMimeWord(senderName)} <${senderEmail}>`,
+    `Reply-To: ${senderEmail}`,
     `To: ${input.to}`,
     `Subject: ${encodeMimeWord(subject)}`,
     'MIME-Version: 1.0',
@@ -118,16 +177,17 @@ function buildEmail(input: RegistrationLinkEmailInput, config: EmailConfig) {
     '',
     `--${boundary}--`
   ].join('\r\n')
-  return { subject, text, html, raw }
+  return { subject, text, html, raw, senderEmail }
 }
 
-async function sendWithGmail(raw: string, config: EmailConfig) {
+async function sendWithGmail(raw: string, config: EmailConfig, delegatedUser: string) {
   assertGmailConfig(config)
+  assertInstitutionalSender(delegatedUser)
   const client = new JWT({
     email: config.serviceAccountEmail,
     key: config.privateKey,
     scopes: ['https://www.googleapis.com/auth/gmail.send'],
-    subject: config.delegatedUser
+    subject: delegatedUser
   })
   const accessToken = await client.getAccessToken()
   if (!accessToken.token) throw new Error('Google service-account token was not issued.')
@@ -139,26 +199,43 @@ async function sendWithGmail(raw: string, config: EmailConfig) {
   if (!response.ok) throw new Error(`Gmail send failed with ${response.status}: ${(await response.text()).slice(0, 500)}`)
 }
 
-async function writePreviewEmail(input: RegistrationLinkEmailInput, email: ReturnType<typeof buildEmail>) {
+async function writePreviewEmail(input: RegistrationLinkEmailInput, email: ReturnType<typeof buildDaycareRegistrationLinkEmail>) {
   if (process.env.NODE_ENV === 'production') throw new Error('Email preview mode is not available in production.')
   const dir = join(process.cwd(), 'artifacts', 'daycare-registration-emails')
   await mkdir(dir, { recursive: true })
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
   const emailHash = securityHash(input.to)?.slice(0, 12) || 'unknown'
   const base = `${stamp}-${emailHash}`
-  await writeFile(join(dir, `${base}.json`), JSON.stringify({ toHash: securityHash(input.to), subject: email.subject, html: email.html, text: email.text }, null, 2), 'utf8')
+  await writeFile(join(dir, `${base}.json`), JSON.stringify({
+    toHash: securityHash(input.to),
+    senderHash: securityHash(email.senderEmail),
+    subject: email.subject,
+    html: email.html,
+    text: email.text
+  }, null, 2), 'utf8')
   await writeFile(join(dir, `${base}.eml`), email.raw, 'utf8')
 }
 
 export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
   const config = getEmailConfig()
-  const email = buildEmail(input, config)
+  const senderEmail = normalizeEmail(input.senderEmail)
+  assertInstitutionalSender(senderEmail)
+  assertCanonicalRegistrationUrl(input.url)
+  const email = buildDaycareRegistrationLinkEmail({ ...input, senderEmail })
   try {
     if (config.mode === 'preview') await writePreviewEmail(input, email)
-    else await sendWithGmail(email.raw, config)
-    logSecurityWarning('daycare-registration-link-email-delivered', { mode: config.mode, toHash: securityHash(input.to) })
+    else await sendWithGmail(email.raw, config, senderEmail)
+    logSecurityWarning('daycare-registration-link-email-delivered', {
+      mode: config.mode,
+      toHash: securityHash(input.to),
+      senderHash: securityHash(senderEmail)
+    })
   } catch (error) {
-    logSecurityDiagnostic('daycare-registration-link-email-failed', error, { mode: config.mode, toHash: securityHash(input.to) })
+    logSecurityDiagnostic('daycare-registration-link-email-failed', error, {
+      mode: config.mode,
+      toHash: securityHash(input.to),
+      senderHash: securityHash(senderEmail)
+    })
     throw error
   }
 }

@@ -1,1 +1,1 @@
-Corrige el QR del marbete familiar y elimina el lockfile interno
+Corrige el envío institucional del registro familiar por correo
