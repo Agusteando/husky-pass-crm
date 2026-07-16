@@ -1,1 +1,1 @@
-Corrige la compatibilidad del envío de registro familiar por correo
+Permite copiar el enlace completo de registro familiar y aclara cómo abrirlo

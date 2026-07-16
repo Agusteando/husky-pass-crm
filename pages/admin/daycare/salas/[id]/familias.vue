@@ -27,7 +27,7 @@
         <FamilyPersonasIcon name="search" />
         <input v-model="search" class="input" type="search" placeholder="Niño/a, usuario o correo" data-diagnostic-filter="buscar-familia" />
       </label>
-      <button class="toolbar-action" type="button" data-diagnostic-action="enviar-registro-sala" @click="openRegistrationEmail"><span><FamilyPersonasIcon name="send" /></span><strong>Enviar registro</strong><small>Por correo</small></button>
+      <button class="toolbar-action" type="button" data-diagnostic-action="enviar-registro-sala" @click="openRegistrationEmail"><span><FamilyPersonasIcon name="send" /></span><strong>Registro familiar</strong><small>Correo o enlace</small></button>
       <button class="toolbar-action" type="button" data-diagnostic-action="password-sala" :disabled="passwordSaving" @click="openSalaPassword"><span><FamilyPersonasIcon name="security" /></span><strong>Contraseña</strong><small>Toda la sala</small></button>
       <button v-if="canPreviewSala" class="toolbar-action" type="button" data-diagnostic-action="preview-sala" :disabled="previewing" @click="previewSala"><span><FamilyPersonasIcon name="sparkles" /></span><strong>Vista familiar</strong><small>{{ previewing ? 'Abriendo…' : 'Previsualizar' }}</small></button>
     </section>
@@ -142,7 +142,7 @@
 
     <AdminModal
       v-if="registrationDialog"
-      title="Enviar registro familiar"
+      title="Registro familiar"
       eyebrow="Guardería"
       :description="data?.sala ? `${data.sala.unidad} · ${data.sala.sala}` : undefined"
       :close-disabled="registrationLoading"
@@ -151,11 +151,29 @@
     >
       <template #default="{ requestClose }">
         <form class="registration-email-modal" @submit.prevent="sendRegistrationLink">
-          <div class="registration-email-mark" aria-hidden="true">
-            <FamilyPersonasIcon name="send" />
-          </div>
+          <section class="registration-link-card" aria-label="Enlace de registro familiar">
+            <div class="registration-link-heading">
+              <span class="registration-email-mark" aria-hidden="true">
+                <FamilyPersonasIcon name="send" />
+              </span>
+              <div>
+                <strong>Enlace de registro</strong>
+                <p>La madre, padre o tutor debe pegar este enlace completo en la barra de direcciones del navegador. No debe escribirlo en el buscador de Google.</p>
+              </div>
+            </div>
+
+            <div v-if="registrationLinkLoading" class="registration-link-loading">Generando enlace…</div>
+            <div v-else-if="registrationLink" class="registration-link-row">
+              <a :href="registrationLink" target="_blank" rel="noopener noreferrer">{{ registrationLink }}</a>
+              <button class="btn btn-secondary registration-copy-button" type="button" @click="copyRegistrationLink">
+                {{ registrationCopyState === 'copied' ? 'Copiado' : 'Copiar enlace' }}
+              </button>
+            </div>
+            <button v-else class="btn btn-secondary registration-retry-button" type="button" @click="loadRegistrationLink">Generar enlace</button>
+          </section>
+
           <label class="label registration-email-field">
-            Correo de la familia
+            Enviar por correo
             <input
               v-model="registrationEmail"
               class="input"
@@ -169,10 +187,11 @@
             />
           </label>
           <p v-if="actionError" class="alert compact-alert">{{ actionError }}</p>
+          <p v-if="actionNotice" class="notice compact-notice">{{ actionNotice }}</p>
           <footer class="modal-actions">
-            <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="requestClose">Cancelar</button>
+            <button class="btn btn-secondary" type="button" :disabled="registrationLoading" @click="requestClose">Cerrar</button>
             <button class="btn btn-primary" type="submit" :disabled="registrationLoading || !registrationEmail.trim()">
-              {{ registrationLoading ? 'Enviando…' : 'Enviar enlace' }}
+              {{ registrationLoading ? 'Enviando…' : 'Enviar por correo' }}
             </button>
           </footer>
         </form>
@@ -429,7 +448,10 @@ const passwordDialog = ref<{ mode: 'family' | 'sala'; account?: FamilyAccount | 
 const passwordForm = ref({ password: '', sendEmail: false })
 const registrationDialog = ref(false)
 const registrationLoading = ref(false)
+const registrationLinkLoading = ref(false)
 const registrationEmail = ref('')
+const registrationLink = ref('')
+const registrationCopyState = ref<'idle' | 'copied' | 'error'>('idle')
 const rosterSaving = ref(false)
 const rosterDialog = ref<{ account: FamilyAccount; applyChildName?: boolean } | null>(null)
 const rosterView = ref<RosterView>(route.query.vista === 'confirmed' || route.query.vista === 'review' ? route.query.vista : 'all')
@@ -901,19 +923,81 @@ async function save(payload: Partial<FamilyAccount>) {
   }
 }
 
+function isCanonicalRegistrationLink(value: unknown) {
+  try {
+    const parsed = new URL(String(value || '').trim())
+    return parsed.origin === 'https://admin.casitaiedis.edu.mx' && parsed.pathname.startsWith('/r/')
+  } catch {
+    return false
+  }
+}
+
+async function loadRegistrationLink() {
+  if (registrationLinkLoading.value) return
+  registrationLinkLoading.value = true
+  registrationCopyState.value = 'idle'
+  actionError.value = ''
+  try {
+    const response = await $fetch<{ link?: { url?: string } }>('/api/daycare/admin/registration-link', {
+      query: { sala: salaId }
+    })
+    const url = String(response.link?.url || '').trim()
+    if (!isCanonicalRegistrationLink(url)) throw new Error('El servidor no devolvió un enlace de registro válido.')
+    registrationLink.value = url
+  } catch (err: any) {
+    registrationLink.value = ''
+    actionError.value = err?.data?.message || err?.data?.statusMessage || err?.message || 'No fue posible generar el enlace de registro.'
+  } finally {
+    registrationLinkLoading.value = false
+  }
+}
+
+async function copyRegistrationLink() {
+  const url = registrationLink.value
+  if (!isCanonicalRegistrationLink(url)) return
+  actionError.value = ''
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      const copied = document.execCommand('copy')
+      textarea.remove()
+      if (!copied) throw new Error('No fue posible copiar el enlace.')
+    }
+    registrationCopyState.value = 'copied'
+  } catch (err: any) {
+    registrationCopyState.value = 'error'
+    actionError.value = err?.message || 'No fue posible copiar el enlace. Selecciónalo y cópialo manualmente.'
+  }
+}
+
 function openRegistrationEmail() {
   if (registrationLoading.value) return
   registrationDialog.value = true
   registrationEmail.value = ''
+  registrationLink.value = ''
+  registrationCopyState.value = 'idle'
   actionError.value = ''
   actionNotice.value = ''
   resetRegistrationDraft()
+  void loadRegistrationLink()
 }
 
 function closeRegistrationDialog() {
   if (registrationLoading.value) return
   registrationDialog.value = false
   registrationEmail.value = ''
+  registrationLink.value = ''
+  registrationCopyState.value = 'idle'
+  actionError.value = ''
+  actionNotice.value = ''
   resetRegistrationDraft()
 }
 
@@ -926,15 +1010,13 @@ async function sendRegistrationLink() {
   const key = `registration-email:${salaId}`
   markPending(key, 'Registro familiar', { detail: 'Enviando el enlace por correo.' })
   try {
-    const response = await $fetch<{ emailed: number }>('/api/daycare/admin/registration-link-email', {
+    const response = await $fetch<{ emailed: number; url?: string }>('/api/daycare/admin/registration-link-email', {
       method: 'POST',
       body: { sala: salaId, to: recipient }
     })
     if (!response.emailed) throw new Error('El servidor no confirmó el envío.')
-    registrationDialog.value = false
-    registrationEmail.value = ''
-    resetRegistrationDraft()
-    actionNotice.value = 'Registro familiar enviado por correo.'
+    if (isCanonicalRegistrationLink(response.url)) registrationLink.value = String(response.url)
+    actionNotice.value = 'Correo enviado.'
     markDone(key, 'Registro familiar', { detail: 'El correo fue enviado.' })
   } catch (err: any) {
     markError(key, 'Registro familiar', { detail: 'No se pudo enviar el correo.' })
@@ -2364,6 +2446,71 @@ function initials(value?: string | null) {
   position: relative;
 }
 
+.registration-link-card {
+  background: linear-gradient(135deg, #f4faee, #fff8e8);
+  border: 1px solid rgba(87, 139, 38, 0.16);
+  border-radius: 22px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.registration-link-heading {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.registration-link-heading strong {
+  color: var(--family-ink);
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 5px;
+}
+
+.registration-link-heading p {
+  color: #66745e;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.registration-link-row {
+  align-items: stretch;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.registration-link-row a,
+.registration-link-loading {
+  background: #fff;
+  border: 1px solid rgba(87, 139, 38, 0.16);
+  border-radius: 14px;
+  color: #416a28;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.45;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 12px 13px;
+}
+
+.registration-link-loading {
+  color: #73806c;
+  font-family: inherit;
+}
+
+.registration-copy-button,
+.registration-retry-button {
+  white-space: nowrap;
+}
+
+.compact-notice { margin: 0; }
+
 .registration-email-mark {
   align-items: center;
   background: linear-gradient(135deg, #dff4e8, #fff1c9);
@@ -2562,6 +2709,22 @@ function initials(value?: string | null) {
   .family-confirmation-kpi {
     align-self: stretch;
     justify-content: center;
+  }
+
+  .registration-link-heading,
+  .registration-link-row {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-email-mark {
+    border-radius: 18px;
+    height: 54px;
+    width: 54px;
+  }
+
+  .registration-copy-button,
+  .registration-retry-button {
+    width: 100%;
   }
 
   .access-panel {

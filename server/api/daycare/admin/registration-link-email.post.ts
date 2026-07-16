@@ -43,5 +43,5 @@ export default defineEventHandler(async (event) => {
     throw publicError(502, 'No fue posible enviar el correo de registro con tu cuenta institucional.')
   }
 
-  return { ok: true, emailed: 1 }
+  return { ok: true, emailed: 1, url: link.url }
 })

@@ -5,6 +5,9 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { logSecurityDiagnostic, logSecurityWarning, securityHash } from '~/server/utils/securityDiagnostics'
 
 const DAYCARE_REGISTRATION_ORIGIN = 'https://admin.casitaiedis.edu.mx'
+const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
+const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send'
+const GMAIL_TIMEOUT_MS = 20_000
 
 type RegistrationLinkEmailInput = {
   to: string
@@ -19,20 +22,84 @@ type EmailConfig = {
   mode: 'gmail' | 'preview'
   serviceAccountEmail: string
   privateKey: string
+  delegatedUser: string
+}
+
+type DeliveryIdentity = {
+  delegatedUser: string
+  fromEmail: string
+  replyToEmail: string
+  strategy: 'current-user' | 'configured-delegated-user'
+}
+
+type BuiltRegistrationEmail = {
+  subject: string
+  text: string
+  html: string
+  raw: string
+  senderEmail: string
+  fromEmail: string
+  replyToEmail: string
+}
+
+class GmailDeliveryError extends Error {
+  stage: 'authorize' | 'send'
+  status: number | null
+
+  constructor(message: string, stage: 'authorize' | 'send', status: number | null = null, cause?: unknown) {
+    super(message, { cause })
+    this.name = 'GmailDeliveryError'
+    this.stage = stage
+    this.status = status
+  }
 }
 
 function decodePrivateKey(raw?: string | null) {
-  return String(raw || '').trim().replace(/\\n/g, '\n')
+  const value = String(raw || '').trim()
+  if (!value) return ''
+
+  // Vercel values are sometimes pasted as a JSON string. Parse only a quoted
+  // scalar; never attempt to interpret arbitrary key content as JSON.
+  if (value.startsWith('"') && value.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(value)
+      if (typeof parsed === 'string') return parsed.trim().replace(/\\n/g, '\n')
+    } catch {
+      // Fall through to the normal escaped-newline representation.
+    }
+  }
+
+  return value.replace(/\\n/g, '\n')
 }
 
 function getEmailConfig(): EmailConfig {
   const config = useRuntimeConfig()
   const recovery = config.passwordRecovery || {}
-  const modeValue = process.env.DAYCARE_REGISTRATION_EMAIL_MODE || process.env.DAYCARE_ACCESS_EMAIL_MODE || process.env.PASSWORD_RECOVERY_EMAIL_MODE || recovery.emailMode || 'gmail'
+  const requestedMode = String(
+    process.env.DAYCARE_REGISTRATION_EMAIL_MODE
+      || (process.env.NODE_ENV === 'production' ? 'gmail' : process.env.PASSWORD_RECOVERY_EMAIL_MODE)
+      || recovery.emailMode
+      || 'gmail'
+  ).trim().toLowerCase()
+
+  // A production registration request must always use Gmail. Inheriting a
+  // password-recovery preview setting previously caused every request to fail
+  // with a 502 because preview files cannot be written in production.
+  const mode: EmailConfig['mode'] = process.env.NODE_ENV === 'production'
+    ? 'gmail'
+    : requestedMode === 'preview' ? 'preview' : 'gmail'
+
   return {
-    mode: String(modeValue).trim().toLowerCase() === 'preview' ? 'preview' : 'gmail',
+    mode,
     serviceAccountEmail: String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || recovery.googleServiceAccountEmail || '').trim(),
-    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey)
+    privateKey: decodePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || recovery.googleServiceAccountPrivateKey),
+    delegatedUser: normalizeEmail(
+      process.env.GOOGLE_WORKSPACE_DELEGATED_USER
+        || process.env.GOOGLE_GMAIL_DELEGATED_USER
+        || recovery.googleDelegatedUser
+        || process.env.PASSWORD_RECOVERY_FROM_EMAIL
+        || recovery.fromEmail
+    )
   }
 }
 
@@ -90,11 +157,12 @@ function assertGmailConfig(config: EmailConfig) {
   }
 }
 
-export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
+function buildRegistrationEmail(input: RegistrationLinkEmailInput, identity: DeliveryIdentity): BuiltRegistrationEmail {
   const senderEmail = normalizeEmail(input.senderEmail)
   const senderName = headerText(input.senderName) || 'Equipo de Guardería'
+  const recipient = normalizeEmail(input.to)
   const location = `${input.unidad} · ${input.sala}`
-  const subject = `Completa tu registro en Husky Pass Guardería`
+  const subject = 'Completa tu registro en Husky Pass Guardería'
   const text = [
     'Hola,',
     '',
@@ -102,7 +170,8 @@ export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailIn
     '',
     input.url,
     '',
-    'Abre el enlace para registrar el correo familiar y crear la contraseña de acceso.',
+    'La madre, padre o tutor debe abrir el enlace o pegarlo completo en la barra de direcciones del navegador.',
+    'No debe escribirlo en el buscador de Google.',
     '',
     `Enviado por ${senderName}`
   ].join('\n')
@@ -142,6 +211,7 @@ export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailIn
                     <div style="padding:16px 18px;border:1px solid #dcece7;border-radius:16px;background:#f9fcfb">
                       <div style="margin-bottom:7px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#688191">Enlace de registro</div>
                       <a href="${escapeHtml(input.url)}" style="word-break:break-all;color:#087268;text-decoration:underline;font-size:14px;line-height:1.55">${escapeHtml(input.url)}</a>
+                      <p style="margin:12px 0 0;font-size:13px;line-height:1.55;color:#688191">La madre, padre o tutor debe abrir este enlace o pegarlo completo en la barra de direcciones del navegador. No debe escribirlo en el buscador de Google.</p>
                     </div>
                     <p style="margin:24px 0 0;font-size:14px;line-height:1.55;color:#688191">Este correo fue enviado por <strong style="color:#354f60">${escapeHtml(senderName)}</strong> desde Husky Pass Guardería.</p>
                   </td>
@@ -156,9 +226,9 @@ export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailIn
 
   const boundary = `hpc-daycare-registration-${Date.now().toString(36)}`
   const raw = [
-    `From: ${encodeMimeWord(senderName)} <${senderEmail}>`,
-    `Reply-To: ${senderEmail}`,
-    `To: ${input.to}`,
+    `From: ${encodeMimeWord(senderName)} <${identity.fromEmail}>`,
+    `Reply-To: ${identity.replyToEmail}`,
+    `To: ${recipient}`,
     `Subject: ${encodeMimeWord(subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -177,29 +247,77 @@ export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailIn
     '',
     `--${boundary}--`
   ].join('\r\n')
-  return { subject, text, html, raw, senderEmail }
+
+  return {
+    subject,
+    text,
+    html,
+    raw,
+    senderEmail,
+    fromEmail: identity.fromEmail,
+    replyToEmail: identity.replyToEmail
+  }
 }
 
-async function sendWithGmail(raw: string, config: EmailConfig, delegatedUser: string) {
+export function buildDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
+  const senderEmail = normalizeEmail(input.senderEmail)
+  assertInstitutionalSender(senderEmail)
+  return buildRegistrationEmail(input, {
+    delegatedUser: senderEmail,
+    fromEmail: senderEmail,
+    replyToEmail: senderEmail,
+    strategy: 'current-user'
+  })
+}
+
+async function sendWithGmail(raw: string, config: EmailConfig, identity: DeliveryIdentity) {
   assertGmailConfig(config)
-  assertInstitutionalSender(delegatedUser)
+  assertInstitutionalSender(identity.delegatedUser)
+  assertInstitutionalSender(identity.fromEmail)
+  assertInstitutionalSender(identity.replyToEmail)
+
   const client = new JWT({
     email: config.serviceAccountEmail,
     key: config.privateKey,
-    scopes: ['https://www.googleapis.com/auth/gmail.send'],
-    subject: delegatedUser
+    scopes: [GMAIL_SEND_SCOPE],
+    subject: identity.delegatedUser
   })
-  const accessToken = await client.getAccessToken()
-  if (!accessToken.token) throw new Error('Google service-account token was not issued.')
-  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raw: base64url(raw) })
-  })
-  if (!response.ok) throw new Error(`Gmail send failed with ${response.status}: ${(await response.text()).slice(0, 500)}`)
+
+  let token: string
+  try {
+    const accessToken = await client.getAccessToken()
+    token = String(accessToken.token || '')
+    if (!token) throw new Error('Google service-account token was not issued.')
+  } catch (error) {
+    throw new GmailDeliveryError('Google Workspace delegation could not authorize the sender.', 'authorize', null, error)
+  }
+
+  let response: Response
+  try {
+    response = await fetch(GMAIL_SEND_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8'
+      },
+      body: JSON.stringify({ raw: base64url(raw) }),
+      signal: AbortSignal.timeout(GMAIL_TIMEOUT_MS)
+    })
+  } catch (error) {
+    throw new GmailDeliveryError('The Gmail API request could not be completed.', 'send', null, error)
+  }
+
+  if (!response.ok) {
+    const responseBody = await response.text().catch(() => '')
+    throw new GmailDeliveryError(
+      `Gmail send failed with ${response.status}: ${responseBody.slice(0, 500)}`,
+      'send',
+      response.status
+    )
+  }
 }
 
-async function writePreviewEmail(input: RegistrationLinkEmailInput, email: ReturnType<typeof buildDaycareRegistrationLinkEmail>) {
+async function writePreviewEmail(input: RegistrationLinkEmailInput, email: BuiltRegistrationEmail) {
   if (process.env.NODE_ENV === 'production') throw new Error('Email preview mode is not available in production.')
   const dir = join(process.cwd(), 'artifacts', 'daycare-registration-emails')
   await mkdir(dir, { recursive: true })
@@ -209,6 +327,7 @@ async function writePreviewEmail(input: RegistrationLinkEmailInput, email: Retur
   await writeFile(join(dir, `${base}.json`), JSON.stringify({
     toHash: securityHash(input.to),
     senderHash: securityHash(email.senderEmail),
+    fromHash: securityHash(email.fromEmail),
     subject: email.subject,
     html: email.html,
     text: email.text
@@ -216,26 +335,99 @@ async function writePreviewEmail(input: RegistrationLinkEmailInput, email: Retur
   await writeFile(join(dir, `${base}.eml`), email.raw, 'utf8')
 }
 
+function currentUserIdentity(senderEmail: string): DeliveryIdentity {
+  return {
+    delegatedUser: senderEmail,
+    fromEmail: senderEmail,
+    replyToEmail: senderEmail,
+    strategy: 'current-user'
+  }
+}
+
+function configuredFallbackIdentity(config: EmailConfig, senderEmail: string): DeliveryIdentity | null {
+  const delegatedUser = normalizeEmail(config.delegatedUser)
+  if (!delegatedUser || delegatedUser === senderEmail) return null
+  if (!/@casitaiedis\.edu\.mx$/i.test(delegatedUser)) return null
+  return {
+    delegatedUser,
+    fromEmail: delegatedUser,
+    replyToEmail: senderEmail,
+    strategy: 'configured-delegated-user'
+  }
+}
+
 export async function sendDaycareRegistrationLinkEmail(input: RegistrationLinkEmailInput) {
   const config = getEmailConfig()
   const senderEmail = normalizeEmail(input.senderEmail)
   assertInstitutionalSender(senderEmail)
   assertCanonicalRegistrationUrl(input.url)
-  const email = buildDaycareRegistrationLinkEmail({ ...input, senderEmail })
-  try {
-    if (config.mode === 'preview') await writePreviewEmail(input, email)
-    else await sendWithGmail(email.raw, config, senderEmail)
+
+  const primaryIdentity = currentUserIdentity(senderEmail)
+  const primaryEmail = buildRegistrationEmail({ ...input, senderEmail }, primaryIdentity)
+
+  if (config.mode === 'preview') {
+    await writePreviewEmail(input, primaryEmail)
     logSecurityWarning('daycare-registration-link-email-delivered', {
       mode: config.mode,
+      strategy: primaryIdentity.strategy,
       toHash: securityHash(input.to),
       senderHash: securityHash(senderEmail)
     })
-  } catch (error) {
-    logSecurityDiagnostic('daycare-registration-link-email-failed', error, {
+    return
+  }
+
+  try {
+    await sendWithGmail(primaryEmail.raw, config, primaryIdentity)
+    logSecurityWarning('daycare-registration-link-email-delivered', {
       mode: config.mode,
+      strategy: primaryIdentity.strategy,
       toHash: securityHash(input.to),
       senderHash: securityHash(senderEmail)
     })
-    throw error
+    return
+  } catch (primaryError) {
+    const fallbackIdentity = configuredFallbackIdentity(config, senderEmail)
+    if (!fallbackIdentity) {
+      logSecurityDiagnostic('daycare-registration-link-email-failed', primaryError, {
+        mode: config.mode,
+        strategy: primaryIdentity.strategy,
+        toHash: securityHash(input.to),
+        senderHash: securityHash(senderEmail)
+      })
+      throw primaryError
+    }
+
+    logSecurityWarning('daycare-registration-link-email-using-fallback', {
+      mode: config.mode,
+      primaryStage: primaryError instanceof GmailDeliveryError ? primaryError.stage : 'unknown',
+      primaryStatus: primaryError instanceof GmailDeliveryError ? primaryError.status : null,
+      toHash: securityHash(input.to),
+      senderHash: securityHash(senderEmail),
+      delegatedHash: securityHash(fallbackIdentity.delegatedUser)
+    })
+
+    const fallbackEmail = buildRegistrationEmail({ ...input, senderEmail }, fallbackIdentity)
+    try {
+      await sendWithGmail(fallbackEmail.raw, config, fallbackIdentity)
+      logSecurityWarning('daycare-registration-link-email-delivered', {
+        mode: config.mode,
+        strategy: fallbackIdentity.strategy,
+        toHash: securityHash(input.to),
+        senderHash: securityHash(senderEmail),
+        delegatedHash: securityHash(fallbackIdentity.delegatedUser)
+      })
+      return
+    } catch (fallbackError) {
+      logSecurityDiagnostic('daycare-registration-link-email-failed', fallbackError, {
+        mode: config.mode,
+        strategy: fallbackIdentity.strategy,
+        primaryStage: primaryError instanceof GmailDeliveryError ? primaryError.stage : 'unknown',
+        primaryStatus: primaryError instanceof GmailDeliveryError ? primaryError.status : null,
+        toHash: securityHash(input.to),
+        senderHash: securityHash(senderEmail),
+        delegatedHash: securityHash(fallbackIdentity.delegatedUser)
+      })
+      throw fallbackError
+    }
   }
 }
